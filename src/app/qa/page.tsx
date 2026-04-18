@@ -60,6 +60,25 @@ const TRANSLATIONS = {
     sending: '正在思考...',
     quickTitle: '或从这些常见问题开始：',
     sourcesTitle: '参考开示：',
+    welcomeTitle: '欢迎来到 心灵法门 智慧问答',
+    welcomePrivacy: '关于您的隐私',
+    welcomePrivacy1: '对话不会被保存',
+    welcomePrivacy2: '不需要注册，没有账号',
+    welcomePrivacy3: '每次对话都是全新的开始',
+    welcomeOffer: '这里能帮您什么',
+    welcomeOffer1: '基于台长 47 部著作的智慧引导',
+    welcomeOffer2: '念经、许愿、放生、化解冤结的修行方法',
+    welcomeOffer3: '陪您度过困难时刻',
+    welcomeLimit: '这里不替代什么',
+    welcomeLimit1: '医生的诊断 \u2192 身体不舒服请看医生',
+    welcomeLimit2: '律师的意见 \u2192 法律事务请咨询专业',
+    welcomeLimit3: '重大决定 \u2192 人生决定请自己选择',
+    welcomeEmergency: '紧急情况，请拨打：',
+    welcomeBtn: '我明白了，开始问答',
+    footerLine1: '一切免费结缘 \u00b7 对话不保存 \u00b7 佛法引导不替代专业意见',
+    footerLine2: '紧急：',
+    footerMental: '心理：',
+    footerDV: '家暴：',
   },
   en: {
     title: 'AI Wisdom Q&A',
@@ -70,6 +89,25 @@ const TRANSLATIONS = {
     sending: 'Thinking...',
     quickTitle: 'Or start with these common questions:',
     sourcesTitle: 'References:',
+    welcomeTitle: 'Welcome to Xin Ling Fa Men Wisdom Q&A',
+    welcomePrivacy: 'Your Privacy',
+    welcomePrivacy1: 'Conversations are not stored',
+    welcomePrivacy2: 'No registration, no account',
+    welcomePrivacy3: 'Each session starts fresh',
+    welcomeOffer: 'What We Offer',
+    welcomeOffer1: "Guidance from Master Lu's 47 books (~5M words)",
+    welcomeOffer2: 'Practice methods: sutra recitation, vows, life release',
+    welcomeOffer3: 'Companionship through difficult times',
+    welcomeLimit: "What We Don't Replace",
+    welcomeLimit1: "Doctor's diagnosis \u2192 See a doctor for health concerns",
+    welcomeLimit2: "Lawyer's advice \u2192 Consult a professional for legal matters",
+    welcomeLimit3: 'Major decisions \u2192 These are yours to make',
+    welcomeEmergency: 'Emergency Resources:',
+    welcomeBtn: 'I understand, start Q&A',
+    footerLine1: 'Free forever \u00b7 Conversations not stored \u00b7 Spiritual guidance, not professional advice',
+    footerLine2: 'Emergency: ',
+    footerMental: 'Mental: ',
+    footerDV: 'DV: ',
   },
   id: {
     title: 'Tanya Jawab Kebijaksanaan',
@@ -80,6 +118,25 @@ const TRANSLATIONS = {
     sending: 'Memikirkan...',
     quickTitle: 'Atau mulai dengan pertanyaan umum ini:',
     sourcesTitle: 'Referensi:',
+    welcomeTitle: 'Selamat Datang ke Xin Ling Fa Men Wisdom Q&A',
+    welcomePrivacy: 'Privasi Anda',
+    welcomePrivacy1: 'Perbualan tidak disimpan',
+    welcomePrivacy2: 'Tiada pendaftaran, tiada akaun',
+    welcomePrivacy3: 'Setiap sesi bermula semula',
+    welcomeOffer: 'Apa Kami Tawarkan',
+    welcomeOffer1: 'Panduan dari 47 buku Master Lu (~5 juta perkataan)',
+    welcomeOffer2: 'Kaedah amalan: bacaan sutra, ikrar, pelepasan hidupan',
+    welcomeOffer3: 'Teman dalam masa sukar',
+    welcomeLimit: 'Apa Kami Tidak Gantikan',
+    welcomeLimit1: 'Diagnosis doktor \u2192 Jumpa doktor untuk kesihatan',
+    welcomeLimit2: 'Nasihat peguam \u2192 Rujuk profesional untuk hal undang-undang',
+    welcomeLimit3: 'Keputusan besar \u2192 Ini keputusan anda sendiri',
+    welcomeEmergency: 'Bantuan Kecemasan:',
+    welcomeBtn: 'Saya faham, mulakan Q&A',
+    footerLine1: 'Percuma selamanya \u00b7 Perbualan tidak disimpan \u00b7 Panduan rohani bukan nasihat profesional',
+    footerLine2: 'Kecemasan: ',
+    footerMental: 'Mental: ',
+    footerDV: 'DV: ',
   },
 };
 
@@ -93,12 +150,23 @@ export default function QAPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showJumpButton, setShowJumpButton] = useState(false);
+  const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const wasAtBottomRef = useRef(true);
   const latestUserMessageRef = useRef<HTMLDivElement | null>(null);
 
   const t = TRANSLATIONS[language];
+
+  useEffect(() => {
+    const seen = localStorage.getItem('xlfm-welcome-seen');
+    setHasSeenWelcome(seen === 'true');
+  }, []);
+
+  const dismissWelcome = () => {
+    localStorage.setItem('xlfm-welcome-seen', 'true');
+    setHasSeenWelcome(true);
+  };
 
   const handleNewConversation = () => {
     if (messages.length > 0) {
@@ -255,6 +323,72 @@ export default function QAPage() {
 
   return (
     <div className="min-h-screen bg-[#FFF8E7]">
+      {/* Welcome Modal — first visit only */}
+      {hasSeenWelcome === false && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-[#FFF8E7] rounded-2xl shadow-2xl max-w-[480px] w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+            <h2 className="text-xl font-bold text-[#4A3728] text-center mb-5">
+              {t.welcomeTitle}
+            </h2>
+
+            <div className="space-y-4 text-sm text-[#4A3728]">
+              <div>
+                <p className="font-semibold mb-1.5">{'🔒'} {t.welcomePrivacy}</p>
+                <ul className="space-y-1 text-[#7A6B55]">
+                  <li>{'•'} {t.welcomePrivacy1}</li>
+                  <li>{'•'} {t.welcomePrivacy2}</li>
+                  <li>{'•'} {t.welcomePrivacy3}</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold mb-1.5">{'\uD83D\uDCFF'} {t.welcomeOffer}</p>
+                <ul className="space-y-1 text-[#7A6B55]">
+                  <li>{'•'} {t.welcomeOffer1}</li>
+                  <li>{'•'} {t.welcomeOffer2}</li>
+                  <li>{'•'} {t.welcomeOffer3}</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold mb-1.5">{'\uD83D\uDE4F'} {t.welcomeLimit}</p>
+                <ul className="space-y-1 text-[#7A6B55]">
+                  <li>{'•'} {t.welcomeLimit1}</li>
+                  <li>{'•'} {t.welcomeLimit2}</li>
+                  <li>{'•'} {t.welcomeLimit3}</li>
+                </ul>
+              </div>
+
+              <div className="bg-red-50 rounded-xl p-3">
+                <p className="font-semibold mb-1.5 text-red-800">{'\uD83D\uDEA8'} {t.welcomeEmergency}</p>
+                <ul className="space-y-1 text-red-700 text-xs">
+                  <li>{'•'} {language === 'zh' ? '医疗紧急 / 生命危险' : language === 'en' ? 'Medical / Life-threatening' : 'Kecemasan Perubatan / Nyawa'}:{' '}
+                    <a href="tel:999" className="underline font-semibold">999</a>
+                  </li>
+                  <li>{'•'} {language === 'zh' ? '心理危机' : language === 'en' ? 'Mental Crisis' : 'Krisis Mental'}:{' '}
+                    <a href="tel:0376272929" className="underline font-semibold">Befrienders KL: 03-7627 2929</a>
+                  </li>
+                  <li>{'•'} {language === 'zh' ? '家暴求助' : language === 'en' ? 'Domestic Violence' : 'Keganasan Rumah Tangga'}:{' '}
+                    <a href="tel:15999" className="underline font-semibold">Talian Kasih: 15999</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <p className="text-center text-xs text-[#7A6B55] mt-4">
+              {language === 'zh' ? '一切免费结缘 · 菩萨慈悲' : language === 'en' ? 'Free forever · With Bodhisattva\'s compassion' : 'Percuma selamanya · Dengan belas kasihan Bodhisattva'} {'\uD83D\uDE4F'}
+            </p>
+
+            <button
+              onClick={dismissWelcome}
+              className="mt-5 w-full py-3 bg-[#E8960C] hover:bg-[#C47A08] text-white rounded-xl font-medium transition text-base"
+            >
+              {t.welcomeBtn}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="border-b border-[#F0E6D0] bg-white/60 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -490,6 +624,18 @@ export default function QAPage() {
         </form>
         </>
       )}
+
+      {/* Persistent safety footer */}
+      <div className={`${messages.length > 0 ? 'fixed bottom-[68px] left-0 right-0 bg-white/80 backdrop-blur-sm' : ''} border-t border-[#F0E6D0] py-2 px-4 text-center`}>
+        <p className="text-[10px] text-amber-700/60 leading-relaxed">
+          {'\uD83D\uDE4F'} {t.footerLine1}
+        </p>
+        <p className="text-[10px] text-amber-700/50 leading-relaxed">
+          {t.footerLine2}<a href="tel:999" className="underline">999</a>
+          {' | '}{t.footerMental}<a href="tel:0376272929" className="underline">Befrienders 03-7627 2929</a>
+          {' | '}{t.footerDV}<a href="tel:15999" className="underline">Talian Kasih 15999</a>
+        </p>
+      </div>
     </div>
   );
 }
