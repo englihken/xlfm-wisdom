@@ -50,3 +50,13 @@ html {
 .animate-float {
   animation: float 4s ease-in-out infinite;
 }
+
+/* Fade-in for sources after streaming */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
