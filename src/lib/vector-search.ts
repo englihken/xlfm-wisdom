@@ -46,6 +46,7 @@ export type Topic =
   | 'health'
   | 'children'
   | 'karma_debt'
+  | 'karma_warning'
   | 'practice_method';
 
 // === BOOK PRIORITY (for tie-breaking) ===
@@ -77,6 +78,12 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
   karma_debt: [
     '业障', '冤结', '因果', '前世', '还债', '要经者', '小灵性',
   ],
+  // Crisis-shaped karma questions that the four-step crisis protocol needs to
+  // answer with factual warnings from 佛子天地游记 / 白话佛法.
+  karma_warning: [
+    '自杀', '自伤', '轻生', '堕胎', '打胎', '流产', '果报', '报应',
+    '杀生', '堕落', '地狱', '死后', '投胎', '超生',
+  ],
   practice_method: [
     '念经', '大悲咒', '心经', '礼佛', '解结咒', '小房子', '放生',
     '许愿', '功课', '佛台', '怎么念', '多少遍',
@@ -88,9 +95,10 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
 // still dominates — these only break near-ties.
 const TOPIC_TYPE_BOOST: Record<Topic, Record<string, number>> = {
   marriage_emotion: { marriage_case_study: 0.05 },
-  health: {},
+  health: { case_study: 0.04, disease_encyclopedia: 0.04 },
   children: {},
   karma_debt: { xiaofangzi_guide: 0.04, buddhist_basics: 0.02 },
+  karma_warning: { spirit_world: 0.05 },
   practice_method: {
     beginner_guide: 0.03,
     altar_guide: 0.03,
@@ -197,6 +205,21 @@ export async function searchRelevantTeachings(
     if (topics.includes('marriage_emotion')) {
       queries.push(
         pineconeSearch(query, 7, { book_category: { $eq: 'marriage_emotion' } })
+      );
+    }
+
+    // Wave 6A wiring: health books (疾病百科 / 疾病实例) + spirit-realm books
+    // (佛子天地游记) now have book_category, so the same two-query merge
+    // pattern can guarantee they surface for illness queries and for crisis
+    // protocol karma-warning scenarios.
+    if (topics.includes('health')) {
+      queries.push(
+        pineconeSearch(query, 5, { book_category: { $eq: 'health' } })
+      );
+    }
+    if (topics.includes('karma_warning')) {
+      queries.push(
+        pineconeSearch(query, 5, { book_category: { $eq: 'spirit_realm' } })
       );
     }
 

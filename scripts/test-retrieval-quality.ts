@@ -105,6 +105,38 @@ const CASES: TestCase[] = [
       };
     },
   },
+  // --- Wave 6A coverage ---
+  {
+    query: '我身体很痛怎么办',
+    expectation: '疾病类书（疾病百科 / 疾病实例 / book_category=health）优先',
+    passIf: (ps) => {
+      const healthHits = ps.filter((p) => {
+        const b = p.book ?? '';
+        return (
+          b.startsWith('疾病百科') ||
+          b.startsWith('心灵法门治疗疾病灵验实例') ||
+          b.startsWith('疾病实例')
+        );
+      }).length;
+      return {
+        ok: healthHits >= 3,
+        detail: `疾病类书 chunks = ${healthHits}/10 (need ≥3)`,
+      };
+    },
+  },
+  {
+    query: '自杀的果报是什么',
+    expectation: '《佛子天地游记》出现在 top-10（因果警示场景）',
+    passIf: (ps) => {
+      const spiritHits = ps.filter((p) =>
+        (p.book ?? '').startsWith('佛子天地游记')
+      ).length;
+      return {
+        ok: spiritHits >= 1,
+        detail: `《佛子天地游记》chunks = ${spiritHits}/10 (need ≥1)`,
+      };
+    },
+  },
 ];
 
 function formatScore(n: number): string {
