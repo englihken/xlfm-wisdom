@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 1: Search for relevant teachings from vector DB
-    const passages = await searchRelevantTeachings(message, 5);
+    // Step 1: Search for relevant teachings from vector DB (default top_k = 10)
+    const passages = await searchRelevantTeachings(message);
     const contextBlock = formatPassagesAsContext(passages);
 
     console.log('[chat] Retrieved passages:', passages.map(t => ({ book: t.book, score: t.score.toFixed(3) })));
