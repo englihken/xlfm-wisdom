@@ -73,9 +73,12 @@ const TRANSLATIONS = {
     welcomeLimit1: '医生的诊断 \u2192 身体不舒服请看医生',
     welcomeLimit2: '律师的意见 \u2192 法律事务请咨询专业',
     welcomeLimit3: '重大决定 \u2192 人生决定请自己选择',
+    welcomeLegalTitle: '🇲🇾 For Non-Muslim Only',
+    welcomeLegalBody: '本平台只为非穆斯林群体提供心灵法门指引，尊重马来西亚法律与各宗教信仰。',
     welcomeEmergency: '紧急情况，请拨打：',
     welcomeBtn: '我明白了，开始问答',
     footerLine1: '一切免费结缘 \u00b7 对话不保存 \u00b7 佛法引导不替代专业意见',
+    footerLineLegal: '🇲🇾 For Non-Muslim Only · 尊重马来西亚法律',
     footerLine2: '紧急：',
     footerMental: '心理：',
     footerDV: '家暴：',
@@ -102,9 +105,12 @@ const TRANSLATIONS = {
     welcomeLimit1: "Doctor's diagnosis \u2192 See a doctor for health concerns",
     welcomeLimit2: "Lawyer's advice \u2192 Consult a professional for legal matters",
     welcomeLimit3: 'Major decisions \u2192 These are yours to make',
+    welcomeLegalTitle: '🇲🇾 For Non-Muslim Only',
+    welcomeLegalBody: 'This platform serves non-Muslim audiences only, respecting Malaysian law and all religious beliefs.',
     welcomeEmergency: 'Emergency Resources:',
     welcomeBtn: 'I understand, start Q&A',
     footerLine1: 'Free forever \u00b7 Conversations not stored \u00b7 Spiritual guidance, not professional advice',
+    footerLineLegal: '🇲🇾 For Non-Muslim Only · Respecting Malaysian Law',
     footerLine2: 'Emergency: ',
     footerMental: 'Mental: ',
     footerDV: 'DV: ',
@@ -131,9 +137,12 @@ const TRANSLATIONS = {
     welcomeLimit1: 'Diagnosis doktor \u2192 Jumpa doktor untuk kesihatan',
     welcomeLimit2: 'Nasihat peguam \u2192 Rujuk profesional untuk hal undang-undang',
     welcomeLimit3: 'Keputusan besar \u2192 Ini keputusan anda sendiri',
+    welcomeLegalTitle: '🇲🇾 For Non-Muslim Only',
+    welcomeLegalBody: 'Platform ini hanya melayani audiens non-Muslim, menghormati hukum Malaysia dan semua kepercayaan agama.',
     welcomeEmergency: 'Bantuan Kecemasan:',
     welcomeBtn: 'Saya faham, mulakan Q&A',
     footerLine1: 'Percuma selamanya \u00b7 Perbualan tidak disimpan \u00b7 Panduan rohani bukan nasihat profesional',
+    footerLineLegal: '🇲🇾 For Non-Muslim Only · Menghormati Hukum Malaysia',
     footerLine2: 'Kecemasan: ',
     footerMental: 'Mental: ',
     footerDV: 'DV: ',
@@ -357,6 +366,11 @@ export default function QAPage() {
                   <li>{'•'} {t.welcomeLimit2}</li>
                   <li>{'•'} {t.welcomeLimit3}</li>
                 </ul>
+              </div>
+
+              <div className="rounded-xl p-3 border-2 border-blue-300 bg-blue-50">
+                <p className="font-semibold text-blue-900 text-sm mb-1">{t.welcomeLegalTitle}</p>
+                <p className="text-xs text-blue-800 leading-relaxed">{t.welcomeLegalBody}</p>
               </div>
 
               <div className="bg-red-50 rounded-xl p-3">
@@ -629,6 +643,9 @@ export default function QAPage() {
       <div className={`${messages.length > 0 ? 'fixed bottom-[68px] left-0 right-0 bg-white/80 backdrop-blur-sm' : ''} border-t border-[#F0E6D0] py-2 px-4 text-center`}>
         <p className="text-[10px] text-amber-700/60 leading-relaxed">
           {'\uD83D\uDE4F'} {t.footerLine1}
+        </p>
+        <p className="text-[10px] text-amber-800/80 leading-relaxed mt-1">
+          {t.footerLineLegal}
         </p>
         <p className="text-[10px] text-amber-700/50 leading-relaxed">
           {t.footerLine2}<a href="tel:999" className="underline">999</a>
