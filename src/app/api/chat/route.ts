@@ -38,11 +38,8 @@ export async function POST(req: NextRequest) {
 
     console.log('[chat] Retrieved passages:', passages.map(t => ({ book: t.book, score: t.score.toFixed(3) })));
 
-    // Step 2: Build the system prompt with retrieved context
+    // Step 2: Build the system prompt
     const baseSystemPrompt = getSystemPrompt(language);
-    const enhancedSystemPrompt = contextBlock
-      ? `${baseSystemPrompt}\n\n${contextBlock}`
-      : baseSystemPrompt;
 
     // Step 3: Build messages array
     const messages = [
@@ -56,11 +53,22 @@ export async function POST(req: NextRequest) {
       },
     ];
 
-    // Step 4: Stream response from Claude
+    // Step 4: Stream response from Claude.
+    // The base system prompt (~50K tokens, stable across turns) gets a
+    // 5-min ephemeral cache breakpoint. Retrieved RAG context is a
+    // separate block with no cache_control because it varies per query
+    // — caching it would invalidate the whole prefix on every turn.
     const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 2000,
-      system: enhancedSystemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: baseSystemPrompt,
+          cache_control: { type: 'ephemeral' },
+        },
+        ...(contextBlock ? [{ type: 'text' as const, text: contextBlock }] : []),
+      ],
       messages,
     });
 
@@ -114,6 +122,16 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode(`data: ${data}\n\n`));
             }
           }
+
+          // Log cache stats for monitoring (cache_creation on first call,
+          // cache_read on subsequent calls within the 5-min TTL).
+          const finalMessage = await stream.finalMessage();
+          console.log('[chat] Cache usage:', {
+            cache_creation: finalMessage.usage.cache_creation_input_tokens,
+            cache_read: finalMessage.usage.cache_read_input_tokens,
+            input: finalMessage.usage.input_tokens,
+            output: finalMessage.usage.output_tokens,
+          });
 
           // Send done signal
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
