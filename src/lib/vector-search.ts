@@ -47,7 +47,8 @@ export type Topic =
   | 'children'
   | 'karma_debt'
   | 'karma_warning'
-  | 'practice_method';
+  | 'practice_method'
+  | 'muslim_boundary';
 
 // === BOOK PRIORITY (for tie-breaking) ===
 // When two passages have similar relevance scores, prefer these sources
@@ -88,6 +89,15 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
     '念经', '大悲咒', '心经', '礼佛', '解结咒', '小房子', '放生',
     '许愿', '功课', '佛台', '怎么念', '多少遍',
   ],
+  // Malaysia legal red line. No dedicated retrieval collection — this topic
+  // exists purely to mark the query so Section 21 of the system prompt
+  // (穆斯林边界) can enforce the mandatory template. Propagation advice to
+  // Muslims is a criminal offense under state-level enactments.
+  muslim_boundary: [
+    '穆斯林', '回教', '回教徒', '马来人', '伊斯兰',
+    'Muslim', 'Islam', 'Malay', 'Melayu',
+    '马来朋友', '穆斯林朋友', '回教朋友',
+  ],
 };
 
 // Score boost applied during re-ranking when a passage's `type` matches a
@@ -105,6 +115,7 @@ const TOPIC_TYPE_BOOST: Record<Topic, Record<string, number>> = {
     xiaofangzi_guide: 0.03,
     ethics_guide: 0.02,
   },
+  muslim_boundary: {},
 };
 
 export function detectTopics(query: string): Topic[] {
