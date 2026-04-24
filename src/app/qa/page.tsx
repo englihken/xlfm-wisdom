@@ -368,9 +368,9 @@ export default function QAPage() {
                 </ul>
               </div>
 
-              <div className="rounded-xl p-3 border-2 border-blue-300 bg-blue-50">
-                <p className="font-semibold text-blue-900 text-sm mb-1">{t.welcomeLegalTitle}</p>
-                <p className="text-xs text-blue-800 leading-relaxed">{t.welcomeLegalBody}</p>
+              <div className="mb-4 p-4 rounded-lg border-2 border-red-400 bg-red-50">
+                <p className="font-bold text-red-700 text-base mb-1">{t.welcomeLegalTitle}</p>
+                <p className="text-sm text-red-800">{t.welcomeLegalBody}</p>
               </div>
 
               <div className="bg-red-50 rounded-xl p-3">
@@ -644,9 +644,11 @@ export default function QAPage() {
         <p className="text-[10px] text-amber-700/60 leading-relaxed">
           {'\uD83D\uDE4F'} {t.footerLine1}
         </p>
-        <p className="text-[10px] text-amber-800/80 leading-relaxed mt-1">
-          {t.footerLineLegal}
-        </p>
+        <div className="text-center my-2">
+          <p className="text-sm font-bold text-red-700 px-3 py-1.5 inline-block bg-red-50 border-2 border-red-300 rounded-md">
+            {t.footerLineLegal}
+          </p>
+        </div>
         <p className="text-[10px] text-amber-700/50 leading-relaxed">
           {t.footerLine2}<a href="tel:999" className="underline">999</a>
           {' | '}{t.footerMental}<a href="tel:0376272929" className="underline">Befrienders 03-7627 2929</a>
