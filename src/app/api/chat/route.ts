@@ -38,11 +38,8 @@ export async function POST(req: NextRequest) {
 
     console.log('[chat] Retrieved passages:', passages.map(t => ({ book: t.book, score: t.score.toFixed(3) })));
 
-    // Step 2: Build the system prompt with retrieved context
+    // Step 2: Build the system prompt
     const baseSystemPrompt = getSystemPrompt(language);
-    const enhancedSystemPrompt = contextBlock
-      ? `${baseSystemPrompt}\n\n${contextBlock}`
-      : baseSystemPrompt;
 
     // Step 3: Build messages array
     const messages = [
@@ -56,11 +53,21 @@ export async function POST(req: NextRequest) {
       },
     ];
 
-    // Step 4: Stream response from Claude
+    // Step 4: Stream response from Claude.
+    // System is split into two blocks so the stable base prompt hits
+    // the 5-min ephemeral cache across turns; retrieved RAG context
+    // varies per query and stays uncached.
     const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 2000,
-      system: enhancedSystemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: baseSystemPrompt,
+          cache_control: { type: 'ephemeral' },
+        },
+        ...(contextBlock ? [{ type: 'text' as const, text: contextBlock }] : []),
+      ],
       messages,
     });
 
