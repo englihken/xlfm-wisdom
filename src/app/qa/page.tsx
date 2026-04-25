@@ -449,9 +449,6 @@ export default function QAPage() {
 
       {messages.length === 0 ? (
         <div className="flex flex-col items-center px-4 py-8 sm:py-12 max-w-2xl mx-auto">
-          <div className="inline-block p-4 bg-[#FAEFD0] rounded-full mb-4">
-            <Sparkles className="w-12 h-12 text-[#D89938]" />
-          </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-[#583A0F] mb-3 text-center">{t.subtitle}</h2>
           <p className="text-[#8B6F47] text-lg">{t.free}</p>
 
