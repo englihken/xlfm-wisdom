@@ -8,6 +8,10 @@ import { Pinecone } from '@pinecone-database/pinecone';
 // === CONFIG ===
 const NAMESPACE = 'xlfm-wisdom';
 const DEFAULT_TOP_K = 10;
+// Average top-K cosine score below which an en/id query falls back to the
+// general (cross-language) corpus. Tunable. Pre-rerank scores from
+// multilingual-e5-large typically sit in the 0.6–0.95 range for relevant hits.
+const LANG_FALLBACK_THRESHOLD = 0.7;
 
 // === INIT ===
 const pinecone = new Pinecone({
@@ -39,6 +43,13 @@ export interface RetrievedPassage {
   page_start?: number;
   page_end?: number;
   excerpt?: string;
+  // Explicit language tag on new uploads. Absent on legacy zh chunks (Option B
+  // backfill: untagged → treat as zh by default).
+  language?: 'zh' | 'en' | 'id';
+  // True when this chunk came back via the cross-language fallback path
+  // (en/id user, primary lang-filtered results were weak, no-filter retry
+  // surfaced this chunk). Internal only — used for logging.
+  cross_language_fallback?: boolean;
 }
 
 export type Topic =
@@ -180,6 +191,7 @@ async function pineconeSearch(
     page_start: hit.fields?.page_start,
     page_end: hit.fields?.page_end,
     excerpt: hit.fields?.excerpt,
+    language: hit.fields?.language,
   }));
 }
 
@@ -200,22 +212,39 @@ async function pineconeSearch(
  */
 export async function searchRelevantTeachings(
   query: string,
-  topK: number = DEFAULT_TOP_K
+  topK: number = DEFAULT_TOP_K,
+  userLang: 'zh' | 'en' | 'id' = 'zh',
 ): Promise<RetrievedPassage[]> {
   if (!query || query.trim().length === 0) return [];
 
   try {
     const topics = detectTopics(query);
 
+    // Language filter strategy:
+    // - zh users: NO filter. The 13,856 legacy zh chunks have no `language`
+    //   field, so a `language: $eq: 'zh'` filter would zero them out (Option B
+    //   backfill convention). Embedding similarity already biases against
+    //   cross-language matches naturally.
+    // - en/id users: filter to userLang so language-tagged chunks dominate.
+    const langFilter = userLang === 'zh' ? null : { language: { $eq: userLang } };
+
+    const mergeWith = (extra?: object): object | undefined => {
+      const merged: Record<string, unknown> = {};
+      if (langFilter) Object.assign(merged, langFilter);
+      if (extra) Object.assign(merged, extra);
+      return Object.keys(merged).length > 0 ? merged : undefined;
+    };
+
     // Build parallel queries. General query first, plus filtered queries for
-    // any topic that has a dedicated book collection in the corpus.
+    // any topic that has a dedicated book collection in the corpus. Language
+    // filter (if any) is merged into every primary query.
     const queries: Promise<RetrievedPassage[]>[] = [
-      pineconeSearch(query, topK), // general, no filter
+      pineconeSearch(query, topK, mergeWith()),
     ];
 
     if (topics.includes('marriage_emotion')) {
       queries.push(
-        pineconeSearch(query, 7, { book_category: { $eq: 'marriage_emotion' } })
+        pineconeSearch(query, 7, mergeWith({ book_category: { $eq: 'marriage_emotion' } }))
       );
     }
 
@@ -225,25 +254,60 @@ export async function searchRelevantTeachings(
     // protocol karma-warning scenarios.
     if (topics.includes('health')) {
       queries.push(
-        pineconeSearch(query, 5, { book_category: { $eq: 'health' } })
+        pineconeSearch(query, 5, mergeWith({ book_category: { $eq: 'health' } }))
       );
     }
     if (topics.includes('karma_warning')) {
       queries.push(
-        pineconeSearch(query, 5, { book_category: { $eq: 'spirit_realm' } })
+        pineconeSearch(query, 5, mergeWith({ book_category: { $eq: 'spirit_realm' } }))
       );
     }
 
     const resultGroups = await Promise.all(queries);
+    const primaryResults = resultGroups.flat();
 
-    // Dedupe by id, keeping the highest score per unique chunk
-    const uniqueById = new Map<string, RetrievedPassage>();
-    for (const group of resultGroups) {
-      for (const p of group) {
-        const existing = uniqueById.get(p.id);
-        if (!existing || p.score > existing.score) {
-          uniqueById.set(p.id, p);
+    // Cross-language fallback: only for en/id users when primary results are
+    // weak (zero hits, or average top-K cosine below threshold). Re-runs the
+    // general query with NO filter to pull from the broader corpus (mostly
+    // legacy zh under Option B).
+    let fallbackResults: RetrievedPassage[] = [];
+    let fallbackTriggered = false;
+    let avgPrimaryScore: number | undefined;
+
+    if (userLang !== 'zh') {
+      if (primaryResults.length === 0) {
+        fallbackTriggered = true;
+      } else {
+        const sorted = [...primaryResults].sort((a, b) => b.score - a.score);
+        const sample = sorted.slice(0, topK);
+        avgPrimaryScore = sample.reduce((s, p) => s + p.score, 0) / sample.length;
+        if (avgPrimaryScore < LANG_FALLBACK_THRESHOLD) {
+          fallbackTriggered = true;
         }
+      }
+
+      if (fallbackTriggered) {
+        const fb = await pineconeSearch(query, topK);
+        fallbackResults = fb.map(r => ({ ...r, cross_language_fallback: true }));
+      }
+    }
+
+    console.log('[vector-search]', {
+      userLang,
+      primaryCount: primaryResults.length,
+      avgPrimaryScore: avgPrimaryScore?.toFixed(3),
+      fallbackTriggered,
+      fallbackCount: fallbackResults.length,
+    });
+
+    // Dedupe by id, keeping the highest score per unique chunk. When a chunk
+    // appears in both primary and fallback, the higher-score wins; for equal
+    // scores existing primary wins (cross_language_fallback flag stays unset).
+    const uniqueById = new Map<string, RetrievedPassage>();
+    for (const p of [...primaryResults, ...fallbackResults]) {
+      const existing = uniqueById.get(p.id);
+      if (!existing || p.score > existing.score) {
+        uniqueById.set(p.id, p);
       }
     }
 
@@ -289,9 +353,10 @@ export function formatPassagesAsContext(passages: RetrievedPassage[]): string {
  */
 export async function getRelevantContext(
   query: string,
-  topK: number = DEFAULT_TOP_K
+  topK: number = DEFAULT_TOP_K,
+  userLang: 'zh' | 'en' | 'id' = 'zh',
 ): Promise<{ context: string; passages: RetrievedPassage[] }> {
-  const passages = await searchRelevantTeachings(query, topK);
+  const passages = await searchRelevantTeachings(query, topK, userLang);
   const context = formatPassagesAsContext(passages);
   return { context, passages };
 }
