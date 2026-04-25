@@ -78,7 +78,7 @@ const TRANSLATIONS = {
     welcomeEmergency: '紧急情况，请拨打：',
     welcomeBtn: '我明白了，开始问答',
     footerLine1: '一切免费结缘 \u00b7 对话不保存 \u00b7 佛法引导不替代专业意见',
-    footerLineLegal: '🇲🇾 For Non-Muslim Only · 尊重马来西亚法律',
+    footerLineLegal: '🇲🇾 For Non-Muslim Only',
     footerLine2: '紧急：',
     footerMental: '心理：',
     footerDV: '家暴：',
@@ -110,7 +110,7 @@ const TRANSLATIONS = {
     welcomeEmergency: 'Emergency Resources:',
     welcomeBtn: 'I understand, start Q&A',
     footerLine1: 'Free forever \u00b7 Conversations not stored \u00b7 Spiritual guidance, not professional advice',
-    footerLineLegal: '🇲🇾 For Non-Muslim Only · Respecting Malaysian Law',
+    footerLineLegal: '🇲🇾 For Non-Muslim Only',
     footerLine2: 'Emergency: ',
     footerMental: 'Mental: ',
     footerDV: 'DV: ',
@@ -142,7 +142,7 @@ const TRANSLATIONS = {
     welcomeEmergency: 'Bantuan Kecemasan:',
     welcomeBtn: 'Saya faham, mulakan Q&A',
     footerLine1: 'Percuma selamanya \u00b7 Perbualan tidak disimpan \u00b7 Panduan rohani bukan nasihat profesional',
-    footerLineLegal: '🇲🇾 For Non-Muslim Only · Menghormati Hukum Malaysia',
+    footerLineLegal: '🇲🇾 For Non-Muslim Only',
     footerLine2: 'Kecemasan: ',
     footerMental: 'Mental: ',
     footerDV: 'DV: ',
@@ -403,7 +403,7 @@ export default function QAPage() {
         </div>
       )}
 
-      <div className="border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm sticky top-8 z-10">
+      <div className="border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Sparkles className="text-[#D89938] w-6 h-6" />
