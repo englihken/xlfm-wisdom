@@ -109,7 +109,7 @@ const TRANSLATIONS = {
     welcomeLegalBody: 'This platform serves non-Muslim audiences only, respecting Malaysian law and all religious beliefs.',
     welcomeEmergency: 'Emergency Resources:',
     welcomeBtn: 'I understand, start Q&A',
-    footerLine1: 'Free forever \u00b7 Conversations not stored \u00b7 Spiritual guidance, not professional advice',
+    footerLine1: 'Free distribution \u00b7 Not saved \u00b7 Not a substitute for professional advice',
     footerLineLegal: '🇲🇾 For Non-Muslim Only',
     footerLine2: 'Emergency: ',
     footerMental: 'Mental: ',
@@ -141,11 +141,11 @@ const TRANSLATIONS = {
     welcomeLegalBody: 'Platform ini hanya melayani audiens non-Muslim, menghormati hukum Malaysia dan semua kepercayaan agama.',
     welcomeEmergency: 'Bantuan Kecemasan:',
     welcomeBtn: 'Saya faham, mulakan Q&A',
-    footerLine1: 'Percuma selamanya \u00b7 Perbualan tidak disimpan \u00b7 Panduan rohani bukan nasihat profesional',
+    footerLine1: 'Percuma \u00b7 Tidak disimpan \u00b7 Bukan pengganti nasihat profesional',
     footerLineLegal: '🇲🇾 For Non-Muslim Only',
     footerLine2: 'Kecemasan: ',
     footerMental: 'Mental: ',
-    footerDV: 'DV: ',
+    footerDV: 'KDRT: ',
   },
 };
 
@@ -640,20 +640,22 @@ export default function QAPage() {
       )}
 
       {/* Persistent safety footer */}
-      <div className={`${messages.length > 0 ? 'fixed bottom-[68px] left-0 right-0 bg-white/80 backdrop-blur-sm' : ''} border-t border-[#EFE3BF] py-2 px-4 text-center`}>
-        <p className="text-[10px] text-amber-700/60 leading-relaxed">
-          {'\uD83D\uDE4F'} {t.footerLine1}
-        </p>
-        <div className="text-center my-2">
-          <p className="text-sm font-bold text-red-700 px-3 py-1.5 inline-block bg-red-50 border-2 border-red-300 rounded-md">
-            {t.footerLineLegal}
-          </p>
+      <div className={`${messages.length > 0 ? 'fixed bottom-[68px] left-0 right-0 bg-white/80 backdrop-blur-sm' : ''} border-t border-[#EFE3BF] py-2 px-4`}>
+        {/* Row 1: declarations + For Non-Muslim Only inline */}
+        <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-[#583A0F]">
+          <span className="font-medium">
+          {'\uD83D\uDE4F'} {t.footerLine1}</span>
+          <span aria-hidden className="text-[#B89968]">·</span>
+          <span className="font-bold text-red-700">{t.footerLineLegal}</span>
         </div>
-        <p className="text-[10px] text-amber-700/50 leading-relaxed">
-          {t.footerLine2}<a href="tel:999" className="underline">999</a>
-          {' | '}{t.footerMental}<a href="tel:0376272929" className="underline">Befrienders 03-7627 2929</a>
-          {' | '}{t.footerDV}<a href="tel:15999" className="underline">Talian Kasih 15999</a>
-        </p>
+        {/* Row 2: emergency contacts */}
+        <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-[#583A0F] mt-1">
+          <span><span className="font-semibold">{t.footerLine2}</span><a href="tel:999" className="underline">999</a></span>
+          <span aria-hidden className="text-[#B89968]">·</span>
+          <span><span className="font-semibold">{t.footerMental}</span><a href="tel:0376272929" className="underline">Befrienders 03-7627 2929</a></span>
+          <span aria-hidden className="text-[#B89968]">·</span>
+          <span><span className="font-semibold">{t.footerDV}</span><a href="tel:15999" className="underline">Talian Kasih 15999</a></span>
+        </div>
       </div>
     </div>
   );
