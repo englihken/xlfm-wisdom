@@ -449,8 +449,8 @@ export default function QAPage() {
 
       {messages.length === 0 ? (
         <div className="flex flex-col items-center px-4 py-8 sm:py-12 max-w-2xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#583A0F] mb-3 text-center">{t.subtitle}</h2>
-          <p className="text-[#8B6F47] text-lg">{t.free}</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#8B6F47] mb-3 text-center">{t.subtitle}</h2>
+          <p className="text-[#D89938] text-lg font-medium">{t.free}</p>
 
           <form onSubmit={handleSubmit} className="w-full mt-8 mb-10">
             <div className="flex gap-2">
@@ -487,7 +487,7 @@ export default function QAPage() {
                   key={idx}
                   onClick={() => sendMessage(q)}
                   disabled={isLoading}
-                  className="text-left p-4 bg-white border border-[#EFE3BF] rounded-xl hover:border-[#D89938] hover:shadow-md transition disabled:opacity-50"
+                  className="text-left p-4 bg-white border border-[#EFE3BF] rounded-xl hover:bg-[#FAEFD0] hover:border-[#FCBD60] hover:text-[#583A0F] transition disabled:opacity-50"
                 >
                   <p className="text-[#583A0F]">{q}</p>
                 </button>
@@ -647,11 +647,11 @@ export default function QAPage() {
         </div>
         {/* Row 2: emergency contacts */}
         <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-[#583A0F] mt-1">
-          <span><span className="font-semibold">{t.footerLine2}</span><a href="tel:999" className="underline">999</a></span>
+          <span><span className="font-semibold">{t.footerLine2}</span><a href="tel:999" className="text-[#D89938] underline hover:text-[#A87929]">999</a></span>
           <span aria-hidden className="text-[#B89968]">·</span>
-          <span><span className="font-semibold">{t.footerMental}</span><a href="tel:0376272929" className="underline">Befrienders 03-7627 2929</a></span>
+          <span><span className="font-semibold">{t.footerMental}</span><a href="tel:0376272929" className="text-[#D89938] underline hover:text-[#A87929]">Befrienders 03-7627 2929</a></span>
           <span aria-hidden className="text-[#B89968]">·</span>
-          <span><span className="font-semibold">{t.footerDV}</span><a href="tel:15999" className="underline">Talian Kasih 15999</a></span>
+          <span><span className="font-semibold">{t.footerDV}</span><a href="tel:15999" className="text-[#D89938] underline hover:text-[#A87929]">Talian Kasih 15999</a></span>
         </div>
       </div>
     </div>
