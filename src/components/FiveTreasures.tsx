@@ -26,8 +26,8 @@ const treasures = [
       <svg viewBox="0 0 48 48" className="w-10 h-10" fill="none">
         <circle cx="24" cy="24" r="20" fill="white" opacity="0.2" />
         <path d="M14 28c0-6 4-10 10-14 6 4 10 8 10 14 0 4-4 8-10 8s-10-4-10-8z" fill="white" opacity="0.9" />
-        <circle cx="20" cy="26" r="1.5" fill="#F2B825" />
-        <circle cx="28" cy="26" r="1.5" fill="#F2B825" />
+        <circle cx="20" cy="26" r="1.5" fill="#FCBD60" />
+        <circle cx="28" cy="26" r="1.5" fill="#FCBD60" />
       </svg>
     ),
     title: "放生",
@@ -39,7 +39,7 @@ const treasures = [
       <svg viewBox="0 0 48 48" className="w-10 h-10" fill="none">
         <circle cx="24" cy="24" r="20" fill="white" opacity="0.2" />
         <path d="M24 12a12 12 0 100 24 12 12 0 000-24zm0 4a8 8 0 110 16 8 8 0 010-16z" fill="white" opacity="0.9" />
-        <path d="M24 18v8l5 3" stroke="#F2B825" strokeWidth="2" strokeLinecap="round" />
+        <path d="M24 18v8l5 3" stroke="#FCBD60" strokeWidth="2" strokeLinecap="round" />
       </svg>
     ),
     title: "大忏悔",
@@ -51,10 +51,10 @@ const treasures = [
       <svg viewBox="0 0 48 48" className="w-10 h-10" fill="none">
         <circle cx="24" cy="24" r="20" fill="white" opacity="0.2" />
         <rect x="14" y="12" width="20" height="24" rx="2" fill="white" opacity="0.9" />
-        <line x1="18" y1="18" x2="30" y2="18" stroke="#F2B825" strokeWidth="1.5" />
-        <line x1="18" y1="22" x2="28" y2="22" stroke="#F2B825" strokeWidth="1.5" />
-        <line x1="18" y1="26" x2="26" y2="26" stroke="#F2B825" strokeWidth="1.5" />
-        <line x1="18" y1="30" x2="24" y2="30" stroke="#F2B825" strokeWidth="1.5" />
+        <line x1="18" y1="18" x2="30" y2="18" stroke="#FCBD60" strokeWidth="1.5" />
+        <line x1="18" y1="22" x2="28" y2="22" stroke="#FCBD60" strokeWidth="1.5" />
+        <line x1="18" y1="26" x2="26" y2="26" stroke="#FCBD60" strokeWidth="1.5" />
+        <line x1="18" y1="30" x2="24" y2="30" stroke="#FCBD60" strokeWidth="1.5" />
       </svg>
     ),
     title: "白话佛法",

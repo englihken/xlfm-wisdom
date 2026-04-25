@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Serif_SC } from "next/font/google";
+import LegalBar from "@/components/legal-bar";
 import "./globals.css";
 
 const notoSerifSC = Noto_Serif_SC({
@@ -21,7 +22,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className={`${notoSerifSC.variable} antialiased`}>
-      <body className="min-h-screen bg-[#FFF8E7] text-[#4A3728]">
+      <body className="min-h-screen bg-cream text-brown">
+        <LegalBar />
         {children}
       </body>
     </html>

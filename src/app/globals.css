@@ -1,14 +1,36 @@
 @import "tailwindcss";
 
+/* xlfm.my warm-gold brand palette — exposed for any component that wants
+   to reference the canonical tokens directly. The @theme block below
+   remaps the existing token names to these values so the 9 components in
+   src/components/ pick up the new palette without internal edits. */
+:root {
+  --xlfm-primary: #FCBD60;
+  --xlfm-primary-light: #FFE183;
+  --xlfm-primary-dark: #D89938;
+  --xlfm-bg-base: #FFF3DA;
+  --xlfm-bg-card: #FFFEF6;
+  --xlfm-bg-section: #FAEFD0;
+  --xlfm-text: #583A0F;
+  --xlfm-text-secondary: #8B6F47;
+  --xlfm-text-muted: #B89968;
+  --xlfm-warning: #DC2626;
+  --xlfm-warning-bg: #FEF2F2;
+  --xlfm-warning-border: #FCA5A5;
+}
+
 @theme inline {
   --font-serif: var(--font-noto-serif-sc), Georgia, "Times New Roman", serif;
-  --color-cream: #fff8e7;
-  --color-gold-light: #fef3d0;
-  --color-gold-banner: #f2b825;
-  --color-brown: #4a3728;
-  --color-amber: #d4840a;
-  --color-link: #e8960c;
-  --color-card-border: #f0e6d0;
+  /* Existing token names retained; values remapped to xlfm.my palette so
+     existing class references like bg-cream / text-brown / text-amber
+     continue to work and auto-pick up the new colors. */
+  --color-cream: #FFF3DA;        /* was #fff8e7 — page bg, slightly more golden */
+  --color-gold-light: #FAEFD0;   /* was #fef3d0 — section bg */
+  --color-gold-banner: #FCBD60;  /* was #f2b825 — primary gold accent (banner) */
+  --color-brown: #583A0F;        /* was #4a3728 — main text, darker for contrast */
+  --color-amber: #D89938;        /* was #d4840a — deep gold */
+  --color-link: #D89938;         /* was #e8960c — link/CTA, matches amber */
+  --color-card-border: #EFE3BF;  /* was #f0e6d0 — warm cream border */
 }
 
 body {

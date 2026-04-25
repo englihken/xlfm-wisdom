@@ -60,11 +60,11 @@ export default function Hero() {
                 fill="none"
               >
                 {/* Glow */}
-                <circle cx="200" cy="200" r="150" fill="#F2B825" opacity="0.06" />
-                <circle cx="200" cy="200" r="100" fill="#F2B825" opacity="0.08" />
+                <circle cx="200" cy="200" r="150" fill="#FCBD60" opacity="0.06" />
+                <circle cx="200" cy="200" r="100" fill="#FCBD60" opacity="0.08" />
 
                 {/* Water */}
-                <ellipse cx="200" cy="310" rx="120" ry="15" fill="#D4840A" opacity="0.1" />
+                <ellipse cx="200" cy="310" rx="120" ry="15" fill="#D89938" opacity="0.1" />
 
                 {/* Stem */}
                 <path
@@ -98,57 +98,57 @@ export default function Hero() {
                 {/* Outer petals */}
                 <path
                   d="M200 200 Q160 160 140 180 Q120 200 160 210 Q180 215 200 200Z"
-                  fill="#F2B825"
+                  fill="#FCBD60"
                   opacity="0.3"
                 />
                 <path
                   d="M200 200 Q240 160 260 180 Q280 200 240 210 Q220 215 200 200Z"
-                  fill="#F2B825"
+                  fill="#FCBD60"
                   opacity="0.3"
                 />
                 <path
                   d="M200 200 Q170 140 200 120 Q230 140 200 200Z"
-                  fill="#F2B825"
+                  fill="#FCBD60"
                   opacity="0.35"
                 />
                 <path
                   d="M200 200 Q140 180 130 200 Q140 220 200 200Z"
-                  fill="#E8960C"
+                  fill="#D89938"
                   opacity="0.2"
                 />
                 <path
                   d="M200 200 Q260 180 270 200 Q260 220 200 200Z"
-                  fill="#E8960C"
+                  fill="#D89938"
                   opacity="0.2"
                 />
 
                 {/* Inner petals */}
                 <path
                   d="M200 200 Q175 165 185 150 Q200 140 215 150 Q225 165 200 200Z"
-                  fill="#F2B825"
+                  fill="#FCBD60"
                   opacity="0.5"
                 />
                 <path
                   d="M200 200 Q165 185 165 175 Q170 160 200 200Z"
-                  fill="#D4840A"
+                  fill="#D89938"
                   opacity="0.3"
                 />
                 <path
                   d="M200 200 Q235 185 235 175 Q230 160 200 200Z"
-                  fill="#D4840A"
+                  fill="#D89938"
                   opacity="0.3"
                 />
 
                 {/* Center */}
-                <circle cx="200" cy="195" r="12" fill="#F2B825" opacity="0.6" />
-                <circle cx="200" cy="195" r="6" fill="#D4840A" opacity="0.5" />
+                <circle cx="200" cy="195" r="12" fill="#FCBD60" opacity="0.6" />
+                <circle cx="200" cy="195" r="6" fill="#D89938" opacity="0.5" />
 
                 {/* Light rays */}
-                <line x1="200" y1="80" x2="200" y2="100" stroke="#F2B825" strokeWidth="1" opacity="0.3" />
-                <line x1="140" y1="100" x2="155" y2="115" stroke="#F2B825" strokeWidth="1" opacity="0.2" />
-                <line x1="260" y1="100" x2="245" y2="115" stroke="#F2B825" strokeWidth="1" opacity="0.2" />
-                <line x1="120" y1="140" x2="138" y2="148" stroke="#F2B825" strokeWidth="1" opacity="0.15" />
-                <line x1="280" y1="140" x2="262" y2="148" stroke="#F2B825" strokeWidth="1" opacity="0.15" />
+                <line x1="200" y1="80" x2="200" y2="100" stroke="#FCBD60" strokeWidth="1" opacity="0.3" />
+                <line x1="140" y1="100" x2="155" y2="115" stroke="#FCBD60" strokeWidth="1" opacity="0.2" />
+                <line x1="260" y1="100" x2="245" y2="115" stroke="#FCBD60" strokeWidth="1" opacity="0.2" />
+                <line x1="120" y1="140" x2="138" y2="148" stroke="#FCBD60" strokeWidth="1" opacity="0.15" />
+                <line x1="280" y1="140" x2="262" y2="148" stroke="#FCBD60" strokeWidth="1" opacity="0.15" />
               </svg>
             </div>
           </div>

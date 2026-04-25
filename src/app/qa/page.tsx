@@ -331,19 +331,19 @@ export default function QAPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF8E7]">
+    <div className="min-h-screen bg-[#FFF3DA]">
       {/* Welcome Modal — first visit only */}
       {hasSeenWelcome === false && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-[#FFF8E7] rounded-2xl shadow-2xl max-w-[480px] w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8">
-            <h2 className="text-xl font-bold text-[#4A3728] text-center mb-5">
+          <div className="bg-[#FFF3DA] rounded-2xl shadow-2xl max-w-[480px] w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+            <h2 className="text-xl font-bold text-[#583A0F] text-center mb-5">
               {t.welcomeTitle}
             </h2>
 
-            <div className="space-y-4 text-sm text-[#4A3728]">
+            <div className="space-y-4 text-sm text-[#583A0F]">
               <div>
                 <p className="font-semibold mb-1.5">{'🔒'} {t.welcomePrivacy}</p>
-                <ul className="space-y-1 text-[#7A6B55]">
+                <ul className="space-y-1 text-[#8B6F47]">
                   <li>{'•'} {t.welcomePrivacy1}</li>
                   <li>{'•'} {t.welcomePrivacy2}</li>
                   <li>{'•'} {t.welcomePrivacy3}</li>
@@ -352,7 +352,7 @@ export default function QAPage() {
 
               <div>
                 <p className="font-semibold mb-1.5">{'\uD83D\uDCFF'} {t.welcomeOffer}</p>
-                <ul className="space-y-1 text-[#7A6B55]">
+                <ul className="space-y-1 text-[#8B6F47]">
                   <li>{'•'} {t.welcomeOffer1}</li>
                   <li>{'•'} {t.welcomeOffer2}</li>
                   <li>{'•'} {t.welcomeOffer3}</li>
@@ -361,7 +361,7 @@ export default function QAPage() {
 
               <div>
                 <p className="font-semibold mb-1.5">{'\uD83D\uDE4F'} {t.welcomeLimit}</p>
-                <ul className="space-y-1 text-[#7A6B55]">
+                <ul className="space-y-1 text-[#8B6F47]">
                   <li>{'•'} {t.welcomeLimit1}</li>
                   <li>{'•'} {t.welcomeLimit2}</li>
                   <li>{'•'} {t.welcomeLimit3}</li>
@@ -389,13 +389,13 @@ export default function QAPage() {
               </div>
             </div>
 
-            <p className="text-center text-xs text-[#7A6B55] mt-4">
+            <p className="text-center text-xs text-[#8B6F47] mt-4">
               {language === 'zh' ? '一切免费结缘 · 菩萨慈悲' : language === 'en' ? 'Free forever · With Bodhisattva\'s compassion' : 'Percuma selamanya · Dengan belas kasihan Bodhisattva'} {'\uD83D\uDE4F'}
             </p>
 
             <button
               onClick={dismissWelcome}
-              className="mt-5 w-full py-3 bg-[#E8960C] hover:bg-[#C47A08] text-white rounded-xl font-medium transition text-base"
+              className="mt-5 w-full py-3 bg-[#D89938] hover:bg-[#A87929] text-white rounded-xl font-medium transition text-base"
             >
               {t.welcomeBtn}
             </button>
@@ -403,13 +403,13 @@ export default function QAPage() {
         </div>
       )}
 
-      <div className="border-b border-[#F0E6D0] bg-white/60 backdrop-blur-sm sticky top-0 z-10">
+      <div className="border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm sticky top-8 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Sparkles className="text-[#E8960C] w-6 h-6" />
+            <Sparkles className="text-[#D89938] w-6 h-6" />
             <div>
-              <h1 className="text-xl font-bold text-[#4A3728]">{t.title}</h1>
-              <p className="text-xs text-[#7A6B55]">{t.basedOn}</p>
+              <h1 className="text-xl font-bold text-[#583A0F]">{t.title}</h1>
+              <p className="text-xs text-[#8B6F47]">{t.basedOn}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -428,15 +428,15 @@ export default function QAPage() {
                 </span>
               </button>
             )}
-            <div className="flex gap-1 bg-[#FEF3D0] rounded-full p-1">
+            <div className="flex gap-1 bg-[#FAEFD0] rounded-full p-1">
               {(['zh', 'en', 'id'] as const).map((lang) => (
                 <button
                   key={lang}
                   onClick={() => setLanguage(lang)}
                   className={`px-3 py-1 rounded-full text-sm transition ${
                     language === lang
-                      ? 'bg-[#E8960C] text-white'
-                      : 'text-[#4A3728] hover:bg-white'
+                      ? 'bg-[#D89938] text-white'
+                      : 'text-[#583A0F] hover:bg-white'
                   }`}
                 >
                   {lang === 'zh' ? '中文' : lang.toUpperCase()}
@@ -449,11 +449,11 @@ export default function QAPage() {
 
       {messages.length === 0 ? (
         <div className="flex flex-col items-center px-4 py-8 sm:py-12 max-w-2xl mx-auto">
-          <div className="inline-block p-4 bg-[#FEF3D0] rounded-full mb-4">
-            <Sparkles className="w-12 h-12 text-[#E8960C]" />
+          <div className="inline-block p-4 bg-[#FAEFD0] rounded-full mb-4">
+            <Sparkles className="w-12 h-12 text-[#D89938]" />
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3728] mb-3 text-center">{t.subtitle}</h2>
-          <p className="text-[#7A6B55] text-lg">{t.free}</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#583A0F] mb-3 text-center">{t.subtitle}</h2>
+          <p className="text-[#8B6F47] text-lg">{t.free}</p>
 
           <form onSubmit={handleSubmit} className="w-full mt-8 mb-10">
             <div className="flex gap-2">
@@ -470,12 +470,12 @@ export default function QAPage() {
                 placeholder={t.placeholder}
                 disabled={isLoading}
                 rows={1}
-                className="flex-1 p-3 border border-[#F0E6D0] rounded-xl resize-none focus:outline-none focus:border-[#E8960C] focus:ring-1 focus:ring-[#E8960C] text-[#4A3728] bg-white shadow-sm"
+                className="flex-1 p-3 border border-[#EFE3BF] rounded-xl resize-none focus:outline-none focus:border-[#D89938] focus:ring-1 focus:ring-[#D89938] text-[#583A0F] bg-white shadow-sm"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="px-6 py-3 bg-[#E8960C] hover:bg-[#C47A08] text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-3 bg-[#D89938] hover:bg-[#A87929] text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Send className="w-5 h-5" />
               </button>
@@ -483,16 +483,16 @@ export default function QAPage() {
           </form>
 
           <div className="w-full">
-            <p className="text-sm text-[#7A6B55] text-center mb-4">{t.quickTitle}</p>
+            <p className="text-sm text-[#8B6F47] text-center mb-4">{t.quickTitle}</p>
             <div className="grid sm:grid-cols-2 gap-3">
               {QUICK_QUESTIONS[language].map((q, idx) => (
                 <button
                   key={idx}
                   onClick={() => sendMessage(q)}
                   disabled={isLoading}
-                  className="text-left p-4 bg-white border border-[#F0E6D0] rounded-xl hover:border-[#E8960C] hover:shadow-md transition disabled:opacity-50"
+                  className="text-left p-4 bg-white border border-[#EFE3BF] rounded-xl hover:border-[#D89938] hover:shadow-md transition disabled:opacity-50"
                 >
-                  <p className="text-[#4A3728]">{q}</p>
+                  <p className="text-[#583A0F]">{q}</p>
                 </button>
               ))}
             </div>
@@ -516,8 +516,8 @@ export default function QAPage() {
                 <div
                   className={`max-w-[85%] rounded-2xl p-4 ${
                     msg.role === 'user'
-                      ? 'bg-[#E8960C] text-white'
-                      : 'bg-white border border-[#F0E6D0] text-[#4A3728]'
+                      ? 'bg-[#D89938] text-white'
+                      : 'bg-white border border-[#EFE3BF] text-[#583A0F]'
                   }`}
                 >
                   {msg.role === 'user' ? (
@@ -543,8 +543,8 @@ export default function QAPage() {
                   )}
 
                   {msg.role === 'assistant' && !msg.streaming && msg.sources && msg.sources.length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-[#F0E6D0] animate-[fadeIn_0.5s_ease-in]">
-                      <div className="text-xs text-[#7A6B55] mb-2">{t.sourcesTitle}</div>
+                    <div className="mt-4 pt-3 border-t border-[#EFE3BF] animate-[fadeIn_0.5s_ease-in]">
+                      <div className="text-xs text-[#8B6F47] mb-2">{t.sourcesTitle}</div>
                       <div className="space-y-1">
                         {msg.sources.map((s: Source, sidx: number) => {
                           const pageInfo = s.page_start
@@ -553,11 +553,11 @@ export default function QAPage() {
                                 : `第 ${s.page_start}-${s.page_end} 页`)
                             : '';
                           return (
-                            <div key={sidx} className="text-xs text-[#7A6B55] flex items-center gap-1">
+                            <div key={sidx} className="text-xs text-[#8B6F47] flex items-center gap-1">
                               <span>📖</span>
                               <span className="font-medium">《{s.book}》</span>
-                              {pageInfo && <span className="text-[#7A6B55]/70">· {pageInfo}</span>}
-                              {s.count > 1 && <span className="text-[#7A6B55]/60 text-[10px]">({s.count}段)</span>}
+                              {pageInfo && <span className="text-[#8B6F47]/70">· {pageInfo}</span>}
+                              {s.count > 1 && <span className="text-[#8B6F47]/60 text-[10px]">({s.count}段)</span>}
                             </div>
                           );
                         })}
@@ -571,12 +571,12 @@ export default function QAPage() {
 
             {isLoading && messages[messages.length - 1]?.content === '' && (
               <div className="flex justify-start">
-                <div className="bg-white border border-[#F0E6D0] rounded-2xl p-4">
-                  <div className="flex items-center gap-2 text-[#7A6B55]">
+                <div className="bg-white border border-[#EFE3BF] rounded-2xl p-4">
+                  <div className="flex items-center gap-2 text-[#8B6F47]">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-[#E8960C] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="w-2 h-2 bg-[#E8960C] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="w-2 h-2 bg-[#E8960C] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <div className="w-2 h-2 bg-[#D89938] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-2 h-2 bg-[#D89938] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-2 h-2 bg-[#D89938] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
                     <span className="text-sm">{t.sending}</span>
                   </div>
@@ -607,7 +607,7 @@ export default function QAPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-[#F0E6D0]"
+          className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-[#EFE3BF]"
         >
           <div className="max-w-4xl mx-auto p-4">
             <div className="flex gap-2">
@@ -624,12 +624,12 @@ export default function QAPage() {
                 placeholder={t.placeholder}
                 disabled={isLoading}
                 rows={1}
-                className="flex-1 p-3 border border-[#F0E6D0] rounded-xl resize-none focus:outline-none focus:border-[#E8960C] focus:ring-1 focus:ring-[#E8960C] text-[#4A3728]"
+                className="flex-1 p-3 border border-[#EFE3BF] rounded-xl resize-none focus:outline-none focus:border-[#D89938] focus:ring-1 focus:ring-[#D89938] text-[#583A0F]"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="px-6 py-3 bg-[#E8960C] hover:bg-[#C47A08] text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-3 bg-[#D89938] hover:bg-[#A87929] text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Send className="w-5 h-5" />
               </button>
@@ -640,7 +640,7 @@ export default function QAPage() {
       )}
 
       {/* Persistent safety footer */}
-      <div className={`${messages.length > 0 ? 'fixed bottom-[68px] left-0 right-0 bg-white/80 backdrop-blur-sm' : ''} border-t border-[#F0E6D0] py-2 px-4 text-center`}>
+      <div className={`${messages.length > 0 ? 'fixed bottom-[68px] left-0 right-0 bg-white/80 backdrop-blur-sm' : ''} border-t border-[#EFE3BF] py-2 px-4 text-center`}>
         <p className="text-[10px] text-amber-700/60 leading-relaxed">
           {'\uD83D\uDE4F'} {t.footerLine1}
         </p>
