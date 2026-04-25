@@ -448,11 +448,11 @@ export default function QAPage() {
       </div>
 
       {messages.length === 0 ? (
-        <div className="flex flex-col items-center px-4 py-8 sm:py-12 max-w-2xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#8B6F47] mb-3 text-center">{t.subtitle}</h2>
+        <div className="flex flex-col items-center px-4 py-6 sm:py-8 max-w-2xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#8B6F47] mb-2 text-center">{t.subtitle}</h2>
           <p className="text-[#D89938] text-lg font-medium">{t.free}</p>
 
-          <form onSubmit={handleSubmit} className="w-full mt-8 mb-10">
+          <form onSubmit={handleSubmit} className="w-full mt-6 mb-6">
             <div className="flex gap-2">
               <textarea
                 ref={inputRef}
@@ -480,8 +480,8 @@ export default function QAPage() {
           </form>
 
           <div className="w-full">
-            <p className="text-sm text-[#8B6F47] text-center mb-4">{t.quickTitle}</p>
-            <div className="grid sm:grid-cols-2 gap-3">
+            <p className="text-sm text-[#8B6F47] text-center mb-3">{t.quickTitle}</p>
+            <div className="grid sm:grid-cols-2 gap-2">
               {QUICK_QUESTIONS[language].map((q, idx) => (
                 <button
                   key={idx}
