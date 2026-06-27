@@ -160,16 +160,29 @@ export default function QAPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showJumpButton, setShowJumpButton] = useState(false);
   const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const wasAtBottomRef = useRef(true);
   const latestUserMessageRef = useRef<HTMLDivElement | null>(null);
+  const browserIdRef = useRef<string | null>(null);
 
   const t = TRANSLATIONS[language];
 
   useEffect(() => {
     const seen = localStorage.getItem('xlfm-welcome-seen');
     setHasSeenWelcome(seen === 'true');
+  }, []);
+
+  // Persistent anonymous browser ID — links a returning visitor's conversations
+  // to one contact. Generated once and stored in localStorage.
+  useEffect(() => {
+    let id = localStorage.getItem('xlfm_browser_id');
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem('xlfm_browser_id', id);
+    }
+    browserIdRef.current = id;
   }, []);
 
   const dismissWelcome = () => {
@@ -190,6 +203,7 @@ export default function QAPage() {
     setInput('');
     setIsLoading(false);
     setShowJumpButton(false);
+    setConversationId(null); // fresh conversation — but keep the same browserId
     wasAtBottomRef.current = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -244,6 +258,8 @@ export default function QAPage() {
           message: text,
           conversation: messages.map((m) => ({ role: m.role, content: m.content })),
           language,
+          conversationId,
+          browserId: browserIdRef.current,
         }),
       });
 
@@ -280,7 +296,9 @@ export default function QAPage() {
           try {
             const parsed = JSON.parse(data);
 
-            if (parsed.type === 'sources') {
+            if (parsed.type === 'conversation') {
+              if (parsed.conversationId) setConversationId(parsed.conversationId);
+            } else if (parsed.type === 'sources') {
               setMessages((prev) => {
                 const updated = [...prev];
                 const lastIdx = updated.length - 1;
