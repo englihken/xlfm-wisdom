@@ -530,7 +530,15 @@ export default function QAPage() {
                         ol: (props: ComponentPropsWithoutRef<'ol'>) => <ol className="my-2 ml-5 list-decimal" {...props} />,
                         li: (props: ComponentPropsWithoutRef<'li'>) => <li className="my-1" {...props} />,
                         hr: () => <hr className="my-4 border-amber-200/60" />,
-                        blockquote: (props: ComponentPropsWithoutRef<'blockquote'>) => <blockquote className="my-3 pl-3 border-l-2 border-amber-300 italic text-amber-900/80" {...props} />,
+                        blockquote: (props: ComponentPropsWithoutRef<'blockquote'>) => (
+                          <blockquote className="my-4 rounded-lg bg-[#FBF3E0] border-l-4 border-[#C5975B] px-4 py-3 not-italic">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="text-sm">🪷</span>
+                              <span className="text-xs font-medium tracking-wide text-[#A87C3D]">师父开示</span>
+                            </div>
+                            <div className="text-[#5C3D1E] leading-relaxed [&>p]:my-1">{props.children}</div>
+                          </blockquote>
+                        ),
                         strong: (props: ComponentPropsWithoutRef<'strong'>) => <strong className="text-amber-900 font-semibold" {...props} />,
                         code: (props: ComponentPropsWithoutRef<'code'>) => <code className="bg-amber-100/50 px-1 py-0.5 rounded text-sm" {...props} />,
                       }}
