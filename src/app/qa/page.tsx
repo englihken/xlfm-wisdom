@@ -569,6 +569,26 @@ export default function QAPage() {
                       </div>
                     </div>
                   )}
+
+                  {msg.role === 'assistant' && !msg.streaming && msg.content && (
+                    <div className="mt-3 pt-2 flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          const shareText = `${msg.content}\n\n—— 心灵法门智慧问答\nhttps://xlfm.my`;
+                          if (navigator.share) {
+                            navigator.share({ text: shareText }).catch(() => {});
+                          } else {
+                            navigator.clipboard.writeText(shareText);
+                            const btn = document.activeElement as HTMLElement;
+                            if (btn) { const o = btn.innerText; btn.innerText = '已复制 ✓'; setTimeout(() => { btn.innerText = o; }, 1500); }
+                          }
+                        }}
+                        className="text-xs text-[#8B6F47] hover:text-[#C5975B] flex items-center gap-1 transition"
+                      >
+                        <span>📤</span> 分享
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
               );
