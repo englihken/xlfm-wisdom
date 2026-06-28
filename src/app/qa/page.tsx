@@ -4,17 +4,9 @@
 
 'use client';
 
-import { useState, useRef, useEffect, type ComponentPropsWithoutRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-
-type Source = {
-  book: string;
-  page_start?: number;
-  page_end?: number;
-  excerpt?: string;
-  count: number;
-};
+import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -538,54 +530,11 @@ export default function QAPage() {
                   {msg.role === 'user' ? (
                     <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                   ) : (
-                    <ReactMarkdown
-                      components={{
-                        p: (props: ComponentPropsWithoutRef<'p'>) => <p className="my-2 leading-relaxed" {...props} />,
-                        h1: (props: ComponentPropsWithoutRef<'h1'>) => <h1 className="text-xl font-semibold my-3" {...props} />,
-                        h2: (props: ComponentPropsWithoutRef<'h2'>) => <h2 className="text-lg font-semibold my-3" {...props} />,
-                        h3: (props: ComponentPropsWithoutRef<'h3'>) => <h3 className="text-base font-semibold my-2" {...props} />,
-                        ul: (props: ComponentPropsWithoutRef<'ul'>) => <ul className="my-2 ml-5 list-disc" {...props} />,
-                        ol: (props: ComponentPropsWithoutRef<'ol'>) => <ol className="my-2 ml-5 list-decimal" {...props} />,
-                        li: (props: ComponentPropsWithoutRef<'li'>) => <li className="my-1" {...props} />,
-                        hr: () => <hr className="my-4 border-amber-200/60" />,
-                        blockquote: (props: ComponentPropsWithoutRef<'blockquote'>) => (
-                          <blockquote className="my-4 rounded-lg bg-[#FBF3E0] border-l-4 border-[#C5975B] px-4 py-3 not-italic">
-                            <div className="flex items-center gap-1.5 mb-1.5">
-                              <span className="text-sm">🪷</span>
-                              <span className="text-xs font-medium tracking-wide text-[#A87C3D]">师父开示</span>
-                            </div>
-                            <div className="text-[#5C3D1E] leading-relaxed [&>p]:my-1">{props.children}</div>
-                          </blockquote>
-                        ),
-                        strong: (props: ComponentPropsWithoutRef<'strong'>) => <strong className="text-amber-900 font-semibold" {...props} />,
-                        code: (props: ComponentPropsWithoutRef<'code'>) => <code className="bg-amber-100/50 px-1 py-0.5 rounded text-sm" {...props} />,
-                      }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
+                    <MasterMarkdown>{msg.content}</MasterMarkdown>
                   )}
 
-                  {msg.role === 'assistant' && !msg.streaming && msg.sources && msg.sources.length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-[#EFE3BF] animate-[fadeIn_0.5s_ease-in]">
-                      <div className="text-xs text-[#8B6F47] mb-2">{t.sourcesTitle}</div>
-                      <div className="space-y-1">
-                        {msg.sources.map((s: Source, sidx: number) => {
-                          const pageInfo = s.page_start
-                            ? (s.page_start === s.page_end
-                                ? `第 ${s.page_start} 页`
-                                : `第 ${s.page_start}-${s.page_end} 页`)
-                            : '';
-                          return (
-                            <div key={sidx} className="text-xs text-[#8B6F47] flex items-center gap-1">
-                              <span>📖</span>
-                              <span className="font-medium">《{s.book}》</span>
-                              {pageInfo && <span className="text-[#8B6F47]/70">· {pageInfo}</span>}
-                              {s.count > 1 && <span className="text-[#8B6F47]/60 text-[10px]">({s.count}段)</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                  {msg.role === 'assistant' && !msg.streaming && (
+                    <MessageSources sources={msg.sources ?? []} title={t.sourcesTitle} />
                   )}
 
                   {msg.role === 'assistant' && !msg.streaming && msg.content && (
