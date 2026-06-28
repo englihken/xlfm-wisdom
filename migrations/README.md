@@ -15,9 +15,12 @@ apply them with `psql`, lowest number first:
    adds `contact_id` / `summary` / `assigned_volunteer` / `retain` to `conversations`
 3. `003_enable_rls.sql` — enables Row Level Security (tables locked to the
    `service_role` key used by the backend; volunteer-access policies come in Phase 3)
+4. `004_volunteer_read_policies.sql` — Phase 3: adds RLS `select` policies so
+   logged-in volunteers (the `authenticated` role) can read `contacts`,
+   `conversations`, and `messages`; the public `anon` role stays blocked
 
 ## Note
 
-The **live database already has all three applied.** These files are for
-documentation, reproducibility, and rebuilding a new environment — not something
-to re-run against production.
+The **live database already has 001–003 applied.** `004` is the latest and must
+still be run in Supabase. These files are for documentation, reproducibility, and
+rebuilding a new environment — not something to re-run once applied.
