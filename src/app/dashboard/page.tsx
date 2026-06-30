@@ -365,7 +365,10 @@ function ContactPanel({
   const contactId = c?.id ?? null;
   const name = c?.display_name || '匿名访客';
   const ch = channelMeta(detail.conversation.channel);
-  const contactPoint = c?.wa_id || c?.browser_id || '—';
+  // 联系方式 is system-managed (read-only). Show the WhatsApp phone when we have
+  // one; for web visitors show a friendly label rather than the raw browser_id
+  // (a system UUID, meaningless to volunteers).
+  const contactPoint = c?.wa_id || (c ? '网页访客' : '—');
 
   // Stage (dropdown, saves on change).
   const [stage, setStage] = useState<string>(c?.stage ?? '');
