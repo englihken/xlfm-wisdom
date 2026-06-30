@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
@@ -32,6 +32,7 @@ type ThreadMessage = {
 };
 
 type ContactProfile = {
+  id: string;
   display_name: string | null;
   channel: string | null;
   wa_id: string | null;
@@ -111,6 +112,15 @@ export default function DashboardPage() {
   const handleUnauthorized = useCallback(() => {
     router.replace('/dashboard/login');
   }, [router]);
+
+  // After a contact edit saves, merge the changed fields into the loaded detail
+  // so the panel reflects the save without a refetch. Called from event handlers
+  // (never an effect), so the React-compiler set-state-in-effect rule is happy.
+  const applyContactUpdate = useCallback((updates: Partial<ContactProfile>) => {
+    setDetail((prev) =>
+      prev && prev.contact ? { ...prev, contact: { ...prev.contact, ...updates } } : prev
+    );
+  }, []);
 
   // Auth gate.
   useEffect(() => {
@@ -319,7 +329,12 @@ export default function DashboardPage() {
           ) : !detail ? (
             <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
           ) : (
-            <ContactPanel detail={detail} />
+            <ContactPanel
+              key={detail.contact?.id ?? 'none'}
+              detail={detail}
+              onUnauthorized={handleUnauthorized}
+              onContactUpdate={applyContactUpdate}
+            />
           )}
         </aside>
       </div>
@@ -327,12 +342,102 @@ export default function DashboardPage() {
   );
 }
 
-// ── Right-panel contact profile (read-only) ─────────────────────────────────
-function ContactPanel({ detail }: { detail: Detail }) {
+// 修行阶段 options — must match ALLOWED_STAGES in the contacts PATCH route.
+const STAGE_OPTIONS = ['初次接触', '学习中', '共修者', '义工'] as const;
+
+// ── Right-panel contact profile (stage + notes editable) ────────────────────
+// Volunteers edit 修行阶段 (stage) and 义工备注 (notes). Both save through the
+// auth-gated /api/dashboard/contacts/[id] PATCH route, which writes via
+// supabaseAdmin (service role) — the browser never writes to Supabase directly.
+// This component is remounted (via `key` on the contact id) when the selected
+// contact changes, so its local edit state re-initialises from props with no
+// sync effect (keeps setState out of effects-with-deps).
+function ContactPanel({
+  detail,
+  onUnauthorized,
+  onContactUpdate,
+}: {
+  detail: Detail;
+  onUnauthorized: () => void;
+  onContactUpdate: (updates: Partial<ContactProfile>) => void;
+}) {
   const c = detail.contact;
+  const contactId = c?.id ?? null;
   const name = c?.display_name || '匿名访客';
   const ch = channelMeta(detail.conversation.channel);
   const contactPoint = c?.wa_id || c?.browser_id || '—';
+
+  // Stage (dropdown, saves on change).
+  const [stage, setStage] = useState<string>(c?.stage ?? '');
+  const [stageSaved, setStageSaved] = useState(false);
+  const [stageSaving, setStageSaving] = useState(false);
+
+  // Notes (textarea, saves on button click).
+  const [notes, setNotes] = useState<string>(c?.notes ?? '');
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [notesError, setNotesError] = useState(false);
+
+  // Shared PATCH to the auth-gated write route. Returns a small result tag so
+  // callers can revert / surface errors / handle an expired session.
+  async function patchContact(
+    payload: { stage?: string; notes?: string }
+  ): Promise<'ok' | 'unauthorized' | 'error'> {
+    if (!contactId) return 'error';
+    try {
+      const res = await fetch(`/api/dashboard/contacts/${contactId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 401) return 'unauthorized';
+      return res.ok ? 'ok' : 'error';
+    } catch {
+      return 'error';
+    }
+  }
+
+  const handleStageChange = async (e: ChangeEvent<HTMLSelectElement>) => {
+    const next = e.target.value;
+    const previous = stage;
+    setStage(next); // optimistic
+    setStageSaved(false);
+    setStageSaving(true);
+    const result = await patchContact({ stage: next });
+    setStageSaving(false);
+    if (result === 'unauthorized') {
+      onUnauthorized();
+      return;
+    }
+    if (result === 'error') {
+      setStage(previous); // revert on failure
+      return;
+    }
+    onContactUpdate({ stage: next });
+    setStageSaved(true);
+    setTimeout(() => setStageSaved(false), 1500);
+  };
+
+  const handleNotesSave = async () => {
+    setNotesSaved(false);
+    setNotesError(false);
+    setNotesSaving(true);
+    const result = await patchContact({ notes });
+    setNotesSaving(false);
+    if (result === 'unauthorized') {
+      onUnauthorized();
+      return;
+    }
+    if (result === 'error') {
+      setNotesError(true);
+      return;
+    }
+    const trimmed = notes.trim(); // server trims; mirror it locally
+    setNotes(trimmed);
+    onContactUpdate({ notes: trimmed });
+    setNotesSaved(true);
+    setTimeout(() => setNotesSaved(false), 1500);
+  };
 
   return (
     <div className="p-5 space-y-5">
@@ -344,7 +449,31 @@ function ContactPanel({ detail }: { detail: Detail }) {
       </div>
 
       <Field label="联系方式" value={contactPoint} mono />
-      <Field label="修行阶段" value={c?.stage || '暂无'} />
+
+      {/* 修行阶段 — editable dropdown, saves on change */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs font-medium text-[#B89968]">修行阶段</p>
+          {stageSaved && <span className="text-xs text-[#A87929]">已保存 ✓</span>}
+        </div>
+        <select
+          value={stage}
+          onChange={handleStageChange}
+          disabled={!contactId || stageSaving}
+          className="w-full text-sm text-[#583A0F] bg-white border border-[#EFE3BF] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#D89938] disabled:opacity-60"
+        >
+          {!STAGE_OPTIONS.includes(stage as (typeof STAGE_OPTIONS)[number]) && (
+            <option value="" disabled>
+              暂无
+            </option>
+          )}
+          {STAGE_OPTIONS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div>
         <p className="text-xs font-medium text-[#B89968] mb-1">AI 摘要</p>
@@ -353,11 +482,28 @@ function ContactPanel({ detail }: { detail: Detail }) {
         </p>
       </div>
 
+      {/* 义工备注 — editable textarea, saves on button click */}
       <div>
         <p className="text-xs font-medium text-[#B89968] mb-1">义工备注</p>
-        <p className="text-sm text-[#583A0F] whitespace-pre-wrap leading-relaxed">
-          {c?.notes?.trim() || '暂无'}
-        </p>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          disabled={!contactId}
+          rows={4}
+          placeholder="为这位联系人添加备注…"
+          className="w-full text-sm text-[#583A0F] bg-white border border-[#EFE3BF] rounded-lg px-2.5 py-2 leading-relaxed resize-y focus:outline-none focus:border-[#D89938] disabled:opacity-60 placeholder:text-[#B89968]"
+        />
+        <div className="mt-1.5 flex items-center gap-2">
+          <button
+            onClick={handleNotesSave}
+            disabled={!contactId || notesSaving}
+            className="px-3 py-1 text-xs text-white bg-[#D89938] rounded-full hover:bg-[#C5862C] transition disabled:opacity-60"
+          >
+            {notesSaving ? '保存中…' : '保存'}
+          </button>
+          {notesSaved && <span className="text-xs text-[#A87929]">已保存 ✓</span>}
+          {notesError && <span className="text-xs text-red-600">保存失败，请重试</span>}
+        </div>
       </div>
 
       {c && (

@@ -10,6 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 export const runtime = 'nodejs';
 
 type ContactProfile = {
+  id: string;
   display_name: string | null;
   channel: string | null;
   wa_id: string | null;
@@ -42,7 +43,7 @@ export async function GET(
     .from('conversations')
     .select(
       `id, channel, status, language, summary, created_at, last_message_at,
-       contact:contacts ( display_name, channel, wa_id, browser_id, stage, summary, notes, first_seen, last_seen )`
+       contact:contacts ( id, display_name, channel, wa_id, browser_id, stage, summary, notes, first_seen, last_seen )`
     )
     .eq('id', id)
     .maybeSingle();
