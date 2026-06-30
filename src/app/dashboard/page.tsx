@@ -19,6 +19,8 @@ type ListItem = {
   channel: string;
   stage: string | null;
   status: string;
+  category: string | null;
+  crisisFlag: boolean;
   lastMessagePreview: string;
   lastMessageAt: string;
 };
@@ -45,7 +47,13 @@ type ContactProfile = {
 };
 
 type Detail = {
-  conversation: { id: string; channel: string; status: string };
+  conversation: {
+    id: string;
+    channel: string;
+    status: string;
+    category: string | null;
+    crisisFlag: boolean;
+  };
   contact: ContactProfile | null;
   messages: ThreadMessage[];
 };
@@ -259,10 +267,12 @@ export default function DashboardPage() {
                       <p className="mt-1 text-sm text-[#8B6F47] line-clamp-2 break-words">
                         {c.lastMessagePreview || '（无消息）'}
                       </p>
-                      <div className="mt-1.5">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${statusStyle(c.status)}`}>
                           {statusLabel(c.status)}
                         </span>
+                        {c.crisisFlag && <CrisisTag />}
+                        {c.category && <CategoryTag category={c.category} />}
                       </div>
                     </button>
                   </li>
@@ -449,6 +459,14 @@ function ContactPanel({
         <p className="mt-0.5 text-sm text-[#8B6F47]">
           <span className="text-[#D89938]">{ch.icon}</span> {ch.label}
         </p>
+        {(detail.conversation.crisisFlag || detail.conversation.category) && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {detail.conversation.crisisFlag && <CrisisTag />}
+            {detail.conversation.category && (
+              <CategoryTag category={detail.conversation.category} />
+            )}
+          </div>
+        )}
       </div>
 
       <Field label="联系方式" value={contactPoint} mono />
@@ -516,6 +534,24 @@ function ContactPanel({
         </div>
       )}
     </div>
+  );
+}
+
+// Category / crisis tags — display-only (categorisation is automatic; not yet
+// volunteer-editable). Warm palette for the topic chip; a clear red for crisis.
+function CategoryTag({ category }: { category: string }) {
+  return (
+    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FAEFD0] text-[#8B6F47]">
+      {category}
+    </span>
+  );
+}
+
+function CrisisTag() {
+  return (
+    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FEF2F2] text-red-700">
+      危机
+    </span>
   );
 }
 

@@ -17,6 +17,8 @@ type ConversationRow = {
   id: string;
   channel: string;
   status: string;
+  category: string | null;
+  crisis_flag: boolean;
   last_message_at: string;
   contact: ContactLite | ContactLite[] | null;
   messages: MessageLite[] | null;
@@ -38,7 +40,7 @@ export async function GET() {
   const { data, error } = await supabaseAdmin
     .from('conversations')
     .select(
-      `id, channel, status, last_message_at,
+      `id, channel, status, category, crisis_flag, last_message_at,
        contact:contacts ( display_name, channel, stage ),
        messages ( content, created_at )`
     )
@@ -65,6 +67,8 @@ export async function GET() {
       channel: row.channel,
       stage: contact?.stage ?? null,
       status: row.status,
+      category: row.category ?? null,
+      crisisFlag: row.crisis_flag ?? false,
       lastMessagePreview: preview,
       lastMessageAt: row.last_message_at,
     };

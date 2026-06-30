@@ -130,6 +130,71 @@ async function persistAssistant(params: {
   }
 }
 
+// ── Conversation categorisation (cheap, post-reply) ───────────────────────
+// A separate, tiny classification pass that runs AFTER the reply is delivered.
+// It never touches the user's reply text (no leaked tags) and is fully fail-safe.
+
+const CONVERSATION_CATEGORIES = [
+  '感情婚姻', '家庭', '健康', '事业财运', '学业', '人际关系',
+  '修行方法', '因果业障', '解梦', '玄学问答', '闲聊测试', '其他',
+] as const;
+type ConversationCategory = (typeof CONVERSATION_CATEGORIES)[number];
+
+// Classify the conversation into ONE problem-type category, with a separate
+// crisis overlay. Minimal prompt, no system prompt, no RAG, tiny max_tokens —
+// kept deliberately cheap. NEVER throws: returns null on any failure so the
+// caller simply leaves the category untouched.
+async function classifyConversation(
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>
+): Promise<{ category: ConversationCategory; crisis_flag: boolean } | null> {
+  try {
+    // Only the recent turns, as plain transcript text — keeps the call small.
+    const transcript = messages
+      .slice(-10)
+      .map((m) => `${m.role === 'user' ? '访客' : '助手'}: ${m.content}`)
+      .join('\n');
+
+    const result = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 20,
+      messages: [
+        {
+          role: 'user',
+          content:
+            'Read this conversation between a person and a Buddhist care assistant. ' +
+            'Reply with EXACTLY ONE category label from this list and nothing else:\n' +
+            CONVERSATION_CATEGORIES.join('、') +
+            '\nIf the conversation shows crisis / self-harm / severe distress signals, ' +
+            'prefix your answer with "危机:" (e.g. "危机:家庭").\n\n' +
+            `对话:\n${transcript}`,
+        },
+      ],
+    });
+
+    const textPart = result.content.find((b) => b.type === 'text');
+    let label = textPart && textPart.type === 'text' ? textPart.text.trim() : '';
+    if (!label) return null;
+
+    // Crisis overlay: a "危机:" prefix (half- or full-width colon) applies to any
+    // category. Strip it off, then validate the remaining label.
+    let crisis_flag = false;
+    if (label.startsWith('危机:') || label.startsWith('危机：')) {
+      crisis_flag = true;
+      label = label.replace(/^危机[:：]\s*/, '').trim();
+    }
+
+    const category: ConversationCategory =
+      (CONVERSATION_CATEGORIES as readonly string[]).includes(label)
+        ? (label as ConversationCategory)
+        : '其他';
+
+    return { category, crisis_flag };
+  } catch (e) {
+    console.error('[classify] conversation classification failed:', e);
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: ChatRequest = await req.json();
@@ -255,6 +320,28 @@ export async function POST(req: NextRequest) {
           // is already fully delivered, so this never slows the visible reply.
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           await persistAssistant({ conversationId: convId, content: fullText, sources });
+
+          // Categorise the conversation in the same keep-alive window. The user
+          // already has their full reply, so this adds ZERO visible latency.
+          // Fail-safe: never throws, never blocks the chat. Re-tags on later
+          // messages too — last classification wins.
+          if (supabaseAdmin && convId) {
+            try {
+              const tag = await classifyConversation([
+                ...messages,
+                { role: 'assistant', content: fullText },
+              ]);
+              if (tag) {
+                await supabaseAdmin
+                  .from('conversations')
+                  .update({ category: tag.category, crisis_flag: tag.crisis_flag })
+                  .eq('id', convId);
+              }
+            } catch (e) {
+              console.error('[classify] category save failed:', e);
+            }
+          }
+
           controller.close();
         } catch (error) {
           console.error('Streaming error:', error);

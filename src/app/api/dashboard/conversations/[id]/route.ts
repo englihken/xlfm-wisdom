@@ -42,7 +42,7 @@ export async function GET(
   const { data: conversation, error: convError } = await supabaseAdmin
     .from('conversations')
     .select(
-      `id, channel, status, language, summary, created_at, last_message_at,
+      `id, channel, status, category, crisis_flag, language, summary, created_at, last_message_at,
        contact:contacts ( id, display_name, channel, wa_id, browser_id, stage, summary, notes, first_seen, last_seen )`
     )
     .eq('id', id)
@@ -76,6 +76,8 @@ export async function GET(
       id: conversation.id,
       channel: conversation.channel,
       status: conversation.status,
+      category: conversation.category ?? null,
+      crisisFlag: conversation.crisis_flag ?? false,
       language: conversation.language,
       summary: conversation.summary,
       created_at: conversation.created_at,
