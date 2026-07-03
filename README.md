@@ -29,6 +29,23 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Scheduled jobs (Vercel Cron)
+
+`vercel.json` defines the cron schedule. Currently one job:
+
+- **`/api/cron/summarize`** — daily auto-summary. Once a conversation has been idle
+  2+ hours, it folds that conversation into an evolving care summary on the
+  contact (`contacts.summary`). Scheduled at `0 16 * * *` (16:00 UTC = 00:00 MYT),
+  so volunteers see fresh 摘要 each morning.
+
+**Auth:** the endpoint requires `Authorization: Bearer <CRON_SECRET>`. Set
+`CRON_SECRET` in Vercel (Sensitive, Production) — Vercel Cron sends it
+automatically. Without a matching env var the endpoint returns 401.
+
+**Hobby-plan note:** on the Vercel Hobby plan, cron jobs run **once per day within
+an hour of the scheduled time** (not to the exact minute). That imprecision is
+fine here — the summary just needs to be ready by morning.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

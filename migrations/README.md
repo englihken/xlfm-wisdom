@@ -24,6 +24,11 @@ apply them with `psql`, lowest number first:
    (RLS enabled, no policies — service-role access only). Documents the schema;
    the table and its bootstrap rows (existing users + first admin) were created
    manually in Supabase, so there is no seed data to re-run.
+7. `007_volunteer_center.sql` — Phase 3 (user management): adds a nullable
+   `center` (所属中心) column to `volunteers`
+8. `008_summarized_at.sql` — Phase 3 (auto-summary cron): adds a nullable
+   `summarized_at` column to `conversations` (NULL = not yet folded into the
+   contact's care summary; drives the daily `/api/cron/summarize` job)
 
 ## Note
 
