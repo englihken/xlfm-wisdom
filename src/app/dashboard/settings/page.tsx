@@ -21,6 +21,7 @@ type Volunteer = {
   id: string;
   email: string;
   display_name: string | null;
+  center: string | null;
   role: Role;
   active: boolean;
   created_at: string;
@@ -50,9 +51,15 @@ export default function SettingsPage() {
   const [actingId, setActingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // List view: which rows to show, which row is being edited, which just saved.
+  const [filter, setFilter] = useState<'active' | 'all'>('active');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+
   // Add-volunteer form.
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
+  const [formCenter, setFormCenter] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [formRole, setFormRole] = useState<Role>('volunteer');
   const [submitting, setSubmitting] = useState(false);
@@ -164,6 +171,7 @@ export default function SettingsPage() {
           email: formEmail,
           password: formPassword,
           displayName: formName,
+          center: formCenter,
           role: formRole,
         }),
       });
@@ -174,6 +182,7 @@ export default function SettingsPage() {
       }
       setFormName('');
       setFormEmail('');
+      setFormCenter('');
       setFormPassword('');
       setFormRole('volunteer');
       setAddSuccess(true);
@@ -185,6 +194,40 @@ export default function SettingsPage() {
       setSubmitting(false);
     }
   };
+
+  // Save an inline row edit (display name / email / center). Returns an error
+  // message to show in the row, or null on success (parent closes the editor and
+  // flashes 已保存 ✓). The PATCH response already carries the fresh row, so we
+  // splice it into state rather than refetching the whole list.
+  const saveEdit = async (
+    id: string,
+    payload: { displayName: string; email: string; center: string }
+  ): Promise<string | null> => {
+    try {
+      const res = await fetch(`/api/dashboard/volunteers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 401) {
+        router.replace('/dashboard/login');
+        return null;
+      }
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        return json?.error ?? '保存失败，请重试';
+      }
+      setVolunteers((prev) => prev.map((v) => (v.id === id ? json.volunteer : v)));
+      setEditingId(null);
+      setSavedId(id);
+      setTimeout(() => setSavedId((s) => (s === id ? null : s)), 2000);
+      return null;
+    } catch {
+      return '保存失败，请重试';
+    }
+  };
+
+  const visibleVolunteers = filter === 'active' ? volunteers.filter((v) => v.active) : volunteers;
 
   if (checking) {
     return (
@@ -310,6 +353,20 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div>
+                    <label htmlFor="add-center" className="block text-xs font-medium text-[#B89968] mb-1">
+                      所属中心（可选）
+                    </label>
+                    <input
+                      id="add-center"
+                      type="text"
+                      value={formCenter}
+                      onChange={(e) => setFormCenter(e.target.value)}
+                      disabled={submitting}
+                      placeholder="如：吉隆坡"
+                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
                     <label htmlFor="add-password" className="block text-xs font-medium text-[#B89968] mb-1">
                       初始密码
                     </label>
@@ -356,11 +413,32 @@ export default function SettingsPage() {
                 </form>
               </section>
 
-              {/* VOLUNTEER LIST */}
+              {/* VOLUNTEER LIST.
+                  There is deliberately NO delete action: a volunteer's history and
+                  notes must stay attributable for safeguarding. Leaving the team is
+                  modelled as 停用 (disable); the 仅启用/全部 filter below keeps
+                  disabled accounts out of the everyday view but one click away. */}
               <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-[#EFE3BF] flex items-center justify-between">
-                  <h2 className="text-base font-semibold text-[#583A0F]">义工团队</h2>
-                  <span className="text-xs text-[#B89968]">{volunteers.length} 人</span>
+                <div className="px-5 py-4 border-b border-[#EFE3BF] flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-semibold text-[#583A0F]">义工团队</h2>
+                    <span className="text-xs text-[#B89968]">{volunteers.length} 人</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs">
+                    {(['active', 'all'] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setFilter(f)}
+                        className={`px-3 py-1 rounded-full border transition ${
+                          filter === f
+                            ? 'bg-[#FAEFD0] text-[#583A0F] border-[#EFE3BF]'
+                            : 'text-[#8B6F47] border-transparent hover:bg-[#FAEFD0]/60'
+                        }`}
+                      >
+                        {f === 'active' ? '仅启用' : '全部'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {actionError && (
@@ -371,30 +449,68 @@ export default function SettingsPage() {
 
                 {listLoading ? (
                   <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
-                ) : volunteers.length === 0 ? (
-                  <p className="p-6 text-sm text-[#8B6F47]">暂无义工</p>
+                ) : visibleVolunteers.length === 0 ? (
+                  <p className="p-6 text-sm text-[#8B6F47]">
+                    {filter === 'active' ? '暂无启用的义工' : '暂无义工'}
+                  </p>
                 ) : (
                   <ul>
-                    {volunteers.map((v) => {
+                    {visibleVolunteers.map((v) => {
                       const isSelf = me?.email === v.email;
                       const busy = actingId === v.id;
+
+                      if (editingId === v.id) {
+                        return (
+                          <li
+                            key={v.id}
+                            className="px-5 py-4 border-b border-[#EFE3BF] last:border-b-0"
+                          >
+                            <VolunteerEditForm
+                              volunteer={v}
+                              onSave={(payload) => saveEdit(v.id, payload)}
+                              onCancel={() => setEditingId(null)}
+                            />
+                          </li>
+                        );
+                      }
+
                       return (
                         <li
                           key={v.id}
-                          className="px-5 py-4 border-b border-[#EFE3BF] last:border-b-0 flex flex-wrap items-center justify-between gap-3"
+                          className={`px-5 py-4 border-b border-[#EFE3BF] last:border-b-0 flex flex-wrap items-center justify-between gap-3 ${
+                            v.active ? '' : 'opacity-60'
+                          }`}
                         >
                           <div className="min-w-0">
-                            <p className="font-medium text-[#583A0F] truncate">
+                            <p
+                              className={`font-medium truncate ${
+                                v.active ? 'text-[#583A0F]' : 'text-[#8B6F47]'
+                              }`}
+                            >
                               {v.display_name || v.email}
                               {isSelf && <span className="ml-1 text-xs text-[#B89968]">（你）</span>}
                             </p>
                             <p className="text-xs text-[#8B6F47] truncate">{v.email}</p>
+                            {v.center && (
+                              <p className="text-xs text-[#B89968] truncate">所属中心：{v.center}</p>
+                            )}
                             <p className="mt-0.5 text-xs text-[#B89968]">加入于 {formatDate(v.created_at)}</p>
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2 shrink-0">
                             <RoleBadge role={v.role} />
                             <StatusBadge active={v.active} />
+                            {savedId === v.id && (
+                              <span className="text-xs text-[#A87929]">已保存 ✓</span>
+                            )}
+
+                            <button
+                              onClick={() => setEditingId(v.id)}
+                              disabled={busy}
+                              className="px-3 py-1 text-xs text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              编辑
+                            </button>
 
                             <button
                               onClick={() =>
@@ -429,6 +545,107 @@ export default function SettingsPage() {
             </div>
           )}
         </main>
+      </div>
+    </div>
+  );
+}
+
+// Inline row editor for a volunteer's display name / email / center. Mounted only
+// while its row is being edited, so its local state initialises from props on each
+// open with no sync effect (keeps setState out of effects-with-deps). onSave
+// resolves to an error string (shown here) or null on success (parent unmounts us).
+function VolunteerEditForm({
+  volunteer,
+  onSave,
+  onCancel,
+}: {
+  volunteer: Volunteer;
+  onSave: (payload: { displayName: string; email: string; center: string }) => Promise<string | null>;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(volunteer.display_name ?? '');
+  const [email, setEmail] = useState(volunteer.email);
+  const [center, setCenter] = useState(volunteer.center ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    const err = await onSave({ displayName: name, email, center });
+    // On success the parent clears editing and unmounts this form; only touch
+    // state when we stay mounted (an error), so there's no setState-after-unmount.
+    if (err) {
+      setError(err);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div>
+          <label htmlFor="edit-name" className="block text-xs font-medium text-[#B89968] mb-1">
+            显示名称
+          </label>
+          <input
+            id="edit-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={saving}
+            placeholder="如：李师兄"
+            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+          />
+        </div>
+        <div>
+          <label htmlFor="edit-email" className="block text-xs font-medium text-[#B89968] mb-1">
+            邮箱
+          </label>
+          <input
+            id="edit-email"
+            name="edit-volunteer-email"
+            type="email"
+            autoComplete="off"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={saving}
+            placeholder="you@example.com"
+            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+          />
+        </div>
+        <div>
+          <label htmlFor="edit-center" className="block text-xs font-medium text-[#B89968] mb-1">
+            所属中心
+          </label>
+          <input
+            id="edit-center"
+            type="text"
+            value={center}
+            onChange={(e) => setCenter(e.target.value)}
+            disabled={saving}
+            placeholder="如：吉隆坡"
+            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleSave}
+          disabled={saving || !email.trim()}
+          className="px-4 py-1.5 text-xs text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? '保存中…' : '保存'}
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={saving}
+          className="px-4 py-1.5 text-xs text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-50"
+        >
+          取消
+        </button>
+        {error && <span className="text-xs text-red-600">{error}</span>}
       </div>
     </div>
   );

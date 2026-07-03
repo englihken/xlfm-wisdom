@@ -11,13 +11,14 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 
-const VOLUNTEER_COLUMNS = 'id, email, display_name, role, active, created_at';
+const VOLUNTEER_COLUMNS = 'id, email, display_name, center, role, active, created_at';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type NewVolunteer = {
   email?: unknown;
   password?: unknown;
   displayName?: unknown;
+  center?: unknown;
   role?: unknown;
 };
 
@@ -79,6 +80,7 @@ export async function POST(req: Request) {
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   const password = typeof body.password === 'string' ? body.password : '';
   const displayNameRaw = typeof body.displayName === 'string' ? body.displayName.trim() : '';
+  const centerRaw = typeof body.center === 'string' ? body.center.trim() : '';
   const role = body.role;
 
   if (!EMAIL_RE.test(email)) {
@@ -91,6 +93,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '角色无效' }, { status: 400 });
   }
   const displayName = displayNameRaw || null;
+  const center = centerRaw || null;
 
   // Create the auth user (service role). email_confirm so they can log in now.
   const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -119,7 +122,7 @@ export async function POST(req: Request) {
   // not leave an orphaned account that can log in but has no volunteer profile.
   const { data: inserted, error: insertError } = await supabaseAdmin
     .from('volunteers')
-    .insert({ id: authUserId, email, display_name: displayName, role, active: true })
+    .insert({ id: authUserId, email, display_name: displayName, center, role, active: true })
     .select(VOLUNTEER_COLUMNS)
     .single();
 
