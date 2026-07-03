@@ -12,16 +12,20 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
+import { PasswordChangeGate } from '@/components/password-change-gate';
+import { XLFM_CENTERS, isValidCenter } from '@/lib/xlfm-centers';
 
 type Role = 'admin' | 'volunteer';
 
-type Me = { email: string; displayName: string | null; role: Role };
+type Me = { email: string; displayName: string | null; role: Role; mustChangePassword?: boolean };
 
 type Volunteer = {
   id: string;
   email: string;
   display_name: string | null;
   center: string | null;
+  occupation: string | null;
+  skills: string | null;
   role: Role;
   active: boolean;
   created_at: string;
@@ -45,6 +49,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>('volunteers');
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -60,6 +65,8 @@ export default function SettingsPage() {
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formCenter, setFormCenter] = useState('');
+  const [formOccupation, setFormOccupation] = useState('');
+  const [formSkills, setFormSkills] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [formRole, setFormRole] = useState<Role>('volunteer');
   const [submitting, setSubmitting] = useState(false);
@@ -118,6 +125,8 @@ export default function SettingsPage() {
           displayName: meJson.displayName ?? null,
           role: meJson.role,
         });
+        // Fail open: only gate when the flag is explicitly true.
+        if (meJson.mustChangePassword) setMustChangePassword(true);
         if (meJson.role !== 'admin') return;
         await reloadVolunteers();
       } catch {
@@ -172,6 +181,8 @@ export default function SettingsPage() {
           password: formPassword,
           displayName: formName,
           center: formCenter,
+          occupation: formOccupation,
+          skills: formSkills,
           role: formRole,
         }),
       });
@@ -183,6 +194,8 @@ export default function SettingsPage() {
       setFormName('');
       setFormEmail('');
       setFormCenter('');
+      setFormOccupation('');
+      setFormSkills('');
       setFormPassword('');
       setFormRole('volunteer');
       setAddSuccess(true);
@@ -201,7 +214,7 @@ export default function SettingsPage() {
   // splice it into state rather than refetching the whole list.
   const saveEdit = async (
     id: string,
-    payload: { displayName: string; email: string; center: string }
+    payload: { displayName: string; email: string; center: string; occupation: string; skills: string }
   ): Promise<string | null> => {
     try {
       const res = await fetch(`/api/dashboard/volunteers/${id}`, {
@@ -235,6 +248,12 @@ export default function SettingsPage() {
         <p className="text-sm text-[#8B6F47]">加载中…</p>
       </div>
     );
+  }
+
+  // First-login: force a password change before anything else (applies to admins
+  // and volunteers alike). On success the gate clears; same session continues.
+  if (mustChangePassword) {
+    return <PasswordChangeGate onDone={() => setMustChangePassword(false)} />;
   }
 
   // Logged in but not an admin — polite notice, not a blank screen.
@@ -356,13 +375,24 @@ export default function SettingsPage() {
                     <label htmlFor="add-center" className="block text-xs font-medium text-[#B89968] mb-1">
                       所属中心（可选）
                     </label>
-                    <input
+                    <CenterSelect
                       id="add-center"
-                      type="text"
                       value={formCenter}
-                      onChange={(e) => setFormCenter(e.target.value)}
+                      onChange={setFormCenter}
                       disabled={submitting}
-                      placeholder="如：吉隆坡"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="add-occupation" className="block text-xs font-medium text-[#B89968] mb-1">
+                      职业（可选）
+                    </label>
+                    <input
+                      id="add-occupation"
+                      type="text"
+                      value={formOccupation}
+                      onChange={(e) => setFormOccupation(e.target.value)}
+                      disabled={submitting}
+                      placeholder="如：教师"
                       className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
                     />
                   </div>
@@ -398,6 +428,20 @@ export default function SettingsPage() {
                       <option value="volunteer">义工</option>
                       <option value="admin">管理员</option>
                     </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="add-skills" className="block text-xs font-medium text-[#B89968] mb-1">
+                      专长／技能（可选）
+                    </label>
+                    <textarea
+                      id="add-skills"
+                      value={formSkills}
+                      onChange={(e) => setFormSkills(e.target.value)}
+                      disabled={submitting}
+                      rows={2}
+                      placeholder="如：辅导、翻译、设计、医护…"
+                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] leading-relaxed resize-y focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                    />
                   </div>
                   <div className="sm:col-span-2 flex items-center gap-3">
                     <button
@@ -494,6 +538,12 @@ export default function SettingsPage() {
                             {v.center && (
                               <p className="text-xs text-[#B89968] truncate">所属中心：{v.center}</p>
                             )}
+                            {v.occupation && (
+                              <p className="text-xs text-[#B89968] truncate">职业：{v.occupation}</p>
+                            )}
+                            {v.skills && (
+                              <p className="text-xs text-[#B89968] truncate">专长：{v.skills}</p>
+                            )}
                             <p className="mt-0.5 text-xs text-[#B89968]">加入于 {formatDate(v.created_at)}</p>
                           </div>
 
@@ -560,12 +610,24 @@ function VolunteerEditForm({
   onCancel,
 }: {
   volunteer: Volunteer;
-  onSave: (payload: { displayName: string; email: string; center: string }) => Promise<string | null>;
+  onSave: (payload: {
+    displayName: string;
+    email: string;
+    center: string;
+    occupation: string;
+    skills: string;
+  }) => Promise<string | null>;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(volunteer.display_name ?? '');
   const [email, setEmail] = useState(volunteer.email);
-  const [center, setCenter] = useState(volunteer.center ?? '');
+  // Only preselect the center if it's a known value; legacy free-text values show
+  // as 未指定 (and would be replaced by whatever is chosen on save).
+  const [center, setCenter] = useState(
+    volunteer.center && isValidCenter(volunteer.center) ? volunteer.center : ''
+  );
+  const [occupation, setOccupation] = useState(volunteer.occupation ?? '');
+  const [skills, setSkills] = useState(volunteer.skills ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -573,7 +635,7 @@ function VolunteerEditForm({
     if (saving) return;
     setSaving(true);
     setError(null);
-    const err = await onSave({ displayName: name, email, center });
+    const err = await onSave({ displayName: name, email, center, occupation, skills });
     // On success the parent clears editing and unmounts this form; only touch
     // state when we stay mounted (an error), so there's no setState-after-unmount.
     if (err) {
@@ -619,14 +681,36 @@ function VolunteerEditForm({
           <label htmlFor="edit-center" className="block text-xs font-medium text-[#B89968] mb-1">
             所属中心
           </label>
+          <CenterSelect id="edit-center" value={center} onChange={setCenter} disabled={saving} />
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label htmlFor="edit-occupation" className="block text-xs font-medium text-[#B89968] mb-1">
+            职业
+          </label>
           <input
-            id="edit-center"
+            id="edit-occupation"
             type="text"
-            value={center}
-            onChange={(e) => setCenter(e.target.value)}
+            value={occupation}
+            onChange={(e) => setOccupation(e.target.value)}
             disabled={saving}
-            placeholder="如：吉隆坡"
+            placeholder="如：教师"
             className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+          />
+        </div>
+        <div>
+          <label htmlFor="edit-skills" className="block text-xs font-medium text-[#B89968] mb-1">
+            专长／技能
+          </label>
+          <textarea
+            id="edit-skills"
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+            disabled={saving}
+            rows={2}
+            placeholder="如：辅导、翻译、设计、医护…"
+            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] leading-relaxed resize-y focus:outline-none focus:border-[#D89938] disabled:opacity-50"
           />
         </div>
       </div>
@@ -648,6 +732,42 @@ function VolunteerEditForm({
         {error && <span className="text-xs text-red-600">{error}</span>}
       </div>
     </div>
+  );
+}
+
+// 所属中心 dropdown: a blank 未指定 option + one <optgroup> per state. Used by both
+// the add and edit forms. A value not in the list (legacy free-text) renders as no
+// selection — the caller decides how to treat that.
+function CenterSelect({
+  id,
+  value,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <select
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+    >
+      <option value="">未指定</option>
+      {XLFM_CENTERS.map((g) => (
+        <optgroup key={g.state} label={g.state}>
+          {g.centers.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
   );
 }
 

@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
+import { PasswordChangeGate } from '@/components/password-change-gate';
 
 // ── Types (mirror the API route shapes) ──────────────────────────────────────
 type ListItem = {
@@ -106,15 +107,20 @@ function formatDateTime(iso: string): string {
   });
 }
 
-// The logged-in volunteer's own profile (from /api/dashboard/me). `role` is kept
-// for Step 2 (admin-only 设置 link); not read yet.
-type Me = { displayName: string | null; role: 'admin' | 'volunteer' };
+// The logged-in volunteer's own profile (from /api/dashboard/me). `role` gates the
+// admin-only 设置 link; `mustChangePassword` triggers the first-login gate.
+type Me = {
+  displayName: string | null;
+  role: 'admin' | 'volunteer';
+  mustChangePassword?: boolean;
+};
 
 export default function DashboardPage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   const [conversations, setConversations] = useState<ListItem[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -176,7 +182,11 @@ export default function DashboardPage() {
         }
         if (!res.ok) return;
         const json = (await res.json()) as Me;
-        if (active) setMe({ displayName: json.displayName ?? null, role: json.role });
+        if (active) {
+          setMe({ displayName: json.displayName ?? null, role: json.role });
+          // Fail open: only gate when the flag is explicitly true.
+          if (json.mustChangePassword) setMustChangePassword(true);
+        }
       })
       .catch(() => {});
     return () => {
@@ -255,6 +265,12 @@ export default function DashboardPage() {
         <p className="text-sm text-[#8B6F47]">加载中…</p>
       </div>
     );
+  }
+
+  // First-login: force a password change before showing the inbox. On success the
+  // gate clears and we continue in the same session.
+  if (mustChangePassword) {
+    return <PasswordChangeGate onDone={() => setMustChangePassword(false)} />;
   }
 
   return (

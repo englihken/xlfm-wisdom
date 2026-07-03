@@ -26,5 +26,6 @@ export async function GET() {
     displayName: volunteer.display_name,
     role: volunteer.role,
     active: volunteer.active,
+    mustChangePassword: volunteer.must_change_password,
   });
 }

@@ -1,0 +1,123 @@
+// src/components/password-change-gate.tsx
+// Full-screen warm-palette gate shown on first login when the volunteer still has
+// the admin-set initial password (mustChangePassword). Blocks the dashboard until
+// they set a new one, then calls onDone() so the app continues in the SAME session
+// (no re-login). Used by both the inbox and the settings page.
+//
+// Fail-open is the caller's job: only render this when /me explicitly reports
+// mustChangePassword === true. All setState here lives in the submit handler.
+
+'use client';
+
+import { useState, type FormEvent } from 'react';
+
+export function PasswordChangeGate({ onDone }: { onDone: () => void }) {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (saving) return;
+    setError(null);
+
+    if (password.length < 8) {
+      setError('密码至少需要 8 位');
+      return;
+    }
+    if (password !== confirm) {
+      setError('两次输入的密码不一致');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/dashboard/me/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: password }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(json?.error ?? '设置失败，请重试');
+        setSaving(false);
+        return;
+      }
+      // Success — the parent clears the gate and we stay in the same session.
+      onDone();
+    } catch {
+      setError('设置失败，请重试');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-[#583A0F]">首次登录，请设置您的新密码</h1>
+          <p className="mt-2 text-sm text-[#8B6F47]">为了账号安全，请将初始密码更换为您自己的密码。</p>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          autoComplete="off"
+          className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl shadow-sm p-6 sm:p-8 space-y-5"
+        >
+          <div>
+            <label htmlFor="new-password" className="block text-sm font-medium text-[#583A0F] mb-1.5">
+              新密码
+            </label>
+            <input
+              id="new-password"
+              name="new-password"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={saving}
+              placeholder="至少 8 位"
+              className="w-full p-3 border border-[#EFE3BF] rounded-xl bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] focus:ring-1 focus:ring-[#D89938] disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="confirm-password" className="block text-sm font-medium text-[#583A0F] mb-1.5">
+              确认密码
+            </label>
+            <input
+              id="confirm-password"
+              name="confirm-password"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              disabled={saving}
+              placeholder="再次输入新密码"
+              className="w-full p-3 border border-[#EFE3BF] rounded-xl bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] focus:ring-1 focus:ring-[#D89938] disabled:opacity-50"
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={saving || password.length < 8 || confirm.length < 8}
+            className="w-full py-3 bg-[#D89938] hover:bg-[#A87929] text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? '设置中…' : '确认'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

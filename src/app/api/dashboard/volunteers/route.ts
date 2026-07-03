@@ -8,10 +8,12 @@
 import { NextResponse } from 'next/server';
 import { getActiveVolunteer, getAuthenticatedUser } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { isValidCenter } from '@/lib/xlfm-centers';
 
 export const runtime = 'nodejs';
 
-const VOLUNTEER_COLUMNS = 'id, email, display_name, center, role, active, created_at';
+const VOLUNTEER_COLUMNS =
+  'id, email, display_name, center, occupation, skills, role, active, created_at';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type NewVolunteer = {
@@ -19,6 +21,8 @@ type NewVolunteer = {
   password?: unknown;
   displayName?: unknown;
   center?: unknown;
+  occupation?: unknown;
+  skills?: unknown;
   role?: unknown;
 };
 
@@ -81,6 +85,8 @@ export async function POST(req: Request) {
   const password = typeof body.password === 'string' ? body.password : '';
   const displayNameRaw = typeof body.displayName === 'string' ? body.displayName.trim() : '';
   const centerRaw = typeof body.center === 'string' ? body.center.trim() : '';
+  const occupationRaw = typeof body.occupation === 'string' ? body.occupation.trim() : '';
+  const skillsRaw = typeof body.skills === 'string' ? body.skills.trim() : '';
   const role = body.role;
 
   if (!EMAIL_RE.test(email)) {
@@ -92,8 +98,14 @@ export async function POST(req: Request) {
   if (role !== 'admin' && role !== 'volunteer') {
     return NextResponse.json({ error: '角色无效' }, { status: 400 });
   }
+  // Center must be blank or one of the known 心灵法门 centers.
+  if (centerRaw && !isValidCenter(centerRaw)) {
+    return NextResponse.json({ error: '所属中心无效' }, { status: 400 });
+  }
   const displayName = displayNameRaw || null;
   const center = centerRaw || null;
+  const occupation = occupationRaw || null;
+  const skills = skillsRaw || null;
 
   // Create the auth user (service role). email_confirm so they can log in now.
   const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -122,7 +134,18 @@ export async function POST(req: Request) {
   // not leave an orphaned account that can log in but has no volunteer profile.
   const { data: inserted, error: insertError } = await supabaseAdmin
     .from('volunteers')
-    .insert({ id: authUserId, email, display_name: displayName, center, role, active: true })
+    .insert({
+      id: authUserId,
+      email,
+      display_name: displayName,
+      center,
+      occupation,
+      skills,
+      role,
+      active: true,
+      // Force a password change on first login (admin set the initial password).
+      must_change_password: true,
+    })
     .select(VOLUNTEER_COLUMNS)
     .single();
 

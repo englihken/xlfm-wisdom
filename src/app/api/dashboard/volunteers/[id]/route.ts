@@ -8,16 +8,20 @@
 import { NextResponse } from 'next/server';
 import { getActiveVolunteer, getAuthenticatedUser } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { isValidCenter } from '@/lib/xlfm-centers';
 
 export const runtime = 'nodejs';
 
-const VOLUNTEER_COLUMNS = 'id, email, display_name, center, role, active, created_at';
+const VOLUNTEER_COLUMNS =
+  'id, email, display_name, center, occupation, skills, role, active, created_at';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type VolunteerUpdate = {
   displayName?: unknown;
   email?: unknown;
   center?: unknown;
+  occupation?: unknown;
+  skills?: unknown;
   role?: unknown;
   active?: unknown;
 };
@@ -71,6 +75,8 @@ export async function PATCH(
     display_name?: string | null;
     email?: string;
     center?: string | null;
+    occupation?: string | null;
+    skills?: string | null;
     role?: string;
     active?: boolean;
   } = {};
@@ -86,7 +92,26 @@ export async function PATCH(
     if (typeof body.center !== 'string') {
       return NextResponse.json({ error: '所属中心无效' }, { status: 400 });
     }
-    update.center = body.center.trim() || null;
+    const trimmed = body.center.trim();
+    // Blank clears it; otherwise it must be a known center.
+    if (trimmed && !isValidCenter(trimmed)) {
+      return NextResponse.json({ error: '所属中心无效' }, { status: 400 });
+    }
+    update.center = trimmed || null;
+  }
+
+  if (body.occupation !== undefined) {
+    if (typeof body.occupation !== 'string') {
+      return NextResponse.json({ error: '职业无效' }, { status: 400 });
+    }
+    update.occupation = body.occupation.trim() || null;
+  }
+
+  if (body.skills !== undefined) {
+    if (typeof body.skills !== 'string') {
+      return NextResponse.json({ error: '专长无效' }, { status: 400 });
+    }
+    update.skills = body.skills.trim() || null;
   }
 
   if (body.role !== undefined) {

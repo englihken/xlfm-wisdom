@@ -55,6 +55,7 @@ export type Volunteer = {
   display_name: string | null;
   role: 'admin' | 'volunteer';
   active: boolean;
+  must_change_password: boolean;
 };
 
 // Returns the logged-in user together with their volunteers row, but ONLY when
@@ -70,7 +71,7 @@ export async function getActiveVolunteer(): Promise<
 
   const { data, error } = await supabaseAdmin
     .from('volunteers')
-    .select('id, email, display_name, role, active')
+    .select('id, email, display_name, role, active, must_change_password')
     .eq('id', user.id)
     .maybeSingle();
 

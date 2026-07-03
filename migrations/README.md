@@ -29,6 +29,9 @@ apply them with `psql`, lowest number first:
 8. `008_summarized_at.sql` — Phase 3 (auto-summary cron): adds a nullable
    `summarized_at` column to `conversations` (NULL = not yet folded into the
    contact's care summary; drives the daily `/api/cron/summarize` job)
+9. `009_volunteer_profile.sql` — Phase 3 (user management round 3): adds
+   `must_change_password` (bool, forced first-login change), `occupation`, and
+   `skills` columns to `volunteers`
 
 ## Note
 
