@@ -9,6 +9,7 @@
 
 import { useEffect, useState, useCallback, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
 
@@ -264,6 +265,14 @@ export default function DashboardPage() {
           <h1 className="text-lg font-bold text-[#583A0F]">心灵法门人文关怀系统</h1>
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline text-sm text-[#8B6F47]">{me?.displayName || email}</span>
+            {me?.role === 'admin' && (
+              <Link
+                href="/dashboard/settings"
+                className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
+              >
+                设置
+              </Link>
+            )}
             <button
               onClick={handleLogout}
               className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
