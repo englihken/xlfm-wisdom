@@ -1,9 +1,10 @@
 // src/app/dashboard/settings/page.tsx
-// 设置 — admin-only volunteer team management (Phase 3, user management Step 2).
-// Same client-side auth gate as the inbox: redirect to login without a session.
-// Admin-ness is enforced SERVER-SIDE on every /api/dashboard/volunteers route;
-// this page only *reveals* the tools (via /me role) — a non-admin who reaches
-// here sees a polite notice, and the API would 403 them anyway.
+// 设置 — admin-only settings, organised into sections (义工管理 today; retention,
+// crisis resources, categories, WhatsApp config to come). Same client-side auth
+// gate as the inbox: redirect to login without a session. Admin-ness is enforced
+// SERVER-SIDE on every /api/dashboard/volunteers route; this page only *reveals*
+// the tools (via /me role) — a non-admin who reaches here sees a polite notice,
+// and the API would 403 them anyway.
 
 'use client';
 
@@ -33,10 +34,17 @@ function formatDate(iso: string): string {
   });
 }
 
+// Settings sections. Data-driven so future sections (retention, crisis resources,
+// categories, WhatsApp config…) are a one-line addition here + a matching block in
+// the content area. Only 义工管理 exists today.
+const SECTIONS = [{ id: 'volunteers', label: '义工管理' }] as const;
+type SectionId = (typeof SECTIONS)[number]['id'];
+
 export default function SettingsPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
+  const [activeSection, setActiveSection] = useState<SectionId>('volunteers');
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
@@ -232,161 +240,196 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
-          {/* ADD VOLUNTEER */}
-          <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-5 sm:p-6">
-            <h2 className="text-base font-semibold text-[#583A0F]">添加义工</h2>
-            <p className="mt-1 text-sm text-[#8B6F47]">
-              新账号创建后即可使用邮箱和密码登录。
-            </p>
-            <form onSubmit={handleAdd} className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="name" className="block text-xs font-medium text-[#B89968] mb-1">
-                  显示名称
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  disabled={submitting}
-                  placeholder="如：李师兄"
-                  className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
-                />
-              </div>
-              <div>
-                <label htmlFor="add-email" className="block text-xs font-medium text-[#B89968] mb-1">
-                  邮箱
-                </label>
-                <input
-                  id="add-email"
-                  type="email"
-                  required
-                  value={formEmail}
-                  onChange={(e) => setFormEmail(e.target.value)}
-                  disabled={submitting}
-                  placeholder="you@example.com"
-                  className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
-                />
-              </div>
-              <div>
-                <label htmlFor="add-password" className="block text-xs font-medium text-[#B89968] mb-1">
-                  初始密码
-                </label>
-                <input
-                  id="add-password"
-                  type="password"
-                  required
-                  minLength={8}
-                  value={formPassword}
-                  onChange={(e) => setFormPassword(e.target.value)}
-                  disabled={submitting}
-                  placeholder="至少 8 位"
-                  className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
-                />
-              </div>
-              <div>
-                <label htmlFor="add-role" className="block text-xs font-medium text-[#B89968] mb-1">
-                  角色
-                </label>
-                <select
-                  id="add-role"
-                  value={formRole}
-                  onChange={(e) => setFormRole(e.target.value as Role)}
-                  disabled={submitting}
-                  className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
-                >
-                  <option value="volunteer">义工</option>
-                  <option value="admin">管理员</option>
-                </select>
-              </div>
-              <div className="sm:col-span-2 flex items-center gap-3">
-                <button
-                  type="submit"
-                  disabled={submitting || !formEmail.trim() || formPassword.length < 8}
-                  className="px-5 py-2 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? '添加中…' : '添加'}
-                </button>
-                {addSuccess && <span className="text-sm text-[#A87929]">已添加 ✓</span>}
-                {addError && <span className="text-sm text-red-600">{addError}</span>}
-              </div>
-            </form>
-          </section>
+      {/* SECTION NAV + CONTENT — vertical sidebar on desktop, horizontal tab row
+          on mobile (the same <ul> switches direction via md: breakpoints). */}
+      <div className="flex-1 flex flex-col md:flex-row min-h-0">
+        <nav className="shrink-0 md:w-[220px] border-b md:border-b-0 md:border-r border-[#EFE3BF] bg-[#FFFEF6] p-3 md:p-4">
+          <ul className="flex flex-wrap md:flex-col gap-1">
+            {SECTIONS.map((s) => {
+              const selected = s.id === activeSection;
+              return (
+                <li key={s.id}>
+                  <button
+                    onClick={() => setActiveSection(s.id)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
+                      selected
+                        ? 'bg-[#FAEFD0] text-[#583A0F] font-medium'
+                        : 'text-[#8B6F47] hover:bg-[#FAEFD0]/60'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
 
-          {/* VOLUNTEER LIST */}
-          <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#EFE3BF] flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#583A0F]">义工团队</h2>
-              <span className="text-xs text-[#B89968]">{volunteers.length} 人</span>
-            </div>
-
-            {actionError && (
-              <div className="px-5 py-3 bg-[#FEF2F2] text-sm text-red-700 border-b border-[#EFE3BF]">
-                {actionError}
-              </div>
-            )}
-
-            {listLoading ? (
-              <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
-            ) : volunteers.length === 0 ? (
-              <p className="p-6 text-sm text-[#8B6F47]">暂无义工</p>
-            ) : (
-              <ul>
-                {volunteers.map((v) => {
-                  const isSelf = me?.email === v.email;
-                  const busy = actingId === v.id;
-                  return (
-                    <li
-                      key={v.id}
-                      className="px-5 py-4 border-b border-[#EFE3BF] last:border-b-0 flex flex-wrap items-center justify-between gap-3"
+        <main className="flex-1 min-w-0 overflow-y-auto">
+          {activeSection === 'volunteers' && (
+            <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+              {/* ADD VOLUNTEER */}
+              <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-5 sm:p-6">
+                <h2 className="text-base font-semibold text-[#583A0F]">添加义工</h2>
+                <p className="mt-1 text-sm text-[#8B6F47]">
+                  新账号创建后即可使用邮箱和密码登录。
+                </p>
+                {/* autoComplete=off (+ non-suggestive field names & new-password on
+                    the password) so Chrome doesn't autofill the admin's own
+                    credentials into a form that creates *another* account. */}
+                <form onSubmit={handleAdd} autoComplete="off" className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="name" className="block text-xs font-medium text-[#B89968] mb-1">
+                      显示名称
+                    </label>
+                    <input
+                      id="name"
+                      type="text"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      disabled={submitting}
+                      placeholder="如：李师兄"
+                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="add-email" className="block text-xs font-medium text-[#B89968] mb-1">
+                      邮箱
+                    </label>
+                    <input
+                      id="add-email"
+                      name="new-volunteer-email"
+                      type="email"
+                      required
+                      autoComplete="off"
+                      value={formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
+                      disabled={submitting}
+                      placeholder="you@example.com"
+                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="add-password" className="block text-xs font-medium text-[#B89968] mb-1">
+                      初始密码
+                    </label>
+                    <input
+                      id="add-password"
+                      name="new-volunteer-password"
+                      type="password"
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                      value={formPassword}
+                      onChange={(e) => setFormPassword(e.target.value)}
+                      disabled={submitting}
+                      placeholder="至少 8 位"
+                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="add-role" className="block text-xs font-medium text-[#B89968] mb-1">
+                      角色
+                    </label>
+                    <select
+                      id="add-role"
+                      value={formRole}
+                      onChange={(e) => setFormRole(e.target.value as Role)}
+                      disabled={submitting}
+                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
                     >
-                      <div className="min-w-0">
-                        <p className="font-medium text-[#583A0F] truncate">
-                          {v.display_name || v.email}
-                          {isSelf && <span className="ml-1 text-xs text-[#B89968]">（你）</span>}
-                        </p>
-                        <p className="text-xs text-[#8B6F47] truncate">{v.email}</p>
-                        <p className="mt-0.5 text-xs text-[#B89968]">加入于 {formatDate(v.created_at)}</p>
-                      </div>
+                      <option value="volunteer">义工</option>
+                      <option value="admin">管理员</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2 flex items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={submitting || !formEmail.trim() || formPassword.length < 8}
+                      className="px-5 py-2 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {submitting ? '添加中…' : '添加'}
+                    </button>
+                    {addSuccess && <span className="text-sm text-[#A87929]">已添加 ✓</span>}
+                    {addError && <span className="text-sm text-red-600">{addError}</span>}
+                  </div>
+                </form>
+              </section>
 
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        <RoleBadge role={v.role} />
-                        <StatusBadge active={v.active} />
+              {/* VOLUNTEER LIST */}
+              <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-[#EFE3BF] flex items-center justify-between">
+                  <h2 className="text-base font-semibold text-[#583A0F]">义工团队</h2>
+                  <span className="text-xs text-[#B89968]">{volunteers.length} 人</span>
+                </div>
 
-                        <button
-                          onClick={() =>
-                            patchVolunteer(v.id, {
-                              role: v.role === 'admin' ? 'volunteer' : 'admin',
-                            })
-                          }
-                          disabled={isSelf || busy}
-                          className="px-3 py-1 text-xs text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                {actionError && (
+                  <div className="px-5 py-3 bg-[#FEF2F2] text-sm text-red-700 border-b border-[#EFE3BF]">
+                    {actionError}
+                  </div>
+                )}
+
+                {listLoading ? (
+                  <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
+                ) : volunteers.length === 0 ? (
+                  <p className="p-6 text-sm text-[#8B6F47]">暂无义工</p>
+                ) : (
+                  <ul>
+                    {volunteers.map((v) => {
+                      const isSelf = me?.email === v.email;
+                      const busy = actingId === v.id;
+                      return (
+                        <li
+                          key={v.id}
+                          className="px-5 py-4 border-b border-[#EFE3BF] last:border-b-0 flex flex-wrap items-center justify-between gap-3"
                         >
-                          {v.role === 'admin' ? '设为义工' : '设为管理员'}
-                        </button>
+                          <div className="min-w-0">
+                            <p className="font-medium text-[#583A0F] truncate">
+                              {v.display_name || v.email}
+                              {isSelf && <span className="ml-1 text-xs text-[#B89968]">（你）</span>}
+                            </p>
+                            <p className="text-xs text-[#8B6F47] truncate">{v.email}</p>
+                            <p className="mt-0.5 text-xs text-[#B89968]">加入于 {formatDate(v.created_at)}</p>
+                          </div>
 
-                        <button
-                          onClick={() => patchVolunteer(v.id, { active: !v.active })}
-                          disabled={isSelf || busy}
-                          className={`px-3 py-1 text-xs rounded-full border transition disabled:opacity-40 disabled:cursor-not-allowed ${
-                            v.active
-                              ? 'text-red-700 border-[#FCA5A5] hover:bg-[#FEF2F2]'
-                              : 'text-[#A87929] border-[#EFE3BF] hover:bg-[#FAEFD0]'
-                          }`}
-                        >
-                          {v.active ? '停用' : '启用'}
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-        </div>
-      </main>
+                          <div className="flex flex-wrap items-center gap-2 shrink-0">
+                            <RoleBadge role={v.role} />
+                            <StatusBadge active={v.active} />
+
+                            <button
+                              onClick={() =>
+                                patchVolunteer(v.id, {
+                                  role: v.role === 'admin' ? 'volunteer' : 'admin',
+                                })
+                              }
+                              disabled={isSelf || busy}
+                              className="px-3 py-1 text-xs text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {v.role === 'admin' ? '设为义工' : '设为管理员'}
+                            </button>
+
+                            <button
+                              onClick={() => patchVolunteer(v.id, { active: !v.active })}
+                              disabled={isSelf || busy}
+                              className={`px-3 py-1 text-xs rounded-full border transition disabled:opacity-40 disabled:cursor-not-allowed ${
+                                v.active
+                                  ? 'text-red-700 border-[#FCA5A5] hover:bg-[#FEF2F2]'
+                                  : 'text-[#A87929] border-[#EFE3BF] hover:bg-[#FAEFD0]'
+                              }`}
+                            >
+                              {v.active ? '停用' : '启用'}
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
