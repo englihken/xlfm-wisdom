@@ -4,7 +4,7 @@
 // service-role client (supabaseAdmin).
 
 import { NextResponse } from 'next/server';
-import { getAuthenticatedUser } from '@/lib/supabase-server';
+import { getActiveVolunteer, getAuthenticatedUser } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
@@ -28,10 +28,15 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  // Layer 1: verify a logged-in volunteer.
-  const user = await getAuthenticatedUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Layer 1: require an ACTIVE volunteer. Distinguish 401 (no session) from
+  // 403 (logged in, but not an active volunteer row).
+  const access = await getActiveVolunteer();
+  if (!access) {
+    const user = await getAuthenticatedUser();
+    return NextResponse.json(
+      { error: user ? 'Not an active volunteer' : 'Unauthorized' },
+      { status: user ? 403 : 401 }
+    );
   }
 
   if (!supabaseAdmin) {

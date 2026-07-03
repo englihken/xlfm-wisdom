@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { User } from '@supabase/supabase-js';
+import { supabaseAdmin } from './supabase';
 
 // Server-side Supabase client bound to the request's cookies, using the public
 // ANON key. Its ONLY job here is to read the logged-in volunteer's auth session
@@ -44,4 +45,40 @@ export async function getAuthenticatedUser(): Promise<User | null> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
   return data.user;
+}
+
+// A row from the `volunteers` table (migrations/006). `role` gates admin-only
+// features; `active` gates dashboard access.
+export type Volunteer = {
+  id: string;
+  email: string;
+  display_name: string | null;
+  role: 'admin' | 'volunteer';
+  active: boolean;
+};
+
+// Returns the logged-in user together with their volunteers row, but ONLY when
+// that row exists and is active — otherwise null. This is the role-aware gate for
+// the dashboard: routes distinguish 401 (no session) from 403 (logged in but not
+// an active volunteer) by checking getAuthenticatedUser() first, then this.
+export async function getActiveVolunteer(): Promise<
+  { user: User; volunteer: Volunteer } | null
+> {
+  const user = await getAuthenticatedUser();
+  if (!user) return null;
+  if (!supabaseAdmin) return null;
+
+  const { data, error } = await supabaseAdmin
+    .from('volunteers')
+    .select('id, email, display_name, role, active')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[auth] volunteer lookup failed:', error);
+    return null;
+  }
+  if (!data || !data.active) return null;
+
+  return { user, volunteer: data as Volunteer };
 }

@@ -18,9 +18,16 @@ apply them with `psql`, lowest number first:
 4. `004_volunteer_read_policies.sql` — Phase 3: adds RLS `select` policies so
    logged-in volunteers (the `authenticated` role) can read `contacts`,
    `conversations`, and `messages`; the public `anon` role stays blocked
+5. `005_conversation_category.sql` — Phase 3: adds `category` + `crisis_flag`
+   columns to `conversations` for automatic categorisation
+6. `006_volunteers.sql` — Phase 3 (user management): the `volunteers` table
+   (RLS enabled, no policies — service-role access only). Documents the schema;
+   the table and its bootstrap rows (existing users + first admin) were created
+   manually in Supabase, so there is no seed data to re-run.
 
 ## Note
 
-The **live database already has 001–003 applied.** `004` is the latest and must
-still be run in Supabase. These files are for documentation, reproducibility, and
-rebuilding a new environment — not something to re-run once applied.
+`006`'s table and its bootstrap rows (existing users + first admin) were **already
+created manually** in the live Supabase project — do not re-run it there. These
+files are for documentation, reproducibility, and rebuilding a new environment,
+not something to re-run once applied.

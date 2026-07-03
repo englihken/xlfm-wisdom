@@ -105,10 +105,15 @@ function formatDateTime(iso: string): string {
   });
 }
 
+// The logged-in volunteer's own profile (from /api/dashboard/me). `role` is kept
+// for Step 2 (admin-only 设置 link); not read yet.
+type Me = { displayName: string | null; role: 'admin' | 'volunteer' };
+
 export default function DashboardPage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
+  const [me, setMe] = useState<Me | null>(null);
 
   const [conversations, setConversations] = useState<ListItem[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -118,6 +123,14 @@ export default function DashboardPage() {
 
   // If any dashboard API returns 401, the session is gone — back to login.
   const handleUnauthorized = useCallback(() => {
+    router.replace('/dashboard/login');
+  }, [router]);
+
+  // Clear the Supabase session and return to login. Used both by the 登出 button
+  // and when /me reports the account is no longer an active volunteer (403).
+  const forceSignOut = useCallback(async () => {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
     router.replace('/dashboard/login');
   }, [router]);
 
@@ -142,6 +155,33 @@ export default function DashboardPage() {
       setChecking(false);
     });
   }, [router]);
+
+  // Once past the auth gate, load our own volunteer profile. A 403 means the
+  // session is valid but this account is not (or no longer) an active volunteer:
+  // sign out and return to login. All setState stays inside the async callback.
+  useEffect(() => {
+    if (checking) return;
+    let active = true;
+    fetch('/api/dashboard/me')
+      .then(async (res) => {
+        if (!active) return;
+        if (res.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+        if (res.status === 403) {
+          await forceSignOut();
+          return;
+        }
+        if (!res.ok) return;
+        const json = (await res.json()) as Me;
+        if (active) setMe({ displayName: json.displayName ?? null, role: json.role });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [checking, handleUnauthorized, forceSignOut]);
 
   // Select a conversation. Reset the detail panels here (in the event handler,
   // not the effect) so the fetch effect stays free of synchronous setState.
@@ -204,9 +244,7 @@ export default function DashboardPage() {
   }, [selectedId, handleUnauthorized]);
 
   const handleLogout = async () => {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    router.replace('/dashboard/login');
+    await forceSignOut();
     router.refresh();
   };
 
@@ -225,7 +263,7 @@ export default function DashboardPage() {
         <div className="px-5 py-3 flex items-center justify-between gap-3">
           <h1 className="text-lg font-bold text-[#583A0F]">心灵法门人文关怀系统</h1>
           <div className="flex items-center gap-4">
-            <span className="hidden sm:inline text-sm text-[#8B6F47]">{email}</span>
+            <span className="hidden sm:inline text-sm text-[#8B6F47]">{me?.displayName || email}</span>
             <button
               onClick={handleLogout}
               className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
