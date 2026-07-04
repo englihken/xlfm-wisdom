@@ -19,7 +19,8 @@ export const maxDuration = 60;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
 const IDLE_MS = 2 * 60 * 60 * 1000; // summarise only once idle 2+ hours
-const BATCH_LIMIT = 20; // bound cost per run
+const BATCH_LIMIT = 12; // bound cost per run
+const TIME_BUDGET_MS = 45_000; // stop before Vercel's 60s maxDuration kills us mid-run
 const MAX_TRANSCRIPT_MESSAGES = 30; // cap transcript length fed to the model
 const MAX_MESSAGE_CHARS = 500; // truncate very long individual messages
 const JUNK_CATEGORY = '闲聊测试'; // never worth an AI call
@@ -60,6 +61,8 @@ async function generateSummary(existingSummary: string, transcript: string): Pro
 }
 
 export async function GET(req: Request) {
+  const startTime = Date.now();
+
   // Security: Vercel Cron sends a bearer token. Missing env or any mismatch → 401.
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) {
@@ -90,11 +93,25 @@ export async function GET(req: Request) {
   let processed = 0;
   let junkSkipped = 0;
   let failed = 0;
+  let timeBudgetHit = false;
 
   const markSummarized = (id: string) =>
     db.from('conversations').update({ summarized_at: new Date().toISOString() }).eq('id', id);
 
-  for (const conv of conversations ?? []) {
+  const batch = conversations ?? [];
+  let index = 0;
+  for (; index < batch.length; index++) {
+    const conv = batch[index];
+
+    // Time-budget guard: maxDuration is 60s but a full batch of AI calls can exceed
+    // it. If we're past the budget, stop before starting another call — unprocessed
+    // conversations stay unmarked (summarized_at null) so the next nightly run picks
+    // them up. Graceful instead of killed mid-run.
+    if (Date.now() - startTime > TIME_BUDGET_MS) {
+      timeBudgetHit = true;
+      break;
+    }
+
     try {
       // (a) Junk category → mark, no AI call (saves credits on test/chit-chat).
       if (conv.category === JUNK_CATEGORY) {
@@ -167,5 +184,10 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ processed, junkSkipped, failed });
+  return NextResponse.json({
+    processed,
+    junkSkipped,
+    failed,
+    ...(timeBudgetHit ? { timeBudgetHit: true, remaining: batch.length - index } : {}),
+  });
 }
