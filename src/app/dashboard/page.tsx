@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback, type ChangeEvent } from 'react';
+import { useEffect, useState, useCallback, useRef, Fragment, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
@@ -25,6 +25,7 @@ type ListItem = {
   crisisFlag: boolean;
   lastMessagePreview: string;
   lastMessageAt: string;
+  unread: boolean;
 };
 
 type ThreadMessage = {
@@ -107,6 +108,37 @@ function formatDateTime(iso: string): string {
   });
 }
 
+// Day-group bucketing in Malaysia time (Asia/Kuala_Lumpur, UTC+8, no DST). The
+// server stores UTC, so we ask for the MYT calendar day explicitly. en-CA yields a
+// sortable YYYY-MM-DD key.
+function mytDayKey(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' });
+}
+function dayLabelFromKey(key: string, todayKey: string, yesterdayKey: string): string {
+  if (key === todayKey) return '今天';
+  if (key === yesterdayKey) return '昨天';
+  const [, m, d] = key.split('-');
+  return `${m}/${d}`;
+}
+// Group an already-newest-first list under consecutive MYT day headers.
+function buildDayGroups(
+  items: ListItem[],
+  todayKey: string,
+  yesterdayKey: string
+): { key: string; label: string; items: ListItem[] }[] {
+  const groups: { key: string; label: string; items: ListItem[] }[] = [];
+  for (const c of items) {
+    const key = mytDayKey(c.lastMessageAt);
+    let g = groups[groups.length - 1];
+    if (!g || g.key !== key) {
+      g = { key, label: dayLabelFromKey(key, todayKey, yesterdayKey), items: [] };
+      groups.push(g);
+    }
+    g.items.push(c);
+  }
+  return groups;
+}
+
 // The logged-in volunteer's own profile (from /api/dashboard/me). `role` gates the
 // admin-only 设置 link; `mustChangePassword` triggers the first-login gate.
 type Me = {
@@ -130,6 +162,16 @@ export default function DashboardPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Search: `searchInput` is the raw field; `query` is the 300ms-debounced value
+  // actually sent to the list API.
+  const [searchInput, setSearchInput] = useState('');
+  const [query, setQuery] = useState('');
+
+  // Ignore stale list responses when search + polling races overlap.
+  const listReqRef = useRef(0);
+  // Latest selected id, read inside the polling closure without re-arming it.
+  const selectedIdRef = useRef<string | null>(null);
 
   // If any dashboard API returns 401, the session is gone — back to login.
   const handleUnauthorized = useCallback(() => {
@@ -198,39 +240,102 @@ export default function DashboardPage() {
     };
   }, [checking, handleUnauthorized, forceSignOut]);
 
-  // Select a conversation. Reset the detail panels here (in the event handler,
-  // not the effect) so the fetch effect stays free of synchronous setState.
+  // Fire-and-forget: tell the server this volunteer has now read the conversation.
+  const markRead = useCallback((id: string) => {
+    fetch(`/api/dashboard/conversations/${id}/read`, { method: 'POST' }).catch(() => {});
+  }, []);
+
+  // Select a conversation. Reset the detail panels + optimistically clear the unread
+  // dot here (in the event handler, not an effect) so the fetch effect stays free of
+  // synchronous setState.
   const selectConversation = (id: string) => {
     if (id === selectedId) return;
     setSelectedId(id);
     setDetail(null);
     setDetailLoading(true);
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, unread: false } : c)));
+    markRead(id);
   };
 
-  // Load the conversation list once authenticated. listLoading starts true, so
-  // we only flip it off in the async callback (no synchronous setState here).
+  // Fetch the (optionally searched) conversation list. Never calls setState before
+  // its first await, so it's safe to invoke straight from an effect. A per-call id
+  // discards stale responses when a search change and a poll overlap.
+  const loadList = useCallback(async () => {
+    const reqId = ++listReqRef.current;
+    try {
+      const res = await fetch(
+        `/api/dashboard/conversations${query ? `?q=${encodeURIComponent(query)}` : ''}`
+      );
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      if (!res.ok) return;
+      const json = await res.json();
+      if (reqId !== listReqRef.current) return; // superseded by a newer request
+      setConversations(json.conversations ?? []);
+    } catch {
+      /* keep the current list on a transient error */
+    } finally {
+      if (reqId === listReqRef.current) setListLoading(false);
+    }
+  }, [query, handleUnauthorized]);
+
+  // Silent refresh of the open thread (used by polling). Only replaces detail when
+  // the message set actually changed, so it never disrupts scroll or steals focus.
+  const refreshOpenDetail = useCallback(async (convId: string) => {
+    try {
+      const res = await fetch(`/api/dashboard/conversations/${convId}`);
+      if (!res.ok) return;
+      const json = (await res.json()) as Detail;
+      setDetail((prev) => {
+        if (!prev || prev.conversation.id !== json.conversation.id) return prev; // switched away
+        const prevLast = prev.messages[prev.messages.length - 1]?.id;
+        const nextLast = json.messages[json.messages.length - 1]?.id;
+        if (prev.messages.length === json.messages.length && prevLast === nextLast) return prev;
+        return json;
+      });
+    } catch {
+      /* ignore — the next poll will retry */
+    }
+  }, []);
+
+  // Debounce the search field (300ms) into `query`. setState lives in the timeout
+  // callback, never synchronously in the effect body.
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Load the list once authenticated, and again whenever the debounced query
+  // changes (loadList's identity changes with `query`).
   useEffect(() => {
     if (checking) return;
-    let active = true;
-    fetch('/api/dashboard/conversations')
-      .then((res) => {
-        if (res.status === 401) {
-          handleUnauthorized();
-          return null;
-        }
-        return res.ok ? res.json() : null;
-      })
-      .then((json) => {
-        if (active && json) setConversations(json.conversations ?? []);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (active) setListLoading(false);
-      });
-    return () => {
-      active = false;
+    loadList();
+  }, [checking, loadList]);
+
+  // Keep the ref in sync so the polling closure sees the current selection.
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
+
+  // Light auto-refresh: poll the list every 30s, and the open thread with it. Pauses
+  // while the tab is hidden, and refreshes immediately when it becomes visible again.
+  useEffect(() => {
+    if (checking) return;
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return;
+      loadList();
+      const openId = selectedIdRef.current;
+      if (openId) refreshOpenDetail(openId);
     };
-  }, [checking, handleUnauthorized]);
+    const interval = setInterval(tick, 30000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [checking, loadList, refreshOpenDetail]);
 
   // Load the selected conversation's thread + profile. Loading/reset state is
   // set in selectConversation (the event handler); this effect only fetches and
@@ -279,6 +384,12 @@ export default function DashboardPage() {
     return <PasswordChangeGate onDone={() => setMustChangePassword(false)} />;
   }
 
+  // Day-group the (already newest-first) list under MYT date headers.
+  const nowMs = Date.now();
+  const todayKey = mytDayKey(new Date(nowMs).toISOString());
+  const yesterdayKey = mytDayKey(new Date(nowMs - 86_400_000).toISOString());
+  const dayGroups = buildDayGroups(conversations, todayKey, yesterdayKey);
+
   return (
     <div className="h-screen flex flex-col bg-[#FFF3DA] md:ml-[72px]">
       {/* TOP BAR — navigation lives in the rail now; keep title, name, 登出. */}
@@ -301,48 +412,83 @@ export default function DashboardPage() {
 
       {/* THREE PANELS */}
       <div className="flex-1 flex min-h-0">
-        {/* LEFT — conversation list */}
-        <aside className="w-[340px] shrink-0 border-r border-[#EFE3BF] bg-[#FFFEF6] overflow-y-auto">
-          {listLoading ? (
-            <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
-          ) : conversations.length === 0 ? (
-            <p className="p-6 text-sm text-[#8B6F47]">暂无对话</p>
-          ) : (
-            <ul>
-              {conversations.map((c) => {
-                const ch = channelMeta(c.channel);
-                const selected = c.id === selectedId;
-                return (
-                  <li key={c.id}>
-                    <button
-                      onClick={() => selectConversation(c.id)}
-                      className={`w-full text-left px-4 py-3 border-b border-[#EFE3BF] transition ${
-                        selected ? 'bg-[#FAEFD0]' : 'hover:bg-[#FAEFD0]/60'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-[#D89938]" title={ch.label}>{ch.icon}</span>
-                          <span className="font-medium text-[#583A0F] truncate">{c.contactName}</span>
-                        </div>
-                        <span className="shrink-0 text-xs text-[#B89968]">{formatTime(c.lastMessageAt)}</span>
-                      </div>
-                      <p className="mt-1 text-sm text-[#8B6F47] line-clamp-2 break-words">
-                        {c.lastMessagePreview || '（无消息）'}
-                      </p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${statusStyle(c.status)}`}>
-                          {statusLabel(c.status)}
-                        </span>
-                        {c.crisisFlag && <CrisisTag />}
-                        {c.category && <CategoryTag category={c.category} />}
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+        {/* LEFT — search + conversation list */}
+        <aside className="w-[340px] shrink-0 border-r border-[#EFE3BF] bg-[#FFFEF6] flex flex-col min-h-0">
+          {/* SEARCH */}
+          <div className="shrink-0 p-3 border-b border-[#EFE3BF]">
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="搜索姓名 / 号码 / 内容…"
+              className="w-full text-sm px-3 py-2 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938]"
+            />
+          </div>
+
+          {/* LIST (scrolls; day headers stick within this container) */}
+          <div className="flex-1 overflow-y-auto">
+            {listLoading ? (
+              <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
+            ) : conversations.length === 0 ? (
+              <p className="p-6 text-sm text-[#8B6F47]">{query ? '未找到相关对话' : '暂无对话'}</p>
+            ) : (
+              <ul>
+                {dayGroups.map((group) => (
+                  <Fragment key={group.key}>
+                    <li className="sticky top-0 z-[1] px-4 py-1.5 text-[11px] font-medium text-[#B89968] bg-[#FFFEF6]/95 backdrop-blur-sm border-b border-[#EFE3BF]">
+                      {group.label}
+                    </li>
+                    {group.items.map((c) => {
+                      const ch = channelMeta(c.channel);
+                      const selected = c.id === selectedId;
+                      // Never dot the conversation that's currently open.
+                      const showUnread = c.unread && !selected;
+                      return (
+                        <li key={c.id}>
+                          <button
+                            onClick={() => selectConversation(c.id)}
+                            className={`w-full text-left px-4 py-3 border-b border-[#EFE3BF] transition ${
+                              selected ? 'bg-[#FAEFD0]' : 'hover:bg-[#FAEFD0]/60'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {showUnread && (
+                                  <span
+                                    className="shrink-0 w-2 h-2 rounded-full bg-[#D89938]"
+                                    aria-label="未读"
+                                  />
+                                )}
+                                <span className="text-[#D89938]" title={ch.label}>{ch.icon}</span>
+                                <span
+                                  className={`truncate text-[#583A0F] ${
+                                    showUnread ? 'font-semibold' : 'font-medium'
+                                  }`}
+                                >
+                                  {c.contactName}
+                                </span>
+                              </div>
+                              <span className="shrink-0 text-xs text-[#B89968]">{formatTime(c.lastMessageAt)}</span>
+                            </div>
+                            <p className="mt-1 text-sm text-[#8B6F47] line-clamp-2 break-words">
+                              {c.lastMessagePreview || '（无消息）'}
+                            </p>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                              <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${statusStyle(c.status)}`}>
+                                {statusLabel(c.status)}
+                              </span>
+                              {c.crisisFlag && <CrisisTag />}
+                              {c.category && <CategoryTag category={c.category} />}
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </Fragment>
+                ))}
+              </ul>
+            )}
+          </div>
         </aside>
 
         {/* CENTER — message thread */}
