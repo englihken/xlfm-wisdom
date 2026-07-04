@@ -36,6 +36,15 @@ All four scenarios use the same sender: wa_id `60123456789`, profile name `测�
 > seconds to return. The HTTP response is always `{"ok":true}` (200) — the reply
 > itself goes out via WhatsApp (simulated), so read the **server console** to see it.
 
+> **⚠️ UTF-8 gotcha (why every POST below sends bytes):** `Invoke-WebRequest -Body
+> "<string>"` encodes the body in PowerShell's *system default* codepage, which
+> mangles Chinese into literal `?` by the time it reaches the webhook (the AI's
+> Chinese replies are fine — only the simulated *inbound* text breaks). The fix,
+> used in every command here: build the JSON as a here-string, convert it with
+> `[System.Text.Encoding]::UTF8.GetBytes($body)`, pass the **byte array** as
+> `-Body`, and set `-ContentType "application/json; charset=utf-8"`. Do not pass
+> the raw string.
+
 ---
 
 ## (1) First text from a NEW wa_id
@@ -67,7 +76,8 @@ $body1 = @'
   }]
 }
 '@
-Invoke-WebRequest -Uri $Url -Method POST -ContentType "application/json" -Body $body1 | Select-Object -Expand Content
+$bytes1 = [System.Text.Encoding]::UTF8.GetBytes($body1)
+Invoke-WebRequest -Uri $Url -Method POST -ContentType "application/json; charset=utf-8" -Body $bytes1 | Select-Object -Expand Content
 ```
 
 **Expected:** `{"ok":true}`. Server logs show a reply being generated and
@@ -108,7 +118,8 @@ $body2 = @'
   }]
 }
 '@
-Invoke-WebRequest -Uri $Url -Method POST -ContentType "application/json" -Body $body2 | Select-Object -Expand Content
+$bytes2 = [System.Text.Encoding]::UTF8.GetBytes($body2)
+Invoke-WebRequest -Uri $Url -Method POST -ContentType "application/json; charset=utf-8" -Body $bytes2 | Select-Object -Expand Content
 ```
 
 **Expected:** `{"ok":true}`. Dashboard: the **same** conversation now has four
@@ -119,11 +130,11 @@ messages (two user, two AI) — no second conversation row appears.
 ## (3) Duplicate of message (1) — proves dedup
 
 Re-send the **exact** payload from (1), reusing `wamid.TEST0001` (this is what Meta
-does on retry). The webhook detects the already-stored `wa_message_id` and skips the
-whole pipeline — no duplicate message, no second reply.
+does on retry) — the same UTF-8 bytes. The webhook detects the already-stored
+`wa_message_id` and skips the whole pipeline — no duplicate message, no second reply.
 
 ```powershell
-Invoke-WebRequest -Uri $Url -Method POST -ContentType "application/json" -Body $body1 | Select-Object -Expand Content
+Invoke-WebRequest -Uri $Url -Method POST -ContentType "application/json; charset=utf-8" -Body $bytes1 | Select-Object -Expand Content
 ```
 
 **Expected:** `{"ok":true}`. Server logs `[wa] duplicate message wamid.TEST0001 —
@@ -161,7 +172,8 @@ $body4 = @'
   }]
 }
 '@
-Invoke-WebRequest -Uri $Url -Method POST -ContentType "application/json" -Body $body4 | Select-Object -Expand Content
+$bytes4 = [System.Text.Encoding]::UTF8.GetBytes($body4)
+Invoke-WebRequest -Uri $Url -Method POST -ContentType "application/json; charset=utf-8" -Body $bytes4 | Select-Object -Expand Content
 ```
 
 **Expected:** `{"ok":true}`. Server logs `[wa] send skipped (not configured)` for
@@ -196,7 +208,8 @@ $bodyStatus = @'
   }]
 }
 '@
-Invoke-WebRequest -Uri $Url -Method POST -ContentType "application/json" -Body $bodyStatus | Select-Object -Expand Content
+$bytesStatus = [System.Text.Encoding]::UTF8.GetBytes($bodyStatus)
+Invoke-WebRequest -Uri $Url -Method POST -ContentType "application/json; charset=utf-8" -Body $bytesStatus | Select-Object -Expand Content
 ```
 
 **Expected:** `{"ok":true}`. Server logs `[wa] status delivered for message
