@@ -32,6 +32,9 @@ apply them with `psql`, lowest number first:
 9. `009_volunteer_profile.sql` — Phase 3 (user management round 3): adds
    `must_change_password` (bool, forced first-login change), `occupation`, and
    `skills` columns to `volunteers`
+10. `010_wa_message_id.sql` — Phase 5 Track B (WhatsApp channel): adds a nullable
+    `wa_message_id` to `messages` + a partial unique index (where not null), so
+    Meta's at-least-once webhook retries can't reprocess the same inbound message
 
 ## Note
 

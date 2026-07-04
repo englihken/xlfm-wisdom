@@ -4,9 +4,9 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest } from 'next/server';
-import { getSystemPrompt } from '@/lib/system-prompt';
 import { searchRelevantTeachings, formatPassagesAsContext } from '@/lib/vector-search';
 import { supabaseAdmin } from '@/lib/supabase';
+import { buildSystemBlocks, buildSources, classifyAndSaveCategory } from '@/lib/care-pipeline';
 
 export const runtime = 'nodejs'; // Node runtime for Pinecone SDK compatibility
 export const maxDuration = 60;
@@ -130,70 +130,9 @@ async function persistAssistant(params: {
   }
 }
 
-// ── Conversation categorisation (cheap, post-reply) ───────────────────────
-// A separate, tiny classification pass that runs AFTER the reply is delivered.
-// It never touches the user's reply text (no leaked tags) and is fully fail-safe.
-
-const CONVERSATION_CATEGORIES = [
-  '感情婚姻', '家庭', '健康', '事业财运', '学业', '人际关系',
-  '修行方法', '因果业障', '解梦', '玄学问答', '闲聊测试', '其他',
-] as const;
-type ConversationCategory = (typeof CONVERSATION_CATEGORIES)[number];
-
-// Classify the conversation into ONE problem-type category, with a separate
-// crisis overlay. Minimal prompt, no system prompt, no RAG, tiny max_tokens —
-// kept deliberately cheap. NEVER throws: returns null on any failure so the
-// caller simply leaves the category untouched.
-async function classifyConversation(
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>
-): Promise<{ category: ConversationCategory; crisis_flag: boolean } | null> {
-  try {
-    // Only the recent turns, as plain transcript text — keeps the call small.
-    const transcript = messages
-      .slice(-10)
-      .map((m) => `${m.role === 'user' ? '访客' : '助手'}: ${m.content}`)
-      .join('\n');
-
-    const result = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 20,
-      messages: [
-        {
-          role: 'user',
-          content:
-            'Read this conversation between a person and a Buddhist care assistant. ' +
-            'Reply with EXACTLY ONE category label from this list and nothing else:\n' +
-            CONVERSATION_CATEGORIES.join('、') +
-            '\nIf the conversation shows crisis / self-harm / severe distress signals, ' +
-            'prefix your answer with "危机:" (e.g. "危机:家庭").\n\n' +
-            `对话:\n${transcript}`,
-        },
-      ],
-    });
-
-    const textPart = result.content.find((b) => b.type === 'text');
-    let label = textPart && textPart.type === 'text' ? textPart.text.trim() : '';
-    if (!label) return null;
-
-    // Crisis overlay: a "危机:" prefix (half- or full-width colon) applies to any
-    // category. Strip it off, then validate the remaining label.
-    let crisis_flag = false;
-    if (label.startsWith('危机:') || label.startsWith('危机：')) {
-      crisis_flag = true;
-      label = label.replace(/^危机[:：]\s*/, '').trim();
-    }
-
-    const category: ConversationCategory =
-      (CONVERSATION_CATEGORIES as readonly string[]).includes(label)
-        ? (label as ConversationCategory)
-        : '其他';
-
-    return { category, crisis_flag };
-  } catch (e) {
-    console.error('[classify] conversation classification failed:', e);
-    return null;
-  }
-}
+// Conversation categorisation (the cheap, post-reply classification pass) now
+// lives in @/lib/care-pipeline (classifyConversation / classifyAndSaveCategory),
+// shared verbatim with the WhatsApp channel.
 
 export async function POST(req: NextRequest) {
   try {
@@ -218,9 +157,6 @@ export async function POST(req: NextRequest) {
 
     console.log('[chat] Retrieved passages:', passages.map(t => ({ book: t.book, score: t.score.toFixed(3) })));
 
-    // Step 2: Build the system prompt
-    const baseSystemPrompt = getSystemPrompt(language);
-
     // Step 3: Build messages array
     const messages = [
       ...conversation.map((msg) => ({
@@ -233,50 +169,17 @@ export async function POST(req: NextRequest) {
       },
     ];
 
-    // Step 4: Stream response from Claude.
-    // System is split into two blocks so the stable base prompt hits
-    // the 5-min ephemeral cache across turns; retrieved RAG context
-    // varies per query and stays uncached.
+    // Step 4: Stream response from Claude. The system param (stable base prompt +
+    // per-query RAG context, base block cached) is assembled by the shared pipeline.
     const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 2000,
-      system: [
-        {
-          type: 'text',
-          text: baseSystemPrompt,
-          cache_control: { type: 'ephemeral' },
-        },
-        ...(contextBlock ? [{ type: 'text' as const, text: contextBlock }] : []),
-      ],
+      system: buildSystemBlocks(language, contextBlock),
       messages,
     });
 
-    // Step 5: Build rich sources — deduplicate by book+page combo
-    const sourcesMap = new Map<string, {
-      book: string;
-      page_start?: number;
-      page_end?: number;
-      excerpt?: string;
-      count: number;
-    }>();
-
-    for (const p of passages) {
-      const key = `${p.book}:${p.page_start ?? 0}`;
-      const existing = sourcesMap.get(key);
-      if (existing) {
-        existing.count++;
-      } else {
-        sourcesMap.set(key, {
-          book: p.book,
-          page_start: p.page_start,
-          page_end: p.page_end,
-          excerpt: p.excerpt,
-          count: 1,
-        });
-      }
-    }
-
-    const sources = Array.from(sourcesMap.values()).slice(0, 3);
+    // Step 5: Build rich sources — deduplicate by book+page combo (shared helper).
+    const sources = buildSources(passages);
 
     // Resolve storage setup (started concurrently above) so the conversationId
     // is ready to send at the very start of the stream.
@@ -325,21 +228,11 @@ export async function POST(req: NextRequest) {
           // already has their full reply, so this adds ZERO visible latency.
           // Fail-safe: never throws, never blocks the chat. Re-tags on later
           // messages too — last classification wins.
-          if (supabaseAdmin && convId) {
-            try {
-              const tag = await classifyConversation([
-                ...messages,
-                { role: 'assistant', content: fullText },
-              ]);
-              if (tag) {
-                await supabaseAdmin
-                  .from('conversations')
-                  .update({ category: tag.category, crisis_flag: tag.crisis_flag })
-                  .eq('id', convId);
-              }
-            } catch (e) {
-              console.error('[classify] category save failed:', e);
-            }
+          if (convId) {
+            await classifyAndSaveCategory(convId, [
+              ...messages,
+              { role: 'assistant', content: fullText },
+            ]);
           }
 
           controller.close();
