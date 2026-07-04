@@ -17,7 +17,9 @@ const anthropic = new Anthropic({
 
 interface ChatRequest {
   message: string;
-  conversation?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  // History may include 'volunteer' turns once a human has replied (they're
+  // normalised to 'assistant' before the Claude call — see Step 3).
+  conversation?: Array<{ role: 'user' | 'assistant' | 'volunteer'; content: string }>;
   language?: 'zh' | 'en' | 'id';
   conversationId?: string;
   browserId?: string;
@@ -212,12 +214,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Step 3: Build messages array
+    // Step 3: Build the messages array for Claude. Normalise history roles —
+    // Anthropic only accepts 'user'|'assistant', but after a human takeover the
+    // history can carry 'volunteer' turns; a volunteer's reply is prior
+    // assistant-side context from the model's POV, so it maps to 'assistant'.
+    // Empty/whitespace-only turns (e.g. an aborted streaming placeholder) are
+    // dropped defensively.
     const messages = [
-      ...conversation.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
+      ...conversation
+        .filter((msg) => msg.content && msg.content.trim().length > 0)
+        .map((msg) => ({
+          role: msg.role === 'user' ? ('user' as const) : ('assistant' as const),
+          content: msg.content,
+        })),
       {
         role: 'user' as const,
         content: message,
