@@ -41,6 +41,9 @@ export default function ReportsPage() {
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  // Access gate driven by /me AFTER the session check. Until it resolves we show
+  // ONLY a neutral loader — never the privileged chrome (title / rail / controls).
+  const [gate, setGate] = useState<'checking' | 'denied' | 'ok'>('checking');
 
   const [range, setRange] = useState<Range>('30d');
   const [data, setData] = useState<ReportsData | null>(null);
@@ -90,8 +93,9 @@ export default function ReportsPage() {
         if (!active) return;
         setMe({ email: json.email, displayName: json.displayName ?? null, role: json.role });
         if (json.mustChangePassword) setMustChangePassword(true);
+        setGate(json.role === 'admin' ? 'ok' : 'denied');
       } catch {
-        /* the loading/notice states cover a failure */
+        /* stays on the neutral loader — no chrome revealed on failure */
       }
     })();
     return () => {
@@ -99,11 +103,12 @@ export default function ReportsPage() {
     };
   }, [checking, router, forceSignOut]);
 
-  // Load report metrics for the current range. Runs once we know we're an admin, and
-  // again whenever the range changes. reportsLoading starts true and is set in the
-  // range-change handler for refetches, so this effect only writes in its callbacks.
+  // Load report metrics for the current range. Fires ONLY after the gate resolves to
+  // 'ok' (confirmed admin) — never in parallel with the role check — and again when
+  // the range changes. reportsLoading starts true and is set in the range-change
+  // handler for refetches, so this effect only writes in its callbacks.
   useEffect(() => {
-    if (checking || !me || me.role !== 'admin') return;
+    if (gate !== 'ok') return;
     let active = true;
     fetch(`/api/dashboard/reports?range=${range}`)
       .then((res) => {
@@ -123,7 +128,7 @@ export default function ReportsPage() {
     return () => {
       active = false;
     };
-  }, [checking, me, range, handleUnauthorized]);
+  }, [gate, range, handleUnauthorized]);
 
   // Range pill click — an event handler, so resetting the panel state here keeps the
   // fetch effect free of synchronous setState.
@@ -139,7 +144,9 @@ export default function ReportsPage() {
     router.refresh();
   };
 
-  if (checking) {
+  // Neutral loader while EITHER the session check or the role check is in flight.
+  // Nothing here reveals what the page is (no title, rail, top bar, or controls).
+  if (checking || gate === 'checking') {
     return (
       <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center">
         <p className="text-sm text-[#8B6F47]">加载中…</p>
@@ -152,7 +159,7 @@ export default function ReportsPage() {
   }
 
   // Logged in but not an admin — polite notice, same as settings.
-  if (me && me.role !== 'admin') {
+  if (gate === 'denied') {
     return (
       <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center px-4">
         <div className="text-center">

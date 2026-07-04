@@ -121,6 +121,9 @@ export default function DashboardPage() {
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  // Profile gate: stay on the neutral loader until /me resolves, so the inbox chrome
+  // never flashes before the password-change gate (or the confirmed profile).
+  const [profileReady, setProfileReady] = useState(false);
 
   const [conversations, setConversations] = useState<ListItem[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -186,6 +189,7 @@ export default function DashboardPage() {
           setMe({ displayName: json.displayName ?? null, role: json.role });
           // Fail open: only gate when the flag is explicitly true.
           if (json.mustChangePassword) setMustChangePassword(true);
+          setProfileReady(true);
         }
       })
       .catch(() => {});
@@ -259,7 +263,9 @@ export default function DashboardPage() {
     router.refresh();
   };
 
-  if (checking) {
+  // Neutral loader while EITHER the session check or the profile fetch is in flight,
+  // so the inbox chrome never flashes before the password gate resolves.
+  if (checking || !profileReady) {
     return (
       <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center">
         <p className="text-sm text-[#8B6F47]">加载中…</p>

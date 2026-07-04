@@ -51,6 +51,9 @@ export default function SettingsPage() {
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  // Access gate driven by /me AFTER the session check. Until it resolves we show
+  // ONLY a neutral loader — never the privileged chrome (title / rail / controls).
+  const [gate, setGate] = useState<'checking' | 'denied' | 'ok'>('checking');
   const [activeSection, setActiveSection] = useState<SectionId>('volunteers');
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -128,7 +131,13 @@ export default function SettingsPage() {
         });
         // Fail open: only gate when the flag is explicitly true.
         if (meJson.mustChangePassword) setMustChangePassword(true);
-        if (meJson.role !== 'admin') return;
+        if (meJson.role !== 'admin') {
+          setGate('denied');
+          return;
+        }
+        // Confirmed admin — reveal the page, THEN load the team (never in parallel
+        // with the role check).
+        setGate('ok');
         await reloadVolunteers();
       } catch {
         /* leave the list empty; the notice/loading state covers it */
@@ -243,7 +252,9 @@ export default function SettingsPage() {
 
   const visibleVolunteers = filter === 'active' ? volunteers.filter((v) => v.active) : volunteers;
 
-  if (checking) {
+  // Neutral loader while EITHER the session check or the role check is in flight.
+  // Nothing here reveals what the page is (no title, rail, top bar, or controls).
+  if (checking || gate === 'checking') {
     return (
       <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center">
         <p className="text-sm text-[#8B6F47]">加载中…</p>
@@ -258,7 +269,7 @@ export default function SettingsPage() {
   }
 
   // Logged in but not an admin — polite notice, not a blank screen.
-  if (me && me.role !== 'admin') {
+  if (gate === 'denied') {
     return (
       <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center px-4">
         <div className="text-center">
