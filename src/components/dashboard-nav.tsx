@@ -14,9 +14,10 @@
 'use client';
 
 import Link from 'next/link';
+import { grantAllows, type Grants, type ModuleKey, type AccessLevel } from '@/lib/access';
 
 type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
-export type NavKey = 'inbox' | 'reports' | 'settings';
+export type NavKey = 'inbox' | 'reports' | 'settings' | 'members';
 
 type IconProps = { className?: string };
 
@@ -84,22 +85,62 @@ function GearIcon({ className }: IconProps) {
   );
 }
 
+// Two-person "people" icon for 会员, in the same line-icon style as the others.
+function PeopleIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
 type NavItem = {
   key: NavKey;
   label: string;
   href: string;
   Icon: (props: IconProps) => React.ReactElement;
   adminOnly: boolean;
+  // When set, visibility is decided by the caller's module grant (>= min) instead
+  // of the adminOnly-vs-role rule. Care-wing items keep the original logic.
+  module?: ModuleKey;
+  min?: AccessLevel;
 };
 
 const ITEMS: NavItem[] = [
   { key: 'inbox', label: '收件箱', href: '/dashboard', Icon: InboxIcon, adminOnly: false },
+  { key: 'members', label: '会员', href: '/dashboard/members', Icon: PeopleIcon, adminOnly: false, module: 'members', min: 'view' },
   { key: 'reports', label: '报表', href: '/dashboard/reports', Icon: ChartIcon, adminOnly: true },
   { key: 'settings', label: '设置', href: '/dashboard/settings', Icon: GearIcon, adminOnly: true },
 ];
 
-export function DashboardNav({ role, active }: { role: Role; active: NavKey }) {
-  const items = ITEMS.filter((i) => !i.adminOnly || role === 'admin');
+export function DashboardNav({
+  role,
+  active,
+  grants,
+}: {
+  role: Role;
+  active: NavKey;
+  grants?: Grants;
+}) {
+  const items = ITEMS.filter((i) =>
+    // Module-gated items (e.g. 会员) require the grant; everything else keeps the
+    // untouched adminOnly-vs-role logic (zero change for inbox/reports/settings).
+    i.module ? grantAllows(grants, i.module, i.min ?? 'view') : !i.adminOnly || role === 'admin'
+  );
 
   return (
     <nav

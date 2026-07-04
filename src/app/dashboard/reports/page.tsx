@@ -15,9 +15,10 @@ import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
+import type { Grants } from '@/lib/access';
 
 type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
-type Me = { email: string; displayName: string | null; role: Role };
+type Me = { email: string; displayName: string | null; role: Role; grants?: Grants };
 
 type Range = '7d' | '30d' | 'all';
 
@@ -91,7 +92,7 @@ export default function ReportsPage() {
         if (!res.ok) return;
         const json = await res.json();
         if (!active) return;
-        setMe({ email: json.email, displayName: json.displayName ?? null, role: json.role });
+        setMe({ email: json.email, displayName: json.displayName ?? null, role: json.role, grants: json.grants ?? {} });
         if (json.mustChangePassword) setMustChangePassword(true);
         setGate(json.role === 'admin' ? 'ok' : 'denied');
       } catch {
@@ -198,7 +199,7 @@ export default function ReportsPage() {
         </div>
       </header>
 
-      <DashboardNav role={me?.role ?? 'volunteer'} active="reports" />
+      <DashboardNav role={me?.role ?? 'volunteer'} active="reports" grants={me?.grants} />
 
       <main className="flex-1 min-w-0 overflow-y-auto">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">

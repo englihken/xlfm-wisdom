@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { User } from '@supabase/supabase-js';
 import { supabaseAdmin } from './supabase';
+import { ACCESS_RANK, type ModuleKey, type AccessLevel } from './access';
+
+// Re-export the permission vocabulary (now sourced from the client-safe ./access
+// module) so existing importers of these from '@/lib/supabase-server' keep working.
+export { ACCESS_RANK };
+export type { ModuleKey, AccessLevel };
 
 // Server-side Supabase client bound to the request's cookies, using the public
 // ANON key. Its ONLY job here is to read the logged-in volunteer's auth session
@@ -50,20 +56,6 @@ export async function getAuthenticatedUser(): Promise<User | null> {
 // Platform roles across both wings (widened in migrations/013 — the DB CHECK on
 // volunteers.role now permits these four values).
 export type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
-
-// Permission vocabulary for the module-grant layer (migrations/013).
-export type ModuleKey = 'care' | 'members' | 'events' | 'finance' | 'duty' | 'settings' | 'audit';
-export type AccessLevel = 'none' | 'summary' | 'view' | 'edit' | 'admin';
-
-// Ordinal ordering of access levels — mirrors the SQL public.access_rank().
-// Higher = more capable. Used to compare a granted level against a required one.
-export const ACCESS_RANK: Record<AccessLevel, number> = {
-  none: 0,
-  summary: 1,
-  view: 2,
-  edit: 3,
-  admin: 4,
-};
 
 // A row from the `volunteers` table (migrations/006). `role` gates admin-only
 // features; `active` gates dashboard access.

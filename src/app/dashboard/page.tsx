@@ -13,6 +13,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
+import { grantAllows, type Grants } from '@/lib/access';
 
 // ── Types (mirror the API route shapes) ──────────────────────────────────────
 type ListItem = {
@@ -151,6 +152,7 @@ type Me = {
   displayName: string | null;
   role: 'admin' | 'volunteer' | 'erp_admin' | 'committee';
   mustChangePassword?: boolean;
+  grants?: Grants;
 };
 
 export default function DashboardPage() {
@@ -239,7 +241,15 @@ export default function DashboardPage() {
         if (!res.ok) return;
         const json = (await res.json()) as Me;
         if (active) {
-          setMe({ displayName: json.displayName ?? null, role: json.role });
+          const grants = json.grants ?? {};
+          // erp_admin landing: an account with NO care access but WITH members
+          // access belongs in the Members module, not the empty care inbox. Care
+          // volunteers and admin (who have care) see zero change.
+          if (!grantAllows(grants, 'care', 'view') && grantAllows(grants, 'members', 'view')) {
+            router.replace('/dashboard/members');
+            return;
+          }
+          setMe({ displayName: json.displayName ?? null, role: json.role, grants });
           // Fail open: only gate when the flag is explicitly true.
           if (json.mustChangePassword) setMustChangePassword(true);
           setProfileReady(true);
@@ -249,7 +259,7 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [checking, handleUnauthorized, forceSignOut]);
+  }, [checking, handleUnauthorized, forceSignOut, router]);
 
   // Fire-and-forget: tell the server this volunteer has now read the conversation.
   const markRead = useCallback((id: string) => {
@@ -542,7 +552,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <DashboardNav role={me?.role ?? 'volunteer'} active="inbox" />
+      <DashboardNav role={me?.role ?? 'volunteer'} active="inbox" grants={me?.grants} />
 
       {/* THREE PANELS */}
       <div className="flex-1 flex min-h-0">

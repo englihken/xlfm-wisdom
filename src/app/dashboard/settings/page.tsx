@@ -14,11 +14,12 @@ import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
+import type { Grants } from '@/lib/access';
 import { XLFM_CENTERS, isValidCenter } from '@/lib/xlfm-centers';
 
 type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
 
-type Me = { email: string; displayName: string | null; role: Role; mustChangePassword?: boolean };
+type Me = { email: string; displayName: string | null; role: Role; mustChangePassword?: boolean; grants?: Grants };
 
 type Volunteer = {
   id: string;
@@ -128,6 +129,7 @@ export default function SettingsPage() {
           email: meJson.email,
           displayName: meJson.displayName ?? null,
           role: meJson.role,
+          grants: meJson.grants ?? {},
         });
         // Fail open: only gate when the flag is explicitly true.
         if (meJson.mustChangePassword) setMustChangePassword(true);
@@ -308,7 +310,7 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <DashboardNav role={me?.role ?? 'volunteer'} active="settings" />
+      <DashboardNav role={me?.role ?? 'volunteer'} active="settings" grants={me?.grants} />
 
       {/* SECTION NAV + CONTENT — vertical sidebar on desktop, horizontal tab row
           on mobile (the same <ul> switches direction via md: breakpoints). */}
