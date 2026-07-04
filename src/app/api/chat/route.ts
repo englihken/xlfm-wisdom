@@ -30,17 +30,22 @@ interface ChatRequest {
 
 // Runs BEFORE streaming (concurrently with retrieval): find-or-create the
 // contact + conversation, and save the inbound user message. Returns the
-// conversationId to surface back to the client (null if storage is unavailable).
+// conversationId to surface back to the client (null if storage is unavailable)
+// plus the conversation's current status, so the caller can stay silent when a
+// human has taken over ('volunteer_handling').
 async function persistInbound(params: {
   conversationId?: string;
   browserId?: string;
   language: 'zh' | 'en' | 'id';
   message: string;
-}): Promise<{ conversationId: string | null }> {
-  if (!supabaseAdmin) return { conversationId: null };
+}): Promise<{ conversationId: string | null; status: string | null }> {
+  if (!supabaseAdmin) return { conversationId: null, status: null };
 
   let contactId: string | null = null;
   let convId: string | null = params.conversationId ?? null;
+  // A freshly created conversation is always AI-handled; only an existing one the
+  // client passes back could already be under human takeover.
+  let status: string | null = params.conversationId ? null : 'ai_handling';
 
   // Find-or-create contact (web case) by persistent anonymous browserId.
   try {
@@ -71,7 +76,8 @@ async function persistInbound(params: {
     contactId = null;
   }
 
-  // Find-or-create conversation.
+  // Find-or-create conversation. For an existing one, read back its status so a
+  // human takeover can silence the AI (below).
   try {
     if (!convId) {
       const { data: created } = await supabaseAdmin
@@ -85,6 +91,13 @@ async function persistInbound(params: {
         .select('id')
         .single();
       convId = created?.id ?? null;
+    } else {
+      const { data: existingConv } = await supabaseAdmin
+        .from('conversations')
+        .select('status')
+        .eq('id', convId)
+        .maybeSingle();
+      status = existingConv?.status ?? status;
     }
   } catch (e) {
     console.error('[supabase] conversation create failed:', e);
@@ -102,7 +115,7 @@ async function persistInbound(params: {
     console.error('[supabase] user message save failed:', e);
   }
 
-  return { conversationId: convId };
+  return { conversationId: convId, status };
 }
 
 // Runs AFTER the full reply streams: save the assistant message + bump
@@ -157,6 +170,48 @@ export async function POST(req: NextRequest) {
 
     console.log('[chat] Retrieved passages:', passages.map(t => ({ book: t.book, score: t.score.toFixed(3) })));
 
+    // Resolve storage (started concurrently with retrieval). We need the status
+    // BEFORE deciding whether to call Claude, so a human takeover isn't billed a
+    // wasted generation.
+    const { conversationId: convId, status } = await storagePromise;
+
+    // PART 2 — AI silence under human takeover. The inbound user message is already
+    // persisted (persistInbound); bump last_message_at so it surfaces in the inbox,
+    // then stream a single volunteer_handling event (no assistant text) and stop.
+    // The human owns this conversation now.
+    if (status === 'volunteer_handling') {
+      if (supabaseAdmin && convId) {
+        try {
+          await supabaseAdmin
+            .from('conversations')
+            .update({ last_message_at: new Date().toISOString() })
+            .eq('id', convId);
+        } catch (e) {
+          console.error('[chat] handover last_message_at bump failed:', e);
+        }
+      }
+      const encoder = new TextEncoder();
+      const silentStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(
+            `data: ${JSON.stringify({ type: 'conversation', conversationId: convId })}\n\n`
+          ));
+          controller.enqueue(encoder.encode(
+            `data: ${JSON.stringify({ type: 'volunteer_handling' })}\n\n`
+          ));
+          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+          controller.close();
+        },
+      });
+      return new Response(silentStream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    }
+
     // Step 3: Build messages array
     const messages = [
       ...conversation.map((msg) => ({
@@ -180,10 +235,6 @@ export async function POST(req: NextRequest) {
 
     // Step 5: Build rich sources — deduplicate by book+page combo (shared helper).
     const sources = buildSources(passages);
-
-    // Resolve storage setup (started concurrently above) so the conversationId
-    // is ready to send at the very start of the stream.
-    const { conversationId: convId } = await storagePromise;
 
     // Step 6: Convert stream to web ReadableStream
     const encoder = new TextEncoder();

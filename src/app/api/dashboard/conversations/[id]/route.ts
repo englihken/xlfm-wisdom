@@ -47,7 +47,7 @@ export async function GET(
   const { data: conversation, error: convError } = await supabaseAdmin
     .from('conversations')
     .select(
-      `id, channel, status, category, crisis_flag, language, summary, created_at, last_message_at,
+      `id, channel, status, category, crisis_flag, language, summary, assigned_volunteer, created_at, last_message_at,
        contact:contacts ( id, display_name, channel, wa_id, browser_id, stage, summary, notes, first_seen, last_seen )`
     )
     .eq('id', id)
@@ -61,10 +61,10 @@ export async function GET(
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  // All messages in chronological order.
+  // All messages in chronological order (sent_by attributes human replies).
   const { data: messages, error: msgError } = await supabaseAdmin
     .from('messages')
-    .select('id, role, content, sources, created_at')
+    .select('id, role, content, sources, created_at, sent_by')
     .eq('conversation_id', id)
     .order('created_at', { ascending: true });
 
@@ -75,6 +75,23 @@ export async function GET(
 
   const rawContact = (conversation as { contact: ContactProfile | ContactProfile[] | null }).contact;
   const contact = Array.isArray(rawContact) ? rawContact[0] ?? null : rawContact;
+
+  // Resolve volunteer names for the assignee + every sent_by, in one lookup.
+  const rows = (messages ?? []) as { sent_by: string | null }[];
+  const volunteerIds = new Set<string>();
+  if (conversation.assigned_volunteer) volunteerIds.add(conversation.assigned_volunteer);
+  for (const m of rows) if (m.sent_by) volunteerIds.add(m.sent_by);
+
+  const nameById = new Map<string, string>();
+  if (volunteerIds.size > 0) {
+    const { data: vols } = await supabaseAdmin
+      .from('volunteers')
+      .select('id, display_name')
+      .in('id', [...volunteerIds]);
+    for (const v of vols ?? []) nameById.set(v.id, v.display_name ?? '义工');
+  }
+
+  const assignedVolunteer = conversation.assigned_volunteer;
 
   return NextResponse.json({
     conversation: {
@@ -87,8 +104,15 @@ export async function GET(
       summary: conversation.summary,
       created_at: conversation.created_at,
       last_message_at: conversation.last_message_at,
+      // Human-takeover fields.
+      assignedVolunteerId: assignedVolunteer ?? null,
+      assignedVolunteerName: assignedVolunteer ? nameById.get(assignedVolunteer) ?? '义工' : null,
+      assignedToMe: assignedVolunteer === access.volunteer.id,
     },
     contact,
-    messages: messages ?? [],
+    messages: (messages ?? []).map((m) => ({
+      ...m,
+      sentByName: m.sent_by ? nameById.get(m.sent_by) ?? '义工' : null,
+    })),
   });
 }

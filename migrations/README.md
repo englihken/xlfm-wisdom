@@ -35,6 +35,10 @@ apply them with `psql`, lowest number first:
 10. `010_wa_message_id.sql` — Phase 5 Track B (WhatsApp channel): adds a nullable
     `wa_message_id` to `messages` + a partial unique index (where not null), so
     Meta's at-least-once webhook retries can't reprocess the same inbound message
+11. `011_last_read.sql` — inbox usability: `conversation_reads` (per-volunteer
+    last-read timestamps) driving the unread indicators (RLS on, service-role only)
+12. `012_message_sent_by.sql` — human takeover: adds `sent_by` (→ `volunteers`) to
+    `messages`, attributing volunteer-authored (`role='volunteer'`) replies
 
 ## Note
 

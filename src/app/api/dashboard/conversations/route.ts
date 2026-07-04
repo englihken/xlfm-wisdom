@@ -28,6 +28,7 @@ type ConversationRow = {
   status: string;
   category: string | null;
   crisis_flag: boolean;
+  assigned_volunteer: string | null;
   last_message_at: string;
   contact: ContactLite | ContactLite[] | null;
   messages: MessageLite[] | null;
@@ -56,7 +57,7 @@ export async function GET(req: Request) {
   const { data, error } = await supabaseAdmin
     .from('conversations')
     .select(
-      `id, channel, status, category, crisis_flag, last_message_at,
+      `id, channel, status, category, crisis_flag, assigned_volunteer, last_message_at,
        contact:contacts ( display_name, channel, stage, wa_id ),
        messages ( content, created_at )`
     )
@@ -106,6 +107,7 @@ export async function GET(req: Request) {
         lastMessagePreview: preview,
         lastMessageAt: row.last_message_at,
         unread,
+        assignedToMe: row.assigned_volunteer === access.volunteer.id,
       };
 
       // ?q= matches contact name, wa_id, or the FULL last-message content

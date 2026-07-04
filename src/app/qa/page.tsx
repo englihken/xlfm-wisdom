@@ -9,7 +9,7 @@ import { Send, Sparkles } from 'lucide-react';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
 
 interface Message {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'volunteer';
   content: string;
   sources?: Source[];
   streaming?: boolean;
@@ -52,6 +52,8 @@ const TRANSLATIONS = {
     sending: '正在思考...',
     quickTitle: '或从这些常见问题开始：',
     sourcesTitle: '参考开示：',
+    volunteerLabel: '义工回复 🙏',
+    volunteerHandlingNotice: '现在由我们的义工亲自为您回复 🙏',
     welcomeTitle: '欢迎来到 心灵法门 智慧问答',
     welcomePrivacy: '关于您的隐私',
     welcomePrivacy1: '你的对话内容将严格保密，必要时会有义工提供协助。',
@@ -84,6 +86,8 @@ const TRANSLATIONS = {
     sending: 'Thinking...',
     quickTitle: 'Or start with these common questions:',
     sourcesTitle: 'References:',
+    volunteerLabel: 'Volunteer reply 🙏',
+    volunteerHandlingNotice: 'A volunteer is personally replying to you now 🙏',
     welcomeTitle: 'Welcome to Xin Ling Fa Men Wisdom Q&A',
     welcomePrivacy: 'Your Privacy',
     welcomePrivacy1: 'Your conversations are kept strictly confidential. A volunteer may step in to help when needed.',
@@ -116,6 +120,8 @@ const TRANSLATIONS = {
     sending: 'Memikirkan...',
     quickTitle: 'Atau mulai dengan pertanyaan umum ini:',
     sourcesTitle: 'Referensi:',
+    volunteerLabel: 'Balasan sukarelawan 🙏',
+    volunteerHandlingNotice: 'Seorang sukarelawan sedang membalas anda secara peribadi 🙏',
     welcomeTitle: 'Selamat Datang ke Xin Ling Fa Men Wisdom Q&A',
     welcomePrivacy: 'Privasi Anda',
     welcomePrivacy1: 'Perbualan anda dirahsiakan sepenuhnya. Sukarelawan mungkin membantu apabila diperlukan.',
@@ -153,11 +159,18 @@ export default function QAPage() {
   const [showJumpButton, setShowJumpButton] = useState(false);
   const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  // True while a human volunteer is personally handling this conversation (drives
+  // the honest indicator under the input). Set by the SSE handover event and by the
+  // updates poll.
+  const [volunteerHandling, setVolunteerHandling] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const wasAtBottomRef = useRef(true);
   const latestUserMessageRef = useRef<HTMLDivElement | null>(null);
   const browserIdRef = useRef<string | null>(null);
+  // ISO timestamp of the newest volunteer reply we've already shown — the poll's
+  // `after` cursor. Null until the conversation exists (then set to "now").
+  const afterRef = useRef<string | null>(null);
 
   const t = TRANSLATIONS[language];
 
@@ -196,6 +209,8 @@ export default function QAPage() {
     setIsLoading(false);
     setShowJumpButton(false);
     setConversationId(null); // fresh conversation — but keep the same browserId
+    setVolunteerHandling(false);
+    afterRef.current = null;
     wasAtBottomRef.current = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -222,6 +237,50 @@ export default function QAPage() {
       window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
+
+  // PART 3 — receive volunteer replies. Once a conversation exists, poll every 8s
+  // for role='volunteer' messages newer than what we've shown (and the handling
+  // flag). Ownership is enforced server-side via browserId. All setState lives in
+  // the async callback, never synchronously in the effect body.
+  useEffect(() => {
+    if (!conversationId) return;
+    const browserId = browserIdRef.current;
+    if (!browserId) return;
+    // Seed the cursor to "now" on first attach so we only surface fresh replies.
+    if (afterRef.current === null) afterRef.current = new Date().toISOString();
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const params = new URLSearchParams({
+          conversationId,
+          browserId,
+          after: afterRef.current ?? '',
+        });
+        const res = await fetch(`/api/chat/updates?${params.toString()}`);
+        if (!res.ok || cancelled) return;
+        const json = await res.json();
+        if (cancelled) return;
+        setVolunteerHandling(Boolean(json.handling));
+        const incoming: { id: string; content: string; created_at: string }[] = json.messages ?? [];
+        if (incoming.length > 0) {
+          afterRef.current = incoming[incoming.length - 1].created_at;
+          wasAtBottomRef.current = isNearBottom();
+          setMessages((prev) => [
+            ...prev,
+            ...incoming.map((m) => ({ role: 'volunteer' as const, content: m.content })),
+          ]);
+        }
+      } catch {
+        /* transient — the next tick retries */
+      }
+    };
+    const interval = setInterval(poll, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [conversationId]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -290,6 +349,19 @@ export default function QAPage() {
 
             if (parsed.type === 'conversation') {
               if (parsed.conversationId) setConversationId(parsed.conversationId);
+            } else if (parsed.type === 'volunteer_handling') {
+              // A human has taken over — no AI text is coming. Drop the empty
+              // assistant placeholder and show the honest indicator. The poll will
+              // surface the volunteer's reply.
+              setVolunteerHandling(true);
+              setMessages((prev) => {
+                const updated = [...prev];
+                const lastIdx = updated.length - 1;
+                if (updated[lastIdx]?.role === 'assistant' && updated[lastIdx].content === '') {
+                  updated.pop();
+                }
+                return updated;
+              });
             } else if (parsed.type === 'sources') {
               setMessages((prev) => {
                 const updated = [...prev];
@@ -524,11 +596,18 @@ export default function QAPage() {
                   className={`max-w-[85%] rounded-2xl p-4 ${
                     msg.role === 'user'
                       ? 'bg-[#D89938] text-white'
-                      : 'bg-white border border-[#EFE3BF] text-[#583A0F]'
+                      : msg.role === 'volunteer'
+                        ? 'bg-[#FBF3E0] border border-[#E8D5A8] text-[#5C3D1E]'
+                        : 'bg-white border border-[#EFE3BF] text-[#583A0F]'
                   }`}
                 >
                   {msg.role === 'user' ? (
                     <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  ) : msg.role === 'volunteer' ? (
+                    <>
+                      <div className="text-xs font-medium text-[#A87C3D] mb-1.5">{t.volunteerLabel}</div>
+                      <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    </>
                   ) : (
                     <MasterMarkdown>{msg.content}</MasterMarkdown>
                   )}
@@ -626,6 +705,9 @@ export default function QAPage() {
                 <Send className="w-5 h-5" />
               </button>
             </div>
+            {volunteerHandling && (
+              <p className="mt-2 text-center text-xs text-[#A87C3D]">{t.volunteerHandlingNotice}</p>
+            )}
           </div>
         </form>
         </>

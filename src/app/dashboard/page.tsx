@@ -26,14 +26,16 @@ type ListItem = {
   lastMessagePreview: string;
   lastMessageAt: string;
   unread: boolean;
+  assignedToMe: boolean;
 };
 
 type ThreadMessage = {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'volunteer';
   content: string;
   sources: Source[] | null;
   created_at: string;
+  sentByName?: string | null;
 };
 
 type ContactProfile = {
@@ -56,6 +58,8 @@ type Detail = {
     status: string;
     category: string | null;
     crisisFlag: boolean;
+    assignedVolunteerName?: string | null;
+    assignedToMe?: boolean;
   };
   contact: ContactProfile | null;
   messages: ThreadMessage[];
@@ -73,6 +77,7 @@ function channelMeta(channel: string) {
 const STATUS_LABELS: Record<string, string> = {
   ai_handling: 'AI处理中',
   needs_human: '需人工',
+  volunteer_handling: '义工处理中',
   human_handling: '义工处理中',
   resolved: '已完成',
   closed: '已关闭',
@@ -80,6 +85,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_STYLES: Record<string, string> = {
   ai_handling: 'bg-[#FAEFD0] text-[#8B6F47]',
   needs_human: 'bg-[#FEF2F2] text-red-700',
+  volunteer_handling: 'bg-[#F5E1B0] text-[#8A5A1E]',
   human_handling: 'bg-[#FAEFD0] text-[#A87929]',
   resolved: 'bg-[#FAEFD0] text-[#8B6F47]',
   closed: 'bg-[#FAEFD0] text-[#B89968]',
@@ -167,6 +173,11 @@ export default function DashboardPage() {
   // actually sent to the list API.
   const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState('');
+
+  // Inbox filter tab + human-takeover action state (takeover / handback).
+  const [filter, setFilter] = useState<'all' | 'mine'>('all');
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Ignore stale list responses when search + polling races overlap.
   const listReqRef = useRef(0);
@@ -363,6 +374,126 @@ export default function DashboardPage() {
     };
   }, [selectedId, handleUnauthorized]);
 
+  // ── Human takeover actions (event handlers; setState is safe here) ──────────
+  const handleTakeover = async () => {
+    if (!selectedId || actionBusy) return;
+    setActionBusy(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/dashboard/conversations/${selectedId}/takeover`, { method: 'POST' });
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      const json = await res.json().catch(() => null);
+      if (res.status === 409) {
+        setActionError(`此对话已被 ${json?.assignedTo ?? '另一位义工'} 接手`);
+        return;
+      }
+      if (!res.ok) {
+        setActionError(json?.error ?? '操作失败，请重试');
+        return;
+      }
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              conversation: {
+                ...prev.conversation,
+                status: 'volunteer_handling',
+                assignedVolunteerName: me?.displayName ?? '我',
+                assignedToMe: true,
+              },
+            }
+          : prev
+      );
+      loadList();
+    } catch {
+      setActionError('操作失败，请重试');
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleHandback = async () => {
+    if (!selectedId || actionBusy) return;
+    setActionBusy(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/dashboard/conversations/${selectedId}/handback`, { method: 'POST' });
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        setActionError(json?.error ?? '操作失败，请重试');
+        return;
+      }
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              conversation: {
+                ...prev.conversation,
+                status: 'ai_handling',
+                assignedVolunteerName: null,
+                assignedToMe: false,
+              },
+            }
+          : prev
+      );
+      loadList();
+    } catch {
+      setActionError('操作失败，请重试');
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  // Sends a volunteer reply. Returns a tag so the composer can surface the 24h
+  // window notice / errors and clear itself on success.
+  const handleSendReply = async (text: string): Promise<'ok' | 'window_expired' | 'error'> => {
+    if (!selectedId) return 'error';
+    try {
+      const res = await fetch(`/api/dashboard/conversations/${selectedId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (res.status === 401) {
+        handleUnauthorized();
+        return 'error';
+      }
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.windowExpired) return 'window_expired';
+      if (!res.ok || !json?.message) return 'error';
+      const msg = json.message;
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              messages: [
+                ...prev.messages,
+                {
+                  id: msg.id,
+                  role: 'volunteer',
+                  content: msg.content,
+                  sources: null,
+                  created_at: msg.created_at,
+                  sentByName: msg.sentByName ?? me?.displayName ?? '义工',
+                },
+              ],
+            }
+          : prev
+      );
+      loadList();
+      return 'ok';
+    } catch {
+      return 'error';
+    }
+  };
+
   const handleLogout = async () => {
     await forceSignOut();
     router.refresh();
@@ -384,11 +515,14 @@ export default function DashboardPage() {
     return <PasswordChangeGate onDone={() => setMustChangePassword(false)} />;
   }
 
-  // Day-group the (already newest-first) list under MYT date headers.
+  // Apply the filter tab, then day-group the (already newest-first) list under MYT
+  // date headers.
+  const visibleConversations =
+    filter === 'mine' ? conversations.filter((c) => c.assignedToMe) : conversations;
   const nowMs = Date.now();
   const todayKey = mytDayKey(new Date(nowMs).toISOString());
   const yesterdayKey = mytDayKey(new Date(nowMs - 86_400_000).toISOString());
-  const dayGroups = buildDayGroups(conversations, todayKey, yesterdayKey);
+  const dayGroups = buildDayGroups(visibleConversations, todayKey, yesterdayKey);
 
   return (
     <div className="h-screen flex flex-col bg-[#FFF3DA] md:ml-[72px]">
@@ -425,12 +559,31 @@ export default function DashboardPage() {
             />
           </div>
 
+          {/* FILTER TABS */}
+          <div className="shrink-0 px-3 py-2 border-b border-[#EFE3BF] flex items-center gap-1">
+            {([['all', '全部'], ['mine', '我接手的']] as const).map(([f, label]) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1 rounded-full text-xs border transition ${
+                  filter === f
+                    ? 'bg-[#FAEFD0] text-[#583A0F] border-[#EFE3BF]'
+                    : 'text-[#8B6F47] border-transparent hover:bg-[#FAEFD0]/60'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {/* LIST (scrolls; day headers stick within this container) */}
           <div className="flex-1 overflow-y-auto">
             {listLoading ? (
               <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
-            ) : conversations.length === 0 ? (
-              <p className="p-6 text-sm text-[#8B6F47]">{query ? '未找到相关对话' : '暂无对话'}</p>
+            ) : visibleConversations.length === 0 ? (
+              <p className="p-6 text-sm text-[#8B6F47]">
+                {filter === 'mine' ? '暂无接手的对话' : query ? '未找到相关对话' : '暂无对话'}
+              </p>
             ) : (
               <ul>
                 {dayGroups.map((group) => (
@@ -491,53 +644,83 @@ export default function DashboardPage() {
           </div>
         </aside>
 
-        {/* CENTER — message thread */}
-        <main className="flex-1 min-w-0 overflow-y-auto">
+        {/* CENTER — thread header · message thread · composer */}
+        <main className="flex-1 min-w-0 flex flex-col min-h-0">
           {!selectedId ? (
-            <div className="h-full flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center">
               <p className="text-sm text-[#8B6F47]">选择一个对话查看</p>
             </div>
           ) : detailLoading ? (
-            <div className="h-full flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center">
               <p className="text-sm text-[#8B6F47]">加载中…</p>
             </div>
           ) : !detail ? (
-            <div className="h-full flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center">
               <p className="text-sm text-[#8B6F47]">无法加载对话</p>
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
-              {detail.messages.map((m) => (
-                <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-[85%] rounded-2xl p-4 ${
-                      m.role === 'user'
-                        ? 'bg-[#D89938] text-white'
-                        : 'bg-white border border-[#EFE3BF] text-[#583A0F]'
-                    }`}
-                  >
-                    {m.role === 'user' ? (
-                      <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
-                    ) : (
-                      <>
-                        <MasterMarkdown>{m.content}</MasterMarkdown>
-                        <MessageSources sources={m.sources ?? []} title="参考开示：" />
-                      </>
-                    )}
-                    <div
-                      className={`mt-2 text-[11px] ${
-                        m.role === 'user' ? 'text-white/70 text-right' : 'text-[#B89968]'
-                      }`}
-                    >
-                      {formatDateTime(m.created_at)}
+            <>
+              {/* THREAD HEADER — handling state + takeover / handback */}
+              <ThreadHeader
+                detail={detail}
+                isAdmin={me?.role === 'admin'}
+                actionBusy={actionBusy}
+                actionError={actionError}
+                onTakeover={handleTakeover}
+                onHandback={handleHandback}
+              />
+
+              {/* MESSAGES */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+                  {detail.messages.map((m) => (
+                    <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        className={`max-w-[85%] rounded-2xl p-4 ${
+                          m.role === 'user'
+                            ? 'bg-[#D89938] text-white'
+                            : m.role === 'volunteer'
+                              ? 'bg-[#F5E1B0] border border-[#E8D19A] text-[#5C3D1E]'
+                              : 'bg-white border border-[#EFE3BF] text-[#583A0F]'
+                        }`}
+                      >
+                        {m.role === 'user' ? (
+                          <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                        ) : m.role === 'volunteer' ? (
+                          <>
+                            <div className="text-xs font-medium text-[#8A5A1E] mb-1.5">
+                              义工 · {m.sentByName ?? '义工'}
+                            </div>
+                            <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                          </>
+                        ) : (
+                          <>
+                            <MasterMarkdown>{m.content}</MasterMarkdown>
+                            <MessageSources sources={m.sources ?? []} title="参考开示：" />
+                          </>
+                        )}
+                        <div
+                          className={`mt-2 text-[11px] ${
+                            m.role === 'user' ? 'text-white/70 text-right' : 'text-[#B89968]'
+                          }`}
+                        >
+                          {formatDateTime(m.created_at)}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
+                  {detail.messages.length === 0 && (
+                    <p className="text-center text-sm text-[#8B6F47] py-12">此对话暂无消息</p>
+                  )}
                 </div>
-              ))}
-              {detail.messages.length === 0 && (
-                <p className="text-center text-sm text-[#8B6F47] py-12">此对话暂无消息</p>
-              )}
-            </div>
+              </div>
+
+              {/* COMPOSER — only the assigned volunteer of a taken-over conversation */}
+              {detail.conversation.status === 'volunteer_handling' &&
+                detail.conversation.assignedToMe && (
+                  <ReplyComposer onSend={handleSendReply} />
+                )}
+            </>
           )}
         </main>
 
@@ -556,6 +739,122 @@ export default function DashboardPage() {
             />
           )}
         </aside>
+      </div>
+    </div>
+  );
+}
+
+// ── Thread header: handling state + takeover / handback ─────────────────────
+// AI-handled → gold 接手对话. volunteer_handling → 义工处理中 · <name>, plus a
+// 交回 AI button for the assignee or an admin.
+function ThreadHeader({
+  detail,
+  isAdmin,
+  actionBusy,
+  actionError,
+  onTakeover,
+  onHandback,
+}: {
+  detail: Detail;
+  isAdmin: boolean;
+  actionBusy: boolean;
+  actionError: string | null;
+  onTakeover: () => void;
+  onHandback: () => void;
+}) {
+  const isVolunteerHandling = detail.conversation.status === 'volunteer_handling';
+  const canHandback = Boolean(detail.conversation.assignedToMe) || isAdmin;
+
+  return (
+    <div className="shrink-0 border-b border-[#EFE3BF] bg-white/70 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between gap-3">
+      <div className="min-w-0 text-sm">
+        {isVolunteerHandling ? (
+          <span className="text-[#8A5A1E]">
+            义工处理中 · <span className="font-medium">{detail.conversation.assignedVolunteerName ?? '义工'}</span>
+          </span>
+        ) : (
+          <span className="text-[#8B6F47]">AI 处理中</span>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {actionError && <span className="text-xs text-red-600">{actionError}</span>}
+        {!isVolunteerHandling ? (
+          <button
+            onClick={onTakeover}
+            disabled={actionBusy}
+            className="px-4 py-1.5 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            接手对话
+          </button>
+        ) : canHandback ? (
+          <button
+            onClick={onHandback}
+            disabled={actionBusy}
+            className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            交回 AI
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+// ── Reply composer (shown to the assigned volunteer) ────────────────────────
+// Local state only; onSend returns a tag so we can surface the 24h-window notice
+// and clear on success — no effects, so the set-state-in-effect rule is moot.
+function ReplyComposer({
+  onSend,
+}: {
+  onSend: (text: string) => Promise<'ok' | 'window_expired' | 'error'>;
+}) {
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const submit = async () => {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return;
+    setSending(true);
+    setNotice(null);
+    const result = await onSend(trimmed);
+    setSending(false);
+    if (result === 'ok') {
+      setText('');
+    } else if (result === 'window_expired') {
+      setNotice('对方已超过24小时未回复，暂时无法发送普通消息');
+    } else {
+      setNotice('发送失败，请重试');
+    }
+  };
+
+  return (
+    <div className="shrink-0 border-t border-[#EFE3BF] bg-white/70 backdrop-blur-sm p-3">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-end gap-2">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            rows={2}
+            placeholder="以义工身份回复…（Enter 发送，Shift+Enter 换行）"
+            disabled={sending}
+            className="flex-1 text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] leading-relaxed resize-y focus:outline-none focus:border-[#D89938] disabled:opacity-60"
+          />
+          <button
+            onClick={submit}
+            disabled={sending || !text.trim()}
+            className="px-5 py-2.5 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {sending ? '发送中…' : '发送'}
+          </button>
+        </div>
+        {notice && <p className="mt-1.5 text-xs text-[#B45309]">{notice}</p>}
       </div>
     </div>
   );

@@ -137,13 +137,14 @@ async function handleInboundMessage(msg: WaMessage, contacts: WaContact[]): Prom
   }
 
   const contactId = await findOrCreateContact(waId, profileName);
-  const conversationId = contactId ? await findOrCreateConversation(contactId) : null;
+  const conv = contactId ? await findOrCreateConversation(contactId) : null;
 
   // If storage setup failed, still answer (stateless) rather than going silent.
-  if (!conversationId) {
+  if (!conv) {
     await replyAndSend(waId, [{ role: 'user', content: body }]);
     return;
   }
+  const { id: conversationId, status } = conv;
 
   // Prior turns for context (before we insert the current message).
   const history = await loadHistory(conversationId);
@@ -153,6 +154,14 @@ async function handleInboundMessage(msg: WaMessage, contacts: WaContact[]): Prom
   const saveResult = await saveUserMessage(conversationId, body, messageId);
   if (saveResult === 'duplicate') {
     console.log(`[wa] duplicate message ${messageId} (insert race) — skipping`);
+    return;
+  }
+
+  // PART 2 — AI silence under human takeover. The inbound is stored; bump activity
+  // so the inbox reflects it, then stop. The assigned volunteer replies via the
+  // dashboard (which sends through the Cloud API); the AI stays quiet.
+  if (status === 'volunteer_handling') {
+    await bumpConversation(conversationId);
     return;
   }
 
@@ -236,27 +245,29 @@ async function findOrCreateContact(waId: string, name: string | null): Promise<s
   }
 }
 
-async function findOrCreateConversation(contactId: string): Promise<string | null> {
+async function findOrCreateConversation(
+  contactId: string
+): Promise<{ id: string; status: string } | null> {
   if (!supabaseAdmin) return null;
   try {
     const cutoff = new Date(Date.now() - CONVERSATION_WINDOW_MS).toISOString();
     const { data: open } = await supabaseAdmin
       .from('conversations')
-      .select('id')
+      .select('id, status')
       .eq('contact_id', contactId)
       .neq('status', 'closed')
       .gte('last_message_at', cutoff)
       .order('last_message_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (open) return open.id;
+    if (open) return { id: open.id, status: open.status };
 
     const { data: created } = await supabaseAdmin
       .from('conversations')
       .insert({ channel: 'whatsapp', status: 'ai_handling', language: 'zh', contact_id: contactId })
-      .select('id')
+      .select('id, status')
       .single();
-    return created?.id ?? null;
+    return created ? { id: created.id, status: created.status } : null;
   } catch (e) {
     console.error('[wa] conversation find-or-create failed:', e);
     return null;
