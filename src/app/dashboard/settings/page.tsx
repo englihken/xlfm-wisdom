@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
+import { DashboardNav } from '@/components/dashboard-nav';
 import { XLFM_CENTERS, isValidCenter } from '@/lib/xlfm-centers';
 
 type Role = 'admin' | 'volunteer';
@@ -275,8 +276,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFF3DA]">
-      {/* TOP BAR */}
+    <div className="min-h-screen flex flex-col bg-[#FFF3DA] md:ml-[72px]">
+      {/* TOP BAR — navigation lives in the rail now; keep title, name, 登出. */}
       <header className="shrink-0 border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm">
         <div className="px-5 py-3 flex items-center justify-between gap-3">
           <h1 className="text-lg font-bold text-[#583A0F]">
@@ -286,12 +287,6 @@ export default function SettingsPage() {
             <span className="hidden sm:inline text-sm text-[#8B6F47]">
               {me?.displayName || me?.email}
             </span>
-            <Link
-              href="/dashboard"
-              className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
-            >
-              返回收件箱
-            </Link>
             <button
               onClick={forceSignOut}
               className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
@@ -301,6 +296,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </header>
+
+      <DashboardNav role={me?.role ?? 'volunteer'} active="settings" />
 
       {/* SECTION NAV + CONTENT — vertical sidebar on desktop, horizontal tab row
           on mobile (the same <ul> switches direction via md: breakpoints). */}
