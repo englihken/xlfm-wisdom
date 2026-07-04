@@ -4,7 +4,7 @@
 // service-role client (supabaseAdmin).
 
 import { NextResponse } from 'next/server';
-import { getActiveVolunteer, getAuthenticatedUser } from '@/lib/supabase-server';
+import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
@@ -30,12 +30,11 @@ export async function GET(
 
   // Layer 1: require an ACTIVE volunteer. Distinguish 401 (no session) from
   // 403 (logged in, but not an active volunteer row).
-  const access = await getActiveVolunteer();
-  if (!access) {
-    const user = await getAuthenticatedUser();
+  const access = await requireModuleAccess('care', 'view');
+  if (!access.ok) {
     return NextResponse.json(
-      { error: user ? 'Not an active volunteer' : 'Unauthorized' },
-      { status: user ? 403 : 401 }
+      { error: access.status === 401 ? 'Unauthorized' : 'Forbidden' },
+      { status: access.status }
     );
   }
 

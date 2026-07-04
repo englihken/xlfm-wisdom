@@ -15,7 +15,7 @@
 
 import Link from 'next/link';
 
-type Role = 'admin' | 'volunteer';
+type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
 export type NavKey = 'inbox' | 'reports' | 'settings';
 
 type IconProps = { className?: string };

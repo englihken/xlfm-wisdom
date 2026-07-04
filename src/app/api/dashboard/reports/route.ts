@@ -10,7 +10,7 @@
 // volumeByDay shows a per-day series for the window, capped at 90 days for 'all'.
 
 import { NextResponse } from 'next/server';
-import { getActiveVolunteer, getAuthenticatedUser } from '@/lib/supabase-server';
+import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
@@ -36,13 +36,13 @@ function mmdd(d: Date): string {
 }
 
 export async function GET(req: Request) {
-  // Layer 1: active volunteer (401 / 403), then Layer 2: must be an admin.
-  const access = await getActiveVolunteer();
-  if (!access) {
-    const user = await getAuthenticatedUser();
+  // Layer 1: care module access (view), then Layer 2: must be an admin (care
+  // reports stay Ken-only for now).
+  const access = await requireModuleAccess('care', 'view');
+  if (!access.ok) {
     return NextResponse.json(
-      { error: user ? 'Not an active volunteer' : 'Unauthorized' },
-      { status: user ? 403 : 401 }
+      { error: access.status === 401 ? 'Unauthorized' : 'Forbidden' },
+      { status: access.status }
     );
   }
   if (access.volunteer.role !== 'admin') {

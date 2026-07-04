@@ -47,13 +47,31 @@ export async function getAuthenticatedUser(): Promise<User | null> {
   return data.user;
 }
 
+// Platform roles across both wings (widened in migrations/013 — the DB CHECK on
+// volunteers.role now permits these four values).
+export type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
+
+// Permission vocabulary for the module-grant layer (migrations/013).
+export type ModuleKey = 'care' | 'members' | 'events' | 'finance' | 'duty' | 'settings' | 'audit';
+export type AccessLevel = 'none' | 'summary' | 'view' | 'edit' | 'admin';
+
+// Ordinal ordering of access levels — mirrors the SQL public.access_rank().
+// Higher = more capable. Used to compare a granted level against a required one.
+export const ACCESS_RANK: Record<AccessLevel, number> = {
+  none: 0,
+  summary: 1,
+  view: 2,
+  edit: 3,
+  admin: 4,
+};
+
 // A row from the `volunteers` table (migrations/006). `role` gates admin-only
 // features; `active` gates dashboard access.
 export type Volunteer = {
   id: string;
   email: string;
   display_name: string | null;
-  role: 'admin' | 'volunteer';
+  role: Role;
   active: boolean;
   must_change_password: boolean;
 };
@@ -82,4 +100,34 @@ export async function getActiveVolunteer(): Promise<
   if (!data || !data.active) return null;
 
   return { user, volunteer: data as Volunteer };
+}
+
+// Module-permission gate for API routes. Returns the caller's user + volunteer when
+// they hold at least `min` access to `module` per the DB-only grant matrix
+// (public.role_grants, migrations/013); otherwise a discriminated failure with the
+// HTTP status the route should return:
+//   401 — no active volunteer session (no login, or inactive/missing volunteer row)
+//   403 — active account, but insufficient (or no) grant for this module
+// Grants live in the database ONLY — there is deliberately no hardcoded TS fallback
+// matrix, so the SQL seed in 013 is the single source of truth.
+export async function requireModuleAccess(
+  module: ModuleKey,
+  min: AccessLevel
+): Promise<{ ok: true; user: User; volunteer: Volunteer } | { ok: false; status: 401 | 403 }> {
+  const access = await getActiveVolunteer();
+  if (!access || !supabaseAdmin) return { ok: false, status: 401 };
+
+  const { data } = await supabaseAdmin
+    .from('role_grants')
+    .select('access')
+    .eq('role', access.volunteer.role)
+    .eq('module', module)
+    .maybeSingle();
+
+  const granted = (data?.access as AccessLevel | undefined) ?? 'none';
+  if (ACCESS_RANK[granted] < ACCESS_RANK[min]) {
+    return { ok: false, status: 403 };
+  }
+
+  return { ok: true, user: access.user, volunteer: access.volunteer };
 }

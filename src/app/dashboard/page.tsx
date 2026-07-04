@@ -149,7 +149,7 @@ function buildDayGroups(
 // admin-only 设置 link; `mustChangePassword` triggers the first-login gate.
 type Me = {
   displayName: string | null;
-  role: 'admin' | 'volunteer';
+  role: 'admin' | 'volunteer' | 'erp_admin' | 'committee';
   mustChangePassword?: boolean;
 };
 

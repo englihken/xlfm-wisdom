@@ -16,7 +16,7 @@ import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { XLFM_CENTERS, isValidCenter } from '@/lib/xlfm-centers';
 
-type Role = 'admin' | 'volunteer';
+type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
 
 type Me = { email: string; displayName: string | null; role: Role; mustChangePassword?: boolean };
 

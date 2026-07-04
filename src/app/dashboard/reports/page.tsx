@@ -16,7 +16,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
 
-type Role = 'admin' | 'volunteer';
+type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
 type Me = { email: string; displayName: string | null; role: Role };
 
 type Range = '7d' | '30d' | 'all';

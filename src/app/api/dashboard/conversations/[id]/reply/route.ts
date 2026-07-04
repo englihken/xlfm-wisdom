@@ -12,7 +12,7 @@
 // reply (403 otherwise — no drive-by messages into someone else's conversation).
 
 import { NextResponse } from 'next/server';
-import { getActiveVolunteer, getAuthenticatedUser } from '@/lib/supabase-server';
+import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { sendWhatsAppText } from '@/lib/whatsapp';
 
@@ -26,12 +26,11 @@ type ContactLite = { wa_id: string | null };
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const access = await getActiveVolunteer();
-  if (!access) {
-    const user = await getAuthenticatedUser();
+  const access = await requireModuleAccess('care', 'edit');
+  if (!access.ok) {
     return NextResponse.json(
-      { error: user ? 'Not an active volunteer' : 'Unauthorized' },
-      { status: user ? 403 : 401 }
+      { error: access.status === 401 ? 'Unauthorized' : 'Forbidden' },
+      { status: access.status }
     );
   }
   if (!supabaseAdmin) {

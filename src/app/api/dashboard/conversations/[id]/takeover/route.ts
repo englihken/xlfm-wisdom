@@ -5,7 +5,7 @@
 // name). Taking over one you already hold is idempotent (200).
 
 import { NextResponse } from 'next/server';
-import { getActiveVolunteer, getAuthenticatedUser } from '@/lib/supabase-server';
+import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
@@ -13,12 +13,11 @@ export const runtime = 'nodejs';
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const access = await getActiveVolunteer();
-  if (!access) {
-    const user = await getAuthenticatedUser();
+  const access = await requireModuleAccess('care', 'edit');
+  if (!access.ok) {
     return NextResponse.json(
-      { error: user ? 'Not an active volunteer' : 'Unauthorized' },
-      { status: user ? 403 : 401 }
+      { error: access.status === 401 ? 'Unauthorized' : 'Forbidden' },
+      { status: access.status }
     );
   }
   if (!supabaseAdmin) {
