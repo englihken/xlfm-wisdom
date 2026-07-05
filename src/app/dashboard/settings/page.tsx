@@ -261,7 +261,7 @@ export default function SettingsPage() {
   // splice it into state rather than refetching the whole list.
   const saveEdit = async (
     id: string,
-    payload: { displayName: string; email: string; center: string; occupation: string; skills: string }
+    payload: { displayName: string; email: string; center: string; occupation: string; skills: string; role: string }
   ): Promise<string | null> => {
     try {
       const res = await fetch(`/api/dashboard/volunteers/${id}`, {
@@ -591,6 +591,7 @@ export default function SettingsPage() {
                           >
                             <VolunteerEditForm
                               volunteer={v}
+                              isSelf={isSelf}
                               onSave={(payload) => saveEdit(v.id, payload)}
                               onCancel={() => setEditingId(null)}
                             />
@@ -687,16 +688,19 @@ export default function SettingsPage() {
 // resolves to an error string (shown here) or null on success (parent unmounts us).
 function VolunteerEditForm({
   volunteer,
+  isSelf,
   onSave,
   onCancel,
 }: {
   volunteer: Volunteer;
+  isSelf: boolean;
   onSave: (payload: {
     displayName: string;
     email: string;
     center: string;
     occupation: string;
     skills: string;
+    role: string;
   }) => Promise<string | null>;
   onCancel: () => void;
 }) {
@@ -709,6 +713,7 @@ function VolunteerEditForm({
   );
   const [occupation, setOccupation] = useState(volunteer.occupation ?? '');
   const [skills, setSkills] = useState(volunteer.skills ?? '');
+  const [role, setRole] = useState<Role>(volunteer.role);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -716,7 +721,7 @@ function VolunteerEditForm({
     if (saving) return;
     setSaving(true);
     setError(null);
-    const err = await onSave({ displayName: name, email, center, occupation, skills });
+    const err = await onSave({ displayName: name, email, center, occupation, skills, role });
     // On success the parent clears editing and unmounts this form; only touch
     // state when we stay mounted (an error), so there's no setState-after-unmount.
     if (err) {
@@ -763,6 +768,24 @@ function VolunteerEditForm({
             所属中心
           </label>
           <CenterSelect id="edit-center" value={center} onChange={setCenter} disabled={saving} />
+        </div>
+        <div>
+          <label htmlFor="edit-role" className="block text-xs font-medium text-[#B89968] mb-1">
+            角色
+          </label>
+          <select
+            id="edit-role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as Role)}
+            disabled={saving || isSelf}
+            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+          >
+            <option value="admin">管理员</option>
+            <option value="volunteer">关怀义工</option>
+            <option value="erp_admin">ERP 管理员</option>
+            <option value="committee">理事会</option>
+          </select>
+          {isSelf && <p className="mt-1 text-[11px] text-[#B89968]">不能修改自己的角色</p>}
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
