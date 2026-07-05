@@ -25,7 +25,7 @@ type Meta = { centres: { id: string; code: string; name_cn: string; name_en: str
 
 export default function MembersPage() {
   return (
-    <ErpGate active="members" titleSuffix="会员">
+    <ErpGate active="members">
       {(me) => <MembersList me={me} />}
     </ErpGate>
   );

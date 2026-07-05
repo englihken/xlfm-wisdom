@@ -42,6 +42,27 @@ export async function GET() {
     }
   }
 
+  // Centre-scope dimension (migrations/015). Fail-safe: if the columns aren't present
+  // yet (pre-015 deploy), default to the safe own_center / no-centre and don't break /me.
+  let scope: 'all_centers' | 'own_center' = 'own_center';
+  let centreId: string | null = null;
+  let centreName: string | null = null;
+  if (supabaseAdmin) {
+    const { data: vol, error: volErr } = await supabaseAdmin
+      .from('volunteers')
+      .select('scope, centre_id, centre:centres ( name_cn, name_en )')
+      .eq('id', volunteer.id)
+      .maybeSingle();
+    if (volErr) {
+      console.error('[dashboard/me] scope lookup failed (defaulting own_center):', volErr);
+    } else if (vol) {
+      if (vol.scope === 'all_centers' || vol.scope === 'own_center') scope = vol.scope;
+      centreId = (vol.centre_id as string | null) ?? null;
+      const centre = Array.isArray(vol.centre) ? vol.centre[0] : vol.centre;
+      centreName = (centre?.name_cn as string | undefined) ?? null;
+    }
+  }
+
   return NextResponse.json({
     email: volunteer.email,
     displayName: volunteer.display_name,
@@ -49,5 +70,8 @@ export async function GET() {
     active: volunteer.active,
     mustChangePassword: volunteer.must_change_password,
     grants,
+    scope,
+    centreId,
+    centreName,
   });
 }

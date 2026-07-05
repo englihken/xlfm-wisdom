@@ -14,10 +14,11 @@
 'use client';
 
 import Link from 'next/link';
-import { grantAllows, type Grants, type ModuleKey, type AccessLevel } from '@/lib/access';
+import { visibleModules, type Grants, type ModuleDoor } from '@/lib/access';
 
 type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
-export type NavKey = 'inbox' | 'reports' | 'settings' | 'members';
+// The nav keys are the module doors (from visibleModules) plus the hub 'home'.
+export type NavKey = ModuleDoor | 'home';
 
 type IconProps = { className?: string };
 
@@ -108,24 +109,39 @@ function PeopleIcon({ className }: IconProps) {
   );
 }
 
-type NavItem = {
-  key: NavKey;
-  label: string;
-  href: string;
-  Icon: (props: IconProps) => React.ReactElement;
-  adminOnly: boolean;
-  // When set, visibility is decided by the caller's module grant (>= min) instead
-  // of the adminOnly-vs-role rule. Care-wing items keep the original logic.
-  module?: ModuleKey;
-  min?: AccessLevel;
-};
+// House icon for the hub 主页, in the same line-icon style.
+function HomeIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+      <path d="M9.5 21v-6h5v6" />
+    </svg>
+  );
+}
 
-const ITEMS: NavItem[] = [
-  { key: 'inbox', label: '收件箱', href: '/dashboard', Icon: InboxIcon, adminOnly: false },
-  { key: 'members', label: '会员', href: '/dashboard/members', Icon: PeopleIcon, adminOnly: false, module: 'members', min: 'view' },
-  { key: 'reports', label: '报表', href: '/dashboard/reports', Icon: ChartIcon, adminOnly: true },
-  { key: 'settings', label: '设置', href: '/dashboard/settings', Icon: GearIcon, adminOnly: true },
-];
+type Door = { label: string; href: string; Icon: (props: IconProps) => React.ReactElement };
+
+// Destination for every nav key. Which keys actually render is decided ONLY by
+// visibleModules (+ the hub, for multi-door accounts) — never here.
+const DOORS: Record<NavKey, Door> = {
+  home: { label: '主页', href: '/dashboard/home', Icon: HomeIcon },
+  inbox: { label: '收件箱', href: '/dashboard', Icon: InboxIcon },
+  members: { label: '会员', href: '/dashboard/members', Icon: PeopleIcon },
+  reports: { label: '报表', href: '/dashboard/reports', Icon: ChartIcon },
+  settings: { label: '设置', href: '/dashboard/settings', Icon: GearIcon },
+};
 
 export function DashboardNav({
   role,
@@ -136,11 +152,10 @@ export function DashboardNav({
   active: NavKey;
   grants?: Grants;
 }) {
-  const items = ITEMS.filter((i) =>
-    // Module-gated items (e.g. 会员) require the grant; everything else keeps the
-    // untouched adminOnly-vs-role logic (zero change for inbox/reports/settings).
-    i.module ? grantAllows(grants, i.module, i.min ?? 'view') : !i.adminOnly || role === 'admin'
-  );
+  // Single source of truth for door visibility. Multi-door accounts also get the
+  // hub link (rendered first); single-door users never see it.
+  const mods = visibleModules({ role, grants });
+  const keys: NavKey[] = mods.length > 1 ? ['home', ...mods] : [...mods];
 
   return (
     <nav
@@ -154,13 +169,13 @@ export function DashboardNav({
       </div>
 
       <ul className="flex flex-row md:flex-col flex-1 md:flex-none items-stretch justify-around md:justify-start gap-1 md:gap-3 px-2 py-2 md:py-1">
-        {items.map((item) => {
-          const isActive = item.key === active;
-          const { Icon } = item;
+        {keys.map((key) => {
+          const { label, href, Icon } = DOORS[key];
+          const isActive = key === active;
           return (
-            <li key={item.key} className="flex-1 md:flex-none">
+            <li key={key} className="flex-1 md:flex-none">
               <Link
-                href={item.href}
+                href={href}
                 aria-current={isActive ? 'page' : undefined}
                 className={`relative flex flex-col items-center justify-center gap-1 py-[14px] px-1 rounded-lg transition ${
                   isActive
@@ -173,7 +188,7 @@ export function DashboardNav({
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] rounded-full bg-[#A87929]" />
                 )}
                 <Icon />
-                <span className="text-[11px] leading-none">{item.label}</span>
+                <span className="text-[11px] leading-none">{label}</span>
               </Link>
             </li>
           );

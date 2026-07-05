@@ -13,7 +13,8 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
-import { grantAllows, type Grants } from '@/lib/access';
+import { visibleModules, type Grants } from '@/lib/access';
+import { PLATFORM_NAME } from '@/lib/platform';
 
 // ── Types (mirror the API route shapes) ──────────────────────────────────────
 type ListItem = {
@@ -242,10 +243,15 @@ export default function DashboardPage() {
         const json = (await res.json()) as Me;
         if (active) {
           const grants = json.grants ?? {};
-          // erp_admin landing: an account with NO care access but WITH members
-          // access belongs in the Members module, not the empty care inbox. Care
-          // volunteers and admin (who have care) see zero change.
-          if (!grantAllows(grants, 'care', 'view') && grantAllows(grants, 'members', 'view')) {
+          // General landing rule — visibleModules is the ONLY door-visibility source:
+          //  >1 door → the hub; exactly the members door → members; otherwise stay on
+          //  the care inbox (care-only accounts, unchanged — no hub hop).
+          const mods = visibleModules({ role: json.role, grants });
+          if (mods.length > 1) {
+            router.replace('/dashboard/home');
+            return;
+          }
+          if (mods.length === 1 && mods[0] === 'members') {
             router.replace('/dashboard/members');
             return;
           }
@@ -539,7 +545,12 @@ export default function DashboardPage() {
       {/* TOP BAR — navigation lives in the rail now; keep title, name, 登出. */}
       <header className="shrink-0 border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm">
         <div className="px-5 py-3 flex items-center justify-between gap-3">
-          <h1 className="text-lg font-bold text-[#583A0F]">心灵法门人文关怀系统</h1>
+          <div>
+            <p className="text-[11px] leading-none text-[#B89968]">🪷 {PLATFORM_NAME}</p>
+            <h1 className="mt-0.5 text-lg font-bold text-[#583A0F] leading-tight">
+              人文关怀 <span className="text-sm font-normal text-[#B89968]">· Care</span>
+            </h1>
+          </div>
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline text-sm text-[#8B6F47]">{me?.displayName || email}</span>
             <button

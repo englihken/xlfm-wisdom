@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { isUnread } from '@/lib/care-inbox';
 
 export const runtime = 'nodejs';
 
@@ -91,9 +92,8 @@ export async function GET(req: Request) {
       const preview = latest.length > PREVIEW_MAX ? `${latest.slice(0, PREVIEW_MAX)}…` : latest;
 
       // Unread = new activity since this volunteer last opened it (or never opened).
-      const lastReadAt = readMap.get(row.id) ?? null;
-      const unread =
-        !lastReadAt || new Date(row.last_message_at).getTime() > new Date(lastReadAt).getTime();
+      // Shared predicate (see src/lib/care-inbox.ts) so the home stats strip reuses it.
+      const unread = isUnread(row.last_message_at, readMap.get(row.id) ?? null);
 
       const item = {
         id: row.id,

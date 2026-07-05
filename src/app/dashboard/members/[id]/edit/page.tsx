@@ -50,7 +50,7 @@ function toForm(m: Record<string, unknown>): MemberFormValues {
 export default function EditMemberPage() {
   const { id } = useParams<{ id: string }>();
   return (
-    <ErpGate active="members" titleSuffix="会员 · 编辑">
+    <ErpGate active="members" titleSuffix="编辑">
       {(me) => <EditBody me={me} id={id} />}
     </ErpGate>
   );

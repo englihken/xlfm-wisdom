@@ -9,7 +9,7 @@ import { grantAllows } from '@/lib/access';
 
 export default function NewMemberPage() {
   return (
-    <ErpGate active="members" titleSuffix="会员 · 新增">
+    <ErpGate active="members" titleSuffix="新增">
       {(me) =>
         grantAllows(me.grants, 'members', 'edit') ? (
           <MemberForm mode="create" />

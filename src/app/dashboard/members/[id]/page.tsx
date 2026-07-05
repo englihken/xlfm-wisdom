@@ -46,7 +46,7 @@ const tri = (v: unknown): string => (v === true ? '是' : v === false ? '否' : 
 export default function MemberProfilePage() {
   const { id } = useParams<{ id: string }>();
   return (
-    <ErpGate active="members" titleSuffix="会员 · 资料">
+    <ErpGate active="members" titleSuffix="资料">
       {(me) => <MemberProfile me={me} id={id} />}
     </ErpGate>
   );

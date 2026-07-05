@@ -15,6 +15,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
 import type { Grants } from '@/lib/access';
+import { PLATFORM_NAME } from '@/lib/platform';
 import { XLFM_CENTERS, isValidCenter } from '@/lib/xlfm-centers';
 
 type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
@@ -293,9 +294,12 @@ export default function SettingsPage() {
       {/* TOP BAR — navigation lives in the rail now; keep title, name, 登出. */}
       <header className="shrink-0 border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm">
         <div className="px-5 py-3 flex items-center justify-between gap-3">
-          <h1 className="text-lg font-bold text-[#583A0F]">
-            心灵法门人文关怀系统 <span className="text-[#B89968] font-normal">· 设置</span>
-          </h1>
+          <div>
+            <p className="text-[11px] leading-none text-[#B89968]">🪷 {PLATFORM_NAME}</p>
+            <h1 className="mt-0.5 text-lg font-bold text-[#583A0F] leading-tight">
+              设置 <span className="text-sm font-normal text-[#B89968]">· Settings</span>
+            </h1>
+          </div>
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline text-sm text-[#8B6F47]">
               {me?.displayName || me?.email}

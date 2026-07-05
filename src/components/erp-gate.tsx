@@ -13,6 +13,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav, type NavKey } from '@/components/dashboard-nav';
 import { grantAllows, type Grants } from '@/lib/access';
+import { PLATFORM_NAME } from '@/lib/platform';
 
 export type ErpMe = {
   email: string;
@@ -27,7 +28,8 @@ export function ErpGate({
   children,
 }: {
   active: NavKey;
-  titleSuffix: string;
+  // Short page-context breadcrumb (新增/资料/编辑). The module title is always 会员.
+  titleSuffix?: string;
   children: (me: ErpMe) => ReactNode;
 }) {
   const router = useRouter();
@@ -116,9 +118,15 @@ export function ErpGate({
     <div className="min-h-screen flex flex-col bg-[#FFF3DA] md:ml-[72px]">
       <header className="shrink-0 border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm">
         <div className="px-5 py-3 flex items-center justify-between gap-3">
-          <h1 className="text-lg font-bold text-[#583A0F]">
-            心灵法门人文关怀系统 <span className="text-[#B89968] font-normal">· {titleSuffix}</span>
-          </h1>
+          <div>
+            <p className="text-[11px] leading-none text-[#B89968]">🪷 {PLATFORM_NAME}</p>
+            <h1 className="mt-0.5 text-lg font-bold text-[#583A0F] leading-tight">
+              会员{' '}
+              <span className="text-sm font-normal text-[#B89968]">
+                · Members{titleSuffix ? ` · ${titleSuffix}` : ''}
+              </span>
+            </h1>
+          </div>
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline text-sm text-[#8B6F47]">{me?.displayName || me?.email}</span>
             <button

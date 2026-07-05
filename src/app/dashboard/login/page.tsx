@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
+import { PLATFORM_NAME } from '@/lib/platform';
 
 export default function DashboardLoginPage() {
   const router = useRouter();
@@ -49,8 +50,8 @@ export default function DashboardLoginPage() {
     <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-[#583A0F]">心灵法门人文关怀系统</h1>
-          <p className="mt-2 text-sm text-[#8B6F47]">义工登录</p>
+          <h1 className="text-2xl font-bold text-[#583A0F]">🪷 {PLATFORM_NAME}</h1>
+          <p className="mt-2 text-sm text-[#8B6F47]">登录</p>
         </div>
 
         <form
