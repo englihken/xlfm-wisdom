@@ -9,17 +9,25 @@ import { NextResponse } from 'next/server';
 import { getActiveVolunteer, getAuthenticatedUser } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { isValidCenter } from '@/lib/xlfm-centers';
+import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
 const VOLUNTEER_COLUMNS =
-  'id, email, display_name, center, occupation, skills, role, active, created_at';
+  'id, email, display_name, center, centre_id, occupation, skills, role, scope, active, created_at';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ALLOWED_ROLES = ['admin', 'volunteer', 'erp_admin', 'committee'] as const;
+
+// Scope derived from role, server-side (client scope is ignored).
+function scopeForRole(role: string): 'all_centers' | 'own_center' {
+  return role === 'volunteer' ? 'own_center' : 'all_centers';
+}
 
 type VolunteerUpdate = {
   displayName?: unknown;
   email?: unknown;
   center?: unknown;
+  centre_id?: unknown;
   occupation?: unknown;
   skills?: unknown;
   role?: unknown;
@@ -75,9 +83,11 @@ export async function PATCH(
     display_name?: string | null;
     email?: string;
     center?: string | null;
+    centre_id?: string | null;
     occupation?: string | null;
     skills?: string | null;
     role?: string;
+    scope?: 'all_centers' | 'own_center';
     active?: boolean;
   } = {};
 
@@ -115,14 +125,35 @@ export async function PATCH(
   }
 
   if (body.role !== undefined) {
-    if (body.role !== 'admin' && body.role !== 'volunteer') {
+    if (typeof body.role !== 'string' || !(ALLOWED_ROLES as readonly string[]).includes(body.role)) {
       return NextResponse.json({ error: '角色无效' }, { status: 400 });
     }
-    // Self-protection: cannot demote your own admin account.
-    if (isSelf && body.role === 'volunteer') {
+    // Self-protection: an admin cannot drop their own admin role.
+    if (isSelf && body.role !== 'admin') {
       return NextResponse.json({ error: '不能停用或降级自己的账号' }, { status: 400 });
     }
     update.role = body.role;
+    // Role change re-derives scope server-side.
+    update.scope = scopeForRole(body.role);
+  }
+
+  if (body.centre_id !== undefined) {
+    if (body.centre_id === null || (typeof body.centre_id === 'string' && body.centre_id.trim() === '')) {
+      update.centre_id = null;
+    } else if (typeof body.centre_id === 'string') {
+      const centreId = body.centre_id.trim();
+      const { data: c, error: cErr } = await supabaseAdmin
+        .from('centres')
+        .select('id')
+        .eq('id', centreId)
+        .maybeSingle();
+      if (cErr || !c) {
+        return NextResponse.json({ error: '所属中心（结构化）无效' }, { status: 400 });
+      }
+      update.centre_id = centreId;
+    } else {
+      return NextResponse.json({ error: '所属中心（结构化）无效' }, { status: 400 });
+    }
   }
 
   if (body.active !== undefined) {
@@ -201,6 +232,39 @@ export async function PATCH(
       console.error('[dashboard] volunteer update failed:', error);
     }
     return NextResponse.json({ error: 'Failed to update volunteer' }, { status: 500 });
+  }
+
+  // Audit the change. An active flip is a deactivate/reactivate event; any other
+  // changed fields are an 'update' with just those fields (both keyed by column).
+  const cur = current as Record<string, unknown>;
+  const next = data as Record<string, unknown>;
+  const beforeChanged: Record<string, unknown> = {};
+  const afterChanged: Record<string, unknown> = {};
+  for (const k of Object.keys(update)) {
+    if (JSON.stringify(cur[k]) !== JSON.stringify(next[k])) {
+      beforeChanged[k] = cur[k];
+      afterChanged[k] = next[k];
+    }
+  }
+  const auditCommon = {
+    actorId: access.volunteer.id,
+    actorEmail: access.volunteer.email,
+    module: 'settings',
+    tableName: 'volunteers',
+    recordId: id,
+  } as const;
+  if ('active' in afterChanged) {
+    await writeAudit({
+      ...auditCommon,
+      action: next.active ? 'reactivate' : 'deactivate',
+      before: { active: cur.active },
+      after: { active: next.active },
+    });
+    delete beforeChanged.active;
+    delete afterChanged.active;
+  }
+  if (Object.keys(afterChanged).length > 0) {
+    await writeAudit({ ...auditCommon, action: 'update', before: beforeChanged, after: afterChanged });
   }
 
   return NextResponse.json({ volunteer: data });

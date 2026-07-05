@@ -27,11 +27,23 @@ type Volunteer = {
   email: string;
   display_name: string | null;
   center: string | null;
+  centre_id: string | null;
   occupation: string | null;
   skills: string | null;
   role: Role;
+  scope: 'all_centers' | 'own_center' | null;
   active: boolean;
   created_at: string;
+};
+
+type MetaCentre = { id: string; code: string; name_cn: string; name_en: string };
+
+// Role display labels (bilingual-ish, care + ERP wings).
+const ROLE_LABELS: Record<string, string> = {
+  admin: '管理员',
+  volunteer: '关怀义工',
+  erp_admin: 'ERP 管理员',
+  committee: '理事会',
 };
 
 function formatDate(iso: string): string {
@@ -67,10 +79,14 @@ export default function SettingsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
 
+  // Structured centres (for the 关怀义工 中心 select), from /api/dashboard/erp/meta.
+  const [metaCentres, setMetaCentres] = useState<MetaCentre[]>([]);
+
   // Add-volunteer form.
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formCenter, setFormCenter] = useState('');
+  const [formCentreId, setFormCentreId] = useState('');
   const [formOccupation, setFormOccupation] = useState('');
   const [formSkills, setFormSkills] = useState('');
   const [formPassword, setFormPassword] = useState('');
@@ -105,6 +121,21 @@ export default function SettingsPage() {
       setVolunteers(json.volunteers ?? []);
     }
   }, []);
+
+  // Structured centres for the 关怀义工 中心 select (admin holds members:view).
+  useEffect(() => {
+    if (gate !== 'ok') return;
+    let active = true;
+    fetch('/api/dashboard/erp/meta')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (active && j) setMetaCentres(j.centres ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [gate]);
 
   // Once past the gate, load our profile and (if admin) the team. All setState is
   // inside the async IIFE, never synchronous in the effect body.
@@ -193,7 +224,9 @@ export default function SettingsPage() {
           email: formEmail,
           password: formPassword,
           displayName: formName,
-          center: formCenter,
+          // Centre fields only apply to 关怀义工; scope is derived server-side.
+          center: formRole === 'volunteer' ? formCenter : '',
+          centre_id: formRole === 'volunteer' ? formCentreId : null,
           occupation: formOccupation,
           skills: formSkills,
           role: formRole,
@@ -207,6 +240,7 @@ export default function SettingsPage() {
       setFormName('');
       setFormEmail('');
       setFormCenter('');
+      setFormCentreId('');
       setFormOccupation('');
       setFormSkills('');
       setFormPassword('');
@@ -385,17 +419,42 @@ export default function SettingsPage() {
                       className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
                     />
                   </div>
-                  <div>
-                    <label htmlFor="add-center" className="block text-xs font-medium text-[#B89968] mb-1">
-                      所属中心（可选）
-                    </label>
-                    <CenterSelect
-                      id="add-center"
-                      value={formCenter}
-                      onChange={setFormCenter}
-                      disabled={submitting}
-                    />
-                  </div>
+                  {/* Centre fields apply only to 关怀义工 (own_center scope); hidden for
+                      ERP/committee roles (all_centers). */}
+                  {formRole === 'volunteer' && (
+                    <>
+                      <div>
+                        <label htmlFor="add-center" className="block text-xs font-medium text-[#B89968] mb-1">
+                          所属中心 · 文本（可选）
+                        </label>
+                        <CenterSelect
+                          id="add-center"
+                          value={formCenter}
+                          onChange={setFormCenter}
+                          disabled={submitting}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="add-centre-id" className="block text-xs font-medium text-[#B89968] mb-1">
+                          中心 · 结构化（可选）
+                        </label>
+                        <select
+                          id="add-centre-id"
+                          value={formCentreId}
+                          onChange={(e) => setFormCentreId(e.target.value)}
+                          disabled={submitting}
+                          className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                        >
+                          <option value="">未指定</option>
+                          {metaCentres.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name_cn} {c.code}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <label htmlFor="add-occupation" className="block text-xs font-medium text-[#B89968] mb-1">
                       职业（可选）
@@ -439,9 +498,16 @@ export default function SettingsPage() {
                       disabled={submitting}
                       className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
                     >
-                      <option value="volunteer">义工</option>
+                      <option value="volunteer">关怀义工</option>
                       <option value="admin">管理员</option>
+                      <option value="erp_admin">ERP 管理员</option>
+                      <option value="committee">理事会</option>
                     </select>
+                    {formRole === 'erp_admin' && (
+                      <p className="mt-1 text-xs text-[#8B6F47]">
+                        ERP 管理员：可管理会员/活动/财务等模块，无法读取关怀对话。
+                      </p>
+                    )}
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="add-skills" className="block text-xs font-medium text-[#B89968] mb-1">
@@ -563,6 +629,7 @@ export default function SettingsPage() {
 
                           <div className="flex flex-wrap items-center gap-2 shrink-0">
                             <RoleBadge role={v.role} />
+                            <ScopeBadge scope={v.scope} />
                             <StatusBadge active={v.active} />
                             {savedId === v.id && (
                               <span className="text-xs text-[#A87929]">已保存 ✓</span>
@@ -786,13 +853,28 @@ function CenterSelect({
 }
 
 function RoleBadge({ role }: { role: Role }) {
-  return role === 'admin' ? (
-    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FAEFD0] text-[#A87929]">
-      管理员
+  const label = ROLE_LABELS[role] ?? role;
+  // Admin-tier roles get the filled gold chip; care volunteer stays the plain chip.
+  const filled = role === 'admin' || role === 'erp_admin';
+  return (
+    <span
+      className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${
+        filled ? 'bg-[#FAEFD0] text-[#A87929]' : 'bg-white border border-[#EFE3BF] text-[#8B6F47]'
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function ScopeBadge({ scope }: { scope: 'all_centers' | 'own_center' | null }) {
+  return scope === 'all_centers' ? (
+    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#F5E1B0] text-[#8A5A1E]">
+      全部中心
     </span>
   ) : (
     <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-white border border-[#EFE3BF] text-[#8B6F47]">
-      义工
+      本中心
     </span>
   );
 }

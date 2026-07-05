@@ -9,18 +9,27 @@ import { NextResponse } from 'next/server';
 import { getActiveVolunteer, getAuthenticatedUser } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { isValidCenter } from '@/lib/xlfm-centers';
+import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
 const VOLUNTEER_COLUMNS =
-  'id, email, display_name, center, occupation, skills, role, active, created_at';
+  'id, email, display_name, center, centre_id, occupation, skills, role, scope, active, created_at';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ALLOWED_ROLES = ['admin', 'volunteer', 'erp_admin', 'committee'] as const;
+
+// Centre scope is derived from the role SERVER-SIDE (never trusted from the client):
+// only care volunteers are centre-scoped; every other role sees all centres.
+function scopeForRole(role: string): 'all_centers' | 'own_center' {
+  return role === 'volunteer' ? 'own_center' : 'all_centers';
+}
 
 type NewVolunteer = {
   email?: unknown;
   password?: unknown;
   displayName?: unknown;
   center?: unknown;
+  centre_id?: unknown;
   occupation?: unknown;
   skills?: unknown;
   role?: unknown;
@@ -95,17 +104,31 @@ export async function POST(req: Request) {
   if (password.length < 8) {
     return NextResponse.json({ error: '密码至少需要 8 位' }, { status: 400 });
   }
-  if (role !== 'admin' && role !== 'volunteer') {
+  if (typeof role !== 'string' || !(ALLOWED_ROLES as readonly string[]).includes(role)) {
     return NextResponse.json({ error: '角色无效' }, { status: 400 });
   }
-  // Center must be blank or one of the known 心灵法门 centers.
+  // Center (free-text care label) must be blank or a known 心灵法门 center.
   if (centerRaw && !isValidCenter(centerRaw)) {
     return NextResponse.json({ error: '所属中心无效' }, { status: 400 });
+  }
+  // Structured centre_id (FK) — optional; if provided it must exist in centres.
+  const centreId = typeof body.centre_id === 'string' && body.centre_id.trim() ? body.centre_id.trim() : null;
+  if (centreId) {
+    const { data: c, error: cErr } = await supabaseAdmin
+      .from('centres')
+      .select('id')
+      .eq('id', centreId)
+      .maybeSingle();
+    if (cErr || !c) {
+      return NextResponse.json({ error: '所属中心（结构化）无效' }, { status: 400 });
+    }
   }
   const displayName = displayNameRaw || null;
   const center = centerRaw || null;
   const occupation = occupationRaw || null;
   const skills = skillsRaw || null;
+  // Scope is derived from the role — client-sent scope is ignored.
+  const scope = scopeForRole(role);
 
   // Create the auth user (service role). email_confirm so they can log in now.
   const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -139,9 +162,11 @@ export async function POST(req: Request) {
       email,
       display_name: displayName,
       center,
+      centre_id: centreId,
       occupation,
       skills,
       role,
+      scope,
       active: true,
       // Force a password change on first login (admin set the initial password).
       must_change_password: true,
@@ -157,6 +182,23 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: '创建账号失败' }, { status: 500 });
   }
+
+  // Audit the account creation (closes the account-events gap). Actor = the admin.
+  await writeAudit({
+    actorId: access.volunteer.id,
+    actorEmail: access.volunteer.email,
+    module: 'settings',
+    action: 'create',
+    tableName: 'volunteers',
+    recordId: inserted.id,
+    after: {
+      email: inserted.email,
+      display_name: inserted.display_name,
+      role: inserted.role,
+      scope: inserted.scope,
+      centre_id: inserted.centre_id,
+    },
+  });
 
   return NextResponse.json({ volunteer: inserted }, { status: 201 });
 }
