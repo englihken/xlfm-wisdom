@@ -5,7 +5,8 @@
 //
 // Qty rules (per the six-item vocabulary):
 //   registration  → 1 always (when the item is enabled on the event)
-//   meal          → selections.meal_days ?? 0
+//   meal          → per_item (每餐): selections.meals?.length ?? 0
+//                 → per_day  (legacy): selections.meal_days ?? 0
 //   accommodation → selections.nights ?? 0
 //   transfer      → selections.transfer ? 1 : 0
 //   uniform       → selections.uniform?.qty ?? 0
@@ -22,7 +23,8 @@ export type FeeItem = {
 };
 
 export type Selections = {
-  meal_days?: number;
+  meal_days?: number;        // legacy per_day meal billing
+  meals?: string[];          // per_item meal billing: ['YYYY-MM-DD:breakfast', …]
   nights?: number;
   transfer?: boolean;
   uniform?: { size?: string; qty: number };
@@ -47,12 +49,13 @@ const DEFAULT_LABEL: Record<FeeItemKind, string> = {
   other: '其他',
 };
 
-function qtyFor(item: FeeItemKind, sel: Selections): number {
+function qtyFor(item: FeeItemKind, billing: FeeItem['billing'], sel: Selections): number {
   switch (item) {
     case 'registration':
       return 1;
     case 'meal':
-      return sel.meal_days ?? 0;
+      // per_item (每餐) counts picked meal cells; per_day (legacy) counts days.
+      return billing === 'per_item' ? (sel.meals?.length ?? 0) : (sel.meal_days ?? 0);
     case 'accommodation':
       return sel.nights ?? 0;
     case 'transfer':
@@ -72,7 +75,7 @@ export function computeFees(
   const breakdown: BreakdownLine[] = [];
 
   for (const fee of fees) {
-    const qty = Math.max(0, Math.trunc(qtyFor(fee.item, sel)));
+    const qty = Math.max(0, Math.trunc(qtyFor(fee.item, fee.billing, sel)));
     if (qty <= 0) continue; // omit zero-qty items
 
     const amountCents = Math.round(fee.amount * 100);
@@ -89,4 +92,26 @@ export function computeFees(
   }
 
   return { total: totalCents / 100, breakdown };
+}
+
+// Parse a raw submission body's selections into a normalized Selections (server-side —
+// never trust client shapes). meals is coerced to a de-duped string[] of meal keys.
+export function parseSelections(raw: unknown): Selections {
+  const s = (raw ?? {}) as Record<string, unknown>;
+  const num = (v: unknown): number | undefined => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  const meals = Array.isArray(s.meals)
+    ? [...new Set((s.meals as unknown[]).filter((x): x is string => typeof x === 'string' && x.length > 0))]
+    : undefined;
+  const u = s.uniform && typeof s.uniform === 'object' ? (s.uniform as Record<string, unknown>) : null;
+  return {
+    meal_days: num(s.meal_days),
+    meals,
+    nights: num(s.nights),
+    transfer: s.transfer === true,
+    uniform: u ? { size: typeof u.size === 'string' ? u.size : undefined, qty: num(u.qty) ?? 0 } : undefined,
+    other_qty: num(s.other_qty),
+  };
 }

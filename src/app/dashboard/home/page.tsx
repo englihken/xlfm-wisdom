@@ -179,16 +179,16 @@ export default function HubPage() {
             <div>
               <p className="text-xs font-medium text-[#B89968] mb-2">今日概览</p>
               <div className="flex flex-wrap gap-3">
-                {care && <Stat label="未读对话" value={care.unread} />}
-                {care && <Stat label="我接手的未读" value={care.myAssignedUnread} accent />}
-                {members && <Stat label="会员总数" value={members.activeCount} />}
+                {care && <Stat label="未读对话" value={care.unread} icon="💬" />}
+                {care && <Stat label="我接手的未读" value={care.myAssignedUnread} icon="🔔" accent={care.myAssignedUnread > 0} />}
+                {members && <Stat label="会员总数" value={members.activeCount} icon="👥" />}
               </div>
             </div>
           )}
 
           {/* 3. 我的事项 (care ≥ view) */}
           {data?.myConversations !== undefined && (
-            <Card title="我的事项" en="My conversations">
+            <Card title="💬 我的事项" en="My conversations">
               {data.myConversations.length === 0 ? (
                 <p className="text-sm text-[#8B6F47]">今日无待办 🙏</p>
               ) : (
@@ -214,7 +214,7 @@ export default function HubPage() {
 
           {/* 4. 最近会员动态 (members ≥ view) */}
           {data?.recentMembers !== undefined && (
-            <Card title="最近会员动态" en="Recent members">
+            <Card title="👥 最近会员动态" en="Recent members">
               {data.recentMembers.length === 0 ? (
                 <p className="text-sm text-[#8B6F47]">暂无会员</p>
               ) : (
@@ -239,7 +239,7 @@ export default function HubPage() {
 
           {/* 5. 系统动态 (audit ≥ view — admin only today) */}
           {data?.recentAudit !== undefined && (
-            <Card title="系统动态" en="Activity">
+            <Card title="📜 系统动态" en="Activity">
               {data.recentAudit.length === 0 ? (
                 <p className="text-sm text-[#8B6F47]">暂无记录</p>
               ) : (
@@ -276,11 +276,14 @@ export default function HubPage() {
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function Stat({ label, value, icon, accent }: { label: string; value: number; icon?: string; accent?: boolean }) {
   return (
-    <div className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-xl px-4 py-3 min-w-[120px]">
-      <div className={`text-2xl font-bold ${accent ? 'text-[#A87929]' : 'text-[#583A0F]'}`}>{value}</div>
-      <div className="text-xs text-[#8B6F47]">{label}</div>
+    <div className={`rounded-xl px-4 py-3 min-w-[120px] border ${accent ? 'bg-[#FBF0D8] border-[#EBD9AC]' : 'bg-[#FBF4E0] border-[#EFE3BF]'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className={`text-3xl font-bold ${accent ? 'text-[#A87929]' : 'text-[#583A0F]'}`}>{value}</div>
+        {icon && <span className="text-lg opacity-80">{icon}</span>}
+      </div>
+      <div className="text-xs text-[#8B6F47] mt-0.5">{label}</div>
     </div>
   );
 }

@@ -108,7 +108,7 @@ function MembersList({ me }: { me: ErpMe }) {
       {/* header row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold text-[#583A0F]">会员</h2>
+          <h2 className="text-xl font-bold text-[#583A0F]">👥 会员</h2>
           <span className="text-sm text-[#B89968]">Members · {total}</span>
         </div>
         {canEdit && (
@@ -148,7 +148,8 @@ function MembersList({ me }: { me: ErpMe }) {
           <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
         ) : rows.length === 0 ? (
           <div className="p-10 text-center">
-            <p className="text-sm text-[#583A0F]">还没有会员</p>
+            <p className="text-2xl mb-1">🪷</p>
+            <p className="text-sm text-[#583A0F]">还没有会员，先添一位善缘。</p>
             <p className="mt-1 text-xs text-[#8B6F47]">
               数据将通过导入（A5）批量导入，或点击「+ 新增会员」手动添加。
             </p>

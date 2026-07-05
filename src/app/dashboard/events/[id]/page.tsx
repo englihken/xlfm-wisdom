@@ -13,21 +13,26 @@ import { useParams } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { computeFees, type FeeItem, type Selections } from '@/lib/event-fees';
+import { addDays, mealSlotKey } from '@/lib/events';
 import {
-  EVENT_TYPE_LABELS, STATUS_LABELS, STATUS_STYLES, REG_STATUS_LABELS,
-  FEE_LABEL, BILLING_LABELS, moneyRM,
+  EVENT_TYPE_LABELS, STATUS_LABELS, STATUS_STYLES, REG_STATUS_LABELS, REG_STATUS_STYLES,
+  FEE_LABEL, MEAL_COLS, feeBillingLabel, weekdayCn, moneyRM,
 } from '@/lib/events-display';
 
 type FeeRow = { item: string; label_cn: string | null; amount: number; billing: string; sort?: number };
 type TeamNeed = { team_id: string; name_cn: string; needed: number; approved: number };
+type MealSlot = { slot_date: string; meal: string; offered: boolean };
+type MealCounts = { perCell: Record<string, number>; perDay: Record<string, number>; total: number } | null;
 type Detail = {
   event: Record<string, unknown> & {
     id: string; code: string; title: string; event_type: string; status: string;
     starts_on: string; ends_on: string | null; location: string | null; capacity: number | null;
-    reg_deadline: string | null; organizing_centre?: { name_cn: string; code: string } | null;
+    reg_deadline: string | null; reg_edit_cutoff_days?: number; organizing_centre?: { name_cn: string; code: string } | null;
   };
   fees: FeeRow[];
   teamNeeds: TeamNeed[];
+  mealSlots: MealSlot[];
+  mealCounts: MealCounts;
   regStats: { counts: { pending: number; approved: number; rejected: number; cancelled: number }; approvedFeeSum: number };
 };
 type BreakdownLine = { item: string; label: string; amount: number; qty: number; subtotal: number };
@@ -39,13 +44,15 @@ type RegRow = {
 };
 type Team = { id: string; name_cn: string; slug: string };
 
-// Compact selections summary chips: 🍚N天 🏨N晚 🚐 👕size×qty 🎁×N
+// Compact selections summary chips: 🍚N餐/N天 🏨N晚 🚐 👕size×qty 🎁×N
 function selectionsSummary(sel: Record<string, unknown> | undefined): string {
   if (!sel) return '';
   const parts: string[] = [];
+  const meals = Array.isArray(sel.meals) ? (sel.meals as unknown[]).filter((x) => typeof x === 'string').length : 0;
   const md = Number(sel.meal_days) || 0;
   const ni = Number(sel.nights) || 0;
-  if (md) parts.push(`🍚${md}天`);
+  if (meals) parts.push(`🍚${meals}餐`);
+  else if (md) parts.push(`🍚${md}天`);
   if (ni) parts.push(`🏨${ni}晚`);
   if (sel.transfer === true) parts.push('🚐');
   const u = sel.uniform as { size?: string; qty?: number } | undefined;
@@ -53,6 +60,11 @@ function selectionsSummary(sel: Record<string, unknown> | undefined): string {
   const oq = Number(sel.other_qty) || 0;
   if (oq) parts.push(`🎁×${oq}`);
   return parts.join(' ');
+}
+
+// Today in Malaysia time (YYYY-MM-DD) — for the selections-edit cutoff.
+function todayMYT(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' });
 }
 
 // The status-transition labels (matches the server matrix in src/lib/events.ts).
@@ -87,6 +99,7 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
   const [toast, setToast] = useState<string | null>(null);
   const [rejectFor, setRejectFor] = useState<RegRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [editReg, setEditReg] = useState<RegRow | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggleExpand = (rid: string) =>
     setExpanded((prev) => {
@@ -169,6 +182,9 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
   const approved = data.regStats.counts.approved;
   const pct = e.capacity ? Math.min(100, Math.round((approved / e.capacity) * 100)) : 0;
   const nextStatuses = STATUS_NEXT[e.status] ?? [];
+  const mealPerItem = data.fees.some((f) => f.item === 'meal' && f.billing === 'per_item');
+  const cutoffDays = Number(e.reg_edit_cutoff_days ?? 3);
+  const selectionsEditable = todayMYT() < addDays(e.starts_on, -cutoffDays);
   const tabs: [typeof tab, number | null][] = [
     ['pending', data.regStats.counts.pending], ['approved', data.regStats.counts.approved],
     ['rejected', data.regStats.counts.rejected], ['cancelled', data.regStats.counts.cancelled], ['all', null],
@@ -214,7 +230,7 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
           <span>报名 {approved}{e.capacity ? ` / ${e.capacity}` : ' / 不限'}</span>
           {e.capacity ? <span>{pct}%</span> : null}
         </div>
-        <div className="h-2.5 rounded-full bg-[#FAEFD0] overflow-hidden">
+        <div className="h-3 rounded-full bg-[#FAEFD0] overflow-hidden">
           <div className="h-full rounded-full bg-[#D89938]" style={{ width: e.capacity ? `${pct}%` : '0%' }} />
         </div>
         <div className="mt-2 text-xs text-[#8B6F47]">已批费用合计：<span className="font-semibold text-[#583A0F]">{moneyRM(data.regStats.approvedFeeSum)}</span></div>
@@ -222,19 +238,19 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
 
       {/* fees + team needs */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card title="费率 Fees">
+        <Card title="💰 费率 Fees">
           {data.fees.length === 0 ? <p className="text-sm text-[#8B6F47]">未设置收费</p> : (
             <ul className="space-y-1 text-sm">
               {data.fees.map((f) => (
                 <li key={f.item} className="flex items-center justify-between">
-                  <span className="text-[#583A0F]">{f.label_cn || FEE_LABEL[f.item] || f.item} <span className="text-[11px] text-[#B89968]">{BILLING_LABELS[f.billing]}</span></span>
+                  <span className="text-[#583A0F]">{f.label_cn || FEE_LABEL[f.item] || f.item} <span className="text-[11px] text-[#B89968]">{feeBillingLabel(f.item, f.billing)}</span></span>
                   <span className="font-medium text-[#583A0F]">{moneyRM(f.amount)}</span>
                 </li>
               ))}
             </ul>
           )}
         </Card>
-        <Card title="团队需求 Team needs">
+        <Card title="👥 团队需求 Team needs">
           {data.teamNeeds.length === 0 ? <p className="text-sm text-[#8B6F47]">无</p> : (
             <div className="flex flex-wrap gap-1.5">
               {data.teamNeeds.map((t) => {
@@ -249,6 +265,9 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
           )}
         </Card>
       </div>
+
+      {/* 每餐人数统计 — kitchen prep counts (per_item meal events only) */}
+      {mealPerItem && data.mealCounts && <MealStatsCard slots={data.mealSlots} counts={data.mealCounts} />}
 
       {/* registration queue */}
       <div className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl overflow-hidden">
@@ -271,7 +290,7 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
         </div>
 
         {regs.length === 0 ? (
-          <p className="p-6 text-sm text-[#8B6F47]">暂无报名</p>
+          <p className="p-6 text-sm text-[#8B6F47]">🪷 暂无报名，静候有缘人。</p>
         ) : (
           <ul>
             {regs.map((r) => {
@@ -288,7 +307,7 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
                         <span className="font-medium text-[#583A0F]">{r.name}</span>
                       )}
                       {r.centreCode && <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#FAEFD0] text-[#8A5A1E]">{r.centreCode}</span>}
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${REG_STATUS_STYLE(r.status)}`}>{REG_STATUS_LABELS[r.status] ?? r.status}</span>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${REG_STATUS_STYLES[r.status] ?? ''}`}>{REG_STATUS_LABELS[r.status] ?? r.status}</span>
                       {sel && <span className="text-xs text-[#8B6F47]">{sel}</span>}
                     </div>
                     <div className="mt-0.5 text-xs text-[#8B6F47]">
@@ -307,6 +326,12 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
                         <button disabled={busy === r.id} onClick={() => decide(r, 'approve')} className="px-3 py-1 text-xs text-[#A87929] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] disabled:opacity-40">✓批准</button>
                         <button disabled={busy === r.id} onClick={() => setRejectFor(r)} className="px-3 py-1 text-xs text-red-700 border border-[#FCA5A5] rounded-full hover:bg-[#FEF2F2] disabled:opacity-40">✗拒绝</button>
                       </>
+                    )}
+                    {canEdit && (r.status === 'pending' || r.status === 'approved') && selectionsEditable && (
+                      <button disabled={busy === r.id} onClick={() => setEditReg(r)} className="px-3 py-1 text-xs text-[#A87929] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] disabled:opacity-40">修改选项</button>
+                    )}
+                    {canEdit && (r.status === 'pending' || r.status === 'approved') && !selectionsEditable && (
+                      <span className="text-[11px] text-[#B89968]" title={`活动开始前 ${cutoffDays} 天截止修改`}>🔒选项已锁定</span>
                     )}
                     {canEdit && (r.status === 'pending' || r.status === 'approved') && (
                       <button disabled={busy === r.id} onClick={() => { if (window.confirm('确定取消此报名？')) decide(r, 'cancel'); }} className="px-3 py-1 text-xs text-[#8B6F47] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] disabled:opacity-40">取消</button>
@@ -334,18 +359,66 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
           onReject={async (reason) => { await decide(rejectFor, 'reject', reason); setRejectFor(null); }} />
       )}
       {addOpen && (
-        <AddRegDialog eventId={id} fees={data.fees} teams={teams} onClose={() => setAddOpen(false)}
+        <AddRegDialog eventId={id} fees={data.fees} teams={teams} mealSlots={data.mealSlots} mealPerItem={mealPerItem}
+          onClose={() => setAddOpen(false)}
           onDone={() => { setAddOpen(false); loadRegs(); loadEvent(); flashToast('已代报名'); }} />
+      )}
+      {editReg && (
+        <AddRegDialog eventId={id} fees={data.fees} teams={teams} mealSlots={data.mealSlots} mealPerItem={mealPerItem}
+          edit={{ regId: editReg.id, name: editReg.name, teamId: editReg.volunteer_team_id ?? '', selections: editReg.selections }}
+          onClose={() => setEditReg(null)}
+          onDone={() => { setEditReg(null); loadRegs(); loadEvent(); flashToast('选项已更新'); }} />
       )}
     </div>
   );
 }
 
-function REG_STATUS_STYLE(s: string): string {
-  return s === 'pending' ? 'bg-[#FEF2F2] text-red-700'
-    : s === 'approved' ? 'bg-[#E7F0E0] text-[#3F6B2E]'
-    : s === 'rejected' ? 'bg-white border border-[#EFE3BF] text-[#8B6F47]'
-    : 'bg-white border border-[#EFE3BF] text-[#B89968]';
+// ── 每餐人数统计 card — approved-registration counts per (date, meal) + totals ──────
+function MealStatsCard({ slots, counts }: { slots: MealSlot[]; counts: NonNullable<MealCounts> }) {
+  const dates = [...new Set(slots.map((s) => s.slot_date))].sort();
+  const offered = new Set(slots.filter((s) => s.offered).map((s) => mealSlotKey(s.slot_date, s.meal)));
+  const colTotal = (meal: string) => dates.reduce((sum, d) => sum + (counts.perCell[mealSlotKey(d, meal)] ?? 0), 0);
+  return (
+    <div className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-4">
+      <h3 className="text-sm font-semibold text-[#583A0F] mb-2">🍚 每餐人数统计 <span className="text-[11px] font-normal text-[#B89968]">Meal counts · 已批准</span></h3>
+      {dates.length === 0 ? (
+        <p className="text-sm text-[#8B6F47]">尚未设置餐点供应。</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="text-sm border-collapse">
+            <thead>
+              <tr className="text-[11px] text-[#B89968]">
+                <th className="px-3 py-1.5 text-left font-medium">日期</th>
+                {MEAL_COLS.map((c) => <th key={c.meal} className="px-3 py-1.5 font-medium w-14">{c.label}</th>)}
+                <th className="px-3 py-1.5 font-medium w-16">当日合计</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dates.map((d) => (
+                <tr key={d} className="border-t border-[#EFE3BF]">
+                  <td className="px-3 py-1.5 whitespace-nowrap text-[#583A0F]">{d.slice(5)} <span className="text-[11px] text-[#B89968]">{weekdayCn(d)}</span></td>
+                  {MEAL_COLS.map((c) => {
+                    const key = mealSlotKey(d, c.meal);
+                    return (
+                      <td key={c.meal} className="px-3 py-1.5 text-center">
+                        {offered.has(key) ? <span className="text-[#583A0F] font-medium">{counts.perCell[key] ?? 0}</span> : <span className="text-[#C9B892]">—</span>}
+                      </td>
+                    );
+                  })}
+                  <td className="px-3 py-1.5 text-center font-semibold text-[#583A0F]">{counts.perDay[d] ?? 0}</td>
+                </tr>
+              ))}
+              <tr className="border-t-2 border-[#EFE3BF] bg-[#FBF4E0]/50">
+                <td className="px-3 py-1.5 font-semibold text-[#583A0F]">总计</td>
+                {MEAL_COLS.map((c) => <td key={c.meal} className="px-3 py-1.5 text-center font-semibold text-[#8A5A1E]">{colTotal(c.meal)}</td>)}
+                <td className="px-3 py-1.5 text-center font-bold text-[#583A0F]">{counts.total}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── reject modal (reason required) ───────────────────────────────────────────
@@ -369,29 +442,38 @@ function RejectDialog({ reg, onClose, onReject }: { reg: RegRow; onClose: () => 
   );
 }
 
-// ── 代报名 dialog — member search + selections + LIVE fee preview ─────────────
-function AddRegDialog({ eventId, fees, teams, onClose, onDone }: {
-  eventId: string; fees: FeeRow[]; teams: Team[]; onClose: () => void; onDone: () => void;
+// ── 代报名 / 修改选项 dialog — member (search or preset) + selections + LIVE preview ──
+// mode: create = member search + POST; edit = preset member + PATCH .../selections. When
+// the meal fee bills per_item the 餐 input is the MEAL GRID (offered cells only).
+function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onClose, onDone }: {
+  eventId: string; fees: FeeRow[]; teams: Team[]; mealSlots: MealSlot[]; mealPerItem: boolean;
+  edit?: { regId: string; name: string; teamId: string; selections: Record<string, unknown> };
+  onClose: () => void; onDone: () => void;
 }) {
+  const isEdit = !!edit;
   const enabled = new Set(fees.map((f) => f.item));
   const feeItems: FeeItem[] = fees.map((f) => ({ item: f.item as FeeItem['item'], label_cn: f.label_cn, amount: Number(f.amount), billing: f.billing as FeeItem['billing'] }));
+  const init = edit?.selections ?? {};
+  const initUniform = (init.uniform ?? {}) as { size?: string; qty?: number };
 
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<{ id: string; name: string; centreCode: string | null }[]>([]);
-  const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
-  const [teamId, setTeamId] = useState('');
-  const [mealDays, setMealDays] = useState('');
-  const [nights, setNights] = useState('');
-  const [transfer, setTransfer] = useState(false);
-  const [uniformSize, setUniformSize] = useState('');
-  const [uniformQty, setUniformQty] = useState('');
-  const [otherQty, setOtherQty] = useState('');
+  const [selected, setSelected] = useState<{ id: string; name: string } | null>(edit ? { id: '', name: edit.name } : null);
+  const [teamId, setTeamId] = useState(edit?.teamId ?? '');
+  const [mealDays, setMealDays] = useState(init.meal_days ? String(init.meal_days) : '');
+  const [meals, setMeals] = useState<Set<string>>(new Set(Array.isArray(init.meals) ? (init.meals as unknown[]).filter((x): x is string => typeof x === 'string') : []));
+  const [nights, setNights] = useState(init.nights ? String(init.nights) : '');
+  const [transfer, setTransfer] = useState(init.transfer === true);
+  const [uniformSize, setUniformSize] = useState(initUniform.size ?? '');
+  const [uniformQty, setUniformQty] = useState(initUniform.qty ? String(initUniform.qty) : '');
+  const [otherQty, setOtherQty] = useState(init.other_qty ? String(init.other_qty) : '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dupe, setDupe] = useState<string | null>(null);
 
-  // member search-as-you-type (active only), debounced.
+  // member search-as-you-type (active only), debounced. Skipped in edit mode.
   useEffect(() => {
+    if (isEdit) return;
     const q = search.trim();
     if (!q) { setResults([]); return; }
     const t = setTimeout(() => {
@@ -403,10 +485,11 @@ function AddRegDialog({ eventId, fees, teams, onClose, onDone }: {
         .catch(() => {});
     }, 300);
     return () => clearTimeout(t);
-  }, [search]);
+  }, [search, isEdit]);
 
   const selections: Selections = {
-    meal_days: mealDays ? Number(mealDays) : undefined,
+    meal_days: !mealPerItem && mealDays ? Number(mealDays) : undefined,
+    meals: mealPerItem ? [...meals] : undefined,
     nights: nights ? Number(nights) : undefined,
     transfer,
     uniform: uniformQty ? { size: uniformSize || undefined, qty: Number(uniformQty) } : undefined,
@@ -420,16 +503,21 @@ function AddRegDialog({ eventId, fees, teams, onClose, onDone }: {
     setError(null);
     setDupe(null);
     try {
-      const res = await fetch(`/api/dashboard/events/${eventId}/registrations`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ member_id: selected.id, volunteer_team_id: teamId || null, selections }),
-      });
+      const res = isEdit
+        ? await fetch(`/api/dashboard/registrations/${edit!.regId}/selections`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selections }),
+          })
+        : await fetch(`/api/dashboard/events/${eventId}/registrations`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ member_id: selected.id, volunteer_team_id: teamId || null, selections }),
+          });
       const j = await res.json().catch(() => null);
       if (res.status === 409) { setDupe(j?.existing?.reg_no ?? null); setError('该会员已报名此活动'); return; }
-      if (!res.ok) { setError(j?.error ?? '登记失败'); return; }
+      if (!res.ok) { setError(j?.error ?? (isEdit ? '保存失败' : '登记失败')); return; }
       onDone();
     } catch {
-      setError('登记失败，请重试');
+      setError(isEdit ? '保存失败，请重试' : '登记失败，请重试');
     } finally {
       setSaving(false);
     }
@@ -438,10 +526,12 @@ function AddRegDialog({ eventId, fees, teams, onClose, onDone }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
       <div className="bg-[#FFFEF6] rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5" onClick={(ev) => ev.stopPropagation()}>
-        <h3 className="text-base font-semibold text-[#583A0F] mb-3">代报名</h3>
+        <h3 className="text-base font-semibold text-[#583A0F] mb-3">{isEdit ? '修改选项' : '代报名'}</h3>
 
-        {/* member search */}
-        {!selected ? (
+        {/* member — search (create) or preset name (edit) */}
+        {isEdit ? (
+          <div className="text-sm text-[#583A0F]">会员：<span className="font-medium">{edit!.name}</span></div>
+        ) : !selected ? (
           <div>
             <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索会员 名字 / 电话…"
               className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]" />
@@ -467,18 +557,30 @@ function AddRegDialog({ eventId, fees, teams, onClose, onDone }: {
 
         {selected && (
           <div className="mt-4 space-y-3">
-            <label className="block">
-              <span className="block text-xs font-medium text-[#B89968] mb-1">义工组（可选）</span>
-              <select value={teamId} onChange={(e) => setTeamId(e.target.value)}
-                className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]">
-                <option value="">信众参加（无组）</option>
-                {teams.map((t) => <option key={t.id} value={t.id}>{t.name_cn}</option>)}
-              </select>
-            </label>
+            {!isEdit && (
+              <label className="block">
+                <span className="block text-xs font-medium text-[#B89968] mb-1">义工组（可选）</span>
+                <select value={teamId} onChange={(e) => setTeamId(e.target.value)}
+                  className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]">
+                  <option value="">信众参加（无组）</option>
+                  {teams.map((t) => <option key={t.id} value={t.id}>{t.name_cn}</option>)}
+                </select>
+              </label>
+            )}
+
+            {/* meal grid (per_item) — replaces the 用餐天数 input */}
+            {enabled.has('meal') && mealPerItem && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-[#B89968]">用餐 🍚 <span className="text-[#C9B892]">（已选 {meals.size} 餐）</span></span>
+                </div>
+                <MealPickGrid slots={mealSlots} selected={meals} onChange={setMeals} />
+              </div>
+            )}
 
             {/* selection inputs — ONLY for items enabled on this event */}
             <div className="grid grid-cols-2 gap-3">
-              {enabled.has('meal') && <Num label="用餐天数 🍚" value={mealDays} onChange={setMealDays} />}
+              {enabled.has('meal') && !mealPerItem && <Num label="用餐天数 🍚" value={mealDays} onChange={setMealDays} />}
               {enabled.has('accommodation') && <Num label="住宿晚数 🏨" value={nights} onChange={setNights} />}
               {enabled.has('transfer') && (
                 <label className="flex items-center gap-2 text-sm text-[#583A0F] col-span-2">
@@ -523,12 +625,84 @@ function AddRegDialog({ eventId, fees, teams, onClose, onDone }: {
 
             <div className="flex items-center gap-2">
               <button disabled={saving} onClick={submit} className="px-5 py-2 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] disabled:opacity-50">
-                {saving ? '登记中…' : '提交报名'}
+                {saving ? '保存中…' : isEdit ? '保存选项' : '提交报名'}
               </button>
               <button onClick={onClose} className="px-5 py-2 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">取消</button>
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Meal picker — dates × 早/午/晚; only OFFERED cells are clickable. 整天 toggles a row's
+// offered cells; 全选/清空 select/clear every offered cell. Zero selected is valid.
+function MealPickGrid({ slots, selected, onChange }: { slots: MealSlot[]; selected: Set<string>; onChange: (s: Set<string>) => void }) {
+  const dates = [...new Set(slots.map((s) => s.slot_date))].sort();
+  const offered = new Set(slots.filter((s) => s.offered).map((s) => mealSlotKey(s.slot_date, s.meal)));
+  const allOffered = [...offered];
+
+  const toggle = (key: string) => {
+    if (!offered.has(key)) return;
+    const next = new Set(selected);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    onChange(next);
+  };
+  const toggleRow = (date: string) => {
+    const keys = MEAL_COLS.map((c) => mealSlotKey(date, c.meal)).filter((k) => offered.has(k));
+    if (keys.length === 0) return;
+    const anyUnset = keys.some((k) => !selected.has(k));
+    const next = new Set(selected);
+    for (const k of keys) { if (anyUnset) next.add(k); else next.delete(k); }
+    onChange(next);
+  };
+
+  if (dates.length === 0) return <p className="text-xs text-[#8B6F47]">本活动未设置餐点供应。</p>;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-1.5">
+        <button type="button" onClick={() => onChange(new Set(allOffered))} className="px-2.5 py-0.5 text-[11px] text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">全选</button>
+        <button type="button" onClick={() => onChange(new Set())} className="px-2.5 py-0.5 text-[11px] text-[#8B6F47] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">清空</button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="text-sm border-collapse w-full">
+          <thead>
+            <tr className="text-[11px] text-[#B89968]">
+              <th className="px-2 py-1 text-left font-medium">日期</th>
+              {MEAL_COLS.map((c) => <th key={c.meal} className="px-1 py-1 font-medium">{c.label}</th>)}
+              <th className="px-1 py-1 font-medium w-12">整天</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dates.map((d) => (
+              <tr key={d} className="border-t border-[#EFE3BF]">
+                <td className="px-2 py-1 whitespace-nowrap text-[#583A0F]">{d.slice(5)} <span className="text-[11px] text-[#B89968]">{weekdayCn(d)}</span></td>
+                {MEAL_COLS.map((c) => {
+                  const key = mealSlotKey(d, c.meal);
+                  const isOffered = offered.has(key);
+                  const isSel = selected.has(key);
+                  return (
+                    <td key={c.meal} className="px-1 py-1 text-center">
+                      {isOffered ? (
+                        <button type="button" onClick={() => toggle(key)}
+                          className={`w-9 py-1 rounded-md text-xs transition ${isSel ? 'bg-[#D89938] text-white' : 'bg-[#FAEFD0] text-[#8A5A1E] border border-[#EFE3BF] hover:bg-[#F5E1B0]'}`}>
+                          {isSel ? '✓' : c.label}
+                        </button>
+                      ) : (
+                        <span className="inline-block w-9 py-1 rounded-md text-xs text-[#C9B892] border border-dashed border-[#DCCDA2]">—</span>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="px-1 py-1 text-center">
+                  <button type="button" onClick={() => toggleRow(d)} className="px-2 py-0.5 text-[11px] text-[#8B6F47] border border-[#EFE3BF] rounded-md hover:bg-[#FAEFD0]">全天</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

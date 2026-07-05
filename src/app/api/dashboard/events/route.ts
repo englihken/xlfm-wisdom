@@ -10,6 +10,7 @@ import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
 import { EVENT_TYPES, isValidDate, validateFees, validateNeeds, yymm } from '@/lib/events';
+import { normalizeSlotOverrides, syncMealSlots } from '@/lib/event-slots';
 
 export const runtime = 'nodejs';
 
@@ -210,6 +211,14 @@ export async function POST(req: Request) {
     if (cErr || !c) return NextResponse.json({ error: '主办中心无效' }, { status: 400 });
   }
 
+  // 选项修改截止（开始前 N 天）— int ≥ 0; default 3 when omitted/blank.
+  let regEditCutoffDays = 3;
+  if (body.reg_edit_cutoff_days !== undefined && body.reg_edit_cutoff_days !== null && body.reg_edit_cutoff_days !== '') {
+    const n = Number(body.reg_edit_cutoff_days);
+    if (!Number.isInteger(n) || n < 0) return NextResponse.json({ error: '选项修改截止天数无效（须为 ≥ 0 的整数）' }, { status: 400 });
+    regEditCutoffDays = n;
+  }
+
   const feesRes = validateFees(body.fees);
   if ('error' in feesRes) return NextResponse.json({ error: feesRes.error }, { status: 400 });
   const needsRes = validateNeeds(body.team_needs);
@@ -248,6 +257,7 @@ export async function POST(req: Request) {
       capacity: Number.isInteger(Number(body.capacity)) && Number(body.capacity) > 0 ? Number(body.capacity) : null,
       reg_deadline: isValidDate(body.reg_deadline) ? body.reg_deadline : null,
       requires_approval: body.requires_approval === false ? false : true,
+      reg_edit_cutoff_days: regEditCutoffDays,
       description: typeof body.description === 'string' ? body.description.trim() || null : null,
       status: 'draft',
       created_by: me.id,
@@ -280,6 +290,14 @@ export async function POST(req: Request) {
       await supabaseAdmin.from('events').delete().eq('id', event.id);
       return NextResponse.json({ error: '创建组别需求失败' }, { status: 500 });
     }
+  }
+
+  // Seed the meal-offering grid for the event's date range (default all offered; any
+  // kitchen toggles come through body.meal_slots). Non-fatal — the grid can be re-synced
+  // by editing the event, so a slot hiccup must not undo a created event.
+  {
+    const { error } = await syncMealSlots(supabaseAdmin, event.id, startsOn, endsOn, normalizeSlotOverrides(body.meal_slots));
+    if (error) console.error('[events] meal-slot seed failed (non-fatal):', error);
   }
 
   await writeAudit({

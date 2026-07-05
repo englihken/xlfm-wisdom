@@ -11,11 +11,19 @@ import { EventForm, EMPTY_EVENT, type EventFormValues } from '@/components/event
 import { grantAllows } from '@/lib/access';
 import { FEE_ROWS } from '@/lib/events-display';
 
-function toForm(event: Record<string, unknown>, fees: { item: string; amount: number }[], teamNeeds: { team_id: string; needed: number }[]): EventFormValues {
-  const feeState = Object.fromEntries(FEE_ROWS.map((r) => [r.item, { enabled: false, amount: '' }])) as EventFormValues['fees'];
+type MealSlot = { slot_date: string; meal: string; offered: boolean };
+
+function toForm(
+  event: Record<string, unknown>,
+  fees: { item: string; amount: number; billing?: string }[],
+  teamNeeds: { team_id: string; needed: number }[],
+  mealSlots: MealSlot[],
+): EventFormValues {
+  const feeState = Object.fromEntries(FEE_ROWS.map((r) => [r.item, { enabled: false, amount: '', billing: r.billing }])) as EventFormValues['fees'];
   for (const f of fees) {
-    if (feeState[f.item]) feeState[f.item] = { enabled: true, amount: String(f.amount) };
+    if (feeState[f.item]) feeState[f.item] = { enabled: true, amount: String(f.amount), billing: f.billing || feeState[f.item].billing };
   }
+  const mealClosed = mealSlots.filter((s) => !s.offered).map((s) => `${s.slot_date}:${s.meal}`);
   return {
     ...EMPTY_EVENT,
     title: String(event.title ?? ''),
@@ -27,9 +35,11 @@ function toForm(event: Record<string, unknown>, fees: { item: string; amount: nu
     capacity: event.capacity != null ? String(event.capacity) : '',
     reg_deadline: event.reg_deadline ? String(event.reg_deadline) : '',
     requires_approval: event.requires_approval === false ? 'no' : 'yes',
+    reg_edit_cutoff_days: String(event.reg_edit_cutoff_days ?? 3),
     description: event.description ? String(event.description) : '',
     fees: feeState,
     needs: teamNeeds.map((n) => ({ team_id: n.team_id, needed: String(n.needed) })),
+    mealClosed,
   };
 }
 
@@ -52,7 +62,7 @@ function EditBody({ me, id }: { me: ErpMe; id: string }) {
     fetch(`/api/dashboard/events/${id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
-        if (active && j) setInitial(toForm(j.event, j.fees ?? [], j.teamNeeds ?? []));
+        if (active && j) setInitial(toForm(j.event, j.fees ?? [], j.teamNeeds ?? [], j.mealSlots ?? []));
       })
       .catch(() => {})
       .finally(() => {

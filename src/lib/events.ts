@@ -8,15 +8,47 @@ export const FEE_ITEMS = ['registration', 'meal', 'accommodation', 'transfer', '
 export const BILLINGS = ['per_person', 'per_day', 'per_night', 'per_item'] as const;
 export const EVENT_STATUSES = ['draft', 'open', 'full', 'closed', 'completed'] as const;
 
-// Billing must match the item's nature (016 design).
+// Billing must match the item's nature (016 design). meal may bill per_day (legacy —
+// qty = selections.meal_days) OR per_item (每餐 — qty = selections.meals.length); C0.
 export const BILLING_BY_ITEM: Record<string, readonly string[]> = {
   registration: ['per_person'],
   transfer: ['per_person'],
-  meal: ['per_day'],
+  meal: ['per_day', 'per_item'],
   accommodation: ['per_night'],
   uniform: ['per_item'],
   other: ['per_person', 'per_day', 'per_night', 'per_item'],
 };
+
+// The three meal slots, in serving order (used for the offering grid + kitchen stats).
+export const MEALS = ['breakfast', 'lunch', 'dinner'] as const;
+export type Meal = (typeof MEALS)[number];
+
+// A selections.meals key: 'YYYY-MM-DD:breakfast' | ':lunch' | ':dinner'.
+export function mealSlotKey(date: string, meal: string): string {
+  return `${date}:${meal}`;
+}
+
+// 'YYYY-MM-DD' shifted by n days (UTC-anchored). Used for the selections-edit cutoff.
+export function addDays(date: string, n: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Enumerate every date in [startsOn, endsOn] inclusive (endsOn null = single day).
+// UTC-anchored so DST/local offsets never shift a day. Bounded to a sane span.
+export function datesInRange(startsOn: string, endsOn: string | null): string[] {
+  if (!isValidDate(startsOn)) return [];
+  const end = endsOn && isValidDate(endsOn) && endsOn >= startsOn ? endsOn : startsOn;
+  const out: string[] = [];
+  const cur = new Date(`${startsOn}T00:00:00Z`);
+  const last = new Date(`${end}T00:00:00Z`);
+  for (let guard = 0; guard < 366 && cur.getTime() <= last.getTime(); guard++) {
+    out.push(cur.toISOString().slice(0, 10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return out;
+}
 
 // Allowed status transitions (the /status route enforces this exactly).
 export const STATUS_TRANSITIONS: Record<string, string[]> = {

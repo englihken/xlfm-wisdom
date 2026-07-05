@@ -10,7 +10,8 @@ import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
-import { EVENT_TYPES, isValidDate, validateFees, validateNeeds, type NormalizedFee, type NormalizedNeed } from '@/lib/events';
+import { EVENT_TYPES, MEALS, isValidDate, validateFees, validateNeeds, type NormalizedFee, type NormalizedNeed } from '@/lib/events';
+import { normalizeSlotOverrides, syncMealSlots } from '@/lib/event-slots';
 
 export const runtime = 'nodejs';
 
@@ -37,21 +38,51 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
   if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const [{ data: fees }, { data: needRows }, { data: regs }] = await Promise.all([
+  const [{ data: fees }, { data: needRows }, { data: regs }, { data: slotRows }] = await Promise.all([
     supabaseAdmin.from('event_fees').select('item, label_cn, amount, billing, sort').eq('event_id', id).order('sort', { ascending: true }),
     supabaseAdmin.from('event_team_needs').select('team_id, needed, team:teams ( name_cn )').eq('event_id', id),
-    supabaseAdmin.from('registrations').select('status, fee_total, volunteer_team_id').eq('event_id', id),
+    supabaseAdmin.from('registrations').select('status, fee_total, volunteer_team_id, selections').eq('event_id', id),
+    supabaseAdmin.from('event_meal_slots').select('slot_date, meal, offered').eq('event_id', id),
   ]);
 
   const counts = { pending: 0, approved: 0, rejected: 0, cancelled: 0 };
   const approvedByTeam = new Map<string, number>();
   let approvedFeeSum = 0;
-  for (const r of (regs ?? []) as { status: string; fee_total: number; volunteer_team_id: string | null }[]) {
+  type RegLite = { status: string; fee_total: number; volunteer_team_id: string | null; selections: { meals?: unknown } | null };
+  const regList = (regs ?? []) as RegLite[];
+  for (const r of regList) {
     if (r.status in counts) counts[r.status as keyof typeof counts]++;
     if (r.status === 'approved') {
       approvedFeeSum += Number(r.fee_total) || 0;
       if (r.volunteer_team_id) approvedByTeam.set(r.volunteer_team_id, (approvedByTeam.get(r.volunteer_team_id) ?? 0) + 1);
     }
+  }
+
+  // meal slots (sorted date → meal-order), + kitchen stats (per_item meal events only).
+  const mealOrder = new Map<string, number>(MEALS.map((m, i) => [m, i]));
+  const mealSlots = ((slotRows ?? []) as { slot_date: string; meal: string; offered: boolean }[])
+    .slice()
+    .sort((a, b) => (a.slot_date === b.slot_date ? (mealOrder.get(a.meal) ?? 9) - (mealOrder.get(b.meal) ?? 9) : a.slot_date < b.slot_date ? -1 : 1));
+
+  const feeRows = (fees ?? []) as { item: string; billing: string }[];
+  const mealPerItem = feeRows.some((f) => f.item === 'meal' && f.billing === 'per_item');
+  let mealCounts: { perCell: Record<string, number>; perDay: Record<string, number>; total: number } | null = null;
+  if (mealPerItem) {
+    const perCell: Record<string, number> = {};
+    const perDay: Record<string, number> = {};
+    let total = 0;
+    for (const r of regList) {
+      if (r.status !== 'approved') continue;
+      const meals = Array.isArray(r.selections?.meals) ? (r.selections!.meals as unknown[]) : [];
+      for (const raw of meals) {
+        if (typeof raw !== 'string') continue;
+        const day = raw.split(':')[0];
+        perCell[raw] = (perCell[raw] ?? 0) + 1;
+        perDay[day] = (perDay[day] ?? 0) + 1;
+        total++;
+      }
+    }
+    mealCounts = { perCell, perDay, total };
   }
 
   const teamNeeds = ((needRows ?? []) as {
@@ -67,6 +98,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     event,
     fees: fees ?? [],
     teamNeeds,
+    mealSlots,
+    mealCounts,
     regStats: { counts, approvedFeeSum: Math.round(approvedFeeSum * 100) / 100 },
   });
 }
@@ -131,6 +164,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
   if (body.reg_deadline !== undefined) update.reg_deadline = isValidDate(body.reg_deadline) ? body.reg_deadline : null;
   if (body.requires_approval !== undefined) update.requires_approval = body.requires_approval === true;
+  if (body.reg_edit_cutoff_days !== undefined) {
+    const n = Number(body.reg_edit_cutoff_days);
+    if (!Number.isInteger(n) || n < 0) return NextResponse.json({ error: '选项修改截止天数无效（须为 ≥ 0 的整数）' }, { status: 400 });
+    update.reg_edit_cutoff_days = n;
+  }
   if (body.description !== undefined) update.description = typeof body.description === 'string' ? body.description.trim() || null : null;
   if (body.co_centre_ids !== undefined) {
     update.co_centre_ids = Array.isArray(body.co_centre_ids)
@@ -212,6 +250,28 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
   }
 
+  // ── meal-slot sync: regenerate the grid when dates change, apply kitchen toggles ──
+  // Date-driven regeneration is covered by the starts_on/ends_on audit above; only an
+  // EXPLICIT meal_slots payload (kitchen closed/opened cells) is audited here.
+  const datesChanged = 'starts_on' in update || 'ends_on' in update;
+  const slotsProvided = body.meal_slots !== undefined;
+  const closedKeys = (rows: { slot_date: string; meal: string; offered: boolean }[]) =>
+    rows.filter((r) => !r.offered).map((r) => `${r.slot_date}:${r.meal}`).sort();
+  let slotsClosedBefore: string[] = [];
+  let slotsClosedAfter: string[] = [];
+  if (datesChanged || slotsProvided) {
+    if (slotsProvided) {
+      const { data } = await supabaseAdmin.from('event_meal_slots').select('slot_date, meal, offered').eq('event_id', id);
+      slotsClosedBefore = closedKeys((data ?? []) as { slot_date: string; meal: string; offered: boolean }[]);
+    }
+    const { error } = await syncMealSlots(supabaseAdmin, id, effStarts, effEnds, normalizeSlotOverrides(body.meal_slots));
+    if (error) { console.error('[events] meal-slot sync failed:', error); return NextResponse.json({ error: '更新餐点供应失败' }, { status: 500 }); }
+    if (slotsProvided) {
+      const { data } = await supabaseAdmin.from('event_meal_slots').select('slot_date, meal, offered').eq('event_id', id);
+      slotsClosedAfter = closedKeys((data ?? []) as { slot_date: string; meal: string; offered: boolean }[]);
+    }
+  }
+
   // ── audit: changed core fields + before/after fee & need sets when they changed ─
   const cur = current as Record<string, unknown>;
   const nxt = updated as Record<string, unknown>;
@@ -228,6 +288,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (needsProvided && JSON.stringify(norm(needsBefore, needKey)) !== JSON.stringify(norm(needsRes.needs, needKey))) {
     before.needs = needsBefore;
     after.needs = needsRes.needs;
+  }
+  if (slotsProvided && JSON.stringify(slotsClosedBefore) !== JSON.stringify(slotsClosedAfter)) {
+    before.meal_slots_closed = slotsClosedBefore;
+    after.meal_slots_closed = slotsClosedAfter;
   }
   if (Object.keys(after).length > 0) {
     await writeAudit({

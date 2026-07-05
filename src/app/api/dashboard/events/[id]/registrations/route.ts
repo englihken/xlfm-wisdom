@@ -9,7 +9,8 @@ import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
-import { computeFees, type FeeItem, type Selections } from '@/lib/event-fees';
+import { computeFees, parseSelections, type FeeItem } from '@/lib/event-fees';
+import { fetchOfferedKeys, invalidMealKeys } from '@/lib/event-slots';
 
 export const runtime = 'nodejs';
 
@@ -19,10 +20,6 @@ const MAX_LIMIT = 100;
 function gate401or403(status: 401 | 403) {
   return NextResponse.json({ error: status === 401 ? 'Unauthorized' : 'Forbidden' }, { status });
 }
-const numOrUndef = (v: unknown): number | undefined => {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : undefined;
-};
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -147,21 +144,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   // Recompute fees server-side from the event's fee items — never trust client totals.
-  const s = (body.selections ?? {}) as Record<string, unknown>;
-  const selections: Selections = {
-    meal_days: numOrUndef(s.meal_days),
-    nights: numOrUndef(s.nights),
-    transfer: s.transfer === true,
-    uniform:
-      s.uniform && typeof s.uniform === 'object'
-        ? { size: typeof (s.uniform as Record<string, unknown>).size === 'string' ? String((s.uniform as Record<string, unknown>).size) : undefined, qty: numOrUndef((s.uniform as Record<string, unknown>).qty) ?? 0 }
-        : undefined,
-    other_qty: numOrUndef(s.other_qty),
-  };
+  const selections = parseSelections(body.selections);
   const { data: feeRows } = await supabaseAdmin.from('event_fees').select('item, label_cn, amount, billing').eq('event_id', id);
   const fees = ((feeRows ?? []) as { item: string; label_cn: string | null; amount: number; billing: string }[]).map(
     (f) => ({ item: f.item, label_cn: f.label_cn, amount: Number(f.amount), billing: f.billing }) as FeeItem
   );
+
+  // When meals bill per_item, every submitted meal key must be an OFFERED slot of this
+  // event (zero meals is valid — meals are never compulsory).
+  const mealPerItem = fees.some((f) => f.item === 'meal' && f.billing === 'per_item');
+  if (mealPerItem && selections.meals?.length) {
+    const offered = await fetchOfferedKeys(supabaseAdmin, id);
+    const bad = invalidMealKeys(selections.meals, offered);
+    if (bad.length) return NextResponse.json({ error: `餐点选项无效（未供应）：${bad.join('、')}` }, { status: 400 });
+  } else if (!mealPerItem) {
+    delete selections.meals; // ignore stray meal cells when the event isn't per_item
+  }
+
   const { total, breakdown } = computeFees(fees, selections);
 
   const approve = event.requires_approval === false;

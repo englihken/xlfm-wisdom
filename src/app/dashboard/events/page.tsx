@@ -111,7 +111,7 @@ function EventsOverview({ me }: { me: ErpMe }) {
       {/* header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold text-[#583A0F]">活动总览</h2>
+          <h2 className="text-xl font-bold text-[#583A0F]">📅 活动总览</h2>
           <span className="text-sm text-[#B89968]">Events · {events.length}</span>
         </div>
         {canEdit && (
@@ -123,10 +123,10 @@ function EventsOverview({ me }: { me: ErpMe }) {
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Kpi label="进行中" value={kpis.ongoing} />
-        <Kpi label="待审核报名" value={kpis.pending} accent={kpis.pending > 0} />
-        <Kpi label="本月报名" value={kpis.monthRegs} />
-        <Kpi label="本月活动" value={kpis.monthEvents} />
+        <Kpi label="进行中" value={kpis.ongoing} icon="🟢" />
+        <Kpi label="待审核报名" value={kpis.pending} icon="🔔" accent={kpis.pending > 0} />
+        <Kpi label="本月报名" value={kpis.monthRegs} icon="📝" />
+        <Kpi label="本月活动" value={kpis.monthEvents} icon="📅" />
       </div>
 
       {/* filters */}
@@ -147,8 +147,9 @@ function EventsOverview({ me }: { me: ErpMe }) {
       {loading ? (
         <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
       ) : filtered.length === 0 ? (
-        <div className="p-10 text-center bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl">
-          <p className="text-sm text-[#583A0F]">{events.length === 0 ? '还没有活动' : '未找到匹配的活动'}</p>
+        <div className="p-10 text-center bg-[#FBF4E0] border border-[#EFE3BF] rounded-2xl">
+          <p className="text-2xl mb-1">🪷</p>
+          <p className="text-sm text-[#583A0F]">{events.length === 0 ? '还没有活动，愿善缘从这里开始。' : '未找到匹配的活动'}</p>
           {events.length === 0 && canEdit && (
             <p className="mt-1 text-xs text-[#8B6F47]">点击「＋新建活动」创建第一个活动。</p>
           )}
@@ -170,7 +171,7 @@ function EventCard({ e }: { e: EventRow }) {
   return (
     <Link
       href={`/dashboard/events/${e.id}`}
-      className="block bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-4 hover:border-[#D89938] hover:shadow-sm transition"
+      className="block bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-4 hover:border-[#D89938] hover:shadow-md hover:-translate-y-px transition"
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-semibold text-[#583A0F] leading-snug">{e.title}</h3>
@@ -195,7 +196,7 @@ function EventCard({ e }: { e: EventRow }) {
           <span>报名 {approved}{e.capacity ? ` / ${e.capacity}` : ' / 不限'}</span>
           {e.capacity ? <span>{pct}%</span> : null}
         </div>
-        <div className="h-2 rounded-full bg-[#FAEFD0] overflow-hidden">
+        <div className="h-2.5 rounded-full bg-[#FAEFD0] overflow-hidden">
           <div className="h-full rounded-full bg-[#D89938]" style={{ width: e.capacity ? `${pct}%` : '0%' }} />
         </div>
       </div>
@@ -235,11 +236,14 @@ function EventCard({ e }: { e: EventRow }) {
   );
 }
 
-function Kpi({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function Kpi({ label, value, icon, accent }: { label: string; value: number; icon?: string; accent?: boolean }) {
   return (
-    <div className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-xl px-4 py-3">
-      <div className={`text-2xl font-bold ${accent ? 'text-red-700' : 'text-[#583A0F]'}`}>{value}</div>
-      <div className="text-xs text-[#8B6F47]">{label}</div>
+    <div className={`rounded-xl px-4 py-3 border ${accent ? 'bg-[#FCEBEA] border-[#F3D2CC]' : 'bg-[#FBF4E0] border-[#EFE3BF]'}`}>
+      <div className="flex items-center justify-between">
+        <div className={`text-3xl font-bold ${accent ? 'text-[#B4402E]' : 'text-[#583A0F]'}`}>{value}</div>
+        {icon && <span className="text-lg opacity-80">{icon}</span>}
+      </div>
+      <div className="text-xs text-[#8B6F47] mt-0.5">{label}</div>
     </div>
   );
 }
