@@ -243,16 +243,15 @@ export default function DashboardPage() {
         const json = (await res.json()) as Me;
         if (active) {
           const grants = json.grants ?? {};
-          // General landing rule — visibleModules is the ONLY door-visibility source:
-          //  >1 door → the hub; exactly the members door → members; otherwise stay on
-          //  the care inbox (care-only accounts, unchanged — no hub hop).
+          // Landing is decided ONCE, at login (see login/page.tsx). This page must NOT
+          // re-run a landing redirect, or clicking 收件箱 would bounce a multi-door user
+          // straight back out. The ONLY guard here: an account with NO care access that
+          // reaches the inbox by URL is routed away (members → members list; otherwise
+          // the hub chooser). A caller WITH care access renders the inbox normally —
+          // including multi-door users, so 收件箱 always opens the inbox.
           const mods = visibleModules({ role: json.role, grants });
-          if (mods.length > 1) {
-            router.replace('/dashboard/home');
-            return;
-          }
-          if (mods.length === 1 && mods[0] === 'members') {
-            router.replace('/dashboard/members');
+          if (!mods.includes('inbox')) {
+            router.replace(mods.includes('members') ? '/dashboard/members' : '/dashboard/home');
             return;
           }
           setMe({ displayName: json.displayName ?? null, role: json.role, grants });

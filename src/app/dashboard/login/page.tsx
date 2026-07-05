@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PLATFORM_NAME } from '@/lib/platform';
+import { visibleModules } from '@/lib/access';
 
 export default function DashboardLoginPage() {
   const router = useRouter();
@@ -37,8 +38,24 @@ export default function DashboardLoginPage() {
         return;
       }
 
-      // Success — go to the protected dashboard.
-      router.push('/dashboard');
+      // Success — LOGIN is the only landing moment. Decide the destination once here
+      // from the caller's visible doors; module pages never re-run a landing redirect.
+      //  >1 door → the hub; exactly members → members; otherwise (incl. any /me failure,
+      //  failing toward care) → the inbox. mustChangePassword is handled by the target
+      //  page's existing gate.
+      let dest = '/dashboard';
+      try {
+        const meRes = await fetch('/api/dashboard/me');
+        if (meRes.ok) {
+          const me = await meRes.json();
+          const mods = visibleModules({ role: me.role, grants: me.grants ?? {} });
+          if (mods.length > 1) dest = '/dashboard/home';
+          else if (mods.length === 1 && mods[0] === 'members') dest = '/dashboard/members';
+        }
+      } catch {
+        /* fail toward care — dest stays /dashboard */
+      }
+      router.replace(dest);
       router.refresh();
     } catch {
       setError('暂时无法连接，请稍后再试。');

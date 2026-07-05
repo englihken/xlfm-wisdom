@@ -98,7 +98,8 @@ dimension is dormant until Phase D centre roles exist.
 ## App matrix — after deploy
 
 ### admin (Ken — multi-door)
-- Log in → `/dashboard` → **redirected to `/dashboard/home`** (the hub).
+- Log in → the login page decides the landing **once** → **lands on `/dashboard/home`** (the hub). Landing is NOT re-run on module pages.
+- From the rail (or 快捷操作 去收件箱), click **收件箱** → `/dashboard` **opens the inbox and STAYS there** (a multi-door user is no longer bounced back to the hub). Clicking **⌂ 主页** returns to the hub. 会员/报表/设置 open and stay likewise.
 - Header shows **🪷 心灵法门数字平台** (platform brand, no module title).
 - The hub is a **My Day (今日概览页), NOT a module tile grid** — the rail is the sole module launcher. Blocks (all grant-gated; admin holds care+members+audit so all appear):
   1. Greeting **吉祥，{名字} 🙏** + today's date (Asia/Kuala_Lumpur, zh-CN weekday).
