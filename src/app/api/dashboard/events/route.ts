@@ -84,15 +84,27 @@ export async function GET(req: Request) {
   const regCounts = new Map<string, Record<string, number>>();
   const approvedTeam = new Map<string, Map<string, number>>(); // event → team → approved count
   const needs = new Map<string, { team_id: string; name_cn: string; needed: number }[]>();
+  const feesByEvent = new Map<string, { item: string; label_cn: string | null; amount: number; billing: string; sort: number }[]>();
 
   if (ids.length) {
-    const [{ data: regs }, { data: needRows }] = await Promise.all([
+    const [{ data: regs }, { data: needRows }, { data: feeRows }] = await Promise.all([
       supabaseAdmin.from('registrations').select('event_id, status, volunteer_team_id').in('event_id', ids),
       supabaseAdmin
         .from('event_team_needs')
         .select('event_id, team_id, needed, team:teams ( name_cn )')
         .in('event_id', ids),
+      supabaseAdmin
+        .from('event_fees')
+        .select('event_id, item, label_cn, amount, billing, sort')
+        .in('event_id', ids)
+        .order('sort', { ascending: true }),
     ]);
+
+    for (const f of (feeRows ?? []) as { event_id: string; item: string; label_cn: string | null; amount: number; billing: string; sort: number }[]) {
+      const list = feesByEvent.get(f.event_id) ?? [];
+      list.push({ item: f.item, label_cn: f.label_cn, amount: Number(f.amount), billing: f.billing, sort: f.sort });
+      feesByEvent.set(f.event_id, list);
+    }
 
     for (const r of (regs ?? []) as { event_id: string; status: string; volunteer_team_id: string | null }[]) {
       const c = regCounts.get(r.event_id) ?? { pending: 0, approved: 0, rejected: 0, cancelled: 0 };
@@ -138,6 +150,7 @@ export async function GET(req: Request) {
         ...t,
         approved: teamApproved?.get(t.team_id) ?? 0,
       })),
+      fees: feesByEvent.get(r.id) ?? [],
     };
   });
 

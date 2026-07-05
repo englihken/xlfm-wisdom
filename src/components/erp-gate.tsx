@@ -22,16 +22,27 @@ export type ErpMe = {
   grants: Grants;
 };
 
+// The two ERP modules this shell serves, with their header titles + denied notice.
+const MODULE_META = {
+  members: { cn: '会员', en: 'Members' },
+  events: { cn: '活动', en: 'Events' },
+} as const;
+
 export function ErpGate({
   active,
+  module = 'members',
   titleSuffix,
   children,
 }: {
   active: NavKey;
-  // Short page-context breadcrumb (新增/资料/编辑). The module title is always 会员.
+  // Which ERP module this page belongs to — gates on grants[module] >= view and sets
+  // the header title. Members pages omit it (default 'members') → unchanged behavior.
+  module?: 'members' | 'events';
+  // Short page-context breadcrumb (新增/资料/编辑 / 详情).
   titleSuffix?: string;
   children: (me: ErpMe) => ReactNode;
 }) {
+  const mod = MODULE_META[module];
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<ErpMe | null>(null);
@@ -76,7 +87,7 @@ export function ErpGate({
         const grants: Grants = json.grants ?? {};
         setMe({ email: json.email, displayName: json.displayName ?? null, role: json.role, grants });
         if (json.mustChangePassword) setMustChangePassword(true);
-        setGate(grantAllows(grants, 'members', 'view') ? 'ok' : 'denied');
+        setGate(grantAllows(grants, module, 'view') ? 'ok' : 'denied');
       } catch {
         /* neutral loader covers a failure */
       }
@@ -84,7 +95,7 @@ export function ErpGate({
     return () => {
       active2 = false;
     };
-  }, [checking, router, forceSignOut]);
+  }, [checking, router, forceSignOut, module]);
 
   const handleLogout = async () => {
     await forceSignOut();
@@ -107,7 +118,7 @@ export function ErpGate({
     return (
       <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-lg font-semibold text-[#583A0F]">此页面需要会员模块权限</p>
+          <p className="text-lg font-semibold text-[#583A0F]">此页面需要{mod.cn}模块权限</p>
           <p className="mt-2 text-sm text-[#8B6F47]">如需帮助，请联系系统管理员。</p>
         </div>
       </div>
@@ -121,9 +132,9 @@ export function ErpGate({
           <div>
             <p className="text-[11px] leading-none text-[#B89968]">🪷 {PLATFORM_NAME}</p>
             <h1 className="mt-0.5 text-lg font-bold text-[#583A0F] leading-tight">
-              会员{' '}
+              {mod.cn}{' '}
               <span className="text-sm font-normal text-[#B89968]">
-                · Members{titleSuffix ? ` · ${titleSuffix}` : ''}
+                · {mod.en}{titleSuffix ? ` · ${titleSuffix}` : ''}
               </span>
             </h1>
           </div>

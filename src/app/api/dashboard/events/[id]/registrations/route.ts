@@ -40,7 +40,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   let q = supabaseAdmin
     .from('registrations')
     .select(
-      'id, reg_no, member_id, applicant_name, applicant_phone, volunteer_team_id, fee_total, status, decided_at, created_at, member:members ( name_cn, name_en, centre:centres ( code ) )',
+      'id, reg_no, member_id, applicant_name, applicant_phone, volunteer_team_id, selections, fee_total, fee_breakdown, status, decided_by, decided_at, created_at, member:members ( name_cn, name_en, centre:centres ( code ) ), decider:volunteers!decided_by ( display_name, email )',
       { count: 'exact' }
     )
     .eq('event_id', id);
@@ -53,23 +53,32 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: 'Failed to load registrations' }, { status: 500 });
   }
 
+  type Person = { name_cn?: string | null; name_en?: string | null; display_name?: string | null; email?: string | null; centre?: { code: string } | { code: string }[] | null };
   type Row = {
     id: string; reg_no: string; member_id: string | null; applicant_name: string | null;
-    applicant_phone: string | null; volunteer_team_id: string | null; fee_total: number;
-    status: string; decided_at: string | null; created_at: string;
-    member: { name_cn: string | null; name_en: string | null; centre: { code: string } | { code: string }[] | null } | { name_cn: string | null; name_en: string | null; centre: { code: string } | { code: string }[] | null }[] | null;
+    applicant_phone: string | null; volunteer_team_id: string | null; selections: unknown;
+    fee_total: number; fee_breakdown: unknown; status: string; decided_by: string | null;
+    decided_at: string | null; created_at: string;
+    member: Person | Person[] | null;
+    decider: Person | Person[] | null;
   };
   const registrations = ((data ?? []) as unknown as Row[]).map((r) => {
     const m = Array.isArray(r.member) ? r.member[0] : r.member;
     const centre = m ? (Array.isArray(m.centre) ? m.centre[0] : m.centre) : null;
+    const d = Array.isArray(r.decider) ? r.decider[0] : r.decider;
     return {
       id: r.id,
       reg_no: r.reg_no,
+      member_id: r.member_id,
       name: m ? m.name_cn || m.name_en || '（无名）' : r.applicant_name || '（未命名）',
       centreCode: centre?.code ?? null,
       volunteer_team_id: r.volunteer_team_id,
+      selections: r.selections ?? {},
       fee_total: r.fee_total,
+      fee_breakdown: r.fee_breakdown ?? [],
       status: r.status,
+      decided_by: r.decided_by,
+      decidedByName: d ? d.display_name || d.email || null : null,
       decided_at: r.decided_at,
       created_at: r.created_at,
     };

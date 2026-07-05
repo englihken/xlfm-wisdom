@@ -109,6 +109,28 @@ function PeopleIcon({ className }: IconProps) {
   );
 }
 
+// Calendar icon for 活动, in the same line-icon style.
+function CalendarIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="3" y="4.5" width="18" height="16" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M8 2.5v4M16 2.5v4" />
+    </svg>
+  );
+}
+
 // House icon for the hub 主页, in the same line-icon style.
 function HomeIcon({ className }: IconProps) {
   return (
@@ -139,6 +161,7 @@ const DOORS: Record<NavKey, Door> = {
   home: { label: '主页', href: '/dashboard/home', Icon: HomeIcon },
   inbox: { label: '收件箱', href: '/dashboard', Icon: InboxIcon },
   members: { label: '会员', href: '/dashboard/members', Icon: PeopleIcon },
+  events: { label: '活动', href: '/dashboard/events', Icon: CalendarIcon },
   reports: { label: '报表', href: '/dashboard/reports', Icon: ChartIcon },
   settings: { label: '设置', href: '/dashboard/settings', Icon: GearIcon },
 };

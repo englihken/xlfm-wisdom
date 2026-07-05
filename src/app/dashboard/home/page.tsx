@@ -263,6 +263,9 @@ export default function HubPage() {
             {grantAllows(me.grants, 'members', 'view') && (
               <QuickLink href="/dashboard/members" label="会员列表" />
             )}
+            {grantAllows(me.grants, 'events', 'view') && (
+              <QuickLink href="/dashboard/events" label="活动列表" />
+            )}
             {grantAllows(me.grants, 'members', 'edit') && (
               <QuickLink href="/dashboard/members/new" label="＋新增会员" primary />
             )}
