@@ -60,6 +60,7 @@ type Detail = {
     status: string;
     category: string | null;
     crisisFlag: boolean;
+    summary?: string | null; // one-line gist of THIS conversation (cron-generated)
     assignedVolunteerName?: string | null;
     assignedToMe?: boolean;
   };
@@ -883,6 +884,21 @@ function ReplyComposer({
 // 修行阶段 options — must match ALLOWED_STAGES in the contacts PATCH route.
 const STAGE_OPTIONS = ['初次接触', '学习中', '共修者', '义工'] as const;
 
+// 本次对话 — a one-line gist of the OPEN conversation (distinct from the contact's
+// evolving 有缘人档案). Muted placeholder until the nightly cron generates it.
+function ConversationGistLine({ summary }: { summary: string | null | undefined }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-[#B89968] mb-1">本次对话</p>
+      {summary?.trim() ? (
+        <p className="text-sm text-[#583A0F] leading-relaxed">{summary.trim()}</p>
+      ) : (
+        <p className="text-sm text-[#B89968] italic">本次对话摘要待今夜生成</p>
+      )}
+    </div>
+  );
+}
+
 // ── Right-panel contact profile (stage + notes editable) ────────────────────
 // Volunteers edit 修行阶段 (stage) and 义工备注 (notes). Both save through the
 // auth-gated /api/dashboard/contacts/[id] PATCH route, which writes via
@@ -980,6 +996,29 @@ function ContactPanel({
     setTimeout(() => setNotesSaved(false), 1500);
   };
 
+  // Orphan conversation (no contact_id): no profile can exist. Render gracefully —
+  // never a blank/broken panel — while still showing this session's gist + any tags.
+  if (!c) {
+    return (
+      <div className="p-5 space-y-5">
+        <div>
+          <p className="text-lg font-semibold text-[#583A0F]">未识别访客</p>
+          <p className="mt-0.5 text-sm text-[#8B6F47]">
+            <span className="text-[#D89938]">{ch.icon}</span> {ch.label}
+          </p>
+          {(detail.conversation.crisisFlag || detail.conversation.category) && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {detail.conversation.crisisFlag && <CrisisTag />}
+              {detail.conversation.category && <CategoryTag category={detail.conversation.category} />}
+            </div>
+          )}
+        </div>
+        <ConversationGistLine summary={detail.conversation.summary} />
+        <p className="text-xs text-[#B89968] leading-relaxed">此访客的浏览器未提供身份，无法建立档案。</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-5 space-y-5">
       <div>
@@ -1024,10 +1063,13 @@ function ContactPanel({
         </select>
       </div>
 
+      {/* 本次对话 gist (this conversation) sits ABOVE the evolving contact profile */}
+      <ConversationGistLine summary={detail.conversation.summary} />
+
       <div>
-        <p className="text-xs font-medium text-[#B89968] mb-1">AI 摘要</p>
+        <p className="text-xs font-medium text-[#B89968] mb-1">有缘人档案</p>
         <p className="text-sm text-[#583A0F] whitespace-pre-wrap leading-relaxed">
-          {c?.summary?.trim() || '暂无'}
+          {c.summary?.trim() || '暂无'}
         </p>
       </div>
 

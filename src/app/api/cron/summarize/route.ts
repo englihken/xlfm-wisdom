@@ -27,37 +27,51 @@ const JUNK_CATEGORY = '闲聊测试'; // never worth an AI call
 
 type MessageRow = { role: 'user' | 'assistant'; content: string | null };
 
-// Build the model prompt: merge the contact's existing running profile with this
-// conversation's transcript into an updated 2–4 sentence care profile. No system
-// prompt, no RAG — kept deliberately small.
+// Build the model prompt: in ONE call, produce two labelled parts — (档案) the merged,
+// evolving long-term care profile for the CONTACT, and (本次) a one-line gist of THIS
+// conversation only. No system prompt, no RAG — kept deliberately small.
 function buildPrompt(existingSummary: string, transcript: string): string {
   return (
-    '你是一位佛教人文关怀助理的记录员。请根据「已有档案」和「本次对话」，' +
-    '输出这位来访者的更新版关怀档案。\n\n' +
+    '你是一位佛教人文关怀助理的记录员。请根据「已有档案」和「本次对话」，输出两部分内容。\n\n' +
+    '严格按以下两行格式输出（各占一行，中文）：\n' +
+    '档案：<这位来访者的更新版长期关怀档案，2–4 句话，涵盖主要困扰、已给的引导、' +
+    '情绪状态与对修行的开放度；将已有档案与本次对话的新信息融合「演进」，而非重新开始>\n' +
+    '本次：<仅概括「本次对话」这一次的重点，一句话，40 字以内>\n\n' +
     '要求：\n' +
-    '- 只输出档案正文，不要任何前言、标题、解释或引号。\n' +
-    '- 用中文，2–4 句话。\n' +
-    '- 涵盖：主要困扰、已给的引导、情绪状态与对修行的开放度。\n' +
-    '- 将已有档案与本次对话的新信息融合更新（这位来访者可能是回访者，' +
-    '档案应「演进」，而非重新开始）。\n\n' +
+    '- 只输出上述两行，不要任何前言、标题、解释或引号。\n' +
+    '- 「档案」是跨多次对话累积演进的长期档案；「本次」只反映这一次对话。\n\n' +
     `已有档案：\n${existingSummary.trim() || '（暂无）'}\n\n` +
     `本次对话：\n${transcript}`
   );
 }
 
-// One small Claude call. Returns the trimmed profile text, or throws so the caller
-// leaves the conversation unmarked for a retry (never overwrite a summary with an
-// empty result).
-async function generateSummary(existingSummary: string, transcript: string): Promise<string> {
+// Parse the two-part model output. Robust to colon variants (：/:) and a missing 本次
+// label. On ANY parse miss the WHOLE text becomes the profile and the gist is null — a
+// usable evolving profile matters more than a strict format, and the run must never fail.
+function parseSummary(raw: string): { profile: string; gist: string | null } {
+  const text = raw.trim();
+  const profileMatch = text.match(/档案\s*[:：]\s*([\s\S]*?)(?=\n\s*本次\s*[:：]|$)/);
+  const gistMatch = text.match(/本次\s*[:：]\s*([\s\S]+)$/);
+  const profile = profileMatch?.[1]?.trim() ?? '';
+  let gist = (gistMatch?.[1] ?? '').trim().split('\n')[0].trim();
+  if (gist.length > 80) gist = `${gist.slice(0, 80).trim()}…`; // defensive UI cap
+  if (profile) return { profile, gist: gist || null };
+  return { profile: text, gist: null }; // parse-failure fallback
+}
+
+// One small Claude call → { evolving profile, this-conversation gist }. Throws on an
+// empty model response so the caller leaves the conversation unmarked for a retry
+// (never overwrite the profile with nothing).
+async function generateSummary(existingSummary: string, transcript: string): Promise<{ profile: string; gist: string | null }> {
   const result = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 250,
+    max_tokens: 320,
     messages: [{ role: 'user', content: buildPrompt(existingSummary, transcript) }],
   });
   const textPart = result.content.find((b) => b.type === 'text');
   const text = textPart && textPart.type === 'text' ? textPart.text.trim() : '';
   if (!text) throw new Error('empty summary from model');
-  return text;
+  return parseSummary(text);
 }
 
 export async function GET(req: Request) {
@@ -162,18 +176,21 @@ export async function GET(req: Request) {
         })
         .join('\n');
 
-      // (c) One small Claude call → evolving profile.
-      const summary = await generateSummary(contact.summary ?? '', transcript);
+      // (c) One small Claude call → { evolving profile, this-conversation gist }.
+      const { profile, gist } = await generateSummary(contact.summary ?? '', transcript);
 
-      // (d) Save to the CONTACT, then mark the conversation done. Leave
-      // conversations.summary untouched (null) for now, per design.
+      // (d) Save the EVOLVING profile to the CONTACT, and the one-line gist to THIS
+      // conversation — marking it summarized in the same update.
       const { error: updateError } = await db
         .from('contacts')
-        .update({ summary })
+        .update({ summary: profile })
         .eq('id', contact.id);
       if (updateError) throw updateError;
 
-      const { error: markError } = await markSummarized(conv.id);
+      const { error: markError } = await db
+        .from('conversations')
+        .update({ summary: gist, summarized_at: new Date().toISOString() })
+        .eq('id', conv.id);
       if (markError) throw markError;
 
       processed++;

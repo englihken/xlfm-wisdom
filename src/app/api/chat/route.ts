@@ -82,6 +82,12 @@ async function persistInbound(params: {
   // human takeover can silence the AI (below).
   try {
     if (!convId) {
+      // Tripwire: a conversation without a contact is an ORPHAN (no browserId supplied) —
+      // it can never build a care profile. Surface it in Vercel logs so new orphan sources
+      // are visible rather than silently degrading the dashboard.
+      if (!contactId) {
+        console.warn('[care] conversation created without contact (no browserId)');
+      }
       const { data: created } = await supabaseAdmin
         .from('conversations')
         .insert({
