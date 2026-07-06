@@ -17,6 +17,7 @@ import { addDays, mealSlotKey } from '@/lib/events';
 import { qrModules } from '@/lib/qr';
 import {
   EVENT_TYPE_LABELS, STATUS_LABELS, STATUS_STYLES, REG_STATUS_LABELS, REG_STATUS_STYLES,
+  PAYMENT_STATUS_LABELS, PAYMENT_STATUS_STYLES,
   FEE_LABEL, MEAL_COLS, feeBillingLabel, weekdayCn, moneyRM,
 } from '@/lib/events-display';
 
@@ -35,7 +36,11 @@ type Detail = {
   teamNeeds: TeamNeed[];
   mealSlots: MealSlot[];
   mealCounts: MealCounts;
-  regStats: { counts: { pending: number; approved: number; rejected: number; cancelled: number }; approvedFeeSum: number };
+  regStats: {
+    counts: { pending: number; approved: number; rejected: number; cancelled: number };
+    approvedFeeSum: number;
+    payment?: { paidSum: number; verifiedCount: number; waivedCount: number; proofCount: number };
+  };
 };
 type BreakdownLine = { item: string; label: string; amount: number; qty: number; subtotal: number };
 type RegRow = {
@@ -43,6 +48,8 @@ type RegRow = {
   volunteer_team_id: string | null; selections: Record<string, unknown>;
   fee_total: number; fee_breakdown: BreakdownLine[];
   status: string; decided_by: string | null; decidedByName: string | null; decided_at: string | null;
+  payment_status: string; paid_amount: number | null; payment_note: string | null;
+  has_proof: boolean; payment_verified_at: string | null;
 };
 type Team = { id: string; name_cn: string; slug: string };
 
@@ -102,6 +109,7 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
   const [rejectFor, setRejectFor] = useState<RegRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [editReg, setEditReg] = useState<RegRow | null>(null);
+  const [payFor, setPayFor] = useState<RegRow | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggleExpand = (rid: string) =>
     setExpanded((prev) => {
@@ -245,6 +253,13 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
           <div className="h-full rounded-full bg-[#D89938]" style={{ width: e.capacity ? `${pct}%` : '0%' }} />
         </div>
         <div className="mt-2 text-xs text-[#8B6F47]">已批费用合计：<span className="font-semibold text-[#583A0F]">{moneyRM(data.regStats.approvedFeeSum)}</span></div>
+        {data.regStats.payment && (
+          <div className="mt-1 text-xs text-[#8B6F47]">
+            已收款 <span className="font-semibold text-[#3F6B2E]">{moneyRM(data.regStats.payment.paidSum)}</span>
+            <span className="text-[#B89968]"> · 已核实 {data.regStats.payment.verifiedCount}{data.regStats.payment.waivedCount ? ` · 已豁免 ${data.regStats.payment.waivedCount}` : ''}{data.regStats.payment.proofCount ? ` · 待核实 ${data.regStats.payment.proofCount}` : ''}</span>
+            <span className="text-[#C9B892]"> · 随喜发心，不设指标</span>
+          </div>
+        )}
       </div>
 
       {/* fees + team needs */}
@@ -322,6 +337,10 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
                       )}
                       {r.centreCode && <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#FAEFD0] text-[#8A5A1E]">{r.centreCode}</span>}
                       <span className={`text-[11px] px-2 py-0.5 rounded-full ${REG_STATUS_STYLES[r.status] ?? ''}`}>{REG_STATUS_LABELS[r.status] ?? r.status}</span>
+                      {/* payment badge — independent of approval (separate tracks) */}
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${PAYMENT_STATUS_STYLES[r.payment_status] ?? PAYMENT_STATUS_STYLES.unpaid}`}>
+                        {PAYMENT_STATUS_LABELS[r.payment_status] ?? '未付款'}{r.payment_status === 'verified' && r.paid_amount != null ? ` ${moneyRM(r.paid_amount)}` : ''}
+                      </span>
                       {sel && <span className="text-xs text-[#8B6F47]">{sel}</span>}
                     </div>
                     <div className="mt-0.5 text-xs text-[#8B6F47]">
@@ -335,6 +354,9 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
                     <button onClick={() => toggleExpand(r.id)} className="font-semibold text-[#583A0F] hover:text-[#A87929]" title="展开费用明细">
                       {moneyRM(r.fee_total)} {isOpen ? '▴' : '▾'}
                     </button>
+                    {canEdit && r.status !== 'cancelled' && (
+                      <button onClick={() => setPayFor(r)} className="px-3 py-1 text-xs text-[#A87929] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">付款</button>
+                    )}
                     {canEdit && r.status === 'pending' && (
                       <>
                         <button disabled={busy === r.id} onClick={() => decide(r, 'approve')} className="px-3 py-1 text-xs text-[#A87929] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] disabled:opacity-40">✓批准</button>
@@ -382,6 +404,10 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
           edit={{ regId: editReg.id, name: editReg.name, teamId: editReg.volunteer_team_id ?? '', selections: editReg.selections }}
           onClose={() => setEditReg(null)}
           onDone={() => { setEditReg(null); loadRegs(); loadEvent(); flashToast('选项已更新'); }} />
+      )}
+      {payFor && (
+        <PaymentPanel reg={payFor} onClose={() => setPayFor(null)}
+          onDone={(msg) => { setPayFor(null); loadRegs(); loadEvent(); flashToast(msg); }} />
       )}
     </div>
   );
@@ -738,6 +764,96 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
       <h3 className="text-sm font-semibold text-[#583A0F] mb-2">{title}</h3>
       {children}
     </section>
+  );
+}
+
+// 付款 panel — view the receipt (short-lived signed URL) + 核实/豁免/撤销. Payment is a
+// track SEPARATE from approval and never coercive: no overdue styling, 已豁免 is first-class.
+function PaymentPanel({ reg, onClose, onDone }: { reg: RegRow; onClose: () => void; onDone: (msg: string) => void }) {
+  const [proof, setProof] = useState<{ url: string; isPdf: boolean } | null>(null);
+  const [proofState, setProofState] = useState<'idle' | 'loading' | 'none' | 'error'>(reg.has_proof ? 'loading' : 'none');
+  const [amount, setAmount] = useState<string>(reg.paid_amount != null ? String(reg.paid_amount) : String(reg.fee_total));
+  const [note, setNote] = useState(reg.payment_note ?? '');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!reg.has_proof) return;
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/dashboard/registrations/${reg.id}/proof-url`);
+        if (!alive) return;
+        if (res.ok) { setProof(await res.json()); setProofState('idle'); }
+        else setProofState(res.status === 404 ? 'none' : 'error');
+      } catch { if (alive) setProofState('error'); }
+    })();
+    return () => { alive = false; };
+  }, [reg.id, reg.has_proof]);
+
+  const act = async (action: 'verify' | 'waive' | 'revoke') => {
+    setBusy(true);
+    try {
+      const body: Record<string, unknown> = { action };
+      if (action === 'verify') { body.paid_amount = amount; if (note.trim()) body.note = note.trim(); }
+      if (action === 'waive' && note.trim()) body.note = note.trim();
+      const res = await fetch(`/api/dashboard/registrations/${reg.id}/payment`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      if (res.ok) onDone(action === 'verify' ? '已核实付款' : action === 'waive' ? '已标记豁免' : '已撤销');
+      else { const j = await res.json().catch(() => null); onDone(j?.error ?? '操作失败'); }
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-[#FFFEF6] w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-[#583A0F]">付款 · <span className="font-mono text-sm">{reg.reg_no}</span></h3>
+          <button onClick={onClose} className="text-[#8B6F47] text-sm">关闭</button>
+        </div>
+        <p className="text-xs text-[#8B6F47] mb-3">
+          当前：<span className={`px-2 py-0.5 rounded-full ${PAYMENT_STATUS_STYLES[reg.payment_status] ?? PAYMENT_STATUS_STYLES.unpaid}`}>{PAYMENT_STATUS_LABELS[reg.payment_status] ?? '未付款'}</span>
+          <span className="ml-2">费用 {moneyRM(reg.fee_total)}</span>
+        </p>
+
+        {/* receipt viewer */}
+        {reg.has_proof && (
+          <div className="mb-3">
+            {proofState === 'loading' && <p className="text-xs text-[#8B6F47]">加载凭证…</p>}
+            {proofState === 'error' && <p className="text-xs text-[#B4402E]">凭证加载失败。</p>}
+            {proof && !proof.isPdf && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={proof.url} alt="付款凭证" className="w-full rounded-xl border border-[#EFE3BF]" />
+            )}
+            {proof && proof.isPdf && (
+              <a href={proof.url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#D89938] hover:underline">打开 PDF 凭证 ↗（60 秒内有效）</a>
+            )}
+          </div>
+        )}
+        {!reg.has_proof && <p className="text-xs text-[#B89968] mb-3">尚无付款凭证（可现场核对，无需凭证即可核实）。</p>}
+
+        {/* actions */}
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-[#8B6F47] mb-1">核实金额（可修改，默认为费用）</label>
+            <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal"
+              className="w-full rounded-xl border border-[#EFE3BF] bg-white px-3 py-2 text-sm outline-none focus:border-[#D89938]" />
+          </div>
+          <div>
+            <label className="block text-xs text-[#8B6F47] mb-1">备注（收据号 / 豁免原因，可选）</label>
+            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="例如：HQ 决定豁免 / 收据 #1234"
+              className="w-full rounded-xl border border-[#EFE3BF] bg-white px-3 py-2 text-sm outline-none focus:border-[#D89938]" />
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button disabled={busy} onClick={() => act('verify')} className="flex-1 rounded-xl bg-[#3F6B2E] text-white py-2 text-sm font-medium disabled:opacity-50">核实付款</button>
+            <button disabled={busy} onClick={() => act('waive')} className="flex-1 rounded-xl bg-[#6B5B8A] text-white py-2 text-sm font-medium disabled:opacity-50">标记豁免</button>
+          </div>
+          {(reg.payment_status === 'verified' || reg.payment_status === 'waived') && (
+            <button disabled={busy} onClick={() => act('revoke')} className="w-full rounded-xl border border-[#EFE3BF] text-[#8B6F47] py-2 text-sm disabled:opacity-50">撤销（回到未付款）</button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

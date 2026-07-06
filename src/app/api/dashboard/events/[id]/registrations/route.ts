@@ -37,7 +37,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   let q = supabaseAdmin
     .from('registrations')
     .select(
-      'id, reg_no, member_id, applicant_name, applicant_phone, volunteer_team_id, selections, fee_total, fee_breakdown, status, decided_by, decided_at, created_at, member:members ( name_cn, name_en, centre:centres ( code ) ), decider:volunteers!decided_by ( display_name, email )',
+      'id, reg_no, member_id, applicant_name, applicant_phone, volunteer_team_id, selections, fee_total, fee_breakdown, status, decided_by, decided_at, created_at, payment_status, paid_amount, payment_note, payment_proof_path, payment_verified_at, member:members ( name_cn, name_en, centre:centres ( code ) ), decider:volunteers!decided_by ( display_name, email )',
       { count: 'exact' }
     )
     .eq('event_id', id);
@@ -56,6 +56,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     applicant_phone: string | null; volunteer_team_id: string | null; selections: unknown;
     fee_total: number; fee_breakdown: unknown; status: string; decided_by: string | null;
     decided_at: string | null; created_at: string;
+    payment_status: string | null; paid_amount: number | null; payment_note: string | null;
+    payment_proof_path: string | null; payment_verified_at: string | null;
     member: Person | Person[] | null;
     decider: Person | Person[] | null;
   };
@@ -78,6 +80,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       decidedByName: d ? d.display_name || d.email || null : null,
       decided_at: r.decided_at,
       created_at: r.created_at,
+      payment_status: r.payment_status ?? 'unpaid',
+      paid_amount: r.paid_amount != null ? Number(r.paid_amount) : null,
+      payment_note: r.payment_note ?? null,
+      has_proof: !!r.payment_proof_path,
+      payment_verified_at: r.payment_verified_at,
     };
   });
 

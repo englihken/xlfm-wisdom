@@ -107,6 +107,49 @@ export function offeredKeySet(event: PublicEvent): Set<string> {
   return set;
 }
 
+// ── ownership match (shared by the lookup + proof-upload routes) ─────────────────────
+// A registration the caller has PROVEN they own by presenting reg_no + a matching phone
+// (the applicant_phone, or the linked member's phone). Returns null on any mismatch so the
+// caller answers 404 — wrong-phone is indistinguishable from unknown-reg_no (no enumeration).
+export type OwnedRegistration = {
+  id: string;
+  reg_no: string;
+  status: string;
+  fee_total: number;
+  selections: unknown;
+  payment_status: string;
+  payment_proof_path: string | null;
+  event: { title: string; code: string; starts_on: string; ends_on: string | null } | null;
+};
+
+export async function matchOwnedRegistration(regNo: string, phone: string): Promise<OwnedRegistration | null> {
+  if (!supabaseAdmin) return null;
+  const { data: reg } = await supabaseAdmin
+    .from('registrations')
+    .select('id, reg_no, status, fee_total, selections, payment_status, payment_proof_path, applicant_phone, member:members!member_id ( phone ), event:events!event_id ( title, code, starts_on, ends_on )')
+    .eq('reg_no', regNo)
+    .maybeSingle();
+  if (!reg) return null;
+
+  const memberRaw = (reg as { member?: { phone: string | null } | { phone: string | null }[] | null }).member;
+  const memberPhone = (Array.isArray(memberRaw) ? memberRaw[0] ?? null : memberRaw ?? null)?.phone ?? null;
+  if (reg.applicant_phone !== phone && memberPhone !== phone) return null;
+
+  const evRaw = (reg as { event?: OwnedRegistration['event'] | OwnedRegistration['event'][] | null }).event;
+  const event = Array.isArray(evRaw) ? evRaw[0] ?? null : evRaw ?? null;
+
+  return {
+    id: reg.id as string,
+    reg_no: reg.reg_no as string,
+    status: reg.status as string,
+    fee_total: Number(reg.fee_total) || 0,
+    selections: reg.selections,
+    payment_status: (reg.payment_status as string) ?? 'unpaid',
+    payment_proof_path: (reg.payment_proof_path as string | null) ?? null,
+    event,
+  };
+}
+
 // ── privacy masking ──────────────────────────────────────────────────────────────────
 // maskName — first char + '＊＊' of name_cn (else name_en). Ken chose masked over a
 // full-name reveal (privacy); the identify route reveals nothing harvestable beyond this

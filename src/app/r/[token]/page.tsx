@@ -94,6 +94,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
   const [submitBusy, setSubmitBusy] = useState(false);
   const [submitErr, setSubmitErr] = useState<string | null>(null);
   const [result, setResult] = useState<{ reg_no: string } | null>(null);
+  const [payNow, setPayNow] = useState(false); // done-step: reveal payment details (optional)
 
   const feeItems = useMemo<FeeItem[]>(
     () => event.fees.map((f) => ({ item: f.item, label_cn: f.label_cn, amount: f.amount, billing: f.billing }) as FeeItem),
@@ -358,7 +359,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
             </div>
           </Card>
 
-          <PaymentCard />
+          <PaymentCard fee={total} />
 
           <StickyBar total={total}>
             <button onClick={() => setStep(2)} className="px-4 rounded-xl border border-[#EFE3BF] text-[#8B6F47]">上一步</button>
@@ -381,10 +382,32 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
               <span className="inline-block text-xs px-3 py-1 rounded-full bg-white border border-[#E3B85A] text-[#A87929]">待审核 Pending</span>
             </div>
             <p className="mt-4 text-xs text-[#8B6F47] leading-relaxed">
-              凭 <span className="font-mono">编号</span> + 手机号可查询状态 / 修改用餐<br />
-              （活动开始前 {event.reg_edit_cutoff_days} 天截止）
+              凭 <span className="font-mono">编号</span> + 手机号可随时查询状态、补上付款凭证<br />
+              （用餐修改请联系负责人；活动开始前 {event.reg_edit_cutoff_days} 天截止）
             </p>
-            <Link href={`/r/${token}/status`} className="mt-4 inline-block rounded-xl border border-[#D89938] text-[#D89938] px-5 py-2 text-sm font-medium">查询我的报名</Link>
+          </div>
+
+          {/* GENTLE, optional payment — never blocks; already registered. */}
+          {total > 0 && (
+            <div className="mt-4 pt-4 border-t border-[#EFE3BF]">
+              <p className="text-sm text-center text-[#583A0F]">费用 {moneyRM(total)} · <span className="text-[#8B6F47]">随喜发心，可现在付款、日后补上，或到场再说 🙏</span></p>
+              {!payNow ? (
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => setPayNow(true)} className="flex-1 rounded-xl bg-[#D89938] text-white py-2.5 text-sm font-medium">我现在付款</button>
+                  <button onClick={() => { /* already registered — nothing to do */ }} disabled
+                    className="flex-1 rounded-xl border border-[#EFE3BF] text-[#8B6F47] py-2.5 text-sm">我稍后再说</button>
+                </div>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  <PaymentCard fee={total} />
+                  <ProofUploader regNo={result.reg_no} phone={phone} />
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="mt-4 text-center">
+            <Link href={`/r/${token}/status`} className="inline-block rounded-xl border border-[#D89938] text-[#D89938] px-5 py-2 text-sm font-medium">查询我的报名</Link>
           </div>
         </Card>
       )}
@@ -463,9 +486,10 @@ function StickyBar({ total, children }: { total: number; children: React.ReactNo
   );
 }
 
-function PaymentCard() {
+function PaymentCard({ fee }: { fee: number }) {
   return (
     <Card>
+      <p className="text-sm text-[#583A0F] mb-2">费用 {moneyRM(fee)} · <span className="text-[#8B6F47]">随喜发心，可现在付款、日后补上，或到场再说</span></p>
       <h3 className="font-semibold text-[#583A0F] mb-2">缴费说明 <span className="text-[11px] text-[#B89968]">（PLACEHOLDER · 待理事会提供）</span></h3>
       <div className="rounded-xl bg-[#FAEFD0]/60 p-3 text-sm text-[#583A0F] space-y-1">
         <p>银行：<span className="text-[#8B6F47]">＿＿＿＿（待提供）</span></p>
@@ -479,5 +503,45 @@ function PaymentCard() {
       </div>
       <p className="mt-3 text-xs text-[#8B6F47] leading-relaxed">转账后请保留收据，现场核对；线上缴费日后开放。</p>
     </Card>
+  );
+}
+
+// Optional receipt uploader (image/pdf ≤5MB) → POST /api/public/registrations/proof. Never
+// required; can be added anytime from the status page too.
+export function ProofUploader({ regNo, phone, onUploaded }: { regNo: string; phone: string; onUploaded?: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function upload(file: File) {
+    setMsg(null);
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append('reg_no', regNo);
+      fd.append('phone', phone);
+      fd.append('file', file);
+      const res = await fetch('/api/public/registrations/proof', { method: 'POST', body: fd });
+      if (res.ok) { setMsg({ ok: true, text: '✓ 付款凭证已上传，感恩护持 🙏' }); onUploaded?.(); }
+      else { const j = await res.json().catch(() => null); setMsg({ ok: false, text: j?.error ?? '上传失败，请重试' }); }
+    } catch {
+      setMsg({ ok: false, text: '网络错误，请重试' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-dashed border-[#E3B85A] p-3 text-center">
+      <label className="cursor-pointer inline-block">
+        <span className={`inline-block rounded-xl bg-[#FAEFD0] text-[#8A5A1E] px-4 py-2 text-sm ${busy ? 'opacity-50' : ''}`}>
+          {busy ? '上传中…' : '上传付款证明（可选）'}
+        </span>
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" className="hidden"
+          disabled={busy}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ''; }} />
+      </label>
+      <p className="mt-2 text-[11px] text-[#B89968]">图片或 PDF · 上限 5MB · 可日后再上传</p>
+      {msg && <p className={`mt-2 text-xs ${msg.ok ? 'text-[#3F6B2E]' : 'text-[#B4402E]'}`}>{msg.text}</p>}
+    </div>
   );
 }

@@ -42,20 +42,28 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const [{ data: fees }, { data: needRows }, { data: regs }, { data: slotRows }] = await Promise.all([
     supabaseAdmin.from('event_fees').select('item, label_cn, amount, billing, sort').eq('event_id', id).order('sort', { ascending: true }),
     supabaseAdmin.from('event_team_needs').select('team_id, needed, team:teams ( name_cn )').eq('event_id', id),
-    supabaseAdmin.from('registrations').select('status, fee_total, volunteer_team_id, selections').eq('event_id', id),
+    supabaseAdmin.from('registrations').select('status, fee_total, volunteer_team_id, selections, payment_status, paid_amount').eq('event_id', id),
     supabaseAdmin.from('event_meal_slots').select('slot_date, meal, offered').eq('event_id', id),
   ]);
 
   const counts = { pending: 0, approved: 0, rejected: 0, cancelled: 0 };
   const approvedByTeam = new Map<string, number>();
   let approvedFeeSum = 0;
-  type RegLite = { status: string; fee_total: number; volunteer_team_id: string | null; selections: { meals?: unknown } | null };
+  // Gentle payment tallies (C3) — no target, no shaming; data for the future finance module.
+  let paidSum = 0, verifiedCount = 0, waivedCount = 0, proofCount = 0;
+  type RegLite = { status: string; fee_total: number; volunteer_team_id: string | null; selections: { meals?: unknown } | null; payment_status: string | null; paid_amount: number | null };
   const regList = (regs ?? []) as RegLite[];
   for (const r of regList) {
     if (r.status in counts) counts[r.status as keyof typeof counts]++;
     if (r.status === 'approved') {
       approvedFeeSum += Number(r.fee_total) || 0;
       if (r.volunteer_team_id) approvedByTeam.set(r.volunteer_team_id, (approvedByTeam.get(r.volunteer_team_id) ?? 0) + 1);
+    }
+    // payment tallies span all non-cancelled registrations (approval-independent by design)
+    if (r.status !== 'cancelled') {
+      if (r.payment_status === 'verified') { verifiedCount++; paidSum += Number(r.paid_amount) || 0; }
+      else if (r.payment_status === 'waived') waivedCount++;
+      else if (r.payment_status === 'proof_submitted') proofCount++;
     }
   }
 
@@ -101,7 +109,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     teamNeeds,
     mealSlots,
     mealCounts,
-    regStats: { counts, approvedFeeSum: Math.round(approvedFeeSum * 100) / 100 },
+    regStats: {
+      counts,
+      approvedFeeSum: Math.round(approvedFeeSum * 100) / 100,
+      payment: { paidSum: Math.round(paidSum * 100) / 100, verifiedCount, waivedCount, proofCount },
+    },
   });
 }
 

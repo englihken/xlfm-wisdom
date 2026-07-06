@@ -8,11 +8,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { moneyRM } from '@/lib/events-display';
-import { REG_STATUS_LABELS, REG_STATUS_STYLES } from '@/lib/events-display';
+import { moneyRM, REG_STATUS_LABELS, REG_STATUS_STYLES, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_STYLES } from '@/lib/events-display';
+import { ProofUploader } from '../page';
 
 type LookupResult = {
   reg_no: string; status: string; fee_total: number;
+  payment_status: string; has_proof: boolean;
   event: { title: string; code: string; starts_on: string; ends_on: string | null } | null;
   selections: Record<string, unknown>;
 };
@@ -100,9 +101,22 @@ export default function StatusLookupPage() {
           {selSummary(result.selections) && <p className="text-sm text-[#8B6F47]">{selSummary(result.selections)}</p>}
           <div className="flex items-center justify-between pt-2 border-t border-[#EFE3BF] text-sm">
             <span className="text-[#8B6F47]">费用合计</span>
-            <span className="font-semibold text-[#583A0F]">{moneyRM(result.fee_total)}</span>
+            <div className="flex items-center gap-2">
+              <span className={`text-[11px] px-2 py-0.5 rounded-full ${PAYMENT_STATUS_STYLES[result.payment_status] ?? PAYMENT_STATUS_STYLES.unpaid}`}>
+                {PAYMENT_STATUS_LABELS[result.payment_status] ?? '未付款'}
+              </span>
+              <span className="font-semibold text-[#583A0F]">{moneyRM(result.fee_total)}</span>
+            </div>
           </div>
-          <p className="text-xs text-[#B89968] pt-1">如需修改，请联系活动负责人。</p>
+
+          {/* optional receipt upload — gentle, addable anytime; never required */}
+          {result.fee_total > 0 && result.payment_status !== 'waived' && (
+            <div className="pt-2">
+              <ProofUploader regNo={result.reg_no} phone={phone} onUploaded={lookup} />
+            </div>
+          )}
+
+          <p className="text-xs text-[#B89968] pt-1">如需修改用餐或其他选项，请联系活动负责人。</p>
         </div>
       )}
 

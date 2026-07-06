@@ -101,3 +101,19 @@ export const FEE_LABEL: Record<string, string> = Object.fromEntries(FEE_ROWS.map
 export function moneyRM(n: number): string {
   return `RM ${(Math.round((Number(n) || 0) * 100) / 100).toFixed(2)}`;
 }
+
+// Payment tracking (C3) — a GENTLE, non-coercive lifecycle. 已豁免 is guilt-free; 未付款 is
+// neutral (never red/overdue). unpaid → neutral grey · proof_submitted → gold-outline ·
+// verified → green · waived → soft lavender.
+export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  unpaid: '未付款',
+  proof_submitted: '已提交凭证',
+  verified: '已核实',
+  waived: '已豁免',
+};
+export const PAYMENT_STATUS_STYLES: Record<string, string> = {
+  unpaid: 'bg-[#F1EADA] text-[#8B6F47]',
+  proof_submitted: 'bg-white border border-[#E3B85A] text-[#A87929]',
+  verified: 'bg-[#E7F0E0] text-[#3F6B2E]',
+  waived: 'bg-[#EFEAF6] text-[#6B5B8A]',
+};

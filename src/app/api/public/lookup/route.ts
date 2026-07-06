@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { normalizePhone } from '@/lib/members';
-import { sameOrigin, rateLimit, clientIp, readJsonCapped, hasUnknownKeys } from '@/lib/public-event';
+import { sameOrigin, rateLimit, clientIp, readJsonCapped, hasUnknownKeys, matchOwnedRegistration } from '@/lib/public-event';
 
 export const runtime = 'nodejs';
 
@@ -46,27 +46,17 @@ export async function POST(req: Request) {
   const { phone, error } = normalizePhone(String(body.phone ?? ''));
   if (error || !phone) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const { data: reg } = await supabaseAdmin
-    .from('registrations')
-    .select('reg_no, status, fee_total, selections, applicant_phone, member:members!member_id ( phone ), event:events!event_id ( title, code, starts_on, ends_on )')
-    .eq('reg_no', regNo)
-    .maybeSingle();
-
   // Unknown reg_no OR phone mismatch → identical 404 (no ownership signal either way).
+  const reg = await matchOwnedRegistration(regNo, phone);
   if (!reg) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  const memberRaw = (reg as { member?: { phone: string | null } | { phone: string | null }[] | null }).member;
-  const memberPhone = (Array.isArray(memberRaw) ? memberRaw[0] ?? null : memberRaw ?? null)?.phone ?? null;
-  const owns = reg.applicant_phone === phone || memberPhone === phone;
-  if (!owns) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  const evRaw = (reg as { event?: { title: string; code: string; starts_on: string; ends_on: string | null } | { title: string; code: string; starts_on: string; ends_on: string | null }[] | null }).event;
-  const ev = Array.isArray(evRaw) ? evRaw[0] ?? null : evRaw ?? null;
 
   return NextResponse.json({
     reg_no: reg.reg_no,
     status: reg.status,
     fee_total: reg.fee_total,
-    event: ev ? { title: ev.title, code: ev.code, starts_on: ev.starts_on, ends_on: ev.ends_on } : null,
+    payment_status: reg.payment_status,      // C3: drives the gentle payment badge
+    has_proof: !!reg.payment_proof_path,
+    event: reg.event ? { title: reg.event.title, code: reg.event.code, starts_on: reg.event.starts_on, ends_on: reg.event.ends_on } : null,
     selections: summarize(reg.selections),
   });
 }
