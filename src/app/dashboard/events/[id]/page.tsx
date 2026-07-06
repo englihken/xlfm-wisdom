@@ -14,6 +14,7 @@ import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { computeFees, type FeeItem, type Selections } from '@/lib/event-fees';
 import { addDays, mealSlotKey } from '@/lib/events';
+import { qrModules } from '@/lib/qr';
 import {
   EVENT_TYPE_LABELS, STATUS_LABELS, STATUS_STYLES, REG_STATUS_LABELS, REG_STATUS_STYLES,
   FEE_LABEL, MEAL_COLS, feeBillingLabel, weekdayCn, moneyRM,
@@ -28,6 +29,7 @@ type Detail = {
     id: string; code: string; title: string; event_type: string; status: string;
     starts_on: string; ends_on: string | null; location: string | null; capacity: number | null;
     reg_deadline: string | null; reg_edit_cutoff_days?: number; organizing_centre?: { name_cn: string; code: string } | null;
+    public_registration_enabled?: boolean; public_token?: string | null;
   };
   fees: FeeRow[];
   teamNeeds: TeamNeed[];
@@ -175,6 +177,15 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
     else { const j = await res.json().catch(() => null); flashToast(j?.error ?? '操作失败'); }
   };
 
+  const togglePublicReg = async (enabled: boolean) => {
+    const res = await fetch(`/api/dashboard/events/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ public_registration_enabled: enabled }),
+    });
+    if (res.ok) { flashToast(enabled ? '公开报名已开启' : '公开报名已关闭'); loadEvent(); }
+    else { const j = await res.json().catch(() => null); flashToast(j?.error ?? '操作失败'); }
+  };
+
   if (loading) return <p className="max-w-4xl mx-auto px-4 py-10 text-sm text-[#8B6F47]">加载中…</p>;
   if (!data) return <p className="max-w-4xl mx-auto px-4 py-10 text-sm text-[#8B6F47]">无法加载该活动。</p>;
 
@@ -265,6 +276,9 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
           )}
         </Card>
       </div>
+
+      {/* 公开报名 — publish a login-free self-registration link + QR (events:edit) */}
+      {canEdit && <PublicRegCard enabled={!!e.public_registration_enabled} token={e.public_token ?? null} onToggle={togglePublicReg} onToast={flashToast} />}
 
       {/* 每餐人数统计 — kitchen prep counts (per_item meal events only) */}
       {mealPerItem && data.mealCounts && <MealStatsCard slots={data.mealSlots} counts={data.mealCounts} />}
@@ -744,4 +758,69 @@ function exportCsv(code: string, tab: string, regs: RegRow[], teamName: Map<stri
   a.download = `${code}-报名-${tab}-${new Date().toLocaleDateString('en-CA')}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// A crisp inline-SVG QR of `text` (dep-free renderer, src/lib/qr.ts). 4-module quiet zone.
+function QrSvg({ text, px = 176 }: { text: string; px?: number }) {
+  const mods = useMemo(() => { try { return qrModules(text, 'M'); } catch { return null; } }, [text]);
+  if (!mods) return null;
+  const n = mods.length, quiet = 4, dim = n + quiet * 2;
+  let d = '';
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (mods[y][x]) d += `M${x + quiet} ${y + quiet}h1v1h-1z`;
+  return (
+    <svg width={px} height={px} viewBox={`0 0 ${dim} ${dim}`} shapeRendering="crispEdges" role="img" aria-label="报名二维码">
+      <rect width={dim} height={dim} fill="#FFFEF6" />
+      <path d={d} fill="#583A0F" />
+    </svg>
+  );
+}
+
+// 公开报名 affordance: toggle → PATCH {public_registration_enabled}; when on, show the
+// public /r/<token> URL, a copy-link button, and a scannable QR of that URL.
+function PublicRegCard({
+  enabled, token, onToggle, onToast,
+}: { enabled: boolean; token: string | null; onToggle: (v: boolean) => void; onToast: (m: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const url = token ? `${origin}/r/${token}` : '';
+
+  const toggle = async (v: boolean) => { setBusy(true); try { await onToggle(v); } finally { setBusy(false); } };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); onToast('链接已复制'); }
+    catch { onToast('复制失败，请手动复制'); }
+  };
+
+  return (
+    <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-[#583A0F]">🔗 公开报名 Public form</h3>
+          <p className="text-xs text-[#8B6F47] mt-0.5">开启后，任何人可凭链接 / 二维码免登录报名，提交进入审核队列。</p>
+        </div>
+        <button role="switch" aria-checked={enabled} disabled={busy} onClick={() => toggle(!enabled)}
+          className={`shrink-0 w-12 h-7 rounded-full transition relative ${enabled ? 'bg-[#D89938]' : 'bg-[#E4D8BC]'} disabled:opacity-50`}>
+          <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white transition-transform ${enabled ? 'translate-x-5' : ''}`} />
+        </button>
+      </div>
+
+      {enabled && url && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] items-center">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <input readOnly value={url} onFocus={(e) => e.target.select()}
+                className="flex-1 min-w-0 rounded-lg border border-[#EFE3BF] bg-[#FAEFD0]/60 px-3 py-2 text-xs font-mono text-[#583A0F] outline-none" />
+              <button onClick={copy} className="shrink-0 px-3 py-2 text-xs text-white bg-[#D89938] rounded-lg hover:bg-[#A87929]">复制链接</button>
+            </div>
+            <a href={url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs text-[#D89938] hover:underline">在新分页打开表单 ↗</a>
+          </div>
+          <div className="justify-self-center rounded-xl border border-[#EFE3BF] p-2 bg-white">
+            <QrSvg text={url} />
+          </div>
+        </div>
+      )}
+      {enabled && !url && (
+        <p className="mt-3 text-xs text-[#B4402E]">链接尚未生成，请稍候刷新。</p>
+      )}
+    </section>
+  );
 }
