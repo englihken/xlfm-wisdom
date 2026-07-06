@@ -6,6 +6,7 @@
 //         set-diffed. Deleting a fee row NEVER touches existing registrations'
 //         fee_breakdown — that snapshot was locked at submission. events:edit; audited.
 
+import { randomBytes } from 'crypto';
 import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
@@ -170,6 +171,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     update.reg_edit_cutoff_days = n;
   }
   if (body.description !== undefined) update.description = typeof body.description === 'string' ? body.description.trim() || null : null;
+  // Public self-registration (C1). Enabling for the first time mints an unguessable token
+  // for /r/<token>; disabling KEEPS the token so re-enabling reuses the same URL/QR. Being
+  // open is not enough — the public gate also requires enabled=true AND a token (see 018).
+  if (body.public_registration_enabled !== undefined) {
+    if (typeof body.public_registration_enabled !== 'boolean') {
+      return NextResponse.json({ error: '公开报名开关无效' }, { status: 400 });
+    }
+    update.public_registration_enabled = body.public_registration_enabled;
+    if (body.public_registration_enabled === true && !current.public_token) {
+      update.public_token = randomBytes(12).toString('base64url'); // ~16 urlsafe chars
+    }
+  }
   if (body.co_centre_ids !== undefined) {
     update.co_centre_ids = Array.isArray(body.co_centre_ids)
       ? (body.co_centre_ids as unknown[]).filter((x): x is string => typeof x === 'string')
