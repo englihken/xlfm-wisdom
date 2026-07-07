@@ -14,8 +14,8 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
+import { TopBar } from '@/components/top-bar';
 import { visibleModules, grantAllows, type Grants } from '@/lib/access';
-import { PLATFORM_NAME } from '@/lib/platform';
 
 type Me = {
   email: string;
@@ -133,8 +133,8 @@ export default function HubPage() {
 
   if (checking || gate === 'checking') {
     return (
-      <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center">
-        <p className="text-sm text-[#8B6F47]">加载中…</p>
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <p className="text-sm text-ink-muted">加载中…</p>
       </div>
     );
   }
@@ -147,22 +147,9 @@ export default function HubPage() {
   const members = data?.stats.members;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFF3DA] md:ml-[72px]">
+    <div className="min-h-screen flex flex-col bg-bg md:ml-[72px]">
       {/* TOP BAR — platform brand only (hub has no module title) */}
-      <header className="shrink-0 border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm">
-        <div className="px-5 py-3 flex items-center justify-between gap-3">
-          <h1 className="text-lg font-bold text-[#583A0F]">🪷 {PLATFORM_NAME}</h1>
-          <div className="flex items-center gap-4">
-            <span className="hidden sm:inline text-sm text-[#8B6F47]">{me.displayName || me.email}</span>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
-            >
-              登出
-            </button>
-          </div>
-        </div>
-      </header>
+      <TopBar userLabel={me.displayName || me.email} onLogout={handleLogout} />
 
       <DashboardNav role={me.role} active="home" grants={me.grants} />
 
@@ -170,14 +157,14 @@ export default function HubPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
           {/* 1. greeting */}
           <div>
-            <h2 className="text-2xl font-bold text-[#583A0F]">吉祥，{me.displayName || '师兄'} 🙏</h2>
-            <p className="mt-1 text-sm text-[#8B6F47]">{todayMYT()}</p>
+            <h2 className="font-serif text-2xl font-bold text-ink">吉祥，{me.displayName || '师兄'} 🙏</h2>
+            <p className="mt-1 text-sm text-ink-muted">{todayMYT()}</p>
           </div>
 
           {/* 2. 今日概览 stat strip */}
           {(care || members) && (
             <div>
-              <p className="text-xs font-medium text-[#B89968] mb-2">今日概览</p>
+              <p className="u-label mb-2">今日概览</p>
               <div className="flex flex-wrap gap-3">
                 {care && <Stat label="未读对话" value={care.unread} icon="💬" />}
                 {care && <Stat label="我接手的未读" value={care.myAssignedUnread} icon="🔔" accent={care.myAssignedUnread > 0} />}
@@ -190,20 +177,20 @@ export default function HubPage() {
           {data?.myConversations !== undefined && (
             <Card title="💬 我的事项" en="My conversations">
               {data.myConversations.length === 0 ? (
-                <p className="text-sm text-[#8B6F47]">今日无待办 🙏</p>
+                <p className="text-sm text-ink-muted">今日无待办 🙏</p>
               ) : (
-                <ul className="divide-y divide-[#EFE3BF]">
+                <ul className="divide-y divide-border">
                   {data.myConversations.map((c) => (
                     <li key={c.id}>
-                      <Link href="/dashboard" className="block py-2.5 hover:bg-[#FAEFD0]/40 -mx-2 px-2 rounded-lg transition">
+                      <Link href="/dashboard" className="block py-2.5 hover:bg-accent/5 -mx-2 px-2 rounded-lg transition">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            {c.unread && <span className="shrink-0 w-2 h-2 rounded-full bg-[#D89938]" aria-label="未读" />}
-                            <span className={`truncate text-[#583A0F] ${c.unread ? 'font-semibold' : 'font-medium'}`}>{c.contactName}</span>
+                            {c.unread && <span className="shrink-0 w-2 h-2 rounded-full bg-accent" aria-label="未读" />}
+                            <span className={`truncate text-ink ${c.unread ? 'font-semibold' : 'font-medium'}`}>{c.contactName}</span>
                           </div>
-                          <span className="shrink-0 text-xs text-[#B89968]">{relTime(c.lastMessageAt)}</span>
+                          <span className="shrink-0 text-xs text-ink-faint">{relTime(c.lastMessageAt)}</span>
                         </div>
-                        <p className="mt-0.5 text-sm text-[#8B6F47] line-clamp-1">{c.preview || '（无消息）'}</p>
+                        <p className="mt-0.5 text-sm text-ink-muted line-clamp-1">{c.preview || '（无消息）'}</p>
                       </Link>
                     </li>
                   ))}
@@ -216,19 +203,19 @@ export default function HubPage() {
           {data?.recentMembers !== undefined && (
             <Card title="👥 最近会员动态" en="Recent members">
               {data.recentMembers.length === 0 ? (
-                <p className="text-sm text-[#8B6F47]">暂无会员</p>
+                <p className="text-sm text-ink-muted">暂无会员</p>
               ) : (
-                <ul className="divide-y divide-[#EFE3BF]">
+                <ul className="divide-y divide-border">
                   {data.recentMembers.map((m) => (
                     <li key={m.id}>
-                      <Link href={`/dashboard/members/${m.id}`} className="flex items-center justify-between gap-2 py-2.5 hover:bg-[#FAEFD0]/40 -mx-2 px-2 rounded-lg transition">
+                      <Link href={`/dashboard/members/${m.id}`} className="flex items-center justify-between gap-2 py-2.5 hover:bg-accent/5 -mx-2 px-2 rounded-lg transition">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-medium text-[#583A0F] truncate">{m.name}</span>
+                          <span className="font-medium text-ink truncate">{m.name}</span>
                           {m.centreCode && (
-                            <span className="shrink-0 inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FAEFD0] text-[#8A5A1E]">{m.centreCode}</span>
+                            <span className="shrink-0 inline-block px-2 py-0.5 rounded-full text-[11px] bg-accent/10 text-accent-deep">{m.centreCode}</span>
                           )}
                         </div>
-                        <span className="shrink-0 text-xs text-[#B89968]">{relTime(m.updatedAt)}</span>
+                        <span className="shrink-0 text-xs text-ink-faint">{relTime(m.updatedAt)}</span>
                       </Link>
                     </li>
                   ))}
@@ -241,13 +228,13 @@ export default function HubPage() {
           {data?.recentAudit !== undefined && (
             <Card title="📜 系统动态" en="Activity">
               {data.recentAudit.length === 0 ? (
-                <p className="text-sm text-[#8B6F47]">暂无记录</p>
+                <p className="text-sm text-ink-muted">暂无记录</p>
               ) : (
                 <ul className="space-y-1.5">
                   {data.recentAudit.map((a) => (
                     <li key={a.id} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="text-[#583A0F] truncate">{a.line}</span>
-                      <span className="shrink-0 text-xs text-[#B89968]">{relTime(a.at)}</span>
+                      <span className="text-ink truncate">{a.line}</span>
+                      <span className="shrink-0 text-xs text-ink-faint">{relTime(a.at)}</span>
                     </li>
                   ))}
                 </ul>
@@ -278,20 +265,20 @@ export default function HubPage() {
 
 function Stat({ label, value, icon, accent }: { label: string; value: number; icon?: string; accent?: boolean }) {
   return (
-    <div className={`rounded-xl px-4 py-3 min-w-[120px] border ${accent ? 'bg-[#FBF0D8] border-[#EBD9AC]' : 'bg-[#FBF4E0] border-[#EFE3BF]'}`}>
+    <div className={`rounded-xl px-4 py-3 min-w-[120px] border ${accent ? 'bg-accent/10 border-gold-border' : 'bg-surface-soft border-border'}`}>
       <div className="flex items-center justify-between gap-2">
-        <div className={`text-3xl font-bold ${accent ? 'text-[#A87929]' : 'text-[#583A0F]'}`}>{value}</div>
+        <div className={`text-3xl font-bold ${accent ? 'text-accent-deep' : 'text-ink'}`}>{value}</div>
         {icon && <span className="text-lg opacity-80">{icon}</span>}
       </div>
-      <div className="text-xs text-[#8B6F47] mt-0.5">{label}</div>
+      <div className="text-xs text-ink-muted mt-0.5">{label}</div>
     </div>
   );
 }
 function Card({ title, en, children }: { title: string; en: string; children: React.ReactNode }) {
   return (
-    <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-5">
-      <h3 className="text-base font-semibold text-[#583A0F] mb-3">
-        {title} <span className="text-xs font-normal text-[#B89968]">{en}</span>
+    <section className="bg-surface border border-border rounded-2xl p-5">
+      <h3 className="text-base font-semibold text-ink mb-3">
+        {title} <span className="text-xs font-normal text-ink-faint">{en}</span>
       </h3>
       {children}
     </section>
@@ -301,11 +288,7 @@ function QuickLink({ href, label, primary }: { href: string; label: string; prim
   return (
     <Link
       href={href}
-      className={`px-4 py-2 text-sm rounded-full transition ${
-        primary
-          ? 'text-white bg-[#D89938] hover:bg-[#A87929]'
-          : 'text-[#583A0F] border border-[#EFE3BF] hover:bg-[#FAEFD0]'
-      }`}
+      className={`px-4 py-2 text-sm ${primary ? 'btn-primary' : 'btn-secondary'}`}
     >
       {label}
     </Link>

@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
-import { Noto_Serif_SC } from "next/font/google";
+import { Noto_Sans_SC, Noto_Serif_SC } from "next/font/google";
 import "./globals.css";
+
+// Base body font (2b theme). Serif is reserved for titles/dividers/quotes.
+const notoSansSC = Noto_Sans_SC({
+  variable: "--font-noto-sans-sc",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
 
 const notoSerifSC = Noto_Serif_SC({
   variable: "--font-noto-serif-sc",
@@ -20,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={`${notoSerifSC.variable} antialiased`}>
-      <body className="min-h-screen bg-cream text-brown">
+    <html lang="zh-CN" className={`${notoSansSC.variable} ${notoSerifSC.variable} antialiased`}>
+      <body className="min-h-screen bg-bg text-ink-body font-sans">
         {children}
       </body>
     </html>

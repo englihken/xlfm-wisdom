@@ -183,12 +183,13 @@ export function DashboardNav({
   return (
     <nav
       aria-label="主导航"
-      className="z-20 shrink-0 flex flex-row md:flex-col items-stretch bg-[#FFFEF6] border-b md:border-b-0 md:border-r border-[#EFE3BF] md:fixed md:left-0 md:top-0 md:bottom-0 md:w-[72px]"
+      className="z-20 shrink-0 flex flex-row md:flex-col items-stretch bg-surface border-b md:border-b-0 md:border-r border-border md:fixed md:left-0 md:top-0 md:bottom-0 md:w-[72px]"
     >
-      {/* 🪷 brand mark — the one allowed emoji. Desktop only; the mobile row stays
-          lean (just icons + labels). */}
-      <div className="hidden md:flex items-center justify-center py-5 text-2xl select-none">
-        🪷
+      {/* platform logo brand mark. Desktop only; the mobile row stays lean
+          (just icons + labels). */}
+      <div className="hidden md:flex items-center justify-center py-5 select-none">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/xlfm-logo.png" alt="" width={32} height={32} className="w-8 h-8 object-contain" />
       </div>
 
       <ul className="flex flex-row md:flex-col flex-1 md:flex-none items-stretch justify-around md:justify-start gap-1 md:gap-3 px-2 py-2 md:py-1">
@@ -202,16 +203,16 @@ export function DashboardNav({
                 aria-current={isActive ? 'page' : undefined}
                 className={`relative flex flex-col items-center justify-center gap-1 py-[14px] px-1 rounded-lg transition ${
                   isActive
-                    ? 'bg-[#FAEFD0] text-[#A87929]'
-                    : 'text-[#8B6F47] hover:bg-[#FAEFD0]/50'
+                    ? 'bg-accent/10 text-accent-deep'
+                    : 'text-ink-muted hover:bg-accent/5'
                 }`}
               >
                 {/* 3px gold left accent bar for the active item */}
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] rounded-full bg-[#A87929]" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] rounded-full bg-accent-deep" />
                 )}
                 <Icon />
-                <span className="text-[11px] leading-none">{label}</span>
+                <span className="text-[10.5px] leading-none">{label}</span>
               </Link>
             </li>
           );

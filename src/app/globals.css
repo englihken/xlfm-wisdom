@@ -1,10 +1,40 @@
 @import "tailwindcss";
 
-/* xlfm.my warm-gold brand palette — exposed for any component that wants
-   to reference the canonical tokens directly. The @theme block below
-   remaps the existing token names to these values so the 9 components in
-   src/components/ pick up the new palette without internal edits. */
+/* ============================================================================
+   THEME 2b — 宣纸暖金·深字版 (deep-ink warm-gold on rice-paper).
+   Canonical semantic tokens for the platform. Components reference these via
+   Tailwind classes (bg-surface / text-ink / border-border …) mapped in the
+   @theme block below. Legacy --color-cream/--color-brown/etc. tokens are kept
+   as aliases so the still-unthemed module pages (T2/T3) don't break — their
+   removal is a later cleanup step.
+   ========================================================================== */
 :root {
+  /* surfaces */
+  --bg: #FBF8F1;
+  --surface: #FFFFFF;
+  --surface-soft: #FDFBF4;
+  /* ink (text) */
+  --ink: #2B2314;
+  --ink-body: #453D2E;
+  --ink-muted: #7E7258;
+  --ink-faint: #9C8B6C;
+  --label: #8A7444;           /* small-caps labels / timestamps */
+  /* accent (gold) */
+  --accent: #C08A2D;
+  --accent-deep: #7A5416;
+  --accent-strong: #8F621A;
+  /* borders */
+  --border: #EFE7D6;
+  --border-strong: #E8DFC8;
+  --gold-border: #E3CE97;
+  /* quote cards */
+  --quote-bg: #FBF3DE;
+  --quote-ink: #4A3A14;
+  /* CTA gradient */
+  --cta-gradient: linear-gradient(160deg, #D9A63E, #B8862B);
+
+  /* legacy warm-gold aliases — retained for the yet-unthemed module pages so
+     their hardcoded refs keep resolving until the T3 cleanup removes them. */
   --xlfm-primary: #FCBD60;
   --xlfm-primary-light: #FFE183;
   --xlfm-primary-dark: #D89938;
@@ -20,21 +50,90 @@
 }
 
 @theme inline {
+  /* fonts — Noto Sans SC base body, Noto Serif SC for titles/dividers/quotes */
+  --font-sans: var(--font-noto-sans-sc), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-noto-serif-sc), Georgia, "Times New Roman", serif;
-  /* Existing token names retained; values remapped to xlfm.my palette so
-     existing class references like bg-cream / text-brown / text-amber
-     continue to work and auto-pick up the new colors. */
-  --color-cream: #FFF3DA;        /* was #fff8e7 — page bg, slightly more golden */
-  --color-gold-light: #FAEFD0;   /* was #fef3d0 — section bg */
-  --color-gold-banner: #FCBD60;  /* was #f2b825 — primary gold accent (banner) */
-  --color-brown: #583A0F;        /* was #4a3728 — main text, darker for contrast */
-  --color-amber: #D89938;        /* was #d4840a — deep gold */
-  --color-link: #D89938;         /* was #e8960c — link/CTA, matches amber */
-  --color-card-border: #EFE3BF;  /* was #f0e6d0 — warm cream border */
+
+  /* semantic 2b tokens → Tailwind color utilities (bg-surface, text-ink, …) */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-ink: var(--ink);
+  --color-ink-body: var(--ink-body);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-label: var(--label);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-strong: var(--accent-strong);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-gold-border: var(--gold-border);
+  --color-quote-bg: var(--quote-bg);
+  --color-quote-ink: var(--quote-ink);
+
+  /* legacy token names retained; values remapped to the warm-gold palette so
+     existing class references (bg-cream / text-brown / text-amber) on the
+     unthemed module pages keep working until T3 removes them. */
+  --color-cream: #FFF3DA;
+  --color-gold-light: #FAEFD0;
+  --color-gold-banner: #FCBD60;
+  --color-brown: #583A0F;
+  --color-amber: #D89938;
+  --color-link: #D89938;
+  --color-card-border: #EFE3BF;
 }
 
 body {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
+}
+
+/* Small-caps label / timestamp helper — 11px, letter-spaced, --label ink. */
+.u-label {
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--label);
+}
+
+/* Buttons — primary = CTA gradient pill (white text); secondary = outline pill.
+   Callers keep their own padding/width; these set colour, fill, radius, hover. */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cta-gradient);
+  color: #ffffff;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+.btn-primary:hover {
+  filter: brightness(0.96);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #FEFBF3;
+  color: var(--accent-deep);
+  border: 1px solid var(--gold-border);
+  border-radius: 9999px;
+  transition: background 0.15s ease, filter 0.15s ease;
+}
+.btn-secondary:hover {
+  filter: brightness(0.98);
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Smooth scrolling */
