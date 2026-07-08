@@ -153,6 +153,29 @@ function HomeIcon({ className }: IconProps) {
   );
 }
 
+// Box/package icon for 库存, in the same line-icon style.
+function BoxIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M21 8 12 3 3 8v8l9 5 9-5V8z" />
+      <path d="M3 8l9 5 9-5" />
+      <path d="M12 13v8" />
+      <path d="M7.5 5.5l9 5" />
+    </svg>
+  );
+}
+
 type Door = { label: string; href: string; Icon: (props: IconProps) => React.ReactElement };
 
 // Destination for every nav key. Which keys actually render is decided ONLY by
@@ -162,6 +185,7 @@ const DOORS: Record<NavKey, Door> = {
   inbox: { label: '收件箱', href: '/dashboard', Icon: InboxIcon },
   members: { label: '会员', href: '/dashboard/members', Icon: PeopleIcon },
   events: { label: '活动', href: '/dashboard/events', Icon: CalendarIcon },
+  inventory: { label: '库存', href: '/dashboard/inventory', Icon: BoxIcon },
   reports: { label: '报表', href: '/dashboard/reports', Icon: ChartIcon },
   settings: { label: '设置', href: '/dashboard/settings', Icon: GearIcon },
 };

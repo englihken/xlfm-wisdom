@@ -45,7 +45,7 @@ export function grantAllows(
 
 // A "door" the caller can enter — a module page with a real destination. The care
 // door is the inbox at /dashboard. (Hub 'home' is not a door — it's the chooser.)
-export type ModuleDoor = 'inbox' | 'members' | 'events' | 'reports' | 'settings';
+export type ModuleDoor = 'inbox' | 'members' | 'events' | 'inventory' | 'reports' | 'settings';
 
 // THE single source of truth for door visibility, used by BOTH the nav rail and the
 // hub. Returns only the doors the caller can actually enter, in display order.
@@ -55,6 +55,7 @@ export function visibleModules(me: { role: string; grants?: Grants }): ModuleDoo
   if (grantAllows(me.grants, 'care', 'view')) doors.push('inbox'); // 人文关怀 → /dashboard
   if (grantAllows(me.grants, 'members', 'view')) doors.push('members');
   if (grantAllows(me.grants, 'events', 'view')) doors.push('events'); // 活动 → /dashboard/events
+  if (grantAllows(me.grants, 'inventory', 'view')) doors.push('inventory'); // 库存 → /dashboard/inventory
   if (me.role === 'admin') doors.push('reports'); // care analytics — admin-only for now
   if (me.role === 'admin') doors.push('settings'); // account mgmt — admin-only until A6
   return doors;

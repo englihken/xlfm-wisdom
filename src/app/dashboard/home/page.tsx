@@ -97,7 +97,16 @@ export default function HubPage() {
         const mods = visibleModules({ role: json.role, grants });
         // The hub never renders for single-door accounts — bounce into the module.
         if (mods.length <= 1) {
-          router.replace(mods[0] === 'members' ? '/dashboard/members' : '/dashboard');
+          // Single-door bounce: send the caller straight into their one module.
+          const DOOR_HREF: Record<string, string> = {
+            inbox: '/dashboard',
+            members: '/dashboard/members',
+            events: '/dashboard/events',
+            inventory: '/dashboard/inventory',
+            reports: '/dashboard/reports',
+            settings: '/dashboard/settings',
+          };
+          router.replace(DOOR_HREF[mods[0]] ?? '/dashboard');
           return;
         }
         setMe({ email: json.email, displayName: json.displayName ?? null, role: json.role, grants });
