@@ -232,7 +232,7 @@ export function MemberForm({
           value={v.notes}
           onChange={(e) => set('notes', e.target.value)}
           rows={3}
-          className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] leading-relaxed resize-y focus:outline-none focus:border-[#D89938]"
+          className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink leading-relaxed resize-y focus:outline-none focus:border-accent"
         />
       </Section>
 
@@ -242,7 +242,7 @@ export function MemberForm({
           {dup && (
             <>
               {' — '}
-              <Link href={`/dashboard/members/${dup.id}`} className="underline text-[#A87929]">
+              <Link href={`/dashboard/members/${dup.id}`} className="underline text-accent-deep">
                 查看已有会员：{dup.name}
               </Link>
             </>
@@ -254,14 +254,14 @@ export function MemberForm({
         <button
           onClick={submit}
           disabled={saving}
-          className="px-5 py-2 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50"
+          className="btn-primary px-5 py-2 text-sm transition disabled:opacity-50"
         >
           {saving ? '保存中…' : mode === 'create' ? '创建会员' : '保存修改'}
         </button>
         <button
           onClick={() => router.back()}
           disabled={saving}
-          className="px-5 py-2 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-50"
+          className="btn-secondary px-5 py-2 text-sm transition disabled:opacity-50"
         >
           取消
         </button>
@@ -273,9 +273,9 @@ export function MemberForm({
 // ── little form primitives (warm palette) ────────────────────────────────────
 function Section({ title, en, children }: { title: string; en: string; children: ReactNode }) {
   return (
-    <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-5">
-      <h2 className="text-base font-semibold text-[#583A0F] mb-3">
-        {title} <span className="text-xs font-normal text-[#B89968]">{en}</span>
+    <section className="bg-surface border border-border rounded-2xl p-5">
+      <h2 className="text-base font-semibold font-serif text-ink mb-3">
+        {title} <span className="text-xs font-normal text-ink-faint">{en}</span>
       </h2>
       {children}
     </section>
@@ -291,13 +291,13 @@ function Text({
 }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-[#B89968] mb-1">{label}</span>
+      <span className="u-label block mb-1">{label}</span>
       <input
         type={type}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938]"
+        className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
       />
     </label>
   );
@@ -309,11 +309,11 @@ function Sel({
 }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-[#B89968] mb-1">{label}</span>
+      <span className="u-label block mb-1">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]"
+        className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
       >
         {options.map(([val, lbl]) => (
           <option key={val} value={val}>{lbl}</option>

@@ -12,8 +12,8 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav, type NavKey } from '@/components/dashboard-nav';
+import { TopBar } from '@/components/top-bar';
 import { grantAllows, type Grants } from '@/lib/access';
-import { PLATFORM_NAME } from '@/lib/platform';
 
 export type ErpMe = {
   email: string;
@@ -104,8 +104,8 @@ export function ErpGate({
 
   if (checking || gate === 'checking') {
     return (
-      <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center">
-        <p className="text-sm text-[#8B6F47]">加载中…</p>
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <p className="text-sm text-ink-muted">加载中…</p>
       </div>
     );
   }
@@ -116,39 +116,22 @@ export function ErpGate({
 
   if (gate === 'denied') {
     return (
-      <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-lg font-semibold text-[#583A0F]">此页面需要{mod.cn}模块权限</p>
-          <p className="mt-2 text-sm text-[#8B6F47]">如需帮助，请联系系统管理员。</p>
+          <p className="text-lg font-semibold text-ink">此页面需要{mod.cn}模块权限</p>
+          <p className="mt-2 text-sm text-ink-muted">如需帮助，请联系系统管理员。</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFF3DA] md:ml-[72px]">
-      <header className="shrink-0 border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm">
-        <div className="px-5 py-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] leading-none text-[#B89968]">🪷 {PLATFORM_NAME}</p>
-            <h1 className="mt-0.5 text-lg font-bold text-[#583A0F] leading-tight">
-              {mod.cn}{' '}
-              <span className="text-sm font-normal text-[#B89968]">
-                · {mod.en}{titleSuffix ? ` · ${titleSuffix}` : ''}
-              </span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="hidden sm:inline text-sm text-[#8B6F47]">{me?.displayName || me?.email}</span>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
-            >
-              登出
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-bg md:ml-[72px]">
+      <TopBar
+        moduleTitle={`${mod.cn} · ${mod.en}${titleSuffix ? ` · ${titleSuffix}` : ''}`}
+        userLabel={me?.displayName || me?.email || undefined}
+        onLogout={handleLogout}
+      />
 
       <DashboardNav role={me?.role ?? 'volunteer'} active={active} grants={me?.grants} />
 

@@ -15,13 +15,13 @@ const footerLinks = [
 
 export default function Footer() {
   return (
-    <footer className="bg-brown text-white/80">
+    <footer className="bg-ink text-white/80">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold-banner to-amber flex items-center justify-center">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-accent-deep flex items-center justify-center">
                 <svg
                   viewBox="0 0 32 32"
                   className="w-5 h-5 text-white"
@@ -60,7 +60,7 @@ export default function Footer() {
                   <li key={link}>
                     <a
                       href="#"
-                      className="text-sm text-white/50 hover:text-gold-banner transition-colors"
+                      className="text-sm text-white/50 hover:text-accent transition-colors"
                     >
                       {link}
                     </a>

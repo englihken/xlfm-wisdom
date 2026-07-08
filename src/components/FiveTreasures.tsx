@@ -65,7 +65,7 @@ const treasures = [
 
 export default function FiveTreasures() {
   return (
-    <section id="practice" className="bg-gold-banner relative overflow-hidden">
+    <section id="practice" className="bg-accent relative overflow-hidden">
       {/* Pattern overlay */}
       <div className="absolute inset-0 opacity-10">
         <div
@@ -110,7 +110,7 @@ export default function FiveTreasures() {
         <div className="text-center mt-12">
           <a
             href="#"
-            className="inline-flex items-center justify-center px-8 py-3.5 bg-white text-gold-banner font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center px-8 py-3.5 btn-secondary font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
           >
             了解五大法宝
           </a>

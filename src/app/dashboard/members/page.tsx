@@ -108,13 +108,13 @@ function MembersList({ me }: { me: ErpMe }) {
       {/* header row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold text-[#583A0F]">👥 会员</h2>
-          <span className="text-sm text-[#B89968]">Members · {total}</span>
+          <h2 className="text-xl font-bold font-serif text-ink">👥 会员</h2>
+          <span className="text-sm text-ink-faint">Members · {total}</span>
         </div>
         {canEdit && (
           <Link
             href="/dashboard/members/new"
-            className="px-4 py-1.5 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition"
+            className="btn-primary px-4 py-1.5 text-sm transition"
           >
             + 新增会员
           </Link>
@@ -128,7 +128,7 @@ function MembersList({ me }: { me: ErpMe }) {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="搜索 名字 / 电话…"
-          className="text-sm px-3 py-2 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] w-56"
+          className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent w-56"
         />
         <FilterSel value={centre} onChange={(x) => onFilter(() => setCentre(x))}
           options={[['', '全部中心'], ...meta.centres.map((c) => [c.id, c.name_cn] as [string, string])]} />
@@ -143,14 +143,14 @@ function MembersList({ me }: { me: ErpMe }) {
       </div>
 
       {/* table */}
-      <div className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {loading ? (
-          <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
+          <p className="p-6 text-sm text-ink-muted">加载中…</p>
         ) : rows.length === 0 ? (
           <div className="p-10 text-center">
             <p className="text-2xl mb-1">🪷</p>
-            <p className="text-sm text-[#583A0F]">还没有会员，先添一位善缘。</p>
-            <p className="mt-1 text-xs text-[#8B6F47]">
+            <p className="text-sm text-ink">还没有会员，先添一位善缘。</p>
+            <p className="mt-1 text-xs text-ink-muted">
               数据将通过导入（A5）批量导入，或点击「+ 新增会员」手动添加。
             </p>
           </div>
@@ -158,31 +158,31 @@ function MembersList({ me }: { me: ErpMe }) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] text-[#B89968] border-b border-[#EFE3BF]">
+                <tr className="text-left text-[11px] text-ink-faint border-b border-border">
                   <Th>姓名 Name</Th><Th>中心 Centre</Th><Th>组别 Teams</Th><Th>弟子/全素</Th><Th>电话 Phone</Th><Th>状态</Th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-b border-[#EFE3BF] last:border-b-0 hover:bg-[#FAEFD0]/40">
+                  <tr key={r.id} className="border-b border-border last:border-b-0 hover:bg-accent/5">
                     <td className="px-4 py-2.5">
-                      <Link href={`/dashboard/members/${r.id}`} className="font-medium text-[#583A0F] hover:text-[#A87929]">
+                      <Link href={`/dashboard/members/${r.id}`} className="font-medium text-ink hover:text-accent-deep">
                         {r.name_cn || r.name_en || '（无名）'}
                       </Link>
-                      {r.name_cn && r.name_en && <div className="text-xs text-[#8B6F47]">{r.name_en}</div>}
+                      {r.name_cn && r.name_en && <div className="text-xs text-ink-muted">{r.name_en}</div>}
                     </td>
                     <td className="px-4 py-2.5">
                       {r.centre ? (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FAEFD0] text-[#8A5A1E]" title={r.centre.name_cn}>
+                        <span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[11px]" title={r.centre.name_cn}>
                           {r.centre.code}
                         </span>
-                      ) : <span className="text-[#B89968]">–</span>}
+                      ) : <span className="text-ink-faint">–</span>}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap gap-1">
                         {r.teams.map((t, i) => (
                           <span key={i} className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${
-                            t.role === 'lead' ? 'bg-[#F5E1B0] text-[#8A5A1E] font-medium' : 'bg-white border border-[#EFE3BF] text-[#8B6F47]'
+                            t.role === 'lead' ? 'pill-gold font-medium' : 'pill-muted'
                           }`}>
                             {t.name_cn}{t.role === 'lead' ? ' · 组长' : ''}
                           </span>
@@ -195,10 +195,10 @@ function MembersList({ me }: { me: ErpMe }) {
                         {r.full_veg === true && <Badge>全素</Badge>}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-[#583A0F]">{r.phone || '–'}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-ink">{r.phone || '–'}</td>
                     <td className="px-4 py-2.5">
                       {r.status === 'active'
-                        ? <span className="text-[11px] text-[#8B6F47]">在册</span>
+                        ? <span className="text-[11px] text-ink-muted">在册</span>
                         : <span className="text-[11px] text-red-700">已停用</span>}
                     </td>
                   </tr>
@@ -211,17 +211,17 @@ function MembersList({ me }: { me: ErpMe }) {
 
       {/* pagination */}
       {!loading && rows.length > 0 && (
-        <div className="flex items-center justify-end gap-3 text-sm text-[#8B6F47]">
+        <div className="flex items-center justify-end gap-3 text-sm text-ink-muted">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="px-3 py-1 rounded-full border border-[#EFE3BF] hover:bg-[#FAEFD0] disabled:opacity-40"
+            className="px-3 py-1 rounded-full border border-border hover:bg-accent/5 disabled:opacity-40"
           >‹</button>
           <span>第 {page} / {totalPages} 页 · 共 {total}</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="px-3 py-1 rounded-full border border-[#EFE3BF] hover:bg-[#FAEFD0] disabled:opacity-40"
+            className="px-3 py-1 rounded-full border border-border hover:bg-accent/5 disabled:opacity-40"
           >›</button>
         </div>
       )}
@@ -234,7 +234,7 @@ function FilterSel({ value, onChange, options }: { value: string; onChange: (v: 
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="text-sm px-3 py-2 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]"
+      className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
     >
       {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
     </select>
@@ -244,5 +244,5 @@ function Th({ children }: { children: React.ReactNode }) {
   return <th className="px-4 py-2 font-medium">{children}</th>;
 }
 function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FAEFD0] text-[#A87929]">{children}</span>;
+  return <span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[11px]">{children}</span>;
 }

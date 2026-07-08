@@ -54,14 +54,14 @@ export default function PublicRegPage() {
     return () => { alive = false; };
   }, [token]);
 
-  if (load === 'loading') return <Card><p className="text-center text-[#8B6F47] py-8">加载中…</p></Card>;
+  if (load === 'loading') return <Card><p className="text-center text-ink-muted py-8">加载中…</p></Card>;
   if (load === 'invalid' || !event) {
     return (
       <Card>
         <div className="text-center py-8">
           <div className="text-4xl mb-3">🙏</div>
-          <p className="font-semibold text-[#583A0F]">报名已关闭或链接无效</p>
-          <p className="mt-2 text-sm text-[#8B6F47]">This registration link is closed or invalid.</p>
+          <p className="font-semibold text-ink">报名已关闭或链接无效</p>
+          <p className="mt-2 text-sm text-ink-muted">This registration link is closed or invalid.</p>
         </div>
       </Card>
     );
@@ -190,17 +190,17 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
         <Card>
           <EventHeader event={event} />
           <div className="mt-4 space-y-3">
-            <label className="block text-sm font-medium text-[#583A0F]">手机号 Phone</label>
+            <label className="block text-sm font-medium text-ink">手机号 Phone</label>
             <input
               value={phone}
               onChange={(e) => { setPhone(e.target.value); setIdentifyMode('unknown'); setMasked(null); }}
               inputMode="tel" placeholder="例如 0123456789"
-              className="w-full rounded-xl border border-[#EFE3BF] bg-white px-3 py-2.5 text-[#583A0F] outline-none focus:border-[#D89938]"
+              className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint outline-none focus:border-accent"
             />
 
             {identifyMode === 'unknown' && (
               <button onClick={doIdentify} disabled={idBusy || !phone.trim()}
-                className="w-full rounded-xl bg-[#D89938] text-white py-2.5 font-medium disabled:opacity-50">
+                className="w-full btn-primary py-2.5 font-medium">
                 {idBusy ? '查询中…' : '下一步'}
               </button>
             )}
@@ -209,27 +209,27 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
               <div className="rounded-xl border border-[#CBE3BF] bg-[#EAF3E2] p-3">
                 <p className="text-sm text-[#3F6B2E]">✓ 找到您了：<span className="font-semibold">{masked.name}</span>{masked.centre ? ` · ${masked.centre}` : ''}</p>
                 <div className="mt-2 flex gap-2">
-                  <button onClick={identifyNext} className="flex-1 rounded-xl bg-[#D89938] text-white py-2 font-medium">这是我，继续</button>
+                  <button onClick={identifyNext} className="flex-1 btn-primary py-2 font-medium">这是我，继续</button>
                   <button onClick={() => { setIdentifyMode('newcomer'); setMasked(null); }}
-                    className="px-3 rounded-xl border border-[#EFE3BF] text-sm text-[#8B6F47]">不是我？</button>
+                    className="px-3 btn-secondary text-sm">不是我？</button>
                 </div>
               </div>
             )}
 
             {identifyMode === 'newcomer' && (
               <div className="space-y-3">
-                <p className="text-xs text-[#8B6F47]">首次报名？请填写姓名（本会将于审核时为您建档）。</p>
+                <p className="text-xs text-ink-muted">首次报名？请填写姓名（本会将于审核时为您建档）。</p>
                 <div>
-                  <label className="block text-sm font-medium text-[#583A0F] mb-1">中文姓名 <span className="text-red-600">*</span></label>
+                  <label className="block text-sm font-medium text-ink mb-1">中文姓名 <span className="text-red-600">*</span></label>
                   <input value={nameCn} onChange={(e) => setNameCn(e.target.value)}
-                    className="w-full rounded-xl border border-[#EFE3BF] bg-white px-3 py-2.5 outline-none focus:border-[#D89938]" />
+                    className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-ink outline-none focus:border-accent" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#583A0F] mb-1">英文姓名 <span className="text-[#B89968]">(选填)</span></label>
+                  <label className="block text-sm font-medium text-ink mb-1">英文姓名 <span className="text-ink-faint">(选填)</span></label>
                   <input value={nameEn} onChange={(e) => setNameEn(e.target.value)}
-                    className="w-full rounded-xl border border-[#EFE3BF] bg-white px-3 py-2.5 outline-none focus:border-[#D89938]" />
+                    className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-ink outline-none focus:border-accent" />
                 </div>
-                <button onClick={identifyNext} className="w-full rounded-xl bg-[#D89938] text-white py-2.5 font-medium">下一步</button>
+                <button onClick={identifyNext} className="w-full btn-primary py-2.5 font-medium">下一步</button>
               </div>
             )}
 
@@ -241,37 +241,37 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
       {step === 2 && (
         <>
           <Card>
-            <h2 className="font-semibold text-[#583A0F] mb-1">选择项目</h2>
-            <p className="text-xs text-[#8B6F47] mb-3">请选择您需要的项目；费用会实时更新。</p>
+            <h2 className="font-serif font-semibold text-ink mb-1">选择项目</h2>
+            <p className="text-xs text-ink-muted mb-3">请选择您需要的项目；费用会实时更新。</p>
 
             {/* meal */}
             {has('meal') && (
               <Section title={`🍚 ${mealFee?.label_cn || '餐费'}`} sub={feeBillingLabel('meal', mealFee?.billing ?? '')}>
                 {mealPerItem ? (
                   mealDates.length === 0 ? (
-                    <p className="text-sm text-[#8B6F47]">本活动暂未开放餐点。</p>
+                    <p className="text-sm text-ink-muted">本活动暂未开放餐点。</p>
                   ) : (
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-[#8B6F47]">已选 {meals.size} 餐</span>
+                        <span className="text-xs text-ink-muted">已选 {meals.size} 餐</span>
                         <div className="flex gap-2 text-xs">
-                          <button onClick={selectAll} className="text-[#D89938]">全选</button>
-                          <button onClick={() => setMeals(new Set())} className="text-[#8B6F47]">清空</button>
+                          <button onClick={selectAll} className="text-accent">全选</button>
+                          <button onClick={() => setMeals(new Set())} className="text-ink-muted">清空</button>
                         </div>
                       </div>
                       <div className="space-y-1.5">
                         {mealDates.map(([date, offered]) => (
                           <div key={date} className="flex items-center gap-2">
-                            <button onClick={() => selectDay(date, offered)} className="w-24 shrink-0 text-left text-xs text-[#8B6F47] hover:text-[#D89938]">{dateLabel(date)}</button>
+                            <button onClick={() => selectDay(date, offered)} className="w-24 shrink-0 text-left text-xs text-ink-muted hover:text-accent">{dateLabel(date)}</button>
                             <div className="flex gap-1.5 flex-1">
                               {MEAL_COLS.map(({ meal, label }) => {
                                 const isOffered = offered.has(meal);
                                 const key = mealSlotKey(date, meal);
                                 const on = meals.has(key);
-                                if (!isOffered) return <span key={meal} className="flex-1 text-center py-1.5 text-[#D8C9A0] text-sm">—</span>;
+                                if (!isOffered) return <span key={meal} className="flex-1 text-center py-1.5 text-ink-faint text-sm">—</span>;
                                 return (
                                   <button key={meal} onClick={() => toggleMeal(key)}
-                                    className={`flex-1 rounded-lg py-1.5 text-sm border transition ${on ? 'bg-[#D89938] text-white border-[#D89938]' : 'bg-white text-[#583A0F] border-[#EFE3BF]'}`}>
+                                    className={`flex-1 rounded-lg py-1.5 text-sm border transition ${on ? 'bg-accent text-white border-accent' : 'bg-surface text-ink border-border'}`}>
                                     {label}
                                   </button>
                                 );
@@ -296,8 +296,8 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
 
             {has('transfer') && (
               <Section title={`🚐 ${event.fees.find((f) => f.item === 'transfer')!.label_cn || '机场接送'}`} sub="">
-                <label className="flex items-center gap-2 text-sm text-[#583A0F]">
-                  <input type="checkbox" checked={transfer} onChange={(e) => setTransfer(e.target.checked)} className="w-4 h-4 accent-[#D89938]" />
+                <label className="flex items-center gap-2 text-sm text-ink">
+                  <input type="checkbox" checked={transfer} onChange={(e) => setTransfer(e.target.checked)} className="w-4 h-4 accent-accent" />
                   需要机场接送
                 </label>
               </Section>
@@ -307,7 +307,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
               <Section title="👕 制服" sub="每件">
                 <div className="flex items-center gap-2">
                   <select value={uniformSize} onChange={(e) => setUniformSize(e.target.value)}
-                    className="rounded-xl border border-[#EFE3BF] bg-white px-3 py-2 text-sm outline-none focus:border-[#D89938]">
+                    className="rounded-xl border border-border-strong bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent">
                     {SHIRT_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                   <NumberRow label="数量" value={uniformQty} onChange={setUniformQty} />
@@ -317,7 +317,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
 
             {has('registration') && (
               <Section title={`🎟️ ${event.fees.find((f) => f.item === 'registration')!.label_cn || '报名费'}`} sub="每人一次">
-                <p className="text-sm text-[#8B6F47]">报名费将自动计入。</p>
+                <p className="text-sm text-ink-muted">报名费将自动计入。</p>
               </Section>
             )}
 
@@ -329,8 +329,8 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
           </Card>
 
           <StickyBar total={total}>
-            <button onClick={() => setStep(1)} className="px-4 rounded-xl border border-[#EFE3BF] text-[#8B6F47]">上一步</button>
-            <button onClick={() => setStep(3)} className="flex-1 rounded-xl bg-[#D89938] text-white py-2.5 font-medium">下一步</button>
+            <button onClick={() => setStep(1)} className="px-4 btn-secondary">上一步</button>
+            <button onClick={() => setStep(3)} className="flex-1 btn-primary py-2.5 font-medium">下一步</button>
           </StickyBar>
         </>
       )}
@@ -338,22 +338,22 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
       {step === 3 && (
         <>
           <Card>
-            <h2 className="font-semibold text-[#583A0F] mb-3">确认报名</h2>
-            <div className="rounded-xl bg-[#FAEFD0]/60 p-3 text-sm">
-              <p className="text-[#583A0F] font-medium">{event.title}</p>
-              <p className="text-xs text-[#8B6F47] mt-0.5">{identifyMode === 'newcomer' ? `${nameCn}${nameEn ? `（${nameEn}）` : ''}` : masked?.name ?? ''} · {phone}</p>
+            <h2 className="font-serif font-semibold text-ink mb-3">确认报名</h2>
+            <div className="rounded-xl bg-accent/10 p-3 text-sm">
+              <p className="text-ink font-medium">{event.title}</p>
+              <p className="text-xs text-ink-muted mt-0.5">{identifyMode === 'newcomer' ? `${nameCn}${nameEn ? `（${nameEn}）` : ''}` : masked?.name ?? ''} · {phone}</p>
             </div>
 
             <div className="mt-3 space-y-1.5">
               {breakdown.length === 0 ? (
-                <p className="text-sm text-[#8B6F47]">未选择任何收费项目（如活动免费可直接确认）。</p>
+                <p className="text-sm text-ink-muted">未选择任何收费项目（如活动免费可直接确认）。</p>
               ) : breakdown.map((b) => (
                 <div key={b.item} className="flex items-center justify-between text-sm">
-                  <span className="text-[#583A0F]">{b.label} <span className="text-[11px] text-[#B89968]">×{b.qty}</span></span>
-                  <span className="text-[#583A0F]">{moneyRM(b.subtotal)}</span>
+                  <span className="text-ink">{b.label} <span className="text-[11px] text-ink-faint">×{b.qty}</span></span>
+                  <span className="text-ink">{moneyRM(b.subtotal)}</span>
                 </div>
               ))}
-              <div className="flex items-center justify-between pt-2 mt-1 border-t border-[#EFE3BF] font-semibold text-[#583A0F]">
+              <div className="flex items-center justify-between pt-2 mt-1 border-t border-border font-semibold text-ink">
                 <span>合计 Total</span><span>{moneyRM(total)}</span>
               </div>
             </div>
@@ -362,8 +362,8 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
           <PaymentCard fee={total} />
 
           <StickyBar total={total}>
-            <button onClick={() => setStep(2)} className="px-4 rounded-xl border border-[#EFE3BF] text-[#8B6F47]">上一步</button>
-            <button onClick={submit} disabled={submitBusy} className="flex-1 rounded-xl bg-[#D89938] text-white py-2.5 font-medium disabled:opacity-50">
+            <button onClick={() => setStep(2)} className="px-4 btn-secondary">上一步</button>
+            <button onClick={submit} disabled={submitBusy} className="flex-1 btn-primary py-2.5 font-medium">
               {submitBusy ? '提交中…' : '确认报名'}
             </button>
           </StickyBar>
@@ -375,13 +375,13 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
         <Card>
           <div className="text-center py-4">
             <div className="text-4xl mb-2">🪷</div>
-            <p className="font-semibold text-[#583A0F] text-lg">报名已提交</p>
-            <p className="mt-1 text-sm text-[#8B6F47]">Registration submitted</p>
-            <div className="mt-4 inline-block font-mono text-lg tracking-wider bg-[#FAEFD0] text-[#583A0F] px-4 py-2 rounded-xl">{result.reg_no}</div>
+            <p className="font-serif font-semibold text-ink text-lg">报名已提交</p>
+            <p className="mt-1 text-sm text-ink-muted">Registration submitted</p>
+            <div className="mt-4 inline-block font-mono text-lg tracking-wider bg-accent/10 text-ink px-4 py-2 rounded-xl">{result.reg_no}</div>
             <div className="mt-3">
-              <span className="inline-block text-xs px-3 py-1 rounded-full bg-white border border-[#E3B85A] text-[#A87929]">待审核 Pending</span>
+              <span className="inline-block text-xs px-3 py-1 rounded-full pill-gold">待审核 Pending</span>
             </div>
-            <p className="mt-4 text-xs text-[#8B6F47] leading-relaxed">
+            <p className="mt-4 text-xs text-ink-muted leading-relaxed">
               凭 <span className="font-mono">编号</span> + 手机号可随时查询状态、补上付款凭证<br />
               （用餐修改请联系负责人；活动开始前 {event.reg_edit_cutoff_days} 天截止）
             </p>
@@ -389,13 +389,13 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
 
           {/* GENTLE, optional payment — never blocks; already registered. */}
           {total > 0 && (
-            <div className="mt-4 pt-4 border-t border-[#EFE3BF]">
-              <p className="text-sm text-center text-[#583A0F]">费用 {moneyRM(total)} · <span className="text-[#8B6F47]">随喜发心，可现在付款、日后补上，或到场再说 🙏</span></p>
+            <div className="mt-4 pt-4 border-t border-border">
+              <p className="text-sm text-center text-ink">费用 {moneyRM(total)} · <span className="text-ink-muted">随喜发心，可现在付款、日后补上，或到场再说 🙏</span></p>
               {!payNow ? (
                 <div className="mt-3 flex gap-2">
-                  <button onClick={() => setPayNow(true)} className="flex-1 rounded-xl bg-[#D89938] text-white py-2.5 text-sm font-medium">我现在付款</button>
+                  <button onClick={() => setPayNow(true)} className="flex-1 btn-primary py-2.5 text-sm font-medium">我现在付款</button>
                   <button onClick={() => { /* already registered — nothing to do */ }} disabled
-                    className="flex-1 rounded-xl border border-[#EFE3BF] text-[#8B6F47] py-2.5 text-sm">我稍后再说</button>
+                    className="flex-1 btn-secondary py-2.5 text-sm">我稍后再说</button>
                 </div>
               ) : (
                 <div className="mt-3 space-y-3">
@@ -407,7 +407,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
           )}
 
           <div className="mt-4 text-center">
-            <Link href={`/r/${token}/status`} className="inline-block rounded-xl border border-[#D89938] text-[#D89938] px-5 py-2 text-sm font-medium">查询我的报名</Link>
+            <Link href={`/r/${token}/status`} className="inline-block btn-secondary px-5 py-2 text-sm font-medium">查询我的报名</Link>
           </div>
         </Card>
       )}
@@ -417,14 +417,14 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
 
 // ── presentational pieces ─────────────────────────────────────────────────────────────
 function Card({ children }: { children: React.ReactNode }) {
-  return <div className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-4">{children}</div>;
+  return <div className="bg-surface border border-border rounded-2xl p-4">{children}</div>;
 }
 
 function StepDots({ step }: { step: number }) {
   return (
     <div className="flex items-center justify-center gap-2">
       {[1, 2, 3, 4].map((n) => (
-        <span key={n} className={`h-2 rounded-full transition-all ${n === step ? 'w-6 bg-[#D89938]' : n < step ? 'w-2 bg-[#D89938]' : 'w-2 bg-[#EFE3BF]'}`} />
+        <span key={n} className={`h-2 rounded-full transition-all ${n === step ? 'w-6 bg-accent' : n < step ? 'w-2 bg-accent' : 'w-2 bg-border'}`} />
       ))}
     </div>
   );
@@ -435,10 +435,10 @@ function EventHeader({ event }: { event: PublicEvent }) {
   return (
     <div>
       <div className="flex items-center gap-2 flex-wrap">
-        <h1 className="text-xl font-bold text-[#583A0F]">{event.title}</h1>
-        <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#FAEFD0] text-[#8A5A1E]">{EVENT_TYPE_LABELS[event.event_type] ?? event.event_type}</span>
+        <h1 className="text-xl font-bold font-serif text-ink">{event.title}</h1>
+        <span className="text-[11px] px-2 py-0.5 rounded-full pill-gold">{EVENT_TYPE_LABELS[event.event_type] ?? event.event_type}</span>
       </div>
-      <p className="mt-1 text-sm text-[#8B6F47]">
+      <p className="mt-1 text-sm text-ink-muted">
         {event.organizing_centre ? `${event.organizing_centre.name_cn} · ` : ''}{dates}
         {event.location ? ` · ${event.location}` : ''}
       </p>
@@ -449,10 +449,10 @@ function EventHeader({ event }: { event: PublicEvent }) {
 
 function Section({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
-    <div className="py-3 border-t border-[#EFE3BF] first:border-t-0 first:pt-0">
+    <div className="py-3 border-t border-border first:border-t-0 first:pt-0">
       <div className="flex items-baseline justify-between mb-2">
-        <span className="text-sm font-medium text-[#583A0F]">{title}</span>
-        {sub && <span className="text-[11px] text-[#B89968]">{sub}</span>}
+        <span className="text-sm font-medium text-ink">{title}</span>
+        {sub && <span className="text-[11px] text-ink-faint">{sub}</span>}
       </div>
       {children}
     </div>
@@ -462,11 +462,11 @@ function Section({ title, sub, children }: { title: string; sub: string; childre
 function NumberRow({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-sm text-[#8B6F47]">{label}</span>
+      <span className="text-sm text-ink-muted">{label}</span>
       <div className="flex items-center gap-2">
-        <button onClick={() => onChange(Math.max(0, value - 1))} className="w-8 h-8 rounded-lg border border-[#EFE3BF] text-[#583A0F]">−</button>
-        <span className="w-8 text-center text-[#583A0F] font-medium">{value}</span>
-        <button onClick={() => onChange(value + 1)} className="w-8 h-8 rounded-lg border border-[#EFE3BF] text-[#583A0F]">+</button>
+        <button onClick={() => onChange(Math.max(0, value - 1))} className="w-8 h-8 rounded-lg border border-border text-ink">−</button>
+        <span className="w-8 text-center text-ink font-medium">{value}</span>
+        <button onClick={() => onChange(value + 1)} className="w-8 h-8 rounded-lg border border-border text-ink">+</button>
       </div>
     </div>
   );
@@ -474,11 +474,11 @@ function NumberRow({ label, value, onChange }: { label: string; value: number; o
 
 function StickyBar({ total, children }: { total: number; children: React.ReactNode }) {
   return (
-    <div className="sticky bottom-0 -mx-4 px-4 pt-3 pb-4 bg-gradient-to-t from-[#FFF3DA] via-[#FFF3DA] to-transparent">
-      <div className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-3 shadow-sm">
+    <div className="sticky bottom-0 -mx-4 px-4 pt-3 pb-4 bg-gradient-to-t from-bg via-bg to-transparent">
+      <div className="bg-surface border border-border rounded-2xl p-3 shadow-sm">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-[#8B6F47]">合计 Total</span>
-          <span className="text-lg font-bold text-[#583A0F]">{moneyRM(total)}</span>
+          <span className="text-sm text-ink-muted">合计 Total</span>
+          <span className="text-lg font-bold text-ink">{moneyRM(total)}</span>
         </div>
         <div className="flex gap-2">{children}</div>
       </div>
@@ -489,19 +489,19 @@ function StickyBar({ total, children }: { total: number; children: React.ReactNo
 function PaymentCard({ fee }: { fee: number }) {
   return (
     <Card>
-      <p className="text-sm text-[#583A0F] mb-2">费用 {moneyRM(fee)} · <span className="text-[#8B6F47]">随喜发心，可现在付款、日后补上，或到场再说</span></p>
-      <h3 className="font-semibold text-[#583A0F] mb-2">缴费说明 <span className="text-[11px] text-[#B89968]">（PLACEHOLDER · 待理事会提供）</span></h3>
-      <div className="rounded-xl bg-[#FAEFD0]/60 p-3 text-sm text-[#583A0F] space-y-1">
-        <p>银行：<span className="text-[#8B6F47]">＿＿＿＿（待提供）</span></p>
-        <p>户名：<span className="text-[#8B6F47]">＿＿＿＿（待提供）</span></p>
-        <p>账号：<span className="font-mono text-[#8B6F47]">＿＿＿＿＿＿（待提供）</span></p>
+      <p className="text-sm text-ink mb-2">费用 {moneyRM(fee)} · <span className="text-ink-muted">随喜发心，可现在付款、日后补上，或到场再说</span></p>
+      <h3 className="font-semibold text-ink mb-2">缴费说明 <span className="text-[11px] text-ink-faint">（PLACEHOLDER · 待理事会提供）</span></h3>
+      <div className="rounded-xl bg-accent/10 p-3 text-sm text-ink space-y-1">
+        <p>银行：<span className="text-ink-muted">＿＿＿＿（待提供）</span></p>
+        <p>户名：<span className="text-ink-muted">＿＿＿＿（待提供）</span></p>
+        <p>账号：<span className="font-mono text-ink-muted">＿＿＿＿＿＿（待提供）</span></p>
       </div>
       <div className="mt-3 flex justify-center">
-        <div className="w-40 h-40 rounded-xl border-2 border-dashed border-[#E3B85A] flex items-center justify-center text-center text-xs text-[#B89968] p-2">
+        <div className="w-40 h-40 rounded-xl border-2 border-dashed border-gold-border flex items-center justify-center text-center text-xs text-ink-faint p-2">
           收款 QR<br />（待理事会提供）
         </div>
       </div>
-      <p className="mt-3 text-xs text-[#8B6F47] leading-relaxed">转账后请保留收据，现场核对；线上缴费日后开放。</p>
+      <p className="mt-3 text-xs text-ink-muted leading-relaxed">转账后请保留收据，现场核对；线上缴费日后开放。</p>
     </Card>
   );
 }
@@ -531,16 +531,16 @@ export function ProofUploader({ regNo, phone, onUploaded }: { regNo: string; pho
   }
 
   return (
-    <div className="rounded-xl border border-dashed border-[#E3B85A] p-3 text-center">
+    <div className="rounded-xl border border-dashed border-gold-border p-3 text-center">
       <label className="cursor-pointer inline-block">
-        <span className={`inline-block rounded-xl bg-[#FAEFD0] text-[#8A5A1E] px-4 py-2 text-sm ${busy ? 'opacity-50' : ''}`}>
+        <span className={`inline-block rounded-xl pill-gold px-4 py-2 text-sm ${busy ? 'opacity-50' : ''}`}>
           {busy ? '上传中…' : '上传付款证明（可选）'}
         </span>
         <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" className="hidden"
           disabled={busy}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ''; }} />
       </label>
-      <p className="mt-2 text-[11px] text-[#B89968]">图片或 PDF · 上限 5MB · 可日后再上传</p>
+      <p className="mt-2 text-[11px] text-ink-faint">图片或 PDF · 上限 5MB · 可日后再上传</p>
       {msg && <p className={`mt-2 text-xs ${msg.ok ? 'text-[#3F6B2E]' : 'text-[#B4402E]'}`}>{msg.text}</p>}
     </div>
   );

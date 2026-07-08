@@ -194,8 +194,8 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
     else { const j = await res.json().catch(() => null); flashToast(j?.error ?? '操作失败'); }
   };
 
-  if (loading) return <p className="max-w-4xl mx-auto px-4 py-10 text-sm text-[#8B6F47]">加载中…</p>;
-  if (!data) return <p className="max-w-4xl mx-auto px-4 py-10 text-sm text-[#8B6F47]">无法加载该活动。</p>;
+  if (loading) return <p className="max-w-4xl mx-auto px-4 py-10 text-sm text-ink-muted">加载中…</p>;
+  if (!data) return <p className="max-w-4xl mx-auto px-4 py-10 text-sm text-ink-muted">无法加载该活动。</p>;
 
   const e = data.event;
   const approved = data.regStats.counts.approved;
@@ -212,18 +212,18 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
       {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-[#583A0F] text-white text-sm shadow-lg">{toast}</div>
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-ink text-white text-sm shadow-lg">{toast}</div>
       )}
 
       {/* header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-2xl font-bold text-[#583A0F]">{e.title}</h2>
+            <h2 className="text-2xl font-bold font-serif text-ink">{e.title}</h2>
             <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS_STYLES[e.status] ?? ''}`}>{STATUS_LABELS[e.status] ?? e.status}</span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#FAEFD0] text-[#8A5A1E]">{EVENT_TYPE_LABELS[e.event_type] ?? e.event_type}</span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full pill-gold">{EVENT_TYPE_LABELS[e.event_type] ?? e.event_type}</span>
           </div>
-          <p className="mt-1 text-sm text-[#8B6F47]">
+          <p className="mt-1 text-sm text-ink-muted">
             <span className="font-mono">{e.code}</span>
             {e.organizing_centre ? ` · ${e.organizing_centre.name_cn}` : ''}
             {` · ${e.starts_on}${e.ends_on && e.ends_on !== e.starts_on ? ` — ${e.ends_on}` : ''}`}
@@ -232,11 +232,11 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canEdit && (e.status === 'draft' || e.status === 'open') && (
-            <Link href={`/dashboard/events/${id}/edit`} className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition">编辑</Link>
+            <Link href={`/dashboard/events/${id}/edit`} className="px-4 py-1.5 text-sm btn-secondary">编辑</Link>
           )}
           {canEdit && nextStatuses.map((to) => (
             <button key={to} onClick={() => changeStatus(to)}
-              className="px-4 py-1.5 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition">
+              className="px-4 py-1.5 text-sm btn-primary">
               {transitionLabel(e.status, to)}
             </button>
           ))}
@@ -244,20 +244,20 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
       </div>
 
       {/* capacity bar */}
-      <div className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-4">
-        <div className="flex items-center justify-between text-xs text-[#8B6F47] mb-1">
+      <div className="bg-surface border border-border rounded-2xl p-4">
+        <div className="flex items-center justify-between text-xs text-ink-muted mb-1">
           <span>报名 {approved}{e.capacity ? ` / ${e.capacity}` : ' / 不限'}</span>
           {e.capacity ? <span>{pct}%</span> : null}
         </div>
-        <div className="h-3 rounded-full bg-[#FAEFD0] overflow-hidden">
-          <div className="h-full rounded-full bg-[#D89938]" style={{ width: e.capacity ? `${pct}%` : '0%' }} />
+        <div className="h-3 rounded-full bg-accent/10 overflow-hidden">
+          <div className="h-full rounded-full bg-accent" style={{ width: e.capacity ? `${pct}%` : '0%' }} />
         </div>
-        <div className="mt-2 text-xs text-[#8B6F47]">已批费用合计：<span className="font-semibold text-[#583A0F]">{moneyRM(data.regStats.approvedFeeSum)}</span></div>
+        <div className="mt-2 text-xs text-ink-muted">已批费用合计：<span className="font-semibold text-ink">{moneyRM(data.regStats.approvedFeeSum)}</span></div>
         {data.regStats.payment && (
-          <div className="mt-1 text-xs text-[#8B6F47]">
+          <div className="mt-1 text-xs text-ink-muted">
             已收款 <span className="font-semibold text-[#3F6B2E]">{moneyRM(data.regStats.payment.paidSum)}</span>
-            <span className="text-[#B89968]"> · 已核实 {data.regStats.payment.verifiedCount}{data.regStats.payment.waivedCount ? ` · 已豁免 ${data.regStats.payment.waivedCount}` : ''}{data.regStats.payment.proofCount ? ` · 待核实 ${data.regStats.payment.proofCount}` : ''}</span>
-            <span className="text-[#C9B892]"> · 随喜发心，不设指标</span>
+            <span className="text-ink-faint"> · 已核实 {data.regStats.payment.verifiedCount}{data.regStats.payment.waivedCount ? ` · 已豁免 ${data.regStats.payment.waivedCount}` : ''}{data.regStats.payment.proofCount ? ` · 待核实 ${data.regStats.payment.proofCount}` : ''}</span>
+            <span className="text-ink-faint"> · 随喜发心，不设指标</span>
           </div>
         )}
       </div>
@@ -265,24 +265,24 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
       {/* fees + team needs */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Card title="💰 费率 Fees">
-          {data.fees.length === 0 ? <p className="text-sm text-[#8B6F47]">未设置收费</p> : (
+          {data.fees.length === 0 ? <p className="text-sm text-ink-muted">未设置收费</p> : (
             <ul className="space-y-1 text-sm">
               {data.fees.map((f) => (
                 <li key={f.item} className="flex items-center justify-between">
-                  <span className="text-[#583A0F]">{f.label_cn || FEE_LABEL[f.item] || f.item} <span className="text-[11px] text-[#B89968]">{feeBillingLabel(f.item, f.billing)}</span></span>
-                  <span className="font-medium text-[#583A0F]">{moneyRM(f.amount)}</span>
+                  <span className="text-ink">{f.label_cn || FEE_LABEL[f.item] || f.item} <span className="text-[11px] text-ink-faint">{feeBillingLabel(f.item, f.billing)}</span></span>
+                  <span className="font-medium text-ink">{moneyRM(f.amount)}</span>
                 </li>
               ))}
             </ul>
           )}
         </Card>
         <Card title="👥 团队需求 Team needs">
-          {data.teamNeeds.length === 0 ? <p className="text-sm text-[#8B6F47]">无</p> : (
+          {data.teamNeeds.length === 0 ? <p className="text-sm text-ink-muted">无</p> : (
             <div className="flex flex-wrap gap-1.5">
               {data.teamNeeds.map((t) => {
                 const short = t.approved < t.needed;
                 return (
-                  <span key={t.team_id} className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${short ? 'bg-[#FEF2F2] text-red-700' : 'bg-white border border-[#EFE3BF] text-[#8B6F47]'}`}>
+                  <span key={t.team_id} className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${short ? 'bg-[#FEF2F2] text-red-700' : 'pill-muted'}`}>
                     {t.name_cn} {t.approved}/{t.needed}{short ? ' ⚠' : ''}
                   </span>
                 );
@@ -299,51 +299,51 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
       {mealPerItem && data.mealCounts && <MealStatsCard slots={data.mealSlots} counts={data.mealCounts} />}
 
       {/* registration queue */}
-      <div className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#EFE3BF] flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1">
             {tabs.map(([t, n]) => (
               <button key={t} onClick={() => setTab(t)}
-                className={`px-3 py-1 rounded-full text-xs border transition ${tab === t ? 'bg-[#FAEFD0] text-[#583A0F] border-[#EFE3BF]' : 'text-[#8B6F47] border-transparent hover:bg-[#FAEFD0]/60'}`}>
+                className={`px-3 py-1 rounded-full text-xs border transition ${tab === t ? 'bg-accent/10 text-ink border-border' : 'text-ink-muted border-transparent hover:bg-accent/5'}`}>
                 {t === 'all' ? '全部' : REG_STATUS_LABELS[t]}{n != null ? ` ${n}` : ''}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => exportCsv(e.code, tab, regs, teamName)}
-              className="px-3 py-1 text-xs text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">导出 CSV</button>
+              className="px-3 py-1 text-xs btn-secondary">导出 CSV</button>
             {canEdit && e.status === 'open' && (
-              <button onClick={() => setAddOpen(true)} className="px-3 py-1 text-xs text-white bg-[#D89938] rounded-full hover:bg-[#A87929]">＋代报名</button>
+              <button onClick={() => setAddOpen(true)} className="px-3 py-1 text-xs btn-primary">＋代报名</button>
             )}
           </div>
         </div>
 
         {regs.length === 0 ? (
-          <p className="p-6 text-sm text-[#8B6F47]">🪷 暂无报名，静候有缘人。</p>
+          <p className="p-6 text-sm text-ink-muted">🪷 暂无报名，静候有缘人。</p>
         ) : (
           <ul>
             {regs.map((r) => {
               const sel = selectionsSummary(r.selections);
               const isOpen = expanded.has(r.id);
               return (
-              <li id={`reg-${r.reg_no}`} key={r.id} className="px-4 py-3 border-b border-[#EFE3BF] last:border-b-0">
+              <li id={`reg-${r.reg_no}`} key={r.id} className="px-4 py-3 border-b border-border last:border-b-0">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {r.member_id ? (
-                        <Link href={`/dashboard/members/${r.member_id}`} className="font-medium text-[#583A0F] hover:text-[#A87929]">{r.name}</Link>
+                        <Link href={`/dashboard/members/${r.member_id}`} className="font-medium text-ink hover:text-accent-deep">{r.name}</Link>
                       ) : (
-                        <span className="font-medium text-[#583A0F]">{r.name}</span>
+                        <span className="font-medium text-ink">{r.name}</span>
                       )}
-                      {r.centreCode && <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#FAEFD0] text-[#8A5A1E]">{r.centreCode}</span>}
+                      {r.centreCode && <span className="text-[11px] px-2 py-0.5 rounded-full pill-gold">{r.centreCode}</span>}
                       <span className={`text-[11px] px-2 py-0.5 rounded-full ${REG_STATUS_STYLES[r.status] ?? ''}`}>{REG_STATUS_LABELS[r.status] ?? r.status}</span>
                       {/* payment badge — independent of approval (separate tracks) */}
                       <span className={`text-[11px] px-2 py-0.5 rounded-full ${PAYMENT_STATUS_STYLES[r.payment_status] ?? PAYMENT_STATUS_STYLES.unpaid}`}>
                         {PAYMENT_STATUS_LABELS[r.payment_status] ?? '未付款'}{r.payment_status === 'verified' && r.paid_amount != null ? ` ${moneyRM(r.paid_amount)}` : ''}
                       </span>
-                      {sel && <span className="text-xs text-[#8B6F47]">{sel}</span>}
+                      {sel && <span className="text-xs text-ink-muted">{sel}</span>}
                     </div>
-                    <div className="mt-0.5 text-xs text-[#8B6F47]">
+                    <div className="mt-0.5 text-xs text-ink-muted">
                       <span className="font-mono">{r.reg_no}</span>
                       {r.volunteer_team_id ? ` · 组：${teamName.get(r.volunteer_team_id) ?? '—'}` : ''}
                       {r.decidedByName ? ` · ${r.decidedByName}` : ''}
@@ -351,31 +351,31 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => toggleExpand(r.id)} className="font-semibold text-[#583A0F] hover:text-[#A87929]" title="展开费用明细">
+                    <button onClick={() => toggleExpand(r.id)} className="font-semibold text-ink hover:text-accent-deep" title="展开费用明细">
                       {moneyRM(r.fee_total)} {isOpen ? '▴' : '▾'}
                     </button>
                     {canEdit && r.status !== 'cancelled' && (
-                      <button onClick={() => setPayFor(r)} className="px-3 py-1 text-xs text-[#A87929] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">付款</button>
+                      <button onClick={() => setPayFor(r)} className="px-3 py-1 text-xs btn-secondary">付款</button>
                     )}
                     {canEdit && r.status === 'pending' && (
                       <>
-                        <button disabled={busy === r.id} onClick={() => decide(r, 'approve')} className="px-3 py-1 text-xs text-[#A87929] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] disabled:opacity-40">✓批准</button>
+                        <button disabled={busy === r.id} onClick={() => decide(r, 'approve')} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">✓批准</button>
                         <button disabled={busy === r.id} onClick={() => setRejectFor(r)} className="px-3 py-1 text-xs text-red-700 border border-[#FCA5A5] rounded-full hover:bg-[#FEF2F2] disabled:opacity-40">✗拒绝</button>
                       </>
                     )}
                     {canEdit && (r.status === 'pending' || r.status === 'approved') && selectionsEditable && (
-                      <button disabled={busy === r.id} onClick={() => setEditReg(r)} className="px-3 py-1 text-xs text-[#A87929] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] disabled:opacity-40">修改选项</button>
+                      <button disabled={busy === r.id} onClick={() => setEditReg(r)} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">修改选项</button>
                     )}
                     {canEdit && (r.status === 'pending' || r.status === 'approved') && !selectionsEditable && (
-                      <span className="text-[11px] text-[#B89968]" title={`活动开始前 ${cutoffDays} 天截止修改`}>🔒选项已锁定</span>
+                      <span className="text-[11px] text-ink-faint" title={`活动开始前 ${cutoffDays} 天截止修改`}>🔒选项已锁定</span>
                     )}
                     {canEdit && (r.status === 'pending' || r.status === 'approved') && (
-                      <button disabled={busy === r.id} onClick={() => { if (window.confirm('确定取消此报名？')) decide(r, 'cancel'); }} className="px-3 py-1 text-xs text-[#8B6F47] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] disabled:opacity-40">取消</button>
+                      <button disabled={busy === r.id} onClick={() => { if (window.confirm('确定取消此报名？')) decide(r, 'cancel'); }} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">取消</button>
                     )}
                   </div>
                 </div>
                 {isOpen && r.fee_breakdown.length > 0 && (
-                  <ul className="mt-2 ml-1 pl-3 border-l-2 border-[#EFE3BF] space-y-0.5 text-xs text-[#8B6F47]">
+                  <ul className="mt-2 ml-1 pl-3 border-l-2 border-border space-y-0.5 text-xs text-ink-muted">
                     {r.fee_breakdown.map((b) => (
                       <li key={b.item} className="flex justify-between max-w-xs">
                         <span>{b.label} × {b.qty}</span><span>{moneyRM(b.subtotal)}</span>
@@ -419,15 +419,15 @@ function MealStatsCard({ slots, counts }: { slots: MealSlot[]; counts: NonNullab
   const offered = new Set(slots.filter((s) => s.offered).map((s) => mealSlotKey(s.slot_date, s.meal)));
   const colTotal = (meal: string) => dates.reduce((sum, d) => sum + (counts.perCell[mealSlotKey(d, meal)] ?? 0), 0);
   return (
-    <div className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-4">
-      <h3 className="text-sm font-semibold text-[#583A0F] mb-2">🍚 每餐人数统计 <span className="text-[11px] font-normal text-[#B89968]">Meal counts · 已批准</span></h3>
+    <div className="bg-surface border border-border rounded-2xl p-4">
+      <h3 className="text-sm font-semibold font-serif text-ink mb-2">🍚 每餐人数统计 <span className="text-[11px] font-normal text-ink-faint">Meal counts · 已批准</span></h3>
       {dates.length === 0 ? (
-        <p className="text-sm text-[#8B6F47]">尚未设置餐点供应。</p>
+        <p className="text-sm text-ink-muted">尚未设置餐点供应。</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="text-sm border-collapse">
             <thead>
-              <tr className="text-[11px] text-[#B89968]">
+              <tr className="text-[11px] text-ink-faint">
                 <th className="px-3 py-1.5 text-left font-medium">日期</th>
                 {MEAL_COLS.map((c) => <th key={c.meal} className="px-3 py-1.5 font-medium w-14">{c.label}</th>)}
                 <th className="px-3 py-1.5 font-medium w-16">当日合计</th>
@@ -435,23 +435,23 @@ function MealStatsCard({ slots, counts }: { slots: MealSlot[]; counts: NonNullab
             </thead>
             <tbody>
               {dates.map((d) => (
-                <tr key={d} className="border-t border-[#EFE3BF]">
-                  <td className="px-3 py-1.5 whitespace-nowrap text-[#583A0F]">{d.slice(5)} <span className="text-[11px] text-[#B89968]">{weekdayCn(d)}</span></td>
+                <tr key={d} className="border-t border-border">
+                  <td className="px-3 py-1.5 whitespace-nowrap text-ink">{d.slice(5)} <span className="text-[11px] text-ink-faint">{weekdayCn(d)}</span></td>
                   {MEAL_COLS.map((c) => {
                     const key = mealSlotKey(d, c.meal);
                     return (
                       <td key={c.meal} className="px-3 py-1.5 text-center">
-                        {offered.has(key) ? <span className="text-[#583A0F] font-medium">{counts.perCell[key] ?? 0}</span> : <span className="text-[#C9B892]">—</span>}
+                        {offered.has(key) ? <span className="text-ink font-medium">{counts.perCell[key] ?? 0}</span> : <span className="text-ink-faint">—</span>}
                       </td>
                     );
                   })}
-                  <td className="px-3 py-1.5 text-center font-semibold text-[#583A0F]">{counts.perDay[d] ?? 0}</td>
+                  <td className="px-3 py-1.5 text-center font-semibold text-ink">{counts.perDay[d] ?? 0}</td>
                 </tr>
               ))}
-              <tr className="border-t-2 border-[#EFE3BF] bg-[#FBF4E0]/50">
-                <td className="px-3 py-1.5 font-semibold text-[#583A0F]">总计</td>
+              <tr className="border-t-2 border-border bg-surface-soft">
+                <td className="px-3 py-1.5 font-semibold text-ink">总计</td>
                 {MEAL_COLS.map((c) => <td key={c.meal} className="px-3 py-1.5 text-center font-semibold text-[#8A5A1E]">{colTotal(c.meal)}</td>)}
-                <td className="px-3 py-1.5 text-center font-bold text-[#583A0F]">{counts.total}</td>
+                <td className="px-3 py-1.5 text-center font-bold text-ink">{counts.total}</td>
               </tr>
             </tbody>
           </table>
@@ -467,15 +467,15 @@ function RejectDialog({ reg, onClose, onReject }: { reg: RegRow; onClose: () => 
   const [saving, setSaving] = useState(false);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
-      <div className="bg-[#FFFEF6] rounded-2xl w-full max-w-sm p-5" onClick={(ev) => ev.stopPropagation()}>
-        <h3 className="text-base font-semibold text-[#583A0F] mb-1">拒绝报名</h3>
-        <p className="text-xs text-[#8B6F47] mb-3 font-mono">{reg.reg_no} · {reg.name}</p>
+      <div className="bg-surface rounded-2xl w-full max-w-sm p-5" onClick={(ev) => ev.stopPropagation()}>
+        <h3 className="text-base font-semibold font-serif text-ink mb-1">拒绝报名</h3>
+        <p className="text-xs text-ink-muted mb-3 font-mono">{reg.reg_no} · {reg.name}</p>
         <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="拒绝原因（必填）"
-          className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] resize-y focus:outline-none focus:border-[#D89938]" />
+          className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink resize-y focus:outline-none focus:border-accent" />
         <div className="mt-3 flex items-center gap-2">
           <button disabled={saving || !reason.trim()} onClick={() => { setSaving(true); onReject(reason.trim()); }}
             className="px-4 py-1.5 text-sm text-white bg-red-600 rounded-full hover:bg-red-700 disabled:opacity-50">确认拒绝</button>
-          <button onClick={onClose} className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">取消</button>
+          <button onClick={onClose} className="px-4 py-1.5 text-sm btn-secondary">取消</button>
         </div>
       </div>
     </div>
@@ -565,23 +565,23 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
-      <div className="bg-[#FFFEF6] rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5" onClick={(ev) => ev.stopPropagation()}>
-        <h3 className="text-base font-semibold text-[#583A0F] mb-3">{isEdit ? '修改选项' : '代报名'}</h3>
+      <div className="bg-surface rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5" onClick={(ev) => ev.stopPropagation()}>
+        <h3 className="text-base font-semibold font-serif text-ink mb-3">{isEdit ? '修改选项' : '代报名'}</h3>
 
         {/* member — search (create) or preset name (edit) */}
         {isEdit ? (
-          <div className="text-sm text-[#583A0F]">会员：<span className="font-medium">{edit!.name}</span></div>
+          <div className="text-sm text-ink">会员：<span className="font-medium">{edit!.name}</span></div>
         ) : !selected ? (
           <div>
             <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索会员 名字 / 电话…"
-              className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]" />
+              className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent" />
             {results.length > 0 && (
-              <ul className="mt-1 border border-[#EFE3BF] rounded-lg divide-y divide-[#EFE3BF] max-h-48 overflow-y-auto">
+              <ul className="mt-1 border border-border rounded-lg divide-y divide-border max-h-48 overflow-y-auto">
                 {results.map((m) => (
                   <li key={m.id}>
-                    <button onClick={() => setSelected({ id: m.id, name: m.name })} className="w-full text-left px-3 py-2 text-sm hover:bg-[#FAEFD0]/50 flex items-center justify-between">
-                      <span className="text-[#583A0F]">{m.name}</span>
-                      {m.centreCode && <span className="text-[11px] text-[#B89968]">{m.centreCode}</span>}
+                    <button onClick={() => setSelected({ id: m.id, name: m.name })} className="w-full text-left px-3 py-2 text-sm hover:bg-accent/5 flex items-center justify-between">
+                      <span className="text-ink">{m.name}</span>
+                      {m.centreCode && <span className="text-[11px] text-ink-faint">{m.centreCode}</span>}
                     </button>
                   </li>
                 ))}
@@ -590,8 +590,8 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
           </div>
         ) : (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-[#583A0F]">会员：<span className="font-medium">{selected.name}</span></span>
-            <button onClick={() => setSelected(null)} className="text-xs text-[#A87929] hover:underline">更换</button>
+            <span className="text-ink">会员：<span className="font-medium">{selected.name}</span></span>
+            <button onClick={() => setSelected(null)} className="text-xs text-accent-deep hover:underline">更换</button>
           </div>
         )}
 
@@ -599,9 +599,9 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
           <div className="mt-4 space-y-3">
             {!isEdit && (
               <label className="block">
-                <span className="block text-xs font-medium text-[#B89968] mb-1">义工组（可选）</span>
+                <span className="block u-label mb-1">义工组（可选）</span>
                 <select value={teamId} onChange={(e) => setTeamId(e.target.value)}
-                  className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]">
+                  className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent">
                   <option value="">信众参加（无组）</option>
                   {teams.map((t) => <option key={t.id} value={t.id}>{t.name_cn}</option>)}
                 </select>
@@ -612,7 +612,7 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
             {enabled.has('meal') && mealPerItem && (
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-[#B89968]">用餐 🍚 <span className="text-[#C9B892]">（已选 {meals.size} 餐）</span></span>
+                  <span className="u-label">用餐 🍚 <span className="text-ink-faint">（已选 {meals.size} 餐）</span></span>
                 </div>
                 <MealPickGrid slots={mealSlots} selected={meals} onChange={setMeals} />
               </div>
@@ -623,16 +623,16 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
               {enabled.has('meal') && !mealPerItem && <Num label="用餐天数 🍚" value={mealDays} onChange={setMealDays} />}
               {enabled.has('accommodation') && <Num label="住宿晚数 🏨" value={nights} onChange={setNights} />}
               {enabled.has('transfer') && (
-                <label className="flex items-center gap-2 text-sm text-[#583A0F] col-span-2">
+                <label className="flex items-center gap-2 text-sm text-ink col-span-2">
                   <input type="checkbox" checked={transfer} onChange={(e) => setTransfer(e.target.checked)} /> 机场接送 🚐
                 </label>
               )}
               {enabled.has('uniform') && (
                 <>
                   <label className="block">
-                    <span className="block text-xs font-medium text-[#B89968] mb-1">制服尺码 👕</span>
+                    <span className="block u-label mb-1">制服尺码 👕</span>
                     <input value={uniformSize} onChange={(e) => setUniformSize(e.target.value)} placeholder="M"
-                      className="w-full text-sm p-2 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]" />
+                      className="w-full text-sm p-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent" />
                   </label>
                   <Num label="制服数量" value={uniformQty} onChange={setUniformQty} />
                 </>
@@ -641,17 +641,17 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
             </div>
 
             {/* live fee preview */}
-            <div className="rounded-lg bg-[#FAEFD0]/60 p-3 text-sm">
-              {preview.breakdown.length === 0 ? <p className="text-[#8B6F47]">暂无费用</p> : (
+            <div className="rounded-lg bg-accent/10 p-3 text-sm">
+              {preview.breakdown.length === 0 ? <p className="text-ink-muted">暂无费用</p> : (
                 <ul className="space-y-0.5">
                   {preview.breakdown.map((b) => (
-                    <li key={b.item} className="flex justify-between text-[#8B6F47]">
+                    <li key={b.item} className="flex justify-between text-ink-muted">
                       <span>{b.label} × {b.qty}</span><span>{moneyRM(b.subtotal)}</span>
                     </li>
                   ))}
                 </ul>
               )}
-              <div className="mt-1 pt-1 border-t border-[#E8D5A8] flex justify-between font-semibold text-[#583A0F]">
+              <div className="mt-1 pt-1 border-t border-gold-border flex justify-between font-semibold text-ink">
                 <span>合计</span><span>{moneyRM(preview.total)}</span>
               </div>
             </div>
@@ -659,15 +659,15 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
             {error && (
               <p className="text-sm text-red-600">
                 {error}
-                {dupe && <> · <Link href={`#reg-${dupe}`} className="underline text-[#A87929]" onClick={onClose}>已有报名 {dupe}</Link></>}
+                {dupe && <> · <Link href={`#reg-${dupe}`} className="underline text-accent-deep" onClick={onClose}>已有报名 {dupe}</Link></>}
               </p>
             )}
 
             <div className="flex items-center gap-2">
-              <button disabled={saving} onClick={submit} className="px-5 py-2 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] disabled:opacity-50">
+              <button disabled={saving} onClick={submit} className="px-5 py-2 text-sm btn-primary">
                 {saving ? '保存中…' : isEdit ? '保存选项' : '提交报名'}
               </button>
-              <button onClick={onClose} className="px-5 py-2 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">取消</button>
+              <button onClick={onClose} className="px-5 py-2 text-sm btn-secondary">取消</button>
             </div>
           </div>
         )}
@@ -698,18 +698,18 @@ function MealPickGrid({ slots, selected, onChange }: { slots: MealSlot[]; select
     onChange(next);
   };
 
-  if (dates.length === 0) return <p className="text-xs text-[#8B6F47]">本活动未设置餐点供应。</p>;
+  if (dates.length === 0) return <p className="text-xs text-ink-muted">本活动未设置餐点供应。</p>;
 
   return (
     <div>
       <div className="flex items-center gap-2 mb-1.5">
-        <button type="button" onClick={() => onChange(new Set(allOffered))} className="px-2.5 py-0.5 text-[11px] text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">全选</button>
-        <button type="button" onClick={() => onChange(new Set())} className="px-2.5 py-0.5 text-[11px] text-[#8B6F47] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">清空</button>
+        <button type="button" onClick={() => onChange(new Set(allOffered))} className="px-2.5 py-0.5 text-[11px] btn-secondary">全选</button>
+        <button type="button" onClick={() => onChange(new Set())} className="px-2.5 py-0.5 text-[11px] btn-secondary">清空</button>
       </div>
       <div className="overflow-x-auto">
         <table className="text-sm border-collapse w-full">
           <thead>
-            <tr className="text-[11px] text-[#B89968]">
+            <tr className="text-[11px] text-ink-faint">
               <th className="px-2 py-1 text-left font-medium">日期</th>
               {MEAL_COLS.map((c) => <th key={c.meal} className="px-1 py-1 font-medium">{c.label}</th>)}
               <th className="px-1 py-1 font-medium w-12">整天</th>
@@ -717,8 +717,8 @@ function MealPickGrid({ slots, selected, onChange }: { slots: MealSlot[]; select
           </thead>
           <tbody>
             {dates.map((d) => (
-              <tr key={d} className="border-t border-[#EFE3BF]">
-                <td className="px-2 py-1 whitespace-nowrap text-[#583A0F]">{d.slice(5)} <span className="text-[11px] text-[#B89968]">{weekdayCn(d)}</span></td>
+              <tr key={d} className="border-t border-border">
+                <td className="px-2 py-1 whitespace-nowrap text-ink">{d.slice(5)} <span className="text-[11px] text-ink-faint">{weekdayCn(d)}</span></td>
                 {MEAL_COLS.map((c) => {
                   const key = mealSlotKey(d, c.meal);
                   const isOffered = offered.has(key);
@@ -727,7 +727,7 @@ function MealPickGrid({ slots, selected, onChange }: { slots: MealSlot[]; select
                     <td key={c.meal} className="px-1 py-1 text-center">
                       {isOffered ? (
                         <button type="button" onClick={() => toggle(key)}
-                          className={`w-9 py-1 rounded-md text-xs transition ${isSel ? 'bg-[#D89938] text-white' : 'bg-[#FAEFD0] text-[#8A5A1E] border border-[#EFE3BF] hover:bg-[#F5E1B0]'}`}>
+                          className={`w-9 py-1 rounded-md text-xs transition ${isSel ? 'bg-accent text-white' : 'bg-accent/10 text-accent-deep border border-border hover:bg-accent/20'}`}>
                           {isSel ? '✓' : c.label}
                         </button>
                       ) : (
@@ -737,7 +737,7 @@ function MealPickGrid({ slots, selected, onChange }: { slots: MealSlot[]; select
                   );
                 })}
                 <td className="px-1 py-1 text-center">
-                  <button type="button" onClick={() => toggleRow(d)} className="px-2 py-0.5 text-[11px] text-[#8B6F47] border border-[#EFE3BF] rounded-md hover:bg-[#FAEFD0]">全天</button>
+                  <button type="button" onClick={() => toggleRow(d)} className="px-2 py-0.5 text-[11px] text-ink-muted border border-border rounded-md hover:bg-accent/5">全天</button>
                 </td>
               </tr>
             ))}
@@ -751,17 +751,17 @@ function MealPickGrid({ slots, selected, onChange }: { slots: MealSlot[]; select
 function Num({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-[#B89968] mb-1">{label}</span>
+      <span className="block u-label mb-1">{label}</span>
       <input type="number" min="0" value={value} onChange={(e) => onChange(e.target.value)}
-        className="w-full text-sm p-2 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]" />
+        className="w-full text-sm p-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent" />
     </label>
   );
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-4">
-      <h3 className="text-sm font-semibold text-[#583A0F] mb-2">{title}</h3>
+    <section className="bg-surface border border-border rounded-2xl p-4">
+      <h3 className="text-sm font-semibold font-serif text-ink mb-2">{title}</h3>
       {children}
     </section>
   );
@@ -806,12 +806,12 @@ function PaymentPanel({ reg, onClose, onDone }: { reg: RegRow; onClose: () => vo
 
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-[#FFFEF6] w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-[#583A0F]">付款 · <span className="font-mono text-sm">{reg.reg_no}</span></h3>
-          <button onClick={onClose} className="text-[#8B6F47] text-sm">关闭</button>
+          <h3 className="font-semibold font-serif text-ink">付款 · <span className="font-mono text-sm">{reg.reg_no}</span></h3>
+          <button onClick={onClose} className="text-ink-muted text-sm">关闭</button>
         </div>
-        <p className="text-xs text-[#8B6F47] mb-3">
+        <p className="text-xs text-ink-muted mb-3">
           当前：<span className={`px-2 py-0.5 rounded-full ${PAYMENT_STATUS_STYLES[reg.payment_status] ?? PAYMENT_STATUS_STYLES.unpaid}`}>{PAYMENT_STATUS_LABELS[reg.payment_status] ?? '未付款'}</span>
           <span className="ml-2">费用 {moneyRM(reg.fee_total)}</span>
         </p>
@@ -819,37 +819,37 @@ function PaymentPanel({ reg, onClose, onDone }: { reg: RegRow; onClose: () => vo
         {/* receipt viewer */}
         {reg.has_proof && (
           <div className="mb-3">
-            {proofState === 'loading' && <p className="text-xs text-[#8B6F47]">加载凭证…</p>}
+            {proofState === 'loading' && <p className="text-xs text-ink-muted">加载凭证…</p>}
             {proofState === 'error' && <p className="text-xs text-[#B4402E]">凭证加载失败。</p>}
             {proof && !proof.isPdf && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={proof.url} alt="付款凭证" className="w-full rounded-xl border border-[#EFE3BF]" />
+              <img src={proof.url} alt="付款凭证" className="w-full rounded-xl border border-border" />
             )}
             {proof && proof.isPdf && (
-              <a href={proof.url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#D89938] hover:underline">打开 PDF 凭证 ↗（60 秒内有效）</a>
+              <a href={proof.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline">打开 PDF 凭证 ↗（60 秒内有效）</a>
             )}
           </div>
         )}
-        {!reg.has_proof && <p className="text-xs text-[#B89968] mb-3">尚无付款凭证（可现场核对，无需凭证即可核实）。</p>}
+        {!reg.has_proof && <p className="text-xs text-ink-faint mb-3">尚无付款凭证（可现场核对，无需凭证即可核实）。</p>}
 
         {/* actions */}
         <div className="space-y-3">
           <div>
-            <label className="block text-xs text-[#8B6F47] mb-1">核实金额（可修改，默认为费用）</label>
+            <label className="block text-xs text-ink-muted mb-1">核实金额（可修改，默认为费用）</label>
             <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal"
-              className="w-full rounded-xl border border-[#EFE3BF] bg-white px-3 py-2 text-sm outline-none focus:border-[#D89938]" />
+              className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent" />
           </div>
           <div>
-            <label className="block text-xs text-[#8B6F47] mb-1">备注（收据号 / 豁免原因，可选）</label>
+            <label className="block text-xs text-ink-muted mb-1">备注（收据号 / 豁免原因，可选）</label>
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="例如：HQ 决定豁免 / 收据 #1234"
-              className="w-full rounded-xl border border-[#EFE3BF] bg-white px-3 py-2 text-sm outline-none focus:border-[#D89938]" />
+              className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent" />
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
             <button disabled={busy} onClick={() => act('verify')} className="flex-1 rounded-xl bg-[#3F6B2E] text-white py-2 text-sm font-medium disabled:opacity-50">核实付款</button>
             <button disabled={busy} onClick={() => act('waive')} className="flex-1 rounded-xl bg-[#6B5B8A] text-white py-2 text-sm font-medium disabled:opacity-50">标记豁免</button>
           </div>
           {(reg.payment_status === 'verified' || reg.payment_status === 'waived') && (
-            <button disabled={busy} onClick={() => act('revoke')} className="w-full rounded-xl border border-[#EFE3BF] text-[#8B6F47] py-2 text-sm disabled:opacity-50">撤销（回到未付款）</button>
+            <button disabled={busy} onClick={() => act('revoke')} className="w-full rounded-xl border border-border text-ink-muted py-2 text-sm disabled:opacity-50">撤销（回到未付款）</button>
           )}
         </div>
       </div>
@@ -885,8 +885,8 @@ function QrSvg({ text, px = 176 }: { text: string; px?: number }) {
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (mods[y][x]) d += `M${x + quiet} ${y + quiet}h1v1h-1z`;
   return (
     <svg width={px} height={px} viewBox={`0 0 ${dim} ${dim}`} shapeRendering="crispEdges" role="img" aria-label="报名二维码">
-      <rect width={dim} height={dim} fill="#FFFEF6" />
-      <path d={d} fill="#583A0F" />
+      <rect width={dim} height={dim} fill="#FFFFFF" />
+      <path d={d} fill="#2B2314" />
     </svg>
   );
 }
@@ -907,14 +907,14 @@ function PublicRegCard({
   };
 
   return (
-    <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-4">
+    <section className="bg-surface border border-border rounded-2xl p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-[#583A0F]">🔗 公开报名 Public form</h3>
-          <p className="text-xs text-[#8B6F47] mt-0.5">开启后，任何人可凭链接 / 二维码免登录报名，提交进入审核队列。</p>
+          <h3 className="text-sm font-semibold font-serif text-ink">🔗 公开报名 Public form</h3>
+          <p className="text-xs text-ink-muted mt-0.5">开启后，任何人可凭链接 / 二维码免登录报名，提交进入审核队列。</p>
         </div>
         <button role="switch" aria-checked={enabled} disabled={busy} onClick={() => toggle(!enabled)}
-          className={`shrink-0 w-12 h-7 rounded-full transition relative ${enabled ? 'bg-[#D89938]' : 'bg-[#E4D8BC]'} disabled:opacity-50`}>
+          className={`shrink-0 w-12 h-7 rounded-full transition relative ${enabled ? 'bg-accent' : 'bg-border-strong'} disabled:opacity-50`}>
           <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white transition-transform ${enabled ? 'translate-x-5' : ''}`} />
         </button>
       </div>
@@ -924,12 +924,12 @@ function PublicRegCard({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <input readOnly value={url} onFocus={(e) => e.target.select()}
-                className="flex-1 min-w-0 rounded-lg border border-[#EFE3BF] bg-[#FAEFD0]/60 px-3 py-2 text-xs font-mono text-[#583A0F] outline-none" />
-              <button onClick={copy} className="shrink-0 px-3 py-2 text-xs text-white bg-[#D89938] rounded-lg hover:bg-[#A87929]">复制链接</button>
+                className="flex-1 min-w-0 rounded-lg border border-border-strong bg-accent/10 px-3 py-2 text-xs font-mono text-ink outline-none" />
+              <button onClick={copy} className="shrink-0 px-3 py-2 text-xs text-white bg-accent rounded-lg hover:bg-accent-strong">复制链接</button>
             </div>
-            <a href={url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs text-[#D89938] hover:underline">在新分页打开表单 ↗</a>
+            <a href={url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs text-accent hover:underline">在新分页打开表单 ↗</a>
           </div>
-          <div className="justify-self-center rounded-xl border border-[#EFE3BF] p-2 bg-white">
+          <div className="justify-self-center rounded-xl border border-border p-2 bg-surface">
             <QrSvg text={url} />
           </div>
         </div>

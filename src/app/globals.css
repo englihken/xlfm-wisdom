@@ -2,11 +2,9 @@
 
 /* ============================================================================
    THEME 2b — 宣纸暖金·深字版 (deep-ink warm-gold on rice-paper).
-   Canonical semantic tokens for the platform. Components reference these via
-   Tailwind classes (bg-surface / text-ink / border-border …) mapped in the
-   @theme block below. Legacy --color-cream/--color-brown/etc. tokens are kept
-   as aliases so the still-unthemed module pages (T2/T3) don't break — their
-   removal is a later cleanup step.
+   The single source of truth for the platform palette. Components reference
+   these tokens via Tailwind classes (bg-surface / text-ink / border-border …)
+   mapped in the @theme block below.
    ========================================================================== */
 :root {
   /* surfaces */
@@ -32,21 +30,6 @@
   --quote-ink: #4A3A14;
   /* CTA gradient */
   --cta-gradient: linear-gradient(160deg, #D9A63E, #B8862B);
-
-  /* legacy warm-gold aliases — retained for the yet-unthemed module pages so
-     their hardcoded refs keep resolving until the T3 cleanup removes them. */
-  --xlfm-primary: #FCBD60;
-  --xlfm-primary-light: #FFE183;
-  --xlfm-primary-dark: #D89938;
-  --xlfm-bg-base: #FFF3DA;
-  --xlfm-bg-card: #FFFEF6;
-  --xlfm-bg-section: #FAEFD0;
-  --xlfm-text: #583A0F;
-  --xlfm-text-secondary: #8B6F47;
-  --xlfm-text-muted: #B89968;
-  --xlfm-warning: #DC2626;
-  --xlfm-warning-bg: #FEF2F2;
-  --xlfm-warning-border: #FCA5A5;
 }
 
 @theme inline {
@@ -71,17 +54,6 @@
   --color-gold-border: var(--gold-border);
   --color-quote-bg: var(--quote-bg);
   --color-quote-ink: var(--quote-ink);
-
-  /* legacy token names retained; values remapped to the warm-gold palette so
-     existing class references (bg-cream / text-brown / text-amber) on the
-     unthemed module pages keep working until T3 removes them. */
-  --color-cream: #FFF3DA;
-  --color-gold-light: #FAEFD0;
-  --color-gold-banner: #FCBD60;
-  --color-brown: #583A0F;
-  --color-amber: #D89938;
-  --color-link: #D89938;
-  --color-card-border: #EFE3BF;
 }
 
 body {

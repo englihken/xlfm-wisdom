@@ -5,9 +5,9 @@ const paths = [
     description:
       "从未接触过佛法？没关系。我们会从最基本的开始，一步一步带您了解什么是心灵法门、为什么念经有用、以及如何开始您的第一次功课。",
     button: "从这里开始",
-    accent: "from-amber/10 to-gold-light",
-    border: "border-amber/20",
-    btnStyle: "bg-amber text-white hover:bg-amber/90",
+    accent: "from-accent/10 to-surface-soft",
+    border: "border-accent/20",
+    btnStyle: "btn-primary",
   },
   {
     emoji: "📿",
@@ -15,9 +15,9 @@ const paths = [
     description:
       "已经有一些了解，想要更深入？这里有完整的修行体系：从每日功课到小房子，从许愿到放生，系统化地帮您建立修行的基础。",
     button: "系统学习",
-    accent: "from-gold-banner/10 to-gold-light/50",
-    border: "border-gold-banner/20",
-    btnStyle: "bg-gold-banner text-white hover:bg-gold-banner/90",
+    accent: "from-accent/10 to-surface-soft/50",
+    border: "border-accent/20",
+    btnStyle: "btn-primary",
   },
   {
     emoji: "💛",
@@ -33,13 +33,13 @@ const paths = [
 
 export default function ThreePaths() {
   return (
-    <section className="bg-cream">
+    <section className="bg-bg">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
         <div className="text-center mb-12">
-          <span className="text-amber text-sm tracking-wider">
+          <span className="text-accent text-sm tracking-wider">
             不知道从哪里开始？
           </span>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-brown mt-2">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ink mt-2">
             选择一个适合您的入口
           </h2>
         </div>
@@ -51,10 +51,10 @@ export default function ThreePaths() {
               className={`group relative bg-gradient-to-b ${path.accent} rounded-2xl border ${path.border} p-6 sm:p-8 flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all duration-300`}
             >
               <div className="text-4xl mb-4">{path.emoji}</div>
-              <h3 className="text-xl font-bold text-brown mb-3">
+              <h3 className="text-xl font-bold text-ink mb-3">
                 {path.title}
               </h3>
-              <p className="text-brown/70 leading-relaxed mb-6 flex-1">
+              <p className="text-ink/70 leading-relaxed mb-6 flex-1">
                 {path.description}
               </p>
               <a

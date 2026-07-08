@@ -26,11 +26,11 @@ export const STATUS_LABELS: Record<string, string> = {
   closed: '已截止',
   completed: '已结束',
 };
-// Event-status badge palette (mockup): 草稿 grey · 开放报名 filled gold · 已满额 soft red ·
-// 已截止 amber · 已结束 soft green.
+// Event-status badge palette: 草稿 muted · 开放报名 filled gold (accent) · 已满额 soft red ·
+// 已截止 amber · 已结束 soft green. (The soft red / amber / green stay as-is — semantic.)
 export const STATUS_STYLES: Record<string, string> = {
-  draft: 'bg-[#F1EADA] text-[#8B6F47] border border-[#E4D8BC]',
-  open: 'bg-[#D89938] text-white',
+  draft: 'bg-surface-soft text-ink-faint border border-border',
+  open: 'bg-accent text-white',
   full: 'bg-[#FCEBEA] text-[#B4402E]',
   closed: 'bg-[#F5E1B0] text-[#8A5A1E]',
   completed: 'bg-[#E7F0E0] text-[#3F6B2E]',
@@ -43,13 +43,13 @@ export const REG_STATUS_LABELS: Record<string, string> = {
   cancelled: '已取消',
 };
 
-// Registration-status badge palette (mockup): 待审核 gold-outline · 已批准 green · 已拒绝 red ·
-// 已取消 grey.
+// Registration-status badge palette: 待审核 gold-outline · 已批准 green · 已拒绝 red ·
+// 已取消 muted. (Green / red stay as-is — semantic.)
 export const REG_STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-white border border-[#E3B85A] text-[#A87929]',
+  pending: 'bg-white border border-gold-border text-accent-deep',
   approved: 'bg-[#E7F0E0] text-[#3F6B2E]',
   rejected: 'bg-[#FCEBEA] text-[#B4402E]',
-  cancelled: 'bg-[#F1EADA] text-[#B89968]',
+  cancelled: 'bg-surface-soft text-ink-faint border border-border',
 };
 
 // The six FIXED fee rows, each with its canonical billing (mirrors the server
@@ -112,8 +112,8 @@ export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   waived: '已豁免',
 };
 export const PAYMENT_STATUS_STYLES: Record<string, string> = {
-  unpaid: 'bg-[#F1EADA] text-[#8B6F47]',
-  proof_submitted: 'bg-white border border-[#E3B85A] text-[#A87929]',
+  unpaid: 'bg-surface-soft text-ink-faint',
+  proof_submitted: 'bg-white border border-gold-border text-accent-deep',
   verified: 'bg-[#E7F0E0] text-[#3F6B2E]',
   waived: 'bg-[#EFEAF6] text-[#6B5B8A]',
 };

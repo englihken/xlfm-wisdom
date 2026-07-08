@@ -14,7 +14,7 @@ export default function NewMemberPage() {
         grantAllows(me.grants, 'members', 'edit') ? (
           <MemberForm mode="create" />
         ) : (
-          <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-[#8B6F47]">您没有新增会员的权限。</p>
+          <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">您没有新增会员的权限。</p>
         )
       }
     </ErpGate>

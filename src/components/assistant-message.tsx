@@ -25,7 +25,7 @@ export const assistantMarkdownComponents = {
   ul: (props: ComponentPropsWithoutRef<'ul'>) => <ul className="my-2 ml-5 list-disc" {...props} />,
   ol: (props: ComponentPropsWithoutRef<'ol'>) => <ol className="my-2 ml-5 list-decimal" {...props} />,
   li: (props: ComponentPropsWithoutRef<'li'>) => <li className="my-1" {...props} />,
-  hr: () => <hr className="my-4 border-amber-200/60" />,
+  hr: () => <hr className="my-4 border-border" />,
   blockquote: (props: ComponentPropsWithoutRef<'blockquote'>) => (
     <blockquote className="quote-card my-4 px-4 py-3 not-italic">
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -35,8 +35,8 @@ export const assistantMarkdownComponents = {
       <div className="quote-card-body [&>p]:my-1 [&>p]:leading-[2]">{props.children}</div>
     </blockquote>
   ),
-  strong: (props: ComponentPropsWithoutRef<'strong'>) => <strong className="text-amber-900 font-semibold" {...props} />,
-  code: (props: ComponentPropsWithoutRef<'code'>) => <code className="bg-amber-100/50 px-1 py-0.5 rounded text-sm" {...props} />,
+  strong: (props: ComponentPropsWithoutRef<'strong'>) => <strong className="text-accent-deep font-semibold" {...props} />,
+  code: (props: ComponentPropsWithoutRef<'code'>) => <code className="bg-accent/10 text-accent-deep px-1 py-0.5 rounded text-sm" {...props} />,
 };
 
 // Renders an assistant reply's markdown with the shared component map.

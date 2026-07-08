@@ -413,19 +413,19 @@ export default function QAPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF3DA]">
+    <div className="min-h-screen bg-bg">
       {/* Welcome Modal — first visit only */}
       {hasSeenWelcome === false && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-[#FFF3DA] rounded-2xl shadow-2xl max-w-[480px] w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8">
-            <h2 className="text-xl font-bold text-[#583A0F] text-center mb-5">
+          <div className="bg-bg rounded-2xl shadow-2xl max-w-[480px] w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+            <h2 className="text-xl font-bold text-ink font-serif text-center mb-5">
               {t.welcomeTitle}
             </h2>
 
-            <div className="space-y-4 text-sm text-[#583A0F]">
+            <div className="space-y-4 text-sm text-ink">
               <div>
                 <p className="font-semibold mb-1.5">{'🔒'} {t.welcomePrivacy}</p>
-                <ul className="space-y-1 text-[#8B6F47]">
+                <ul className="space-y-1 text-ink-muted">
                   <li>{'•'} {t.welcomePrivacy1}</li>
                   <li>{'•'} {t.welcomePrivacy2}</li>
                   <li>{'•'} {t.welcomePrivacy3}</li>
@@ -434,7 +434,7 @@ export default function QAPage() {
 
               <div>
                 <p className="font-semibold mb-1.5">{'\uD83D\uDCFF'} {t.welcomeOffer}</p>
-                <ul className="space-y-1 text-[#8B6F47]">
+                <ul className="space-y-1 text-ink-muted">
                   <li>{'•'} {t.welcomeOffer1}</li>
                   <li>{'•'} {t.welcomeOffer2}</li>
                   <li>{'•'} {t.welcomeOffer3}</li>
@@ -443,7 +443,7 @@ export default function QAPage() {
 
               <div>
                 <p className="font-semibold mb-1.5">{'\uD83D\uDE4F'} {t.welcomeLimit}</p>
-                <ul className="space-y-1 text-[#8B6F47]">
+                <ul className="space-y-1 text-ink-muted">
                   <li>{'•'} {t.welcomeLimit1}</li>
                   <li>{'•'} {t.welcomeLimit2}</li>
                   <li>{'•'} {t.welcomeLimit3}</li>
@@ -471,13 +471,13 @@ export default function QAPage() {
               </div>
             </div>
 
-            <p className="text-center text-xs text-[#8B6F47] mt-4">
+            <p className="text-center text-xs text-ink-muted mt-4">
               {language === 'zh' ? '一切免费结缘 · 菩萨慈悲' : language === 'en' ? 'Free forever · With Bodhisattva\'s compassion' : 'Percuma selamanya · Dengan belas kasihan Bodhisattva'} {'\uD83D\uDE4F'}
             </p>
 
             <button
               onClick={dismissWelcome}
-              className="mt-5 w-full py-3 bg-[#D89938] hover:bg-[#A87929] text-white rounded-xl font-medium transition text-base"
+              className="mt-5 w-full py-3 btn-primary rounded-xl font-medium transition text-base"
             >
               {t.welcomeBtn}
             </button>
@@ -485,20 +485,20 @@ export default function QAPage() {
         </div>
       )}
 
-      <div className="border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm sticky top-0 z-10">
+      <div className="border-b border-border bg-surface/60 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Sparkles className="text-[#D89938] w-6 h-6" />
+            <Sparkles className="text-accent w-6 h-6" />
             <div>
-              <h1 className="text-xl font-bold text-[#583A0F]">{t.title}</h1>
-              <p className="text-xs text-[#8B6F47]">{t.basedOn}</p>
+              <h1 className="text-xl font-bold text-ink font-serif">{t.title}</h1>
+              <p className="text-xs text-ink-muted">{t.basedOn}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {messages.length > 0 && (
               <button
                 onClick={handleNewConversation}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-amber-800 hover:text-amber-900 hover:bg-amber-100/60 rounded-full transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-accent-deep hover:text-accent-deep hover:bg-accent/10 rounded-full transition-colors"
                 aria-label="新对话"
                 title={language === 'zh' ? '新对话' : language === 'en' ? 'New chat' : 'Baru'}
               >
@@ -510,15 +510,15 @@ export default function QAPage() {
                 </span>
               </button>
             )}
-            <div className="flex gap-1 bg-[#FAEFD0] rounded-full p-1">
+            <div className="flex gap-1 bg-accent/10 rounded-full p-1">
               {(['zh', 'en', 'id'] as const).map((lang) => (
                 <button
                   key={lang}
                   onClick={() => setLanguage(lang)}
                   className={`px-3 py-1 rounded-full text-sm transition ${
                     language === lang
-                      ? 'bg-[#D89938] text-white'
-                      : 'text-[#583A0F] hover:bg-white'
+                      ? 'bg-accent text-white'
+                      : 'text-ink hover:bg-surface'
                   }`}
                 >
                   {lang === 'zh' ? '中文' : lang.toUpperCase()}
@@ -531,8 +531,8 @@ export default function QAPage() {
 
       {messages.length === 0 ? (
         <div className="flex flex-col items-center px-4 py-6 sm:py-8 max-w-2xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#8B6F47] mb-2 text-center">{t.subtitle}</h2>
-          <p className="text-[#D89938] text-lg font-medium">{t.free}</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-ink-muted mb-2 text-center">{t.subtitle}</h2>
+          <p className="text-accent text-lg font-medium">{t.free}</p>
 
           <form onSubmit={handleSubmit} className="w-full mt-6 mb-6">
             <div className="flex gap-2">
@@ -549,12 +549,12 @@ export default function QAPage() {
                 placeholder={t.placeholder}
                 disabled={isLoading}
                 rows={1}
-                className="flex-1 p-3 border border-[#EFE3BF] rounded-xl resize-none focus:outline-none focus:border-[#D89938] focus:ring-1 focus:ring-[#D89938] text-[#583A0F] bg-white shadow-sm"
+                className="flex-1 p-3 border border-border-strong rounded-xl resize-none focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent text-ink bg-surface shadow-sm"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="px-6 py-3 bg-[#D89938] hover:bg-[#A87929] text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-3 btn-primary rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Send className="w-5 h-5" />
               </button>
@@ -562,16 +562,16 @@ export default function QAPage() {
           </form>
 
           <div className="w-full">
-            <p className="text-sm text-[#8B6F47] text-center mb-3">{t.quickTitle}</p>
+            <p className="text-sm text-ink-muted text-center mb-3">{t.quickTitle}</p>
             <div className="grid sm:grid-cols-2 gap-2">
               {QUICK_QUESTIONS[language].map((q, idx) => (
                 <button
                   key={idx}
                   onClick={() => sendMessage(q)}
                   disabled={isLoading}
-                  className="text-left p-4 bg-white border border-[#EFE3BF] rounded-xl hover:bg-[#FAEFD0] hover:border-[#FCBD60] hover:text-[#583A0F] transition disabled:opacity-50"
+                  className="text-left p-4 bg-surface border border-border rounded-xl hover:bg-accent/5 hover:border-accent hover:text-ink transition disabled:opacity-50"
                 >
-                  <p className="text-[#583A0F]">{q}</p>
+                  <p className="text-ink">{q}</p>
                 </button>
               ))}
             </div>
@@ -595,17 +595,17 @@ export default function QAPage() {
                 <div
                   className={`max-w-[85%] rounded-2xl p-4 ${
                     msg.role === 'user'
-                      ? 'bg-[#D89938] text-white'
+                      ? 'card-selected text-ink'
                       : msg.role === 'volunteer'
-                        ? 'bg-[#FBF3E0] border border-[#E8D5A8] text-[#5C3D1E]'
-                        : 'bg-white border border-[#EFE3BF] text-[#583A0F]'
+                        ? 'bg-surface border border-border text-ink-body'
+                        : 'bg-surface border border-border text-ink'
                   }`}
                 >
                   {msg.role === 'user' ? (
                     <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                   ) : msg.role === 'volunteer' ? (
                     <>
-                      <div className="text-xs font-medium text-[#A87C3D] mb-1.5">{t.volunteerLabel}</div>
+                      <div className="text-xs font-medium text-accent-deep mb-1.5">{t.volunteerLabel}</div>
                       <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                     </>
                   ) : (
@@ -629,7 +629,7 @@ export default function QAPage() {
                             if (btn) { const o = btn.innerText; btn.innerText = '已复制 ✓'; setTimeout(() => { btn.innerText = o; }, 1500); }
                           }
                         }}
-                        className="text-xs text-[#8B6F47] hover:text-[#C5975B] flex items-center gap-1 transition"
+                        className="text-xs text-ink-muted hover:text-accent flex items-center gap-1 transition"
                       >
                         <span>📤</span> 分享
                       </button>
@@ -642,12 +642,12 @@ export default function QAPage() {
 
             {isLoading && messages[messages.length - 1]?.content === '' && (
               <div className="flex justify-start">
-                <div className="bg-white border border-[#EFE3BF] rounded-2xl p-4">
-                  <div className="flex items-center gap-2 text-[#8B6F47]">
+                <div className="bg-surface border border-border rounded-2xl p-4">
+                  <div className="flex items-center gap-2 text-ink-muted">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-[#D89938] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="w-2 h-2 bg-[#D89938] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="w-2 h-2 bg-[#D89938] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
                     <span className="text-sm">{t.sending}</span>
                   </div>
@@ -666,7 +666,7 @@ export default function QAPage() {
               setShowJumpButton(false);
               wasAtBottomRef.current = true;
             }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-full shadow-lg hover:bg-amber-600 transition-all text-sm font-medium"
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-full shadow-lg hover:brightness-110 transition-all text-sm font-medium"
             aria-label="跳到最新内容"
           >
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -678,7 +678,7 @@ export default function QAPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-[#EFE3BF]"
+          className="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-sm border-t border-border"
         >
           <div className="max-w-4xl mx-auto p-4">
             <div className="flex gap-2">
@@ -695,18 +695,18 @@ export default function QAPage() {
                 placeholder={t.placeholder}
                 disabled={isLoading}
                 rows={1}
-                className="flex-1 p-3 border border-[#EFE3BF] rounded-xl resize-none focus:outline-none focus:border-[#D89938] focus:ring-1 focus:ring-[#D89938] text-[#583A0F]"
+                className="flex-1 p-3 border border-border-strong rounded-xl resize-none focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent text-ink"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="px-6 py-3 bg-[#D89938] hover:bg-[#A87929] text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-3 btn-primary rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Send className="w-5 h-5" />
               </button>
             </div>
             {volunteerHandling && (
-              <p className="mt-2 text-center text-xs text-[#A87C3D]">{t.volunteerHandlingNotice}</p>
+              <p className="mt-2 text-center text-xs text-accent-deep">{t.volunteerHandlingNotice}</p>
             )}
           </div>
         </form>
@@ -714,21 +714,21 @@ export default function QAPage() {
       )}
 
       {/* Persistent safety footer */}
-      <div className={`${messages.length > 0 ? 'fixed bottom-[68px] left-0 right-0 bg-white/80 backdrop-blur-sm' : ''} border-t border-[#EFE3BF] py-2 px-4`}>
+      <div className={`${messages.length > 0 ? 'fixed bottom-[68px] left-0 right-0 bg-surface/80 backdrop-blur-sm' : ''} border-t border-border py-2 px-4`}>
         {/* Row 1: declarations + For Non-Muslim Only inline */}
-        <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-[#583A0F]">
+        <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-ink">
           <span className="font-medium">
           {'\uD83D\uDE4F'} {t.footerLine1}</span>
-          <span aria-hidden className="text-[#B89968]">·</span>
+          <span aria-hidden className="text-ink-faint">·</span>
           <span className="font-bold text-red-700">{t.footerLineLegal}</span>
         </div>
         {/* Row 2: emergency contacts */}
-        <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-[#583A0F] mt-1">
-          <span><span className="font-semibold">{t.footerLine2}</span><a href="tel:999" className="text-[#D89938] underline hover:text-[#A87929]">999</a></span>
-          <span aria-hidden className="text-[#B89968]">·</span>
-          <span><span className="font-semibold">{t.footerMental}</span><a href="tel:0376272929" className="text-[#D89938] underline hover:text-[#A87929]">Befrienders 03-7627 2929</a></span>
-          <span aria-hidden className="text-[#B89968]">·</span>
-          <span><span className="font-semibold">{t.footerDV}</span><a href="tel:15999" className="text-[#D89938] underline hover:text-[#A87929]">Talian Kasih 15999</a></span>
+        <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-ink mt-1">
+          <span><span className="font-semibold">{t.footerLine2}</span><a href="tel:999" className="text-accent underline hover:text-accent-deep">999</a></span>
+          <span aria-hidden className="text-ink-faint">·</span>
+          <span><span className="font-semibold">{t.footerMental}</span><a href="tel:0376272929" className="text-accent underline hover:text-accent-deep">Befrienders 03-7627 2929</a></span>
+          <span aria-hidden className="text-ink-faint">·</span>
+          <span><span className="font-semibold">{t.footerDV}</span><a href="tel:15999" className="text-accent underline hover:text-accent-deep">Talian Kasih 15999</a></span>
         </div>
       </div>
     </div>

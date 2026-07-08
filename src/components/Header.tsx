@@ -18,13 +18,13 @@ export default function Header() {
   const [activeLang, setActiveLang] = useState("中文");
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-card-border">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Top bar */}
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo */}
           <a href="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-gold-banner to-amber flex items-center justify-center">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-accent to-accent-deep flex items-center justify-center">
               <svg
                 viewBox="0 0 32 32"
                 className="w-5 h-5 sm:w-6 sm:h-6 text-white"
@@ -34,15 +34,15 @@ export default function Header() {
               </svg>
             </div>
             <div className="hidden sm:block">
-              <div className="text-sm font-bold text-brown leading-tight">
+              <div className="text-sm font-bold text-ink leading-tight">
                 心灵法门马来西亚
               </div>
-              <div className="text-xs text-amber tracking-wide">
+              <div className="text-xs text-accent tracking-wide">
                 XIN LING FA MEN MALAYSIA
               </div>
             </div>
             <div className="sm:hidden">
-              <div className="text-xs font-bold text-brown leading-tight">
+              <div className="text-xs font-bold text-ink leading-tight">
                 心灵法门
               </div>
             </div>
@@ -54,7 +54,7 @@ export default function Header() {
               <a
                 key={item.label}
                 href={item.href}
-                className="px-3 py-2 text-sm text-brown/80 hover:text-amber transition-colors rounded-lg hover:bg-gold-light/50"
+                className="px-3 py-2 text-sm text-ink/80 hover:text-accent transition-colors rounded-lg hover:bg-surface-soft/50"
               >
                 {item.label}
               </a>
@@ -63,15 +63,15 @@ export default function Header() {
 
           {/* Language + mobile toggle */}
           <div className="flex items-center gap-2">
-            <div className="flex bg-gold-light/60 rounded-full p-0.5">
+            <div className="flex bg-surface-soft/60 rounded-full p-0.5">
               {languages.map(lang => (
                 <button
                   key={lang}
                   onClick={() => setActiveLang(lang)}
                   className={`px-2.5 py-1 text-xs rounded-full transition-all ${
                     activeLang === lang
-                      ? "bg-white text-amber font-semibold shadow-sm"
-                      : "text-brown/60 hover:text-brown"
+                      ? "bg-white text-accent font-semibold shadow-sm"
+                      : "text-ink/60 hover:text-ink"
                   }`}
                 >
                   {lang}
@@ -82,7 +82,7 @@ export default function Header() {
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden p-2 text-brown/70 hover:text-amber"
+              className="lg:hidden p-2 text-ink/70 hover:text-accent"
               aria-label="Toggle menu"
             >
               {mobileOpen ? (
@@ -101,13 +101,13 @@ export default function Header() {
 
       {/* Mobile nav */}
       {mobileOpen && (
-        <nav className="lg:hidden border-t border-card-border bg-white px-4 pb-4">
+        <nav className="lg:hidden border-t border-border bg-white px-4 pb-4">
           {navItems.map(item => (
             <a
               key={item.label}
               href={item.href}
               onClick={() => setMobileOpen(false)}
-              className="block py-3 text-brown/80 hover:text-amber border-b border-card-border/50 last:border-0"
+              className="block py-3 text-ink/80 hover:text-accent border-b border-border/50 last:border-0"
             >
               {item.label}
             </a>

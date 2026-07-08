@@ -48,18 +48,18 @@ const categories = [
 
 export default function LifeGuidance() {
   return (
-    <section id="guidance" className="bg-cream">
+    <section id="guidance" className="bg-bg">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
         <div className="text-center mb-12">
-          <span className="text-amber text-sm tracking-wider">
+          <span className="text-accent text-sm tracking-wider">
             人生指引 · LIFE GUIDANCE
           </span>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-brown mt-2 mb-3">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ink mt-2 mb-3">
             您遇到的问题，很多人都经历过，
             <br className="hidden sm:block" />
             也都走出来了
           </h2>
-          <p className="text-brown/60 max-w-2xl mx-auto">
+          <p className="text-ink/60 max-w-2xl mx-auto">
             选择您正在面对的困境，我们会为您提供对应的佛法指引和真实案例。
           </p>
         </div>
@@ -73,8 +73,8 @@ export default function LifeGuidance() {
               <div className={`w-12 h-12 ${cat.iconBg} rounded-xl flex items-center justify-center text-2xl mb-4`}>
                 {cat.emoji}
               </div>
-              <h3 className="text-lg font-bold text-brown mb-2">{cat.title}</h3>
-              <p className="text-brown/65 text-sm leading-relaxed mb-4">
+              <h3 className="text-lg font-bold text-ink mb-2">{cat.title}</h3>
+              <p className="text-ink/65 text-sm leading-relaxed mb-4">
                 {cat.description}
               </p>
               <span className={`inline-flex items-center text-xs font-medium px-3 py-1 rounded-full ${cat.tag}`}>
@@ -84,19 +84,19 @@ export default function LifeGuidance() {
           ))}
 
           {/* CTA card */}
-          <div className="group bg-gradient-to-br from-gold-light to-gold-light/60 rounded-2xl border border-gold-banner/20 p-6 flex flex-col items-center justify-center text-center hover:shadow-lg transition-all">
-            <div className="w-14 h-14 bg-gold-banner/15 rounded-full flex items-center justify-center text-3xl mb-4">
+          <div className="group bg-gradient-to-br from-surface-soft to-surface-soft/60 rounded-2xl border border-accent/20 p-6 flex flex-col items-center justify-center text-center hover:shadow-lg transition-all">
+            <div className="w-14 h-14 bg-accent/15 rounded-full flex items-center justify-center text-3xl mb-4">
               🙏
             </div>
-            <h3 className="text-lg font-bold text-brown mb-2">
+            <h3 className="text-lg font-bold text-ink mb-2">
               不确定属于哪种？
             </h3>
-            <p className="text-brown/60 text-sm mb-4">
+            <p className="text-ink/60 text-sm mb-4">
               没关系，直接告诉我们您的烦恼
             </p>
             <a
               href="#qa"
-              className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-gold-banner to-amber text-white text-sm font-semibold rounded-xl hover:shadow-md transition-all"
+              className="inline-flex items-center px-5 py-2.5 btn-primary text-sm font-semibold rounded-xl hover:shadow-md transition-all"
             >
               进入人生指引
             </a>

@@ -1,40 +1,40 @@
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-cream via-gold-light/40 to-cream">
+    <section className="relative overflow-hidden bg-gradient-to-b from-bg via-surface-soft/40 to-bg">
       {/* Decorative elements */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-10 left-10 w-64 h-64 bg-gold-banner/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-10 w-80 h-80 bg-amber/5 rounded-full blur-3xl" />
+        <div className="absolute top-10 left-10 w-64 h-64 bg-accent/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-10 w-80 h-80 bg-accent/5 rounded-full blur-3xl" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 lg:py-24">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           {/* Left content */}
           <div className="relative z-10">
-            <span className="inline-block text-amber text-sm sm:text-base tracking-widest mb-4 opacity-90">
+            <span className="inline-block text-accent text-sm sm:text-base tracking-widest mb-4 opacity-90">
               观世音菩萨心灵法门
             </span>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-brown leading-tight mb-6">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ink leading-tight mb-6">
               心有方向，
               <br />
-              <span className="text-amber">人生就有出路。</span>
+              <span className="text-accent">人生就有出路。</span>
             </h1>
 
-            <p className="text-base sm:text-lg text-brown/80 leading-relaxed mb-8 max-w-xl">
+            <p className="text-base sm:text-lg text-ink/80 leading-relaxed mb-8 max-w-xl">
               无论您正在经历怎样的烦恼与困境，这里都有方向。心灵法门以念经、许愿、放生三大法宝，帮助无数人走出疾病、婚姻、事业与心灵的困境——不花您一分钱。
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
               <a
                 href="#about"
-                className="inline-flex items-center justify-center px-6 py-3.5 bg-gradient-to-r from-gold-banner to-amber text-white font-semibold rounded-xl shadow-lg shadow-gold-banner/25 hover:shadow-xl hover:shadow-gold-banner/30 transition-all hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center px-6 py-3.5 btn-primary font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
               >
                 我想了解心灵法门
               </a>
               <a
                 href="#practice"
-                className="inline-flex items-center justify-center px-6 py-3.5 bg-white text-amber font-semibold rounded-xl border-2 border-gold-banner/30 hover:border-gold-banner/60 transition-all hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center px-6 py-3.5 btn-secondary font-semibold rounded-xl transition-all hover:-translate-y-0.5"
               >
                 开始学习修行
               </a>
@@ -46,7 +46,7 @@ export default function Hero() {
               </a>
             </div>
 
-            <p className="text-sm text-brown/60 leading-relaxed max-w-lg border-l-2 border-gold-banner/30 pl-4">
+            <p className="text-sm text-ink/60 leading-relaxed max-w-lg border-l-2 border-accent/30 pl-4">
               您不需要有任何佛学基础。很多人第一次来到这里时，只是带着一个解不开的烦恼。这就够了——有这份心，菩萨就会帮您。
             </p>
           </div>
@@ -64,7 +64,7 @@ export default function Hero() {
                 <circle cx="200" cy="200" r="100" fill="#FCBD60" opacity="0.08" />
 
                 {/* Water */}
-                <ellipse cx="200" cy="310" rx="120" ry="15" fill="#D89938" opacity="0.1" />
+                <ellipse cx="200" cy="310" rx="120" ry="15" fill="#C08A2D" opacity="0.1" />
 
                 {/* Stem */}
                 <path
@@ -113,12 +113,12 @@ export default function Hero() {
                 />
                 <path
                   d="M200 200 Q140 180 130 200 Q140 220 200 200Z"
-                  fill="#D89938"
+                  fill="#C08A2D"
                   opacity="0.2"
                 />
                 <path
                   d="M200 200 Q260 180 270 200 Q260 220 200 200Z"
-                  fill="#D89938"
+                  fill="#C08A2D"
                   opacity="0.2"
                 />
 
@@ -130,18 +130,18 @@ export default function Hero() {
                 />
                 <path
                   d="M200 200 Q165 185 165 175 Q170 160 200 200Z"
-                  fill="#D89938"
+                  fill="#C08A2D"
                   opacity="0.3"
                 />
                 <path
                   d="M200 200 Q235 185 235 175 Q230 160 200 200Z"
-                  fill="#D89938"
+                  fill="#C08A2D"
                   opacity="0.3"
                 />
 
                 {/* Center */}
                 <circle cx="200" cy="195" r="12" fill="#FCBD60" opacity="0.6" />
-                <circle cx="200" cy="195" r="6" fill="#D89938" opacity="0.5" />
+                <circle cx="200" cy="195" r="6" fill="#C08A2D" opacity="0.5" />
 
                 {/* Light rays */}
                 <line x1="200" y1="80" x2="200" y2="100" stroke="#FCBD60" strokeWidth="1" opacity="0.3" />

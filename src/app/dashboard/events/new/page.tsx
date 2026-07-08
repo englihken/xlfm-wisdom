@@ -14,7 +14,7 @@ export default function NewEventPage() {
         grantAllows(me.grants, 'events', 'edit') ? (
           <EventForm mode="create" />
         ) : (
-          <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-[#8B6F47]">您没有创建活动的权限。</p>
+          <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">您没有创建活动的权限。</p>
         )
       }
     </ErpGate>

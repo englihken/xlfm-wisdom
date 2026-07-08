@@ -15,8 +15,8 @@ import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
+import { TopBar } from '@/components/top-bar';
 import type { Grants } from '@/lib/access';
-import { PLATFORM_NAME } from '@/lib/platform';
 
 type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
 type Me = { email: string; displayName: string | null; role: Role; grants?: Grants };
@@ -150,8 +150,8 @@ export default function ReportsPage() {
   // Nothing here reveals what the page is (no title, rail, top bar, or controls).
   if (checking || gate === 'checking') {
     return (
-      <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center">
-        <p className="text-sm text-[#8B6F47]">加载中…</p>
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <p className="text-sm text-ink-muted">加载中…</p>
       </div>
     );
   }
@@ -163,13 +163,13 @@ export default function ReportsPage() {
   // Logged in but not an admin — polite notice, same as settings.
   if (gate === 'denied') {
     return (
-      <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-lg font-semibold text-[#583A0F]">此页面仅限管理员</p>
-          <p className="mt-2 text-sm text-[#8B6F47]">如需帮助，请联系系统管理员。</p>
+          <p className="text-lg font-semibold text-ink">此页面仅限管理员</p>
+          <p className="mt-2 text-sm text-ink-muted">如需帮助，请联系系统管理员。</p>
           <Link
             href="/dashboard"
-            className="inline-block mt-5 px-4 py-2 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
+            className="btn-secondary inline-block mt-5 px-4 py-2 text-sm"
           >
             返回收件箱
           </Link>
@@ -179,29 +179,8 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFF3DA] md:ml-[72px]">
-      {/* TOP BAR — navigation lives in the rail now; keep title, name, 登出. */}
-      <header className="shrink-0 border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm">
-        <div className="px-5 py-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] leading-none text-[#B89968]">🪷 {PLATFORM_NAME}</p>
-            <h1 className="mt-0.5 text-lg font-bold text-[#583A0F] leading-tight">
-              报表 <span className="text-sm font-normal text-[#B89968]">· Reports</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="hidden sm:inline text-sm text-[#8B6F47]">
-              {me?.displayName || me?.email}
-            </span>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
-            >
-              登出
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-bg md:ml-[72px]">
+      <TopBar moduleTitle="报表 · Reports" userLabel={me?.displayName || me?.email || undefined} onLogout={handleLogout} />
 
       <DashboardNav role={me?.role ?? 'volunteer'} active="reports" grants={me?.grants} />
 
@@ -209,16 +188,16 @@ export default function ReportsPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
           {/* HEADER ROW — title + range pills */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-xl font-bold text-[#583A0F]">报表</h2>
+            <h2 className="font-serif text-xl font-bold text-ink">报表</h2>
             <div className="flex items-center gap-1">
               {RANGES.map((r) => (
                 <button
                   key={r.id}
                   onClick={() => changeRange(r.id)}
-                  className={`px-3 py-1.5 text-sm rounded-full border transition ${
+                  className={`px-3 py-1.5 text-sm rounded-full transition ${
                     range === r.id
-                      ? 'bg-[#FAEFD0] text-[#583A0F] border-[#EFE3BF]'
-                      : 'text-[#8B6F47] border-transparent hover:bg-[#FAEFD0]/60'
+                      ? 'bg-accent/10 text-accent-deep'
+                      : 'text-ink-muted hover:bg-accent/5'
                   }`}
                 >
                   {r.label}
@@ -228,9 +207,9 @@ export default function ReportsPage() {
           </div>
 
           {reportsLoading ? (
-            <p className="text-sm text-[#8B6F47]">加载中…</p>
+            <p className="text-sm text-ink-muted">加载中…</p>
           ) : !data ? (
-            <p className="text-sm text-[#8B6F47]">无法加载报表</p>
+            <p className="text-sm text-ink-muted">无法加载报表</p>
           ) : (
             <>
               {/* STAT CARDS */}
@@ -267,12 +246,12 @@ export default function ReportsPage() {
 function StatCard({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
   return (
     <div
-      className={`bg-[#FFFEF6] border rounded-2xl p-5 ${
-        danger ? 'border-[#FCA5A5]' : 'border-[#EFE3BF]'
+      className={`bg-surface border rounded-2xl p-5 ${
+        danger ? 'border-[#FCA5A5]' : 'border-border'
       }`}
     >
-      <p className="text-sm text-[#8B6F47]">{label}</p>
-      <p className={`mt-1 text-3xl font-bold ${danger ? 'text-red-600' : 'text-[#583A0F]'}`}>
+      <p className="text-sm text-ink-muted">{label}</p>
+      <p className={`mt-1 text-3xl font-bold ${danger ? 'text-red-600' : 'text-ink'}`}>
         {value}
       </p>
     </div>
@@ -281,8 +260,8 @@ function StatCard({ label, value, danger }: { label: string; value: number; dang
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-5 sm:p-6">
-      <h3 className="text-base font-semibold text-[#583A0F] mb-4">{title}</h3>
+    <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
+      <h3 className="font-serif text-base font-semibold text-ink mb-4">{title}</h3>
       {children}
     </section>
   );
@@ -300,7 +279,7 @@ function CategoryChart({
   const max = Math.max(1, ...categories.map((c) => c.count));
 
   if (real.length === 0 && junk.length === 0) {
-    return <p className="text-sm text-[#8B6F47]">暂无数据</p>;
+    return <p className="text-sm text-ink-muted">暂无数据</p>;
   }
 
   const Bar = ({
@@ -315,21 +294,21 @@ function CategoryChart({
     <div className="flex items-center gap-3">
       <div
         className={`w-24 shrink-0 text-sm truncate ${
-          junkStyle ? 'text-[#B89968]' : 'text-[#583A0F]'
+          junkStyle ? 'text-ink-faint' : 'text-ink'
         }`}
         title={label}
       >
         {label}
       </div>
-      <div className="flex-1 h-6 rounded-full bg-[#FAEFD0] overflow-hidden">
+      <div className="flex-1 h-6 rounded-full bg-accent/10 overflow-hidden">
         <div
-          className={`h-full rounded-full ${junkStyle ? 'bg-[#C9BCA0]' : 'bg-[#D89938]'}`}
+          className={`h-full rounded-full ${junkStyle ? 'bg-ink-faint/40' : 'bg-accent'}`}
           style={{ width: `${Math.max((count / max) * 100, count > 0 ? 4 : 0)}%` }}
         />
       </div>
       <div
         className={`w-10 shrink-0 text-right text-sm ${
-          junkStyle ? 'text-[#B89968]' : 'text-[#8B6F47]'
+          junkStyle ? 'text-ink-faint' : 'text-ink-muted'
         }`}
       >
         {count}
@@ -340,12 +319,12 @@ function CategoryChart({
   return (
     <div className="space-y-3">
       {real.length === 0 ? (
-        <p className="text-sm text-[#8B6F47]">暂无数据</p>
+        <p className="text-sm text-ink-muted">暂无数据</p>
       ) : (
         real.map((c) => <Bar key={c.label} label={c.label} count={c.count} />)
       )}
       {junk.length > 0 && (
-        <div className="pt-3 mt-1 border-t border-[#EFE3BF] space-y-3">
+        <div className="pt-3 mt-1 border-t border-border space-y-3">
           {junk.map((c) => (
             <Bar key={c.label} label={c.label} count={c.count} junkStyle />
           ))}
@@ -361,12 +340,12 @@ function StageBlocks({ stages }: { stages: { stage: string; count: number }[] })
     <div className="flex flex-wrap items-stretch gap-2">
       {stages.map((s, i) => (
         <Fragment key={s.stage}>
-          <div className="flex-1 min-w-[68px] text-center bg-[#FAEFD0] rounded-xl px-3 py-4">
-            <p className="text-2xl font-bold text-[#A87929]">{s.count}</p>
-            <p className="mt-1 text-xs text-[#8B6F47]">{s.stage}</p>
+          <div className="flex-1 min-w-[68px] text-center bg-accent/10 rounded-xl px-3 py-4">
+            <p className="text-2xl font-bold text-accent-deep">{s.count}</p>
+            <p className="mt-1 text-xs text-ink-muted">{s.stage}</p>
           </div>
           {i < stages.length - 1 && (
-            <div className="hidden sm:flex items-center text-[#B89968]" aria-hidden="true">
+            <div className="hidden sm:flex items-center text-ink-faint" aria-hidden="true">
               →
             </div>
           )}
@@ -384,7 +363,7 @@ function VolumeChart({ volumeByDay }: { volumeByDay: { date: string; count: numb
   const step = Math.max(1, Math.ceil(volumeByDay.length / 8));
 
   if (!hasData) {
-    return <p className="text-sm text-[#8B6F47]">暂无数据</p>;
+    return <p className="text-sm text-ink-muted">暂无数据</p>;
   }
 
   return (
@@ -393,12 +372,12 @@ function VolumeChart({ volumeByDay }: { volumeByDay: { date: string; count: numb
         <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
           <div className="w-full flex-1 flex items-end">
             <div
-              className="w-full rounded-t bg-[#D89938]"
+              className="w-full rounded-t bg-accent"
               style={{ height: `${Math.max((d.count / max) * 100, d.count > 0 ? 3 : 0)}%` }}
               title={`${d.date}：${d.count}`}
             />
           </div>
-          <span className="h-3 text-[9px] leading-none text-[#B89968] truncate">
+          <span className="h-3 text-[9px] leading-none text-ink-faint truncate">
             {i % step === 0 ? d.date : ''}
           </span>
         </div>

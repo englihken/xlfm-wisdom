@@ -53,20 +53,20 @@ export function PasswordChangeGate({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-[#583A0F]">首次登录，请设置您的新密码</h1>
-          <p className="mt-2 text-sm text-[#8B6F47]">为了账号安全，请将初始密码更换为您自己的密码。</p>
+          <h1 className="font-serif text-2xl font-bold text-ink">首次登录，请设置您的新密码</h1>
+          <p className="mt-2 text-sm text-ink-muted">为了账号安全，请将初始密码更换为您自己的密码。</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
           autoComplete="off"
-          className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl shadow-sm p-6 sm:p-8 space-y-5"
+          className="bg-surface border border-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-5"
         >
           <div>
-            <label htmlFor="new-password" className="block text-sm font-medium text-[#583A0F] mb-1.5">
+            <label htmlFor="new-password" className="block text-sm font-medium text-ink mb-1.5">
               新密码
             </label>
             <input
@@ -80,12 +80,12 @@ export function PasswordChangeGate({ onDone }: { onDone: () => void }) {
               onChange={(e) => setPassword(e.target.value)}
               disabled={saving}
               placeholder="至少 8 位"
-              className="w-full p-3 border border-[#EFE3BF] rounded-xl bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] focus:ring-1 focus:ring-[#D89938] disabled:opacity-50"
+              className="w-full p-3 border border-border-strong rounded-xl bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50"
             />
           </div>
 
           <div>
-            <label htmlFor="confirm-password" className="block text-sm font-medium text-[#583A0F] mb-1.5">
+            <label htmlFor="confirm-password" className="block text-sm font-medium text-ink mb-1.5">
               确认密码
             </label>
             <input
@@ -99,7 +99,7 @@ export function PasswordChangeGate({ onDone }: { onDone: () => void }) {
               onChange={(e) => setConfirm(e.target.value)}
               disabled={saving}
               placeholder="再次输入新密码"
-              className="w-full p-3 border border-[#EFE3BF] rounded-xl bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] focus:ring-1 focus:ring-[#D89938] disabled:opacity-50"
+              className="w-full p-3 border border-border-strong rounded-xl bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50"
             />
           </div>
 
@@ -112,7 +112,7 @@ export function PasswordChangeGate({ onDone }: { onDone: () => void }) {
           <button
             type="submit"
             disabled={saving || password.length < 8 || confirm.length < 8}
-            className="w-full py-3 bg-[#D89938] hover:bg-[#A87929] text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary w-full py-3 text-sm font-medium"
           >
             {saving ? '设置中…' : '确认'}
           </button>

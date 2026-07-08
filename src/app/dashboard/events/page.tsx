@@ -111,11 +111,11 @@ function EventsOverview({ me }: { me: ErpMe }) {
       {/* header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold text-[#583A0F]">📅 活动总览</h2>
-          <span className="text-sm text-[#B89968]">Events · {events.length}</span>
+          <h2 className="text-xl font-bold font-serif text-ink">📅 活动总览</h2>
+          <span className="text-sm text-ink-faint">Events · {events.length}</span>
         </div>
         {canEdit && (
-          <Link href="/dashboard/events/new" className="px-4 py-1.5 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition">
+          <Link href="/dashboard/events/new" className="px-4 py-1.5 text-sm btn-primary">
             ＋新建活动
           </Link>
         )}
@@ -139,19 +139,19 @@ function EventsOverview({ me }: { me: ErpMe }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="搜索 名称 / 编号…"
-          className="text-sm px-3 py-2 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] w-52"
+          className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent w-52"
         />
       </div>
 
       {/* cards */}
       {loading ? (
-        <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
+        <p className="p-6 text-sm text-ink-muted">加载中…</p>
       ) : filtered.length === 0 ? (
-        <div className="p-10 text-center bg-[#FBF4E0] border border-[#EFE3BF] rounded-2xl">
+        <div className="p-10 text-center bg-surface-soft border border-border rounded-2xl">
           <p className="text-2xl mb-1">🪷</p>
-          <p className="text-sm text-[#583A0F]">{events.length === 0 ? '还没有活动，愿善缘从这里开始。' : '未找到匹配的活动'}</p>
+          <p className="text-sm text-ink">{events.length === 0 ? '还没有活动，愿善缘从这里开始。' : '未找到匹配的活动'}</p>
           {events.length === 0 && canEdit && (
-            <p className="mt-1 text-xs text-[#8B6F47]">点击「＋新建活动」创建第一个活动。</p>
+            <p className="mt-1 text-xs text-ink-muted">点击「＋新建活动」创建第一个活动。</p>
           )}
         </div>
       ) : (
@@ -171,20 +171,20 @@ function EventCard({ e }: { e: EventRow }) {
   return (
     <Link
       href={`/dashboard/events/${e.id}`}
-      className="block bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-4 hover:border-[#D89938] hover:shadow-md hover:-translate-y-px transition"
+      className="block bg-surface border border-border rounded-2xl p-4 hover:border-accent hover:shadow-md hover:-translate-y-px transition"
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold text-[#583A0F] leading-snug">{e.title}</h3>
+        <h3 className="font-semibold text-ink leading-snug">{e.title}</h3>
         <span className={`shrink-0 inline-block px-2 py-0.5 rounded-full text-[11px] ${STATUS_STYLES[e.status] ?? ''}`}>
           {STATUS_LABELS[e.status] ?? e.status}
         </span>
       </div>
-      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-[#8B6F47]">
-        <span className="inline-block px-2 py-0.5 rounded-full bg-[#FAEFD0] text-[#8A5A1E]">{EVENT_TYPE_LABELS[e.event_type] ?? e.event_type}</span>
+      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-ink-muted">
+        <span className="inline-block px-2 py-0.5 rounded-full pill-gold">{EVENT_TYPE_LABELS[e.event_type] ?? e.event_type}</span>
         {e.organizingCentre && <span>{e.organizingCentre.name_cn}</span>}
         <span className="font-mono">{e.code}</span>
       </div>
-      <p className="mt-1 text-xs text-[#8B6F47]">
+      <p className="mt-1 text-xs text-ink-muted">
         {e.starts_on}
         {e.ends_on && e.ends_on !== e.starts_on ? ` — ${e.ends_on}` : ''}
         {e.reg_deadline ? ` · 截止 ${e.reg_deadline}` : ''}
@@ -192,20 +192,20 @@ function EventCard({ e }: { e: EventRow }) {
 
       {/* capacity bar */}
       <div className="mt-3">
-        <div className="flex items-center justify-between text-[11px] text-[#8B6F47] mb-1">
+        <div className="flex items-center justify-between text-[11px] text-ink-muted mb-1">
           <span>报名 {approved}{e.capacity ? ` / ${e.capacity}` : ' / 不限'}</span>
           {e.capacity ? <span>{pct}%</span> : null}
         </div>
-        <div className="h-2.5 rounded-full bg-[#FAEFD0] overflow-hidden">
-          <div className="h-full rounded-full bg-[#D89938]" style={{ width: e.capacity ? `${pct}%` : '0%' }} />
+        <div className="h-2.5 rounded-full bg-accent/10 overflow-hidden">
+          <div className="h-full rounded-full bg-accent" style={{ width: e.capacity ? `${pct}%` : '0%' }} />
         </div>
       </div>
 
       {/* counts */}
       <div className="mt-2 flex items-center gap-3 text-[11px]">
-        <span className={e.regCounts.pending > 0 ? 'text-red-700 font-medium' : 'text-[#8B6F47]'}>待审 {e.regCounts.pending}</span>
-        <span className="text-[#8B6F47]">已批 {e.regCounts.approved}</span>
-        <span className="text-[#8B6F47]">已拒 {e.regCounts.rejected}</span>
+        <span className={e.regCounts.pending > 0 ? 'text-red-700 font-medium' : 'text-ink-muted'}>待审 {e.regCounts.pending}</span>
+        <span className="text-ink-muted">已批 {e.regCounts.approved}</span>
+        <span className="text-ink-muted">已拒 {e.regCounts.rejected}</span>
       </div>
 
       {/* team-needs chips */}
@@ -217,7 +217,7 @@ function EventCard({ e }: { e: EventRow }) {
               <span
                 key={t.team_id}
                 className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${
-                  short ? 'bg-[#FEF2F2] text-red-700' : 'bg-white border border-[#EFE3BF] text-[#8B6F47]'
+                  short ? 'bg-[#FEF2F2] text-red-700' : 'pill-muted'
                 }`}
               >
                 {t.name_cn} {t.approved}/{t.needed}{short ? ' ⚠' : ''}
@@ -228,7 +228,7 @@ function EventCard({ e }: { e: EventRow }) {
       )}
       {/* fee summary — enabled items + amounts */}
       {e.fees.length > 0 && (
-        <p className="mt-2 text-[11px] text-[#8B6F47] truncate" title={e.fees.map((f) => `${f.label_cn || FEE_LABEL[f.item] || f.item} ${moneyRM(f.amount)}`).join(' · ')}>
+        <p className="mt-2 text-[11px] text-ink-muted truncate" title={e.fees.map((f) => `${f.label_cn || FEE_LABEL[f.item] || f.item} ${moneyRM(f.amount)}`).join(' · ')}>
           {e.fees.map((f) => `${f.label_cn || FEE_LABEL[f.item] || f.item} ${moneyRM(f.amount)}`).join(' · ')}
         </p>
       )}
@@ -238,12 +238,12 @@ function EventCard({ e }: { e: EventRow }) {
 
 function Kpi({ label, value, icon, accent }: { label: string; value: number; icon?: string; accent?: boolean }) {
   return (
-    <div className={`rounded-xl px-4 py-3 border ${accent ? 'bg-[#FCEBEA] border-[#F3D2CC]' : 'bg-[#FBF4E0] border-[#EFE3BF]'}`}>
+    <div className={`rounded-xl px-4 py-3 border ${accent ? 'bg-[#FCEBEA] border-[#F3D2CC]' : 'bg-surface-soft border-border'}`}>
       <div className="flex items-center justify-between">
-        <div className={`text-3xl font-bold ${accent ? 'text-[#B4402E]' : 'text-[#583A0F]'}`}>{value}</div>
+        <div className={`text-3xl font-bold ${accent ? 'text-[#B4402E]' : 'text-ink'}`}>{value}</div>
         {icon && <span className="text-lg opacity-80">{icon}</span>}
       </div>
-      <div className="text-xs text-[#8B6F47] mt-0.5">{label}</div>
+      <div className="text-xs text-ink-muted mt-0.5">{label}</div>
     </div>
   );
 }
@@ -252,7 +252,7 @@ function Sel({ value, onChange, options }: { value: string; onChange: (v: string
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="text-sm px-3 py-2 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]"
+      className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
     >
       {options.map(([v, l]) => (
         <option key={v} value={v}>{l}</option>

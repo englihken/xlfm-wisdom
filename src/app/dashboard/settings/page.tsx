@@ -14,8 +14,8 @@ import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
+import { TopBar } from '@/components/top-bar';
 import type { Grants } from '@/lib/access';
-import { PLATFORM_NAME } from '@/lib/platform';
 import { XLFM_CENTERS, isValidCenter } from '@/lib/xlfm-centers';
 
 type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
@@ -293,8 +293,8 @@ export default function SettingsPage() {
   // Nothing here reveals what the page is (no title, rail, top bar, or controls).
   if (checking || gate === 'checking') {
     return (
-      <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center">
-        <p className="text-sm text-[#8B6F47]">加载中…</p>
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <p className="text-sm text-ink-muted">加载中…</p>
       </div>
     );
   }
@@ -308,13 +308,13 @@ export default function SettingsPage() {
   // Logged in but not an admin — polite notice, not a blank screen.
   if (gate === 'denied') {
     return (
-      <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-lg font-semibold text-[#583A0F]">此页面仅限管理员</p>
-          <p className="mt-2 text-sm text-[#8B6F47]">如需帮助，请联系系统管理员。</p>
+          <p className="text-lg font-semibold text-ink">此页面仅限管理员</p>
+          <p className="mt-2 text-sm text-ink-muted">如需帮助，请联系系统管理员。</p>
           <Link
             href="/dashboard"
-            className="inline-block mt-5 px-4 py-2 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
+            className="btn-secondary inline-block mt-5 px-4 py-2 text-sm"
           >
             返回收件箱
           </Link>
@@ -324,36 +324,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFF3DA] md:ml-[72px]">
-      {/* TOP BAR — navigation lives in the rail now; keep title, name, 登出. */}
-      <header className="shrink-0 border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm">
-        <div className="px-5 py-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] leading-none text-[#B89968]">🪷 {PLATFORM_NAME}</p>
-            <h1 className="mt-0.5 text-lg font-bold text-[#583A0F] leading-tight">
-              设置 <span className="text-sm font-normal text-[#B89968]">· Settings</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="hidden sm:inline text-sm text-[#8B6F47]">
-              {me?.displayName || me?.email}
-            </span>
-            <button
-              onClick={forceSignOut}
-              className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
-            >
-              登出
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-bg md:ml-[72px]">
+      <TopBar moduleTitle="设置 · Settings" userLabel={me?.displayName || me?.email || undefined} onLogout={forceSignOut} />
 
       <DashboardNav role={me?.role ?? 'volunteer'} active="settings" grants={me?.grants} />
 
       {/* SECTION NAV + CONTENT — vertical sidebar on desktop, horizontal tab row
           on mobile (the same <ul> switches direction via md: breakpoints). */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0">
-        <nav className="shrink-0 md:w-[220px] border-b md:border-b-0 md:border-r border-[#EFE3BF] bg-[#FFFEF6] p-3 md:p-4">
+        <nav className="shrink-0 md:w-[220px] border-b md:border-b-0 md:border-r border-border bg-surface-soft p-3 md:p-4">
           <ul className="flex flex-wrap md:flex-col gap-1">
             {SECTIONS.map((s) => {
               const selected = s.id === activeSection;
@@ -363,8 +342,8 @@ export default function SettingsPage() {
                     onClick={() => setActiveSection(s.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
                       selected
-                        ? 'bg-[#FAEFD0] text-[#583A0F] font-medium'
-                        : 'text-[#8B6F47] hover:bg-[#FAEFD0]/60'
+                        ? 'bg-accent/10 text-accent-deep font-medium'
+                        : 'text-ink-muted hover:bg-accent/5'
                     }`}
                   >
                     {s.label}
@@ -379,9 +358,9 @@ export default function SettingsPage() {
           {activeSection === 'volunteers' && (
             <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
               {/* ADD VOLUNTEER */}
-              <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-5 sm:p-6">
-                <h2 className="text-base font-semibold text-[#583A0F]">添加义工</h2>
-                <p className="mt-1 text-sm text-[#8B6F47]">
+              <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
+                <h2 className="font-serif text-base font-semibold text-ink">添加义工</h2>
+                <p className="mt-1 text-sm text-ink-muted">
                   新账号创建后即可使用邮箱和密码登录。
                 </p>
                 {/* autoComplete=off (+ non-suggestive field names & new-password on
@@ -389,7 +368,7 @@ export default function SettingsPage() {
                     credentials into a form that creates *another* account. */}
                 <form onSubmit={handleAdd} autoComplete="off" className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="name" className="block text-xs font-medium text-[#B89968] mb-1">
+                    <label htmlFor="name" className="u-label block mb-1">
                       显示名称
                     </label>
                     <input
@@ -399,11 +378,11 @@ export default function SettingsPage() {
                       onChange={(e) => setFormName(e.target.value)}
                       disabled={submitting}
                       placeholder="如：李师兄"
-                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                      className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
                     />
                   </div>
                   <div>
-                    <label htmlFor="add-email" className="block text-xs font-medium text-[#B89968] mb-1">
+                    <label htmlFor="add-email" className="u-label block mb-1">
                       邮箱
                     </label>
                     <input
@@ -416,7 +395,7 @@ export default function SettingsPage() {
                       onChange={(e) => setFormEmail(e.target.value)}
                       disabled={submitting}
                       placeholder="you@example.com"
-                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                      className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
                     />
                   </div>
                   {/* Centre fields apply only to 关怀义工 (own_center scope); hidden for
@@ -424,7 +403,7 @@ export default function SettingsPage() {
                   {formRole === 'volunteer' && (
                     <>
                       <div>
-                        <label htmlFor="add-center" className="block text-xs font-medium text-[#B89968] mb-1">
+                        <label htmlFor="add-center" className="u-label block mb-1">
                           所属中心 · 文本（可选）
                         </label>
                         <CenterSelect
@@ -435,7 +414,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div>
-                        <label htmlFor="add-centre-id" className="block text-xs font-medium text-[#B89968] mb-1">
+                        <label htmlFor="add-centre-id" className="u-label block mb-1">
                           中心 · 结构化（可选）
                         </label>
                         <select
@@ -443,7 +422,7 @@ export default function SettingsPage() {
                           value={formCentreId}
                           onChange={(e) => setFormCentreId(e.target.value)}
                           disabled={submitting}
-                          className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                          className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent disabled:opacity-50"
                         >
                           <option value="">未指定</option>
                           {metaCentres.map((c) => (
@@ -456,7 +435,7 @@ export default function SettingsPage() {
                     </>
                   )}
                   <div>
-                    <label htmlFor="add-occupation" className="block text-xs font-medium text-[#B89968] mb-1">
+                    <label htmlFor="add-occupation" className="u-label block mb-1">
                       职业（可选）
                     </label>
                     <input
@@ -466,11 +445,11 @@ export default function SettingsPage() {
                       onChange={(e) => setFormOccupation(e.target.value)}
                       disabled={submitting}
                       placeholder="如：教师"
-                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                      className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
                     />
                   </div>
                   <div>
-                    <label htmlFor="add-password" className="block text-xs font-medium text-[#B89968] mb-1">
+                    <label htmlFor="add-password" className="u-label block mb-1">
                       初始密码
                     </label>
                     <input
@@ -484,11 +463,11 @@ export default function SettingsPage() {
                       onChange={(e) => setFormPassword(e.target.value)}
                       disabled={submitting}
                       placeholder="至少 8 位"
-                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                      className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
                     />
                   </div>
                   <div>
-                    <label htmlFor="add-role" className="block text-xs font-medium text-[#B89968] mb-1">
+                    <label htmlFor="add-role" className="u-label block mb-1">
                       角色
                     </label>
                     <select
@@ -496,7 +475,7 @@ export default function SettingsPage() {
                       value={formRole}
                       onChange={(e) => setFormRole(e.target.value as Role)}
                       disabled={submitting}
-                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                      className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent disabled:opacity-50"
                     >
                       <option value="volunteer">关怀义工</option>
                       <option value="admin">管理员</option>
@@ -504,13 +483,13 @@ export default function SettingsPage() {
                       <option value="committee">理事会</option>
                     </select>
                     {formRole === 'erp_admin' && (
-                      <p className="mt-1 text-xs text-[#8B6F47]">
+                      <p className="mt-1 text-xs text-ink-muted">
                         ERP 管理员：可管理会员/活动/财务等模块，无法读取关怀对话。
                       </p>
                     )}
                   </div>
                   <div className="sm:col-span-2">
-                    <label htmlFor="add-skills" className="block text-xs font-medium text-[#B89968] mb-1">
+                    <label htmlFor="add-skills" className="u-label block mb-1">
                       专长／技能（可选）
                     </label>
                     <textarea
@@ -520,18 +499,18 @@ export default function SettingsPage() {
                       disabled={submitting}
                       rows={2}
                       placeholder="如：辅导、翻译、设计、医护…"
-                      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] leading-relaxed resize-y focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+                      className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint leading-relaxed resize-y focus:outline-none focus:border-accent disabled:opacity-50"
                     />
                   </div>
                   <div className="sm:col-span-2 flex items-center gap-3">
                     <button
                       type="submit"
                       disabled={submitting || !formEmail.trim() || formPassword.length < 8}
-                      className="px-5 py-2 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="btn-primary px-5 py-2 text-sm disabled:cursor-not-allowed"
                     >
                       {submitting ? '添加中…' : '添加'}
                     </button>
-                    {addSuccess && <span className="text-sm text-[#A87929]">已添加 ✓</span>}
+                    {addSuccess && <span className="text-sm text-accent-deep">已添加 ✓</span>}
                     {addError && <span className="text-sm text-red-600">{addError}</span>}
                   </div>
                 </form>
@@ -542,21 +521,21 @@ export default function SettingsPage() {
                   notes must stay attributable for safeguarding. Leaving the team is
                   modelled as 停用 (disable); the 仅启用/全部 filter below keeps
                   disabled accounts out of the everyday view but one click away. */}
-              <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-[#EFE3BF] flex flex-wrap items-center justify-between gap-3">
+              <section className="bg-surface border border-border rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-border flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base font-semibold text-[#583A0F]">义工团队</h2>
-                    <span className="text-xs text-[#B89968]">{volunteers.length} 人</span>
+                    <h2 className="font-serif text-base font-semibold text-ink">义工团队</h2>
+                    <span className="text-xs text-ink-faint">{volunteers.length} 人</span>
                   </div>
                   <div className="flex items-center gap-1 text-xs">
                     {(['active', 'all'] as const).map((f) => (
                       <button
                         key={f}
                         onClick={() => setFilter(f)}
-                        className={`px-3 py-1 rounded-full border transition ${
+                        className={`px-3 py-1 rounded-full transition ${
                           filter === f
-                            ? 'bg-[#FAEFD0] text-[#583A0F] border-[#EFE3BF]'
-                            : 'text-[#8B6F47] border-transparent hover:bg-[#FAEFD0]/60'
+                            ? 'bg-accent/10 text-accent-deep'
+                            : 'text-ink-muted hover:bg-accent/5'
                         }`}
                       >
                         {f === 'active' ? '仅启用' : '全部'}
@@ -566,15 +545,15 @@ export default function SettingsPage() {
                 </div>
 
                 {actionError && (
-                  <div className="px-5 py-3 bg-[#FEF2F2] text-sm text-red-700 border-b border-[#EFE3BF]">
+                  <div className="px-5 py-3 bg-[#FEF2F2] text-sm text-red-700 border-b border-border">
                     {actionError}
                   </div>
                 )}
 
                 {listLoading ? (
-                  <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
+                  <p className="p-6 text-sm text-ink-muted">加载中…</p>
                 ) : visibleVolunteers.length === 0 ? (
-                  <p className="p-6 text-sm text-[#8B6F47]">
+                  <p className="p-6 text-sm text-ink-muted">
                     {filter === 'active' ? '暂无启用的义工' : '暂无义工'}
                   </p>
                 ) : (
@@ -587,7 +566,7 @@ export default function SettingsPage() {
                         return (
                           <li
                             key={v.id}
-                            className="px-5 py-4 border-b border-[#EFE3BF] last:border-b-0"
+                            className="px-5 py-4 border-b border-border last:border-b-0"
                           >
                             <VolunteerEditForm
                               volunteer={v}
@@ -602,30 +581,30 @@ export default function SettingsPage() {
                       return (
                         <li
                           key={v.id}
-                          className={`px-5 py-4 border-b border-[#EFE3BF] last:border-b-0 flex flex-wrap items-center justify-between gap-3 ${
+                          className={`px-5 py-4 border-b border-border last:border-b-0 flex flex-wrap items-center justify-between gap-3 ${
                             v.active ? '' : 'opacity-60'
                           }`}
                         >
                           <div className="min-w-0">
                             <p
                               className={`font-medium truncate ${
-                                v.active ? 'text-[#583A0F]' : 'text-[#8B6F47]'
+                                v.active ? 'text-ink' : 'text-ink-muted'
                               }`}
                             >
                               {v.display_name || v.email}
-                              {isSelf && <span className="ml-1 text-xs text-[#B89968]">（你）</span>}
+                              {isSelf && <span className="ml-1 text-xs text-ink-faint">（你）</span>}
                             </p>
-                            <p className="text-xs text-[#8B6F47] truncate">{v.email}</p>
+                            <p className="text-xs text-ink-muted truncate">{v.email}</p>
                             {v.center && (
-                              <p className="text-xs text-[#B89968] truncate">所属中心：{v.center}</p>
+                              <p className="text-xs text-ink-faint truncate">所属中心：{v.center}</p>
                             )}
                             {v.occupation && (
-                              <p className="text-xs text-[#B89968] truncate">职业：{v.occupation}</p>
+                              <p className="text-xs text-ink-faint truncate">职业：{v.occupation}</p>
                             )}
                             {v.skills && (
-                              <p className="text-xs text-[#B89968] truncate">专长：{v.skills}</p>
+                              <p className="text-xs text-ink-faint truncate">专长：{v.skills}</p>
                             )}
-                            <p className="mt-0.5 text-xs text-[#B89968]">加入于 {formatDate(v.created_at)}</p>
+                            <p className="mt-0.5 text-xs text-ink-faint">加入于 {formatDate(v.created_at)}</p>
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -633,13 +612,13 @@ export default function SettingsPage() {
                             <ScopeBadge scope={v.scope} />
                             <StatusBadge active={v.active} />
                             {savedId === v.id && (
-                              <span className="text-xs text-[#A87929]">已保存 ✓</span>
+                              <span className="text-xs text-accent-deep">已保存 ✓</span>
                             )}
 
                             <button
                               onClick={() => setEditingId(v.id)}
                               disabled={busy}
-                              className="px-3 py-1 text-xs text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="btn-secondary px-3 py-1 text-xs disabled:cursor-not-allowed"
                             >
                               编辑
                             </button>
@@ -651,7 +630,7 @@ export default function SettingsPage() {
                                 })
                               }
                               disabled={isSelf || busy}
-                              className="px-3 py-1 text-xs text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="btn-secondary px-3 py-1 text-xs disabled:cursor-not-allowed"
                             >
                               {v.role === 'admin' ? '设为义工' : '设为管理员'}
                             </button>
@@ -662,7 +641,7 @@ export default function SettingsPage() {
                               className={`px-3 py-1 text-xs rounded-full border transition disabled:opacity-40 disabled:cursor-not-allowed ${
                                 v.active
                                   ? 'text-red-700 border-[#FCA5A5] hover:bg-[#FEF2F2]'
-                                  : 'text-[#A87929] border-[#EFE3BF] hover:bg-[#FAEFD0]'
+                                  : 'text-accent-deep border-border hover:bg-accent/5'
                               }`}
                             >
                               {v.active ? '停用' : '启用'}
@@ -734,7 +713,7 @@ function VolunteerEditForm({
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
-          <label htmlFor="edit-name" className="block text-xs font-medium text-[#B89968] mb-1">
+          <label htmlFor="edit-name" className="u-label block mb-1">
             显示名称
           </label>
           <input
@@ -744,11 +723,11 @@ function VolunteerEditForm({
             onChange={(e) => setName(e.target.value)}
             disabled={saving}
             placeholder="如：李师兄"
-            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+            className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
           />
         </div>
         <div>
-          <label htmlFor="edit-email" className="block text-xs font-medium text-[#B89968] mb-1">
+          <label htmlFor="edit-email" className="u-label block mb-1">
             邮箱
           </label>
           <input
@@ -760,17 +739,17 @@ function VolunteerEditForm({
             onChange={(e) => setEmail(e.target.value)}
             disabled={saving}
             placeholder="you@example.com"
-            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+            className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
           />
         </div>
         <div>
-          <label htmlFor="edit-center" className="block text-xs font-medium text-[#B89968] mb-1">
+          <label htmlFor="edit-center" className="u-label block mb-1">
             所属中心
           </label>
           <CenterSelect id="edit-center" value={center} onChange={setCenter} disabled={saving} />
         </div>
         <div>
-          <label htmlFor="edit-role" className="block text-xs font-medium text-[#B89968] mb-1">
+          <label htmlFor="edit-role" className="u-label block mb-1">
             角色
           </label>
           <select
@@ -778,19 +757,19 @@ function VolunteerEditForm({
             value={role}
             onChange={(e) => setRole(e.target.value as Role)}
             disabled={saving || isSelf}
-            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+            className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent disabled:opacity-50"
           >
             <option value="admin">管理员</option>
             <option value="volunteer">关怀义工</option>
             <option value="erp_admin">ERP 管理员</option>
             <option value="committee">理事会</option>
           </select>
-          {isSelf && <p className="mt-1 text-[11px] text-[#B89968]">不能修改自己的角色</p>}
+          {isSelf && <p className="mt-1 text-[11px] text-ink-faint">不能修改自己的角色</p>}
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label htmlFor="edit-occupation" className="block text-xs font-medium text-[#B89968] mb-1">
+          <label htmlFor="edit-occupation" className="u-label block mb-1">
             职业
           </label>
           <input
@@ -800,11 +779,11 @@ function VolunteerEditForm({
             onChange={(e) => setOccupation(e.target.value)}
             disabled={saving}
             placeholder="如：教师"
-            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+            className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
           />
         </div>
         <div>
-          <label htmlFor="edit-skills" className="block text-xs font-medium text-[#B89968] mb-1">
+          <label htmlFor="edit-skills" className="u-label block mb-1">
             专长／技能
           </label>
           <textarea
@@ -814,7 +793,7 @@ function VolunteerEditForm({
             disabled={saving}
             rows={2}
             placeholder="如：辅导、翻译、设计、医护…"
-            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] leading-relaxed resize-y focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+            className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint leading-relaxed resize-y focus:outline-none focus:border-accent disabled:opacity-50"
           />
         </div>
       </div>
@@ -822,14 +801,14 @@ function VolunteerEditForm({
         <button
           onClick={handleSave}
           disabled={saving || !email.trim()}
-          className="px-4 py-1.5 text-xs text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary px-4 py-1.5 text-xs disabled:cursor-not-allowed"
         >
           {saving ? '保存中…' : '保存'}
         </button>
         <button
           onClick={onCancel}
           disabled={saving}
-          className="px-4 py-1.5 text-xs text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-50"
+          className="btn-secondary px-4 py-1.5 text-xs"
         >
           取消
         </button>
@@ -859,7 +838,7 @@ function CenterSelect({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
-      className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938] disabled:opacity-50"
+      className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent disabled:opacity-50"
     >
       <option value="">未指定</option>
       {XLFM_CENTERS.map((g) => (
@@ -882,7 +861,7 @@ function RoleBadge({ role }: { role: Role }) {
   return (
     <span
       className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${
-        filled ? 'bg-[#FAEFD0] text-[#A87929]' : 'bg-white border border-[#EFE3BF] text-[#8B6F47]'
+        filled ? 'pill-gold' : 'pill-muted'
       }`}
     >
       {label}
@@ -896,7 +875,7 @@ function ScopeBadge({ scope }: { scope: 'all_centers' | 'own_center' | null }) {
       全部中心
     </span>
   ) : (
-    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-white border border-[#EFE3BF] text-[#8B6F47]">
+    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] pill-muted">
       本中心
     </span>
   );
@@ -904,7 +883,7 @@ function ScopeBadge({ scope }: { scope: 'all_centers' | 'own_center' | null }) {
 
 function StatusBadge({ active }: { active: boolean }) {
   return active ? (
-    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FAEFD0] text-[#8B6F47]">
+    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] pill-muted">
       启用
     </span>
   ) : (

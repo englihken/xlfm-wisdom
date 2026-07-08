@@ -77,9 +77,9 @@ function EditBody({ me, id }: { me: ErpMe; id: string }) {
     };
   }, [id]);
 
-  if (!canEdit) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-[#8B6F47]">您没有编辑会员的权限。</p>;
-  if (loading) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-[#8B6F47]">加载中…</p>;
-  if (!initial) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-[#8B6F47]">无法加载该会员。</p>;
+  if (!canEdit) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">您没有编辑会员的权限。</p>;
+  if (loading) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">加载中…</p>;
+  if (!initial) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">无法加载该会员。</p>;
 
   return <MemberForm mode="edit" memberId={id} initial={initial} />;
 }

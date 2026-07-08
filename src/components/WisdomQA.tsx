@@ -10,25 +10,25 @@ const exampleQuestions = [
 
 export default function WisdomQA() {
   return (
-    <section id="qa" className="bg-gradient-to-b from-white to-gold-light/30">
+    <section id="qa" className="bg-gradient-to-b from-white to-surface-soft/30">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           {/* Left content */}
           <div>
-            <span className="text-amber text-sm tracking-wider">
+            <span className="text-accent text-sm tracking-wider">
               智慧问答 · AI WISDOM Q&A
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-brown mt-3 mb-6 leading-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ink mt-3 mb-6 leading-tight">
               说出您的烦恼，
               <br />
               这里会帮您找到方向
             </h2>
 
-            <p className="text-brown/70 leading-relaxed mb-4">
+            <p className="text-ink/70 leading-relaxed mb-4">
               我们的智慧问答系统基于卢台长41部著作、约500万字的开示内容，用AI技术帮您从浩瀚的佛法智慧中找到最适合您情况的指引。
             </p>
 
-            <p className="text-brown/60 text-sm leading-relaxed mb-6">
+            <p className="text-ink/60 text-sm leading-relaxed mb-6">
               不用翻书、不用搜索，只要说出您的烦恼，系统会自动匹配最相关的开示内容，帮您找到方向。
             </p>
 
@@ -42,8 +42,8 @@ export default function WisdomQA() {
                   <div
                     className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm ${
                       i % 2 === 0
-                        ? "bg-gold-light border border-card-border text-brown/80 rounded-tl-sm"
-                        : "bg-white border border-card-border text-brown/70 rounded-tr-sm"
+                        ? "bg-surface-soft border border-border text-ink/80 rounded-tl-sm"
+                        : "bg-white border border-border text-ink/70 rounded-tr-sm"
                     }`}
                   >
                     {q}
@@ -52,7 +52,7 @@ export default function WisdomQA() {
               ))}
             </div>
 
-            <div className="flex items-center gap-3 text-sm text-brown/50 mb-6">
+            <div className="flex items-center gap-3 text-sm text-ink/50 mb-6">
               <svg viewBox="0 0 20 20" className="w-4 h-4 text-green-600" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
               </svg>
@@ -61,7 +61,7 @@ export default function WisdomQA() {
 
             <Link
               href="/qa"
-              className="inline-flex items-center justify-center px-8 py-3.5 bg-gradient-to-r from-gold-banner to-amber text-white font-bold rounded-xl shadow-lg shadow-gold-banner/20 hover:shadow-xl transition-all hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center px-8 py-3.5 btn-primary font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
             >
               进入智慧问答
               <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -71,65 +71,65 @@ export default function WisdomQA() {
           </div>
 
           {/* Right card */}
-          <div className="bg-white rounded-2xl border border-card-border shadow-sm p-6 sm:p-8">
+          <div className="bg-white rounded-2xl border border-border shadow-sm p-6 sm:p-8">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-gold-banner to-amber rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-deep rounded-xl flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-bold text-brown">如何使用智慧问答？</h3>
-                <p className="text-xs text-brown/50">简单三步</p>
+                <h3 className="font-bold text-ink">如何使用智慧问答？</h3>
+                <p className="text-xs text-ink/50">简单三步</p>
               </div>
             </div>
 
             <div className="space-y-5">
               <div className="flex gap-4">
-                <div className="w-8 h-8 bg-gold-light rounded-full flex items-center justify-center text-amber font-bold text-sm shrink-0">
+                <div className="w-8 h-8 bg-surface-soft rounded-full flex items-center justify-center text-accent font-bold text-sm shrink-0">
                   1
                 </div>
                 <div>
-                  <h4 className="font-semibold text-brown text-sm">
+                  <h4 className="font-semibold text-ink text-sm">
                     说出您的烦恼
                   </h4>
-                  <p className="text-brown/60 text-sm mt-1">
+                  <p className="text-ink/60 text-sm mt-1">
                     用您自己的话描述您遇到的问题，不需要用佛学术语。
                   </p>
                 </div>
               </div>
 
               <div className="flex gap-4">
-                <div className="w-8 h-8 bg-gold-light rounded-full flex items-center justify-center text-amber font-bold text-sm shrink-0">
+                <div className="w-8 h-8 bg-surface-soft rounded-full flex items-center justify-center text-accent font-bold text-sm shrink-0">
                   2
                 </div>
                 <div>
-                  <h4 className="font-semibold text-brown text-sm">
+                  <h4 className="font-semibold text-ink text-sm">
                     AI智能匹配
                   </h4>
-                  <p className="text-brown/60 text-sm mt-1">
+                  <p className="text-ink/60 text-sm mt-1">
                     系统会从500万字的开示中，找到与您最相关的内容。
                   </p>
                 </div>
               </div>
 
               <div className="flex gap-4">
-                <div className="w-8 h-8 bg-gold-light rounded-full flex items-center justify-center text-amber font-bold text-sm shrink-0">
+                <div className="w-8 h-8 bg-surface-soft rounded-full flex items-center justify-center text-accent font-bold text-sm shrink-0">
                   3
                 </div>
                 <div>
-                  <h4 className="font-semibold text-brown text-sm">
+                  <h4 className="font-semibold text-ink text-sm">
                     获得方向指引
                   </h4>
-                  <p className="text-brown/60 text-sm mt-1">
+                  <p className="text-ink/60 text-sm mt-1">
                     得到具体的佛法指引和修行建议，开始改变。
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-gold-light/50 rounded-xl">
-              <p className="text-xs text-brown/60 leading-relaxed">
+            <div className="mt-6 p-4 bg-surface-soft/50 rounded-xl">
+              <p className="text-xs text-ink/60 leading-relaxed">
                 💡 所有回答均基于卢台长的原始开示内容，我们不添加、不修改、不曲解任何内容。AI只负责帮您找到最相关的开示。
               </p>
             </div>

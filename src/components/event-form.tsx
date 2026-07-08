@@ -165,7 +165,7 @@ export function EventForm({
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
       {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-[#583A0F] text-white text-sm shadow-lg">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-ink text-white text-sm shadow-lg">
           {toast}
         </div>
       )}
@@ -188,9 +188,9 @@ export function EventForm({
             onChange={(x) => set('reg_edit_cutoff_days', x)} placeholder="3" />
         </Grid>
         <label className="block mt-4">
-          <span className="block text-xs font-medium text-[#B89968] mb-1">说明 / Description</span>
+          <span className="block u-label mb-1">说明 / Description</span>
           <textarea value={v.description} onChange={(e) => set('description', e.target.value)} rows={2}
-            className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] resize-y focus:outline-none focus:border-[#D89938]" />
+            className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink resize-y focus:outline-none focus:border-accent" />
         </label>
       </Section>
 
@@ -199,7 +199,7 @@ export function EventForm({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] text-[#B89968] border-b border-[#EFE3BF]">
+              <tr className="text-left text-[11px] text-ink-faint border-b border-border">
                 <th className="px-2 py-2 font-medium">启用</th>
                 <th className="px-2 py-2 font-medium">项目</th>
                 <th className="px-2 py-2 font-medium">金额 (RM)</th>
@@ -210,11 +210,11 @@ export function EventForm({
               {FEE_ROWS.map((r) => {
                 const f = v.fees[r.item];
                 return (
-                  <tr key={r.item} className="border-b border-[#EFE3BF] last:border-b-0">
+                  <tr key={r.item} className="border-b border-border last:border-b-0">
                     <td className="px-2 py-2">
                       <input type="checkbox" checked={f.enabled} onChange={(e) => setFee(r.item, { enabled: e.target.checked })} />
                     </td>
-                    <td className={`px-2 py-2 ${f.enabled ? 'text-[#583A0F]' : 'text-[#B89968]'}`}>{r.label}</td>
+                    <td className={`px-2 py-2 ${f.enabled ? 'text-ink' : 'text-ink-faint'}`}>{r.label}</td>
                     <td className="px-2 py-2">
                       <input
                         type="number"
@@ -224,16 +224,16 @@ export function EventForm({
                         disabled={!f.enabled}
                         onChange={(e) => setFee(r.item, { amount: e.target.value })}
                         placeholder="0.00"
-                        className="w-28 text-sm p-1.5 border border-[#EFE3BF] rounded bg-white text-[#583A0F] disabled:bg-[#FAF7EE] disabled:text-[#B89968] focus:outline-none focus:border-[#D89938]"
+                        className="w-28 text-sm p-1.5 border border-border-strong rounded bg-surface text-ink disabled:bg-surface-soft disabled:text-ink-faint focus:outline-none focus:border-accent"
                       />
                     </td>
-                    <td className="px-2 py-2 text-[#8B6F47]">
+                    <td className="px-2 py-2 text-ink-muted">
                       {r.item === 'meal' ? (
                         <select
                           value={mealBillingOf(v)}
                           disabled={!f.enabled}
                           onChange={(e) => setFee('meal', { billing: e.target.value })}
-                          className="text-sm p-1.5 border border-[#EFE3BF] rounded bg-white text-[#583A0F] disabled:bg-[#FAF7EE] disabled:text-[#B89968] focus:outline-none focus:border-[#D89938]"
+                          className="text-sm p-1.5 border border-border-strong rounded bg-surface text-ink disabled:bg-surface-soft disabled:text-ink-faint focus:outline-none focus:border-accent"
                         >
                           {MEAL_BILLING_OPTIONS.map(([val, lbl]) => (
                             <option key={val} value={val}>{lbl}</option>
@@ -254,7 +254,7 @@ export function EventForm({
       {/* 餐点供应 — kitchen's per-day-per-meal offering grid (per_item meal events only) */}
       {mealGridOn(v) && (
         <Section title="餐点供应" en="Meals offered">
-          <p className="text-xs text-[#8B6F47] mb-3">点选取消供应的餐次（灰色虚线＝不供应）。报名者只能勾选供应的餐次。</p>
+          <p className="text-xs text-ink-muted mb-3">点选取消供应的餐次（灰色虚线＝不供应）。报名者只能勾选供应的餐次。</p>
           <MealOfferGrid
             startsOn={v.starts_on}
             endsOn={v.ends_on}
@@ -272,7 +272,7 @@ export function EventForm({
               <select
                 value={n.team_id}
                 onChange={(e) => setV((p) => ({ ...p, needs: p.needs.map((x, j) => (j === i ? { ...x, team_id: e.target.value } : x)) }))}
-                className="flex-1 text-sm p-2 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]"
+                className="flex-1 text-sm p-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
               >
                 <option value="">请选择组别</option>
                 {teams.map((t) => (
@@ -287,7 +287,7 @@ export function EventForm({
                 value={n.needed}
                 onChange={(e) => setV((p) => ({ ...p, needs: p.needs.map((x, j) => (j === i ? { ...x, needed: e.target.value } : x)) }))}
                 placeholder="人数"
-                className="w-24 text-sm p-2 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]"
+                className="w-24 text-sm p-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
               />
               <button onClick={() => setV((p) => ({ ...p, needs: p.needs.filter((_, j) => j !== i) }))}
                 className="px-3 py-2 text-xs text-red-700 border border-[#FCA5A5] rounded-lg hover:bg-[#FEF2F2]">移除</button>
@@ -296,7 +296,7 @@ export function EventForm({
           {availableTeams.length > 0 && (
             <button
               onClick={() => setV((p) => ({ ...p, needs: [...p.needs, { team_id: '', needed: '1' }] }))}
-              className="px-3 py-1.5 text-xs text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]"
+              className="px-3 py-1.5 text-xs btn-secondary"
             >
               ＋添加组别需求
             </button>
@@ -308,11 +308,11 @@ export function EventForm({
 
       <div className="flex items-center gap-3">
         <button onClick={submit} disabled={saving}
-          className="px-5 py-2 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50">
+          className="px-5 py-2 text-sm btn-primary">
           {saving ? '保存中…' : mode === 'create' ? '创建活动' : '保存修改'}
         </button>
         <button onClick={() => router.back()} disabled={saving}
-          className="px-5 py-2 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-50">
+          className="px-5 py-2 text-sm btn-secondary">
           取消
         </button>
       </div>
@@ -353,19 +353,19 @@ function MealOfferGrid({
   const offerAll = () => setClosed(new Set(outOfRange()));
   const closeAll = () => setClosed(new Set([...outOfRange(), ...inRangeKeys]));
 
-  if (dates.length === 0) return <p className="text-sm text-[#8B6F47]">请先选择开始日期。</p>;
+  if (dates.length === 0) return <p className="text-sm text-ink-muted">请先选择开始日期。</p>;
 
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <button type="button" onClick={offerAll} className="px-3 py-1 text-xs text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">全选</button>
-        <button type="button" onClick={closeAll} className="px-3 py-1 text-xs text-[#8B6F47] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0]">清空</button>
-        <span className="text-[11px] text-[#B89968]">{offCount > 0 ? `已关闭 ${offCount} 餐次` : '全部供应'}</span>
+        <button type="button" onClick={offerAll} className="px-3 py-1 text-xs btn-secondary">全选</button>
+        <button type="button" onClick={closeAll} className="px-3 py-1 text-xs btn-secondary">清空</button>
+        <span className="text-[11px] text-ink-faint">{offCount > 0 ? `已关闭 ${offCount} 餐次` : '全部供应'}</span>
       </div>
       <div className="overflow-x-auto">
         <table className="text-sm border-collapse">
           <thead>
-            <tr className="text-[11px] text-[#B89968]">
+            <tr className="text-[11px] text-ink-faint">
               <th className="px-2 py-1.5 text-left font-medium">日期</th>
               {MEAL_COLS.map((c) => <th key={c.meal} className="px-2 py-1.5 font-medium w-16">{c.label}</th>)}
               <th className="px-2 py-1.5 font-medium w-14">整天</th>
@@ -373,9 +373,9 @@ function MealOfferGrid({
           </thead>
           <tbody>
             {dates.map((d) => (
-              <tr key={d} className="border-t border-[#EFE3BF]">
-                <td className="px-2 py-1.5 whitespace-nowrap text-[#583A0F]">
-                  {d.slice(5)} <span className="text-[11px] text-[#B89968]">{weekdayCn(d)}</span>
+              <tr key={d} className="border-t border-border">
+                <td className="px-2 py-1.5 whitespace-nowrap text-ink">
+                  {d.slice(5)} <span className="text-[11px] text-ink-faint">{weekdayCn(d)}</span>
                 </td>
                 {MEAL_COLS.map((c) => {
                   const key = mealSlotKey(d, c.meal);
@@ -387,8 +387,8 @@ function MealOfferGrid({
                         onClick={() => toggleCell(key)}
                         className={`w-full px-2 py-1 rounded-md text-xs transition ${
                           offered
-                            ? 'bg-[#FAEFD0] text-[#8A5A1E] border border-[#EFE3BF] hover:bg-[#F5E1B0]'
-                            : 'bg-[#FAF7EE] text-[#C9B892] border border-dashed border-[#DCCDA2] hover:bg-white'
+                            ? 'bg-accent/10 text-accent-deep border border-border hover:bg-accent/20'
+                            : 'bg-surface-soft text-ink-faint border border-dashed border-border hover:bg-surface'
                         }`}
                       >
                         {offered ? c.label : '—'}
@@ -398,7 +398,7 @@ function MealOfferGrid({
                 })}
                 <td className="px-1 py-1 text-center">
                   <button type="button" onClick={() => toggleRow(d)}
-                    className="px-2 py-1 text-[11px] text-[#8B6F47] border border-[#EFE3BF] rounded-md hover:bg-[#FAEFD0]">切换</button>
+                    className="px-2 py-1 text-[11px] text-ink-muted border border-border rounded-md hover:bg-accent/5">切换</button>
                 </td>
               </tr>
             ))}
@@ -411,9 +411,9 @@ function MealOfferGrid({
 
 function Section({ title, en, children }: { title: string; en: string; children: ReactNode }) {
   return (
-    <section className="bg-[#FFFEF6] border border-[#EFE3BF] rounded-2xl p-5">
-      <h2 className="text-base font-semibold text-[#583A0F] mb-3">
-        {title} <span className="text-xs font-normal text-[#B89968]">{en}</span>
+    <section className="bg-surface border border-border rounded-2xl p-5">
+      <h2 className="text-base font-semibold font-serif text-ink mb-3">
+        {title} <span className="text-xs font-normal text-ink-faint">{en}</span>
       </h2>
       {children}
     </section>
@@ -425,18 +425,18 @@ function Grid({ children }: { children: ReactNode }) {
 function Text({ label, value, onChange, type = 'text', placeholder, min }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; min?: string }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-[#B89968] mb-1">{label}</span>
+      <span className="block u-label mb-1">{label}</span>
       <input type={type} min={min} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
-        className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938]" />
+        className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent" />
     </label>
   );
 }
 function Sel({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: [string, string][] }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-[#B89968] mb-1">{label}</span>
+      <span className="block u-label mb-1">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="w-full text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] focus:outline-none focus:border-[#D89938]">
+        className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent">
         {options.map(([val, lbl]) => (
           <option key={val} value={val}>{lbl}</option>
         ))}
