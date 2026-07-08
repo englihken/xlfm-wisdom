@@ -185,14 +185,9 @@ export function DashboardNav({
       aria-label="主导航"
       className="z-20 shrink-0 flex flex-row md:flex-col items-stretch bg-surface border-b md:border-b-0 md:border-r border-border md:fixed md:left-0 md:top-0 md:bottom-0 md:w-[72px]"
     >
-      {/* platform logo brand mark. Desktop only; the mobile row stays lean
-          (just icons + labels). */}
-      <div className="hidden md:flex items-center justify-center py-5 select-none">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/xlfm-logo.png" alt="" width={32} height={32} className="w-8 h-8 object-contain" />
-      </div>
-
-      <ul className="flex flex-row md:flex-col flex-1 md:flex-none items-stretch justify-around md:justify-start gap-1 md:gap-3 px-2 py-2 md:py-1">
+      {/* Icons + labels only — the TopBar carries the brand now. Rail items
+          start from the top padding. */}
+      <ul className="flex flex-row md:flex-col flex-1 md:flex-none items-stretch justify-around md:justify-start gap-1 md:gap-3 px-2 py-2 md:pt-4">
         {keys.map((key) => {
           const { label, href, Icon } = DOORS[key];
           const isActive = key === active;

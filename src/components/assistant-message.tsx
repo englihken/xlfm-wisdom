@@ -27,12 +27,12 @@ export const assistantMarkdownComponents = {
   li: (props: ComponentPropsWithoutRef<'li'>) => <li className="my-1" {...props} />,
   hr: () => <hr className="my-4 border-amber-200/60" />,
   blockquote: (props: ComponentPropsWithoutRef<'blockquote'>) => (
-    <blockquote className="my-4 rounded-lg bg-[#FBF3E0] border-l-4 border-[#C5975B] px-4 py-3 not-italic">
+    <blockquote className="quote-card my-4 px-4 py-3 not-italic">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-sm">🪷</span>
-        <span className="text-xs font-medium tracking-wide text-[#A87C3D]">师父开示</span>
+        <span className="quote-card-label">师父开示</span>
       </div>
-      <div className="text-[#5C3D1E] leading-relaxed [&>p]:my-1">{props.children}</div>
+      <div className="quote-card-body [&>p]:my-1 [&>p]:leading-[2]">{props.children}</div>
     </blockquote>
   ),
   strong: (props: ComponentPropsWithoutRef<'strong'>) => <strong className="text-amber-900 font-semibold" {...props} />,
@@ -49,8 +49,8 @@ export function MasterMarkdown({ children }: { children: string }) {
 export function MessageSources({ sources, title }: { sources: Source[]; title: string }) {
   if (!sources || sources.length === 0) return null;
   return (
-    <div className="mt-4 pt-3 border-t border-[#EFE3BF] animate-[fadeIn_0.5s_ease-in]">
-      <div className="text-xs text-[#8B6F47] mb-2">{title}</div>
+    <div className="mt-4 pt-3 border-t border-border animate-[fadeIn_0.5s_ease-in]">
+      <div className="text-xs text-ink-muted mb-2">{title}</div>
       <div className="space-y-1">
         {sources.map((s, sidx) => {
           const pageInfo = s.page_start
@@ -59,11 +59,11 @@ export function MessageSources({ sources, title }: { sources: Source[]; title: s
                 : `第 ${s.page_start}-${s.page_end} 页`)
             : '';
           return (
-            <div key={sidx} className="text-xs text-[#8B6F47] flex items-center gap-1">
+            <div key={sidx} className="text-xs text-ink-muted flex items-center gap-1">
               <span>📖</span>
               <span className="font-medium">《{s.book}》</span>
-              {pageInfo && <span className="text-[#8B6F47]/70">· {pageInfo}</span>}
-              {s.count > 1 && <span className="text-[#8B6F47]/60 text-[10px]">({s.count}段)</span>}
+              {pageInfo && <span className="text-ink-muted/70">· {pageInfo}</span>}
+              {s.count > 1 && <span className="text-ink-faint text-[10px]">({s.count}段)</span>}
             </div>
           );
         })}

@@ -13,8 +13,8 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
+import { TopBar } from '@/components/top-bar';
 import { visibleModules, type Grants } from '@/lib/access';
-import { PLATFORM_NAME } from '@/lib/platform';
 
 // ── Types (mirror the API route shapes) ──────────────────────────────────────
 type ListItem = {
@@ -85,19 +85,22 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: '已完成',
   closed: '已关闭',
 };
+// Gold pill for ACTIVE handling states; muted pill for FINISHED/terminal states;
+// needs_human keeps a semantic red (a warning that a human is required) — never
+// goldified.
 const STATUS_STYLES: Record<string, string> = {
-  ai_handling: 'bg-[#FAEFD0] text-[#8B6F47]',
-  needs_human: 'bg-[#FEF2F2] text-red-700',
-  volunteer_handling: 'bg-[#F5E1B0] text-[#8A5A1E]',
-  human_handling: 'bg-[#FAEFD0] text-[#A87929]',
-  resolved: 'bg-[#FAEFD0] text-[#8B6F47]',
-  closed: 'bg-[#FAEFD0] text-[#B89968]',
+  ai_handling: 'pill-gold',
+  needs_human: 'bg-[#FEF2F2] text-red-700 border border-[#FCA5A5]',
+  volunteer_handling: 'pill-gold',
+  human_handling: 'pill-gold',
+  resolved: 'pill-muted',
+  closed: 'pill-muted',
 };
 function statusLabel(status: string) {
   return STATUS_LABELS[status] ?? status;
 }
 function statusStyle(status: string) {
-  return STATUS_STYLES[status] ?? 'bg-[#FAEFD0] text-[#8B6F47]';
+  return STATUS_STYLES[status] ?? 'pill-gold';
 }
 
 function formatTime(iso: string): string {
@@ -519,8 +522,8 @@ export default function DashboardPage() {
   // so the inbox chrome never flashes before the password gate resolves.
   if (checking || !profileReady) {
     return (
-      <div className="min-h-screen bg-[#FFF3DA] flex items-center justify-center">
-        <p className="text-sm text-[#8B6F47]">加载中…</p>
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <p className="text-sm text-ink-muted">加载中…</p>
       </div>
     );
   }
@@ -541,55 +544,37 @@ export default function DashboardPage() {
   const dayGroups = buildDayGroups(visibleConversations, todayKey, yesterdayKey);
 
   return (
-    <div className="h-screen flex flex-col bg-[#FFF3DA] md:ml-[72px]">
-      {/* TOP BAR — navigation lives in the rail now; keep title, name, 登出. */}
-      <header className="shrink-0 border-b border-[#EFE3BF] bg-white/60 backdrop-blur-sm">
-        <div className="px-5 py-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] leading-none text-[#B89968]">🪷 {PLATFORM_NAME}</p>
-            <h1 className="mt-0.5 text-lg font-bold text-[#583A0F] leading-tight">
-              人文关怀 <span className="text-sm font-normal text-[#B89968]">· Care</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="hidden sm:inline text-sm text-[#8B6F47]">{me?.displayName || email}</span>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition"
-            >
-              登出
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="h-screen flex flex-col bg-bg md:ml-[72px]">
+      {/* TOP BAR — navigation lives in the rail now; shared frame carries brand. */}
+      <TopBar moduleTitle="人文关怀 · Care" userLabel={me?.displayName || email || undefined} onLogout={handleLogout} />
 
       <DashboardNav role={me?.role ?? 'volunteer'} active="inbox" grants={me?.grants} />
 
       {/* THREE PANELS */}
       <div className="flex-1 flex min-h-0">
         {/* LEFT — search + conversation list */}
-        <aside className="w-[340px] shrink-0 border-r border-[#EFE3BF] bg-[#FFFEF6] flex flex-col min-h-0">
+        <aside className="w-[340px] shrink-0 border-r border-border bg-surface-soft flex flex-col min-h-0">
           {/* SEARCH */}
-          <div className="shrink-0 p-3 border-b border-[#EFE3BF]">
+          <div className="shrink-0 p-3 border-b border-border">
             <input
               type="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="搜索姓名 / 号码 / 内容…"
-              className="w-full text-sm px-3 py-2 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] focus:outline-none focus:border-[#D89938]"
+              className="w-full text-sm px-4 py-2 border border-border-strong rounded-full bg-surface-soft text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
             />
           </div>
 
           {/* FILTER TABS */}
-          <div className="shrink-0 px-3 py-2 border-b border-[#EFE3BF] flex items-center gap-1">
+          <div className="shrink-0 px-3 py-2 border-b border-border flex items-center gap-1">
             {([['all', '全部'], ['mine', '我接手的']] as const).map(([f, label]) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1 rounded-full text-xs border transition ${
+                className={`px-3 py-1 rounded-full text-xs transition ${
                   filter === f
-                    ? 'bg-[#FAEFD0] text-[#583A0F] border-[#EFE3BF]'
-                    : 'text-[#8B6F47] border-transparent hover:bg-[#FAEFD0]/60'
+                    ? 'bg-accent/10 text-accent-deep font-medium'
+                    : 'text-ink-muted hover:bg-accent/5'
                 }`}
               >
                 {label}
@@ -600,16 +585,16 @@ export default function DashboardPage() {
           {/* LIST (scrolls; day headers stick within this container) */}
           <div className="flex-1 overflow-y-auto">
             {listLoading ? (
-              <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
+              <p className="p-6 text-sm text-ink-muted">加载中…</p>
             ) : visibleConversations.length === 0 ? (
-              <p className="p-6 text-sm text-[#8B6F47]">
+              <p className="p-6 text-sm text-ink-muted">
                 {filter === 'mine' ? '暂无接手的对话' : query ? '未找到相关对话' : '暂无对话'}
               </p>
             ) : (
-              <ul>
+              <ul className="pb-2">
                 {dayGroups.map((group) => (
                   <Fragment key={group.key}>
-                    <li className="sticky top-0 z-[1] px-4 py-1.5 text-[11px] font-medium text-[#B89968] bg-[#FFFEF6]/95 backdrop-blur-sm border-b border-[#EFE3BF]">
+                    <li className="sticky top-0 z-[1] px-4 py-1.5 font-serif text-[11.5px] tracking-[0.2em] text-label bg-surface-soft/95 backdrop-blur-sm border-b border-border">
                       {group.label}
                     </li>
                     {group.items.map((c) => {
@@ -618,37 +603,39 @@ export default function DashboardPage() {
                       // Never dot the conversation that's currently open.
                       const showUnread = c.unread && !selected;
                       return (
-                        <li key={c.id}>
+                        <li key={c.id} className="px-2 pt-1.5">
                           <button
                             onClick={() => selectConversation(c.id)}
-                            className={`w-full text-left px-4 py-3 border-b border-[#EFE3BF] transition ${
-                              selected ? 'bg-[#FAEFD0]' : 'hover:bg-[#FAEFD0]/60'
+                            className={`w-full text-left px-3 py-2.5 rounded-xl border transition ${
+                              selected
+                                ? 'card-selected border-transparent'
+                                : 'bg-surface border-border hover:border-gold-border'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 min-w-0">
                                 {showUnread && (
                                   <span
-                                    className="shrink-0 w-2 h-2 rounded-full bg-[#D89938]"
+                                    className="shrink-0 w-2 h-2 rounded-full bg-accent"
                                     aria-label="未读"
                                   />
                                 )}
-                                <span className="text-[#D89938]" title={ch.label}>{ch.icon}</span>
+                                <span className="text-accent" title={ch.label}>{ch.icon}</span>
                                 <span
-                                  className={`truncate text-[#583A0F] ${
-                                    showUnread ? 'font-semibold' : 'font-medium'
+                                  className={`truncate text-[13.5px] text-ink ${
+                                    showUnread ? 'font-bold' : 'font-semibold'
                                   }`}
                                 >
                                   {c.contactName}
                                 </span>
                               </div>
-                              <span className="shrink-0 text-xs text-[#B89968]">{formatTime(c.lastMessageAt)}</span>
+                              <span className="shrink-0 text-[11.5px] text-label">{formatTime(c.lastMessageAt)}</span>
                             </div>
-                            <p className="mt-1 text-sm text-[#8B6F47] line-clamp-2 break-words">
+                            <p className="mt-1 text-sm text-ink-body line-clamp-2 break-words">
                               {c.lastMessagePreview || '（无消息）'}
                             </p>
                             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                              <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${statusStyle(c.status)}`}>
+                              <span className={`inline-block px-2 py-0.5 rounded-full text-[10.5px] ${statusStyle(c.status)}`}>
                                 {statusLabel(c.status)}
                               </span>
                               {c.crisisFlag && <CrisisTag />}
@@ -669,15 +656,15 @@ export default function DashboardPage() {
         <main className="flex-1 min-w-0 flex flex-col min-h-0">
           {!selectedId ? (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-[#8B6F47]">选择一个对话查看</p>
+              <p className="text-sm text-ink-muted">选择一个对话查看</p>
             </div>
           ) : detailLoading ? (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-[#8B6F47]">加载中…</p>
+              <p className="text-sm text-ink-muted">加载中…</p>
             </div>
           ) : !detail ? (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-[#8B6F47]">无法加载对话</p>
+              <p className="text-sm text-ink-muted">无法加载对话</p>
             </div>
           ) : (
             <>
@@ -699,17 +686,15 @@ export default function DashboardPage() {
                       <div
                         className={`max-w-[85%] rounded-2xl p-4 ${
                           m.role === 'user'
-                            ? 'bg-[#D89938] text-white'
-                            : m.role === 'volunteer'
-                              ? 'bg-[#F5E1B0] border border-[#E8D19A] text-[#5C3D1E]'
-                              : 'bg-white border border-[#EFE3BF] text-[#583A0F]'
+                            ? 'card-selected text-ink'
+                            : 'bg-surface border border-border text-ink-body'
                         }`}
                       >
                         {m.role === 'user' ? (
                           <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
                         ) : m.role === 'volunteer' ? (
                           <>
-                            <div className="text-xs font-medium text-[#8A5A1E] mb-1.5">
+                            <div className="text-xs font-medium text-accent-deep mb-1.5">
                               义工 · {m.sentByName ?? '义工'}
                             </div>
                             <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
@@ -722,7 +707,7 @@ export default function DashboardPage() {
                         )}
                         <div
                           className={`mt-2 text-[11px] ${
-                            m.role === 'user' ? 'text-white/70 text-right' : 'text-[#B89968]'
+                            m.role === 'user' ? 'text-ink/60 text-right' : 'text-ink-faint'
                           }`}
                         >
                           {formatDateTime(m.created_at)}
@@ -731,7 +716,7 @@ export default function DashboardPage() {
                     </div>
                   ))}
                   {detail.messages.length === 0 && (
-                    <p className="text-center text-sm text-[#8B6F47] py-12">此对话暂无消息</p>
+                    <p className="text-center text-sm text-ink-muted py-12">此对话暂无消息</p>
                   )}
                 </div>
               </div>
@@ -746,11 +731,11 @@ export default function DashboardPage() {
         </main>
 
         {/* RIGHT — contact profile */}
-        <aside className="w-[300px] shrink-0 border-l border-[#EFE3BF] bg-[#FFFEF6] overflow-y-auto">
+        <aside className="w-[300px] shrink-0 border-l border-border bg-surface-soft overflow-y-auto">
           {!selectedId ? (
-            <p className="p-6 text-sm text-[#8B6F47]">联系人资料</p>
+            <p className="p-6 text-sm text-ink-muted">联系人资料</p>
           ) : !detail ? (
-            <p className="p-6 text-sm text-[#8B6F47]">加载中…</p>
+            <p className="p-6 text-sm text-ink-muted">加载中…</p>
           ) : (
             <ContactPanel
               key={detail.contact?.id ?? 'none'}
@@ -787,14 +772,14 @@ function ThreadHeader({
   const canHandback = Boolean(detail.conversation.assignedToMe) || isAdmin;
 
   return (
-    <div className="shrink-0 border-b border-[#EFE3BF] bg-white/70 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between gap-3">
+    <div className="shrink-0 border-b border-border bg-surface/70 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between gap-3">
       <div className="min-w-0 text-sm">
         {isVolunteerHandling ? (
-          <span className="text-[#8A5A1E]">
+          <span className="text-accent-deep">
             义工处理中 · <span className="font-medium">{detail.conversation.assignedVolunteerName ?? '义工'}</span>
           </span>
         ) : (
-          <span className="text-[#8B6F47]">AI 处理中</span>
+          <span className="pill-gold inline-block px-2.5 py-0.5 rounded-full text-[10.5px]">AI 处理中</span>
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -803,7 +788,7 @@ function ThreadHeader({
           <button
             onClick={onTakeover}
             disabled={actionBusy}
-            className="px-4 py-1.5 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary px-4 py-1.5 text-sm"
           >
             接手对话
           </button>
@@ -811,7 +796,7 @@ function ThreadHeader({
           <button
             onClick={onHandback}
             disabled={actionBusy}
-            className="px-4 py-1.5 text-sm text-[#583A0F] border border-[#EFE3BF] rounded-full hover:bg-[#FAEFD0] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-secondary px-4 py-1.5 text-sm"
           >
             交回 AI
           </button>
@@ -850,7 +835,7 @@ function ReplyComposer({
   };
 
   return (
-    <div className="shrink-0 border-t border-[#EFE3BF] bg-white/70 backdrop-blur-sm p-3">
+    <div className="shrink-0 border-t border-border bg-surface/70 backdrop-blur-sm p-3">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-end gap-2">
           <textarea
@@ -865,16 +850,17 @@ function ReplyComposer({
             rows={2}
             placeholder="以义工身份回复…（Enter 发送，Shift+Enter 换行）"
             disabled={sending}
-            className="flex-1 text-sm p-2.5 border border-[#EFE3BF] rounded-lg bg-white text-[#583A0F] placeholder:text-[#B89968] leading-relaxed resize-y focus:outline-none focus:border-[#D89938] disabled:opacity-60"
+            className="flex-1 text-sm p-2.5 border border-border rounded-lg bg-surface text-ink placeholder:text-ink-faint leading-relaxed resize-y focus:outline-none focus:border-accent disabled:opacity-60"
           />
           <button
             onClick={submit}
             disabled={sending || !text.trim()}
-            className="px-5 py-2.5 text-sm text-white bg-[#D89938] rounded-full hover:bg-[#A87929] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary px-5 py-2.5 text-sm"
           >
             {sending ? '发送中…' : '发送'}
           </button>
         </div>
+        {/* 24h-window / send-failure notice — a semantic warning, kept amber. */}
         {notice && <p className="mt-1.5 text-xs text-[#B45309]">{notice}</p>}
       </div>
     </div>
@@ -889,11 +875,11 @@ const STAGE_OPTIONS = ['初次接触', '学习中', '共修者', '义工'] as co
 function ConversationGistLine({ summary }: { summary: string | null | undefined }) {
   return (
     <div>
-      <p className="text-xs font-medium text-[#B89968] mb-1">本次对话</p>
+      <p className="u-label mb-1">本次对话</p>
       {summary?.trim() ? (
-        <p className="text-sm text-[#583A0F] leading-relaxed">{summary.trim()}</p>
+        <p className="text-sm text-ink leading-relaxed">{summary.trim()}</p>
       ) : (
-        <p className="text-sm text-[#B89968] italic">本次对话摘要待今夜生成</p>
+        <p className="text-sm text-ink-faint italic">本次对话摘要待今夜生成</p>
       )}
     </div>
   );
@@ -1002,9 +988,9 @@ function ContactPanel({
     return (
       <div className="p-5 space-y-5">
         <div>
-          <p className="text-lg font-semibold text-[#583A0F]">未识别访客</p>
-          <p className="mt-0.5 text-sm text-[#8B6F47]">
-            <span className="text-[#D89938]">{ch.icon}</span> {ch.label}
+          <p className="text-lg font-semibold text-ink">未识别访客</p>
+          <p className="mt-0.5 text-sm text-ink-muted">
+            <span className="text-accent">{ch.icon}</span> {ch.label}
           </p>
           {(detail.conversation.crisisFlag || detail.conversation.category) && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -1014,7 +1000,7 @@ function ContactPanel({
           )}
         </div>
         <ConversationGistLine summary={detail.conversation.summary} />
-        <p className="text-xs text-[#B89968] leading-relaxed">此访客的浏览器未提供身份，无法建立档案。</p>
+        <p className="text-xs text-ink-faint leading-relaxed">此访客的浏览器未提供身份，无法建立档案。</p>
       </div>
     );
   }
@@ -1022,9 +1008,9 @@ function ContactPanel({
   return (
     <div className="p-5 space-y-5">
       <div>
-        <p className="text-lg font-semibold text-[#583A0F] break-words">{name}</p>
-        <p className="mt-0.5 text-sm text-[#8B6F47]">
-          <span className="text-[#D89938]">{ch.icon}</span> {ch.label}
+        <p className="text-lg font-semibold text-ink break-words">{name}</p>
+        <p className="mt-0.5 text-sm text-ink-muted">
+          <span className="text-accent">{ch.icon}</span> {ch.label}
         </p>
         {(detail.conversation.crisisFlag || detail.conversation.category) && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -1041,14 +1027,14 @@ function ContactPanel({
       {/* 修行阶段 — editable dropdown, saves on change */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <p className="text-xs font-medium text-[#B89968]">修行阶段</p>
-          {stageSaved && <span className="text-xs text-[#A87929]">已保存 ✓</span>}
+          <p className="u-label">修行阶段</p>
+          {stageSaved && <span className="text-xs text-accent-deep">已保存 ✓</span>}
         </div>
         <select
           value={stage}
           onChange={handleStageChange}
           disabled={!contactId || stageSaving}
-          className="w-full text-sm text-[#583A0F] bg-white border border-[#EFE3BF] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#D89938] disabled:opacity-60"
+          className="w-full text-sm text-ink bg-surface border border-border-strong rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-accent disabled:opacity-60"
         >
           {!STAGE_OPTIONS.includes(stage as (typeof STAGE_OPTIONS)[number]) && (
             <option value="" disabled>
@@ -1067,38 +1053,38 @@ function ContactPanel({
       <ConversationGistLine summary={detail.conversation.summary} />
 
       <div>
-        <p className="text-xs font-medium text-[#B89968] mb-1">有缘人档案</p>
-        <p className="text-sm text-[#583A0F] whitespace-pre-wrap leading-relaxed">
+        <p className="u-label mb-1">有缘人档案</p>
+        <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
           {c.summary?.trim() || '暂无'}
         </p>
       </div>
 
       {/* 义工备注 — editable textarea, saves on button click */}
       <div>
-        <p className="text-xs font-medium text-[#B89968] mb-1">义工备注</p>
+        <p className="u-label mb-1">义工备注</p>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           disabled={!contactId}
           rows={4}
           placeholder="为这位联系人添加备注…"
-          className="w-full text-sm text-[#583A0F] bg-white border border-[#EFE3BF] rounded-lg px-2.5 py-2 leading-relaxed resize-y focus:outline-none focus:border-[#D89938] disabled:opacity-60 placeholder:text-[#B89968]"
+          className="w-full text-sm text-ink bg-surface border border-border-strong rounded-lg px-2.5 py-2 leading-relaxed resize-y focus:outline-none focus:border-accent disabled:opacity-60 placeholder:text-ink-faint"
         />
         <div className="mt-1.5 flex items-center gap-2">
           <button
             onClick={handleNotesSave}
             disabled={!contactId || notesSaving}
-            className="px-3 py-1 text-xs text-white bg-[#D89938] rounded-full hover:bg-[#C5862C] transition disabled:opacity-60"
+            className="btn-primary px-3 py-1 text-xs"
           >
             {notesSaving ? '保存中…' : '保存'}
           </button>
-          {notesSaved && <span className="text-xs text-[#A87929]">已保存 ✓</span>}
+          {notesSaved && <span className="text-xs text-accent-deep">已保存 ✓</span>}
           {notesError && <span className="text-xs text-red-600">保存失败，请重试</span>}
         </div>
       </div>
 
       {c && (
-        <div className="pt-3 border-t border-[#EFE3BF] space-y-1 text-xs text-[#B89968]">
+        <div className="pt-3 border-t border-border space-y-1 text-xs text-ink-faint">
           <p>首次联系：{formatDateTime(c.first_seen)}</p>
           <p>最近活跃：{formatDateTime(c.last_seen)}</p>
         </div>
@@ -1111,7 +1097,7 @@ function ContactPanel({
 // volunteer-editable). Warm palette for the topic chip; a clear red for crisis.
 function CategoryTag({ category }: { category: string }) {
   return (
-    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FAEFD0] text-[#8B6F47]">
+    <span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[10.5px]">
       {category}
     </span>
   );
@@ -1128,8 +1114,8 @@ function CrisisTag() {
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <p className="text-xs font-medium text-[#B89968] mb-1">{label}</p>
-      <p className={`text-sm text-[#583A0F] break-words ${mono ? 'font-mono text-xs' : ''}`}>{value}</p>
+      <p className="u-label mb-1">{label}</p>
+      <p className={`text-sm text-ink break-words ${mono ? 'font-mono text-xs' : ''}`}>{value}</p>
     </div>
   );
 }
