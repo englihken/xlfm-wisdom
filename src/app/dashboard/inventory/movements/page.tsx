@@ -8,6 +8,8 @@
 
 'use client';
 
+import { PAGE_WIDE } from '@/lib/layout';
+
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -142,7 +144,7 @@ function MovementsList({ me }: { me: ErpMe }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+    <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex items-baseline gap-2">
         <h2 className="text-xl font-bold font-serif text-ink">📦 变动记录</h2>
         <span className="text-sm text-ink-faint">Movements · {total.toLocaleString()}</span>

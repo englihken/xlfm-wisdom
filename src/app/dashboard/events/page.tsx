@@ -7,6 +7,8 @@
 
 'use client';
 
+import { PAGE_WIDE } from '@/lib/layout';
+
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
@@ -107,7 +109,7 @@ function EventsOverview({ me }: { me: ErpMe }) {
   }, [events, status, type, centre, search]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+    <div className={`${PAGE_WIDE} space-y-5`}>
       {/* header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">

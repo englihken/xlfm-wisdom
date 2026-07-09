@@ -6,6 +6,8 @@
 
 'use client';
 
+import { PAGE_WIDE } from '@/lib/layout';
+
 import { useCallback, useEffect, useState } from 'react';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
@@ -60,7 +62,7 @@ function MutualAid({ me }: { me: ErpMe }) {
   }, [load]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+    <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-baseline gap-2">
           <h2 className="text-xl font-bold font-serif text-ink">🤝 盈余互助</h2>

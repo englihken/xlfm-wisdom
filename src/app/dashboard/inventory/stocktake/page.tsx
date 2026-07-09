@@ -7,6 +7,8 @@
 
 'use client';
 
+import { PAGE_WIDE } from '@/lib/layout';
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
@@ -57,7 +59,7 @@ function Stocktake({ me }: { me: ErpMe }) {
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+    <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex items-baseline gap-2">
         <h2 className="text-xl font-bold font-serif text-ink">📋 盘点模式</h2>
         <span className="text-sm text-ink-faint">Stock-take</span>

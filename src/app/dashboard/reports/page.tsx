@@ -9,6 +9,8 @@
 
 'use client';
 
+import { PAGE_WIDE } from '@/lib/layout';
+
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -185,7 +187,7 @@ export default function ReportsPage() {
       <DashboardNav role={me?.role ?? 'volunteer'} active="reports" grants={me?.grants} />
 
       <main className="flex-1 min-w-0 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+        <div className={`${PAGE_WIDE} space-y-8`}>
           {/* HEADER ROW — title + range pills */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-serif text-xl font-bold text-ink">报表</h2>
