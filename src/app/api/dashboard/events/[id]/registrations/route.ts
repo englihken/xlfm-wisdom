@@ -70,6 +70,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       reg_no: r.reg_no,
       member_id: r.member_id,
       name: m ? m.name_cn || m.name_en || '（无名）' : r.applicant_name || '（未命名）',
+      phone: r.applicant_phone ?? null, // additive: powers the 带入渡人名单 bridge (E1)
       centreCode: centre?.code ?? null,
       volunteer_team_id: r.volunteer_team_id,
       selections: r.selections ?? {},

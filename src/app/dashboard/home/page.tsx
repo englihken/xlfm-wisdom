@@ -100,6 +100,7 @@ export default function HubPage() {
           // Single-door bounce: send the caller straight into their one module.
           const DOOR_HREF: Record<string, string> = {
             inbox: '/dashboard',
+            outreach: '/dashboard/outreach',
             members: '/dashboard/members',
             events: '/dashboard/events',
             inventory: '/dashboard/inventory',
@@ -256,6 +257,9 @@ export default function HubPage() {
           <div className="flex flex-wrap gap-2">
             {grantAllows(me.grants, 'care', 'view') && (
               <QuickLink href="/dashboard" label="去收件箱" />
+            )}
+            {grantAllows(me.grants, 'outreach', 'view') && (
+              <QuickLink href="/dashboard/outreach" label="🪷 渡人名单" />
             )}
             {grantAllows(me.grants, 'members', 'view') && (
               <QuickLink href="/dashboard/members" label="会员列表" />

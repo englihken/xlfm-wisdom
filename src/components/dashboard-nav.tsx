@@ -198,6 +198,28 @@ function CoinsIcon({ className }: IconProps) {
   );
 }
 
+// Lotus icon for 渡人, in the same line-icon style (a lotus bloom on water).
+function LotusIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 12c1.6-2.2 2.4-4.4 2.4-6.6C13.4 6 12.6 7.4 12 8.8 11.4 7.4 10.6 6 9.6 5.4 9.6 7.6 10.4 9.8 12 12z" />
+      <path d="M12 12c2.4-1 4.6-1.2 6.4-.4-1 1.8-3 3.2-5.2 3.6M12 12c-2.4-1-4.6-1.2-6.4-.4 1 1.8 3 3.2 5.2 3.6" />
+      <path d="M3.5 15c2.4 2 5.4 3 8.5 3s6.1-1 8.5-3" />
+    </svg>
+  );
+}
+
 type Door = { label: string; href: string; Icon: (props: IconProps) => React.ReactElement };
 
 // Destination for every nav key. Which keys actually render is decided ONLY by
@@ -205,6 +227,7 @@ type Door = { label: string; href: string; Icon: (props: IconProps) => React.Rea
 const DOORS: Record<NavKey, Door> = {
   home: { label: '主页', href: '/dashboard/home', Icon: HomeIcon },
   inbox: { label: '收件箱', href: '/dashboard', Icon: InboxIcon },
+  outreach: { label: '渡人', href: '/dashboard/outreach', Icon: LotusIcon },
   members: { label: '会员', href: '/dashboard/members', Icon: PeopleIcon },
   events: { label: '活动', href: '/dashboard/events', Icon: CalendarIcon },
   inventory: { label: '库存', href: '/dashboard/inventory', Icon: BoxIcon },

@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
+import { BringToOutreachButton } from '@/components/bring-to-outreach-button';
 import { computeFees, type FeeItem, type Selections } from '@/lib/event-fees';
 import { addDays, mealSlotKey } from '@/lib/events';
 import { qrModules } from '@/lib/qr';
@@ -44,7 +45,7 @@ type Detail = {
 };
 type BreakdownLine = { item: string; label: string; amount: number; qty: number; subtotal: number };
 type RegRow = {
-  id: string; reg_no: string; member_id: string | null; name: string; centreCode: string | null;
+  id: string; reg_no: string; member_id: string | null; name: string; phone: string | null; centreCode: string | null;
   volunteer_team_id: string | null; selections: Record<string, unknown>;
   fee_total: number; fee_breakdown: BreakdownLine[];
   status: string; decided_by: string | null; decidedByName: string | null; decided_at: string | null;
@@ -99,6 +100,7 @@ export default function EventDetailPage() {
 
 function Detail({ me, id }: { me: ErpMe; id: string }) {
   const canEdit = grantAllows(me.grants, 'events', 'edit');
+  const canOutreach = grantAllows(me.grants, 'outreach', 'edit');
   const [data, setData] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -356,6 +358,9 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
                     </button>
                     {canEdit && r.status !== 'cancelled' && (
                       <button onClick={() => setPayFor(r)} className="px-3 py-1 text-xs btn-secondary">付款</button>
+                    )}
+                    {canOutreach && r.status !== 'cancelled' && (
+                      <BringToOutreachButton eventId={id} name={r.name} phone={r.phone} />
                     )}
                     {canEdit && r.status === 'pending' && (
                       <>

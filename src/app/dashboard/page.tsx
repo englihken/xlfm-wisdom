@@ -14,7 +14,8 @@ import { MasterMarkdown, MessageSources, type Source } from '@/components/assist
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
-import { visibleModules, type Grants } from '@/lib/access';
+import { visibleModules, grantAllows, type Grants } from '@/lib/access';
+import { OutreachQuickPanel } from '@/components/outreach-quick-panel';
 
 // ── Types (mirror the API route shapes) ──────────────────────────────────────
 type ListItem = {
@@ -740,6 +741,7 @@ export default function DashboardPage() {
             <ContactPanel
               key={detail.contact?.id ?? 'none'}
               detail={detail}
+              canOutreach={grantAllows(me?.grants, 'outreach', 'edit')}
               onUnauthorized={handleUnauthorized}
               onContactUpdate={applyContactUpdate}
             />
@@ -894,10 +896,12 @@ function ConversationGistLine({ summary }: { summary: string | null | undefined 
 // sync effect (keeps setState out of effects-with-deps).
 function ContactPanel({
   detail,
+  canOutreach,
   onUnauthorized,
   onContactUpdate,
 }: {
   detail: Detail;
+  canOutreach?: boolean;
   onUnauthorized: () => void;
   onContactUpdate: (updates: Partial<ContactProfile>) => void;
 }) {
@@ -1021,6 +1025,8 @@ function ContactPanel({
           </div>
         )}
       </div>
+
+      {canOutreach && contactId && <OutreachQuickPanel contactId={contactId} />}
 
       <Field label="联系方式" value={contactPoint} mono />
 

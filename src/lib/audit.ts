@@ -7,7 +7,18 @@
 
 import { supabaseAdmin } from './supabase';
 
-export type AuditAction = 'create' | 'update' | 'deactivate' | 'reactivate' | 'import';
+export type AuditAction =
+  | 'create'
+  | 'update'
+  | 'deactivate'
+  | 'reactivate'
+  | 'import'
+  // 渡人 (outreach) — precise event names; audit_log.action is free text.
+  | 'outreach.person_create'
+  | 'outreach.person_update'
+  | 'outreach.milestone_record'
+  | 'outreach.milestone_update'
+  | 'outreach.milestone_delete';
 
 export async function writeAudit(entry: {
   actorId: string | null;
