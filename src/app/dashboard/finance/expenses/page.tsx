@@ -18,12 +18,30 @@ function one<T>(v: T | T[] | null): T | null {
 }
 type Centre = { id: string; code: string; name_cn: string };
 type Expense = {
-  id: string; spent_at: string; category: string; description: string; amount: number;
+  id: string; spent_at: string; category: string; description: string; amount: number; receipt_path: string | null;
   voided_at: string | null; void_reason: string | null; enterer: Lite<{ display_name: string | null; email: string }>;
 };
 
 const inputCls = 'w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent';
 const thisMonth = () => new Date().toISOString().slice(0, 7);
+
+async function openReceipt(path: string) {
+  const r = await fetch(`/api/dashboard/finance/media-url?path=${encodeURIComponent(path)}`);
+  const j = await r.json().catch(() => ({}));
+  if (j?.url) window.open(j.url, '_blank', 'noopener');
+}
+
+function downloadCsv(filename: string, headers: string[], rows: (string | number)[][]) {
+  const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = [headers, ...rows].map((r) => r.map(esc).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function ExpensesPage() {
   return (
@@ -74,6 +92,17 @@ function Expenses({ me }: { me: ErpMe }) {
   const centre = centres.find((c) => c.id === centreId) ?? null;
   const total = useMemo(() => rows.filter((r) => !r.voided_at).reduce((s, r) => s + Number(r.amount), 0), [rows]);
 
+  const exportCsv = () => {
+    downloadCsv(
+      `支出_${centre?.name_cn ?? ''}_${month}.csv`,
+      ['日期', '类别', '说明', '金额', '录入', '状态'],
+      rows.map((r) => {
+        const by = one(r.enterer);
+        return [r.spent_at, EXPENSE_CATEGORY_LABELS[r.category] ?? r.category, r.description, Number(r.amount).toFixed(2), by?.display_name || by?.email || '', r.voided_at ? `已作废：${r.void_reason ?? ''}` : ''];
+      })
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-4">
       <div className="flex items-baseline gap-2">
@@ -92,6 +121,7 @@ function Expenses({ me }: { me: ErpMe }) {
         <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className={`${inputCls} w-auto`} />
         <span className="flex-1" />
         {canEdit && <button onClick={() => setShowAdd(true)} className="px-4 py-1.5 text-sm btn-primary">＋ 记支出</button>}
+        <button onClick={exportCsv} className="px-3 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">⬇ 导出 CSV</button>
       </div>
 
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
@@ -119,6 +149,7 @@ function Expenses({ me }: { me: ErpMe }) {
                         <td className={`px-4 py-2 text-ink-muted ${voided ? 'line-through' : ''}`}>{r.spent_at.slice(5)}</td>
                         <td className="px-4 py-2"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${expenseCategoryPill(r.category)}`}>{EXPENSE_CATEGORY_LABELS[r.category] ?? r.category}</span></td>
                         <td className={`px-4 py-2 text-ink ${voided ? 'line-through' : ''}`}>
+                          {r.receipt_path && <button onClick={() => openReceipt(r.receipt_path!)} title="查看单据照片" className="mr-1 text-accent-deep no-underline">📎</button>}
                           {r.description}
                           {voided && <span className="ml-1.5 text-[11px] text-[#B4402E] no-underline">（已作废：{r.void_reason}）</span>}
                         </td>
@@ -169,6 +200,7 @@ function ExpenseModal({ centre, onClose, onDone }: { centre: Centre; onClose: ()
   const [category, setCategory] = useState('rent');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [photo, setPhoto] = useState<File | null>(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async () => {
@@ -177,10 +209,23 @@ function ExpenseModal({ centre, onClose, onDone }: { centre: Centre; onClose: ()
     if (!(Number(amount) > 0)) return setErr('金额须大于 0');
     setBusy(true);
     try {
+      let receiptPath: string | undefined;
+      if (photo) {
+        const fd = new FormData();
+        fd.append('file', photo);
+        const up = await fetch('/api/dashboard/finance/upload', { method: 'POST', body: fd });
+        const uj = await up.json().catch(() => ({}));
+        if (!up.ok || !uj.path) {
+          setErr(uj.error ?? '照片上传失败');
+          setBusy(false);
+          return;
+        }
+        receiptPath = uj.path;
+      }
       const res = await fetch('/api/dashboard/finance/expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ centre_id: centre.id, spent_at: spentAt, category, description: description.trim(), amount: Number(amount) }),
+        body: JSON.stringify({ centre_id: centre.id, spent_at: spentAt, category, description: description.trim(), amount: Number(amount), receipt_path: receiptPath ?? null }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) setErr(j.error ?? '保存失败');
@@ -197,6 +242,7 @@ function ExpenseModal({ centre, onClose, onDone }: { centre: Centre; onClose: ()
         <div><p className="text-xs text-ink-muted mb-1">类别</p><select value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>{EXPENSE_CATEGORY_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
         <div className="col-span-2"><p className="text-xs text-ink-muted mb-1">说明</p><input value={description} onChange={(e) => setDescription(e.target.value)} className={inputCls} /></div>
         <div><p className="text-xs text-ink-muted mb-1">金额 RM</p><input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputCls} /></div>
+        <div><p className="text-xs text-ink-muted mb-1">单据照片（可选）</p><input type="file" accept="image/*" capture="environment" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="w-full text-xs text-ink-muted file:mr-2 file:px-2 file:py-1 file:rounded file:border file:border-border-strong file:bg-surface file:text-ink" /></div>
       </div>
       <div className="flex gap-2 justify-end mt-3">
         <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
