@@ -36,6 +36,15 @@ the movement's **own creator within 24h, or an inventory:admin anytime**. Refuse
 reversal, already has a reversal, or is a seed `opening` (correct those via a future stock-take). The
 negative-stock guard applies to the opposite move.
 
+**Reversal rewinds the request.** When the reversed movement was a 分会 release (carries `request_id`), the
+parent request is rewound in the same transaction-style step: `qty_fulfilled −= original.qty` (floored at 0)
+and the status is recomputed — `0 → approved`, `< qty_approved → partial`, `== qty_approved → fulfilled` — so
+the pipeline card numbers always agree with the ledger (a fully-reversed request drops back to ② 已批准·备货中
+automatically, since columns follow status). **Exception:** a request already `cancelled`/`rejected` keeps its
+status; only the counter moves. If the request rewind fails, the reversal movement is rolled back and the call
+errors (same manual-compensation pattern as release). Both the movement and the request rewind are audited
+(with before/after).
+
 ## App surface (built)
 
 New/changed API (all `requireModuleAccess('inventory', …)`, every mutation audited):
@@ -77,5 +86,5 @@ release/reverse and item CRUD need **edit**; stats/list/drawer need **view**.
    not built.
 2. `low_stock_line` is only set for items where an advisor filled it — items without a line never appear in
    低库存 / 采购建议 by design.
-3. Reversing a *release* movement returns the stock via the ledger but does not rewind the request's
-   `qty_fulfilled` counter (the ledger is the source of truth); revisit if that proves confusing in use.
+3. Migration record: `migrations/023_inventory_workflow.sql` is the canonical DDL applied to prod (never
+   re-run). Keep it in step with any future advisor-side schema change to the inventory tables.

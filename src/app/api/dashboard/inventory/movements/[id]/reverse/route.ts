@@ -5,7 +5,9 @@
 // or an inventory:admin at any time. Refused if the target is itself a reversal, already has a
 // reversal (DB also enforces one-reversal-max via a unique partial index), or is a seed
 // 'opening' (correct those via a stock-take). The negative-stock guard applies to the opposite
-// move. Audited.
+// move. When the reversed movement was a 分会 release (has request_id), the parent request is
+// also rewound (qty_fulfilled −= qty, status recomputed) so cards agree with the ledger.
+// Audited (the movement, and the request when rewound).
 
 import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
@@ -29,7 +31,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { data: mv, error: mvErr } = await supabaseAdmin
     .from('inventory_movements')
-    .select('id, item_id, movement_type, from_location_id, to_location_id, qty, event_id, reversal_of, created_by, created_at')
+    .select('id, item_id, movement_type, from_location_id, to_location_id, qty, event_id, request_id, reversal_of, created_by, created_at')
     .eq('id', id)
     .maybeSingle();
   if (mvErr) {
@@ -88,6 +90,54 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     console.error('[inventory/reverse] insert failed:', insErr);
     return NextResponse.json({ error: '撤销失败，请重试' }, { status: 500 });
   }
+  const reversalId = (reversal as unknown as { id: string }).id;
+
+  // If the reversed movement was a 分会 release (has request_id), rewind the parent request so
+  // its card numbers agree with the ledger: qty_fulfilled −= original.qty (floor 0), status
+  // recomputed (0 → approved, < approved → partial, == approved → fulfilled). A closed request
+  // (cancelled/rejected) keeps its status — only the counter moves. Same manual-rollback pattern:
+  // on failure, delete the reversal and error out.
+  if (mv.request_id) {
+    const { data: reqRow, error: reqErr } = await supabaseAdmin
+      .from('inventory_requests')
+      .select('id, qty_approved, qty_fulfilled, status')
+      .eq('id', mv.request_id)
+      .maybeSingle();
+    if (reqErr || !reqRow) {
+      console.error('[inventory/reverse] request rewind load failed, rolling back reversal:', reqErr);
+      await supabaseAdmin.from('inventory_movements').delete().eq('id', reversalId);
+      return NextResponse.json({ error: '撤销失败（无法回退申请）' }, { status: 500 });
+    }
+    const newFulfilled = Math.max(0, reqRow.qty_fulfilled - mv.qty);
+    const approved = reqRow.qty_approved ?? 0;
+    const closed = reqRow.status === 'cancelled' || reqRow.status === 'rejected';
+    const newStatus = closed
+      ? reqRow.status
+      : newFulfilled === 0
+        ? 'approved'
+        : newFulfilled < approved
+          ? 'partial'
+          : 'fulfilled';
+    const { error: updErr } = await supabaseAdmin
+      .from('inventory_requests')
+      .update({ qty_fulfilled: newFulfilled, status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', reqRow.id);
+    if (updErr) {
+      console.error('[inventory/reverse] request rewind failed, rolling back reversal:', updErr);
+      await supabaseAdmin.from('inventory_movements').delete().eq('id', reversalId);
+      return NextResponse.json({ error: '撤销失败（申请状态未回退）' }, { status: 500 });
+    }
+    await writeAudit({
+      actorId: me.id,
+      actorEmail: me.email,
+      module: 'inventory',
+      action: 'update',
+      tableName: 'inventory_requests',
+      recordId: reqRow.id,
+      before: { qty_fulfilled: reqRow.qty_fulfilled, status: reqRow.status },
+      after: { qty_fulfilled: newFulfilled, status: newStatus },
+    });
+  }
 
   await writeAudit({
     actorId: me.id,
@@ -96,7 +146,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     action: 'update',
     tableName: 'inventory_movements',
     recordId: mv.id,
-    after: { reversed_by_movement: (reversal as unknown as { id: string }).id, movement_type: opposite.movement_type, qty: mv.qty },
+    after: { reversed_by_movement: reversalId, movement_type: opposite.movement_type, qty: mv.qty, request_id: mv.request_id },
   });
 
   return NextResponse.json({ movement: reversal }, { status: 201 });
