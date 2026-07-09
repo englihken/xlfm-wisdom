@@ -392,7 +392,7 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
               </tr>
             </thead>
             <tbody>
-              {lines.map((l) => {
+              {lines.map((l, idx) => {
                 const it = one(l.item);
                 const v = counts[l.item_id];
                 const counted = v !== undefined && v !== '' ? Number(v) : null;
@@ -412,6 +412,16 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
                           min={0}
                           value={v ?? ''}
                           onChange={(e) => setCounts((c) => ({ ...c, [l.item_id]: e.target.value }))}
+                          onKeyDown={(e) => {
+                            // Enter / Tab commit this row (state is already live) and move to the
+                            // NEXT row's input — the type-Enter-type cadence for 200+ items.
+                            if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+                              e.preventDefault();
+                              const next = lines[idx + 1];
+                              if (next) inputRefs.current[next.item_id]?.focus();
+                              else e.currentTarget.blur();
+                            }
+                          }}
                           placeholder="待点"
                           className="w-20 text-sm px-2 py-1 border border-border-strong rounded-lg bg-surface text-ink text-right focus:outline-none focus:border-accent tabular-nums"
                         />
