@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XLFM Phase D · 月费/财务 · Design Mockup (2b theme)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBF8F1; --surface:#FFFFFF; --surface-soft:#FDFBF4;
+    --ink:#2B2314; --ink-body:#453D2E; --ink-muted:#7E7258; --ink-faint:#9C8B6C;
+    --label:#8A7444; --accent:#C08A2D; --accent-deep:#7A5416; --accent-strong:#8F621A;
+    --border:#EFE7D6; --border-strong:#E8DFC8; --gold-border:#E3CE97;
+    --quote-bg:#FBF3DE; --quote-ink:#4A3A14;
+    --green-bg:#E7F0E0; --green-ink:#3F6B2E; --red-bg:#FCEBEA; --red-ink:#B4402E;
+    --lav-bg:#EFEAF6; --lav-ink:#6B5B8A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#F1EDE2;font-family:'Noto Sans SC',sans-serif;color:var(--ink);padding:28px 16px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  .doc-h{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:700;margin-bottom:6px}
+  .doc-sub{font-size:13px;color:var(--ink-muted);margin-bottom:18px}
+  .decisions{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:34px}
+  .decisions h3{font-family:'Noto Serif SC',serif;font-size:14px;color:var(--accent-deep);letter-spacing:.1em;margin-bottom:10px}
+  .decisions li{font-size:13px;color:var(--ink-body);line-height:1.8;margin-left:18px}
+  .decisions b{color:var(--ink)}
+  .sec{margin:38px 0 14px;display:flex;align-items:center;gap:10px}
+  .sec .n{background:var(--ink);color:#fff;font-size:12px;font-weight:700;border-radius:6px;padding:3px 8px}
+  .sec .t{font-family:'Noto Serif SC',serif;font-size:16px;font-weight:700}
+  .sec .d{font-size:12px;color:var(--ink-muted)}
+  .frame{background:var(--bg);border:1px solid var(--border-strong);border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(43,35,20,.06)}
+  /* top bar */
+  .tb{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:12px}
+  .tb .logo{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#F2C14E,#C08A2D);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}
+  .tb .plat{font-size:10px;color:var(--label);letter-spacing:.12em}
+  .tb .mod{font-family:'Noto Serif SC',serif;font-size:16px;font-weight:700}
+  .tb .mod span{font-size:12px;font-weight:400;color:var(--ink-faint)}
+  .tb .right{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink-muted)}
+  .tb .out{border:1px solid var(--gold-border);color:var(--accent-deep);background:#FEFBF3;border-radius:20px;padding:5px 14px;font-size:12px}
+  .hairline{height:3px;background:linear-gradient(90deg,#E9CD86,#C08A2D 40%,#E9CD86 80%,#F4E5BC)}
+  .body{padding:20px 22px 26px}
+  /* shared bits */
+  .u-label{font-size:10.5px;letter-spacing:.14em;color:var(--label);text-transform:uppercase;font-weight:500}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px}
+  .btn-p{background:linear-gradient(160deg,#D9A63E,#B8862B);color:#fff;border:none;border-radius:20px;padding:8px 20px;font-size:13px;font-weight:500;box-shadow:0 2px 6px rgba(184,134,43,.3)}
+  .btn-s{background:#FEFBF3;color:var(--accent-deep);border:1px solid var(--gold-border);border-radius:20px;padding:7px 16px;font-size:12.5px}
+  .pill{display:inline-block;border-radius:10px;padding:2px 9px;font-size:10.5px}
+  .pill-gold{background:#fff;border:1px solid #EBD9A8;color:var(--accent-deep)}
+  .pill-muted{background:var(--surface-soft);border:1px solid var(--border);color:var(--ink-faint)}
+  .pill-green{background:var(--green-bg);color:var(--green-ink)}
+  .pill-red{background:var(--red-bg);color:var(--red-ink)}
+  .pill-lav{background:var(--lav-bg);color:var(--lav-ink)}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;min-width:150px}
+  .stat .v{font-size:24px;font-weight:700}
+  .stat .l{font-size:11px;color:var(--ink-muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th{text-align:left;color:var(--label);font-weight:500;font-size:11px;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid var(--border)}
+  td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--ink-body)}
+  .note{background:var(--quote-bg);border:1px solid var(--gold-border);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--quote-ink);line-height:1.8}
+  .toggle{width:38px;height:20px;border-radius:12px;background:linear-gradient(160deg,#D9A63E,#B8862B);position:relative;display:inline-block;vertical-align:middle}
+  .toggle::after{content:'';position:absolute;right:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%}
+  .toggle.off{background:#D8CDB4}
+  .toggle.off::after{right:auto;left:2px}
+  .phone{width:390px;background:var(--bg);border:1px solid var(--border-strong);border-radius:28px;padding:14px 12px;margin:0 auto;box-shadow:0 6px 22px rgba(43,35,20,.08)}
+  .serif{font-family:'Noto Serif SC',serif}
+  .grid-cell{font-size:10px;text-align:center;border:1px solid var(--border);border-radius:6px;padding:3px 0;color:var(--accent-deep);background:#FFF}
+  .grid-cell.paid{background:#F8ECCB;border-color:#EDDCAC;font-weight:700}
+  .grid-cell.waived{background:var(--lav-bg);border-color:#DDD3EC;color:var(--lav-ink)}
+  .grid-cell.empty{background:var(--surface-soft);color:transparent}
+  .grid-cell.future{background:transparent;border-style:dashed;color:transparent}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-h">Phase D · 月费/财务 — 设计稿 v1（2b 主题）</div>
+  <div class="doc-sub">Design pass for Ken's GO · 2026-07-08 · screens D1–D6 stacked below · all colors = production tokens</div>
+
+  <div class="decisions">
+    <h3>DESIGN DECISIONS（本稿基线）</h3>
+    <ul>
+      <li><b>满额即止 cap 移除</b>（Ken 2026-07-08）：不设自动上限。改为①中心级「暂停收款」手动开关（财政判断本月已足→members 自查页显示"本月已满，感恩 🙏"）＋②透明化展示（已收 vs 支出 vs 结余→盈余互助），以透明代替强制。</li>
+      <li><b>认捐额随人</b>（Melaka 台账实证：RM50/月、RM200/月、RM600/年并存）：每位会员存 pledge（金额+周期），默认 RM50/月。缴费记录存<b>明确覆盖月份区间</b>（from–to），绝不从金额÷50推导。</li>
+      <li><b>收据号 = 中心顺序号簿</b>（0000963→0001028 式）：系统按中心自增预填，可手动改（衔接旧收据簿）。</li>
+      <li><b>渠道</b>：现金 / 银行转账 / 汇至总会 — 全部手动录入。线上支付（FPX/TNG）留 LATER。</li>
+      <li><b>伦理红线不变</b>：缴费自愿、永不 gate 会籍；无"逾期/欠款"概念（只有"付至 YYYY-MM"事实）；已豁免一等公民。</li>
+      <li><b>权限</b>：财务总监 all_centers · 中心财政 own_center（复用 centre_scope_allows）；理事会只见聚合视图（SECURITY DEFINER），永不见个人行级数据。会员自查 = 匿名+手机号验证，仅见自己（复用 C1 masked-identify 模式）。</li>
+      <li><b>历史台账导入</b>（Melaka xlsx 等）：走 A5 staging pipeline，新 batch type；非会员赞助者建为 member_type='member'。</li>
+      <li>无 DELETE：错录收款 = 作废（voided，留审计）；writeAudit 每笔 mutation。</li>
+    </ul>
+  </div>
+
+  <!-- ============ D1 财务总览 ============ -->
+  <div class="sec"><span class="n">D1</span><span class="t">财务总览 · Finance Overview</span><span class="d">财务总监视角 all_centers · 报表模块入口同款</span></div>
+  <div class="frame">
+    <div class="tb"><div class="logo">✿</div><div><div class="plat">心灵法门数字平台</div><div class="mod">财务 <span>· Finance</span></div></div><div class="right"><span>Kai Tsin</span><span class="out">登出</span></div></div>
+    <div class="hairline"></div>
+    <div class="body">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px">
+        <div class="stat"><div class="v">RM 4,250</div><div class="l">本月已收（月费）</div></div>
+        <div class="stat"><div class="v">RM 3,180</div><div class="l">本月支出</div></div>
+        <div class="stat"><div class="v" style="color:var(--green-ink)">RM 1,070</div><div class="l">本月结余 → 盈余互助</div></div>
+        <div class="stat"><div class="v">62 <span style="font-size:13px;font-weight:400;color:var(--ink-faint)">/ 97</span></div><div class="l">本月已缴人数 / 认捐人数</div></div>
+      </div>
+
+      <p class="u-label" style="margin-bottom:8px">各中心 · JULY 2026</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+        <div class="card" style="padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b style="font-size:14px">总会 HQ</b>
+            <span style="font-size:11px;color:var(--ink-muted)">收款中 <span class="toggle"></span></span>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:10px;font-size:12px">
+            <span>已收 <b>RM 2,400</b></span><span>支出 <b>RM 1,900</b></span><span style="color:var(--green-ink)">结余 <b>RM 500</b></span>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--ink-faint)">收据簿至 № 0001042 · 财政：王师兄</div>
+        </div>
+        <div class="card" style="padding:14px 16px;background:var(--surface-soft)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b style="font-size:14px">马六甲 MLK</b>
+            <span style="font-size:11px;color:var(--accent-deep)">本月已足 · 已暂停 <span class="toggle off"></span></span>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:10px;font-size:12px">
+            <span>已收 <b>RM 1,250</b></span><span>支出 <b>RM 880</b></span><span style="color:var(--green-ink)">结余 <b>RM 370</b></span>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--ink-faint)">收据簿至 № 0001028 · 财政：Kai Tsin</div>
+        </div>
+        <div class="card" style="padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b style="font-size:14px">峇株巴辖 BP</b>
+            <span style="font-size:11px;color:var(--ink-muted)">收款中 <span class="toggle"></span></span>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:10px;font-size:12px">
+            <span>已收 <b>RM 600</b></span><span>支出 <b>RM 400</b></span><span style="color:var(--green-ink)">结余 <b>RM 200</b></span>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--ink-faint)">收据簿至 № 0000217 · 财政：（未指派）</div>
+        </div>
+      </div>
+
+      <p class="u-label" style="margin-bottom:8px">活动收款汇总 · 来自 Phase C（只读聚合）</p>
+      <div class="card" style="padding:4px 14px 10px">
+        <table>
+          <tr><th>活动</th><th>已批费用合计</th><th>已核实收款</th><th>待核实</th><th>已豁免</th></tr>
+          <tr><td>XLFM-2608 测试法会</td><td>RM 500.00</td><td style="color:var(--green-ink)">RM 0.00</td><td>1 笔</td><td>1 人</td></tr>
+          <tr><td>XLFM-2608C 素宴测试</td><td>RM 10.00</td><td style="color:var(--green-ink)">RM 10.00</td><td>0</td><td>0</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ D2 月费台账 ============ -->
+  <div class="sec"><span class="n">D2</span><span class="t">月费台账 · Fee Ledger</span><span class="d">中心财政视角 own_center · Melaka 纸本台账的数字版</span></div>
+  <div class="frame">
+    <div class="tb"><div class="logo">✿</div><div><div class="plat">心灵法门数字平台</div><div class="mod">财务 <span>· Finance · 月费台账</span></div></div><div class="right"><span>Kai Tsin</span><span class="out">登出</span></div></div>
+    <div class="hairline"></div>
+    <div class="body">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+        <span class="btn-s">马六甲 MLK ▾</span><span class="btn-s">2026 ▾</span>
+        <input placeholder="搜索姓名 / 电话…" style="border:1px solid var(--border-strong);border-radius:18px;padding:7px 14px;font-size:12px;background:var(--surface-soft);color:var(--ink);width:200px">
+        <button class="btn-p" style="margin-left:auto">＋ 记录收款</button>
+        <span class="btn-s">导出 CSV</span>
+      </div>
+      <div class="card" style="padding:6px 12px 12px;overflow-x:auto">
+        <table style="min-width:1050px">
+          <tr>
+            <th style="min-width:130px">赞助者</th><th>认捐</th><th>付至</th>
+            <th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th>
+          </tr>
+          <tr>
+            <td><b>陈金莲</b><div style="font-size:10.5px;color:var(--ink-faint)">012-345 6789</div></td>
+            <td><span class="pill pill-gold">RM50/月</span></td>
+            <td><b style="color:var(--green-ink)">2026-08</b></td>
+            <td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell future" style="display:block">·</span></td><td><span class="grid-cell future" style="display:block">·</span></td><td><span class="grid-cell future" style="display:block">·</span></td><td><span class="grid-cell future" style="display:block">·</span></td>
+          </tr>
+          <tr>
+            <td><b>黄靖佑</b><div style="font-size:10.5px;color:var(--ink-faint)">017-888 2211 · 备注：女儿代缴</div></td>
+            <td><span class="pill pill-gold">RM600/年</span></td>
+            <td><b style="color:var(--green-ink)">2026-12</b></td>
+            <td colspan="12"><span class="grid-cell paid" style="display:block">№0001011 · 05/01/26 · RM600 · 覆盖 2026-01 → 2026-12</span></td>
+          </tr>
+          <tr>
+            <td><b>林秀英</b><div style="font-size:10.5px;color:var(--ink-faint)">019-222 8833</div></td>
+            <td><span class="pill pill-lav">已豁免</span></td>
+            <td><span style="color:var(--lav-ink)">豁免中</span></td>
+            <td colspan="12"><span class="grid-cell waived" style="display:block">已豁免 · 2025-11 起 · 理事会批 · 不显示任何欠付</span></td>
+          </tr>
+          <tr>
+            <td><b>李文强</b><div style="font-size:10.5px;color:var(--ink-faint)">011-556 7788</div></td>
+            <td><span class="pill pill-gold">RM200/月</span></td>
+            <td><b style="color:var(--green-ink)">2026-07</b></td>
+            <td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell paid" style="display:block">√</span></td><td><span class="grid-cell empty" style="display:block">·</span></td><td><span class="grid-cell future" style="display:block">·</span></td><td><span class="grid-cell future" style="display:block">·</span></td><td><span class="grid-cell future" style="display:block">·</span></td><td><span class="grid-cell future" style="display:block">·</span></td>
+          </tr>
+        </table>
+        <p style="font-size:11px;color:var(--ink-faint);margin-top:10px">单元格 hover → 收据号 / 日期 / 金额 / 录入人 · 空白格 = 未付（<b>不是</b>逾期——伦理红线：只陈述"付至"，不催缴）</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ D3 记录收款 ============ -->
+  <div class="sec"><span class="n">D3</span><span class="t">记录收款 · Record Payment</span><span class="d">modal on D2 · 收据号自增预填可改 · 月份区间必填</span></div>
+  <div class="frame" style="max-width:560px;margin-left:0">
+    <div class="body" style="padding:22px 24px">
+      <p class="serif" style="font-size:16px;font-weight:700;margin-bottom:14px">记录收款 · 马六甲 MLK</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12.5px">
+        <div style="grid-column:1/3"><p class="u-label" style="margin-bottom:4px">赞助者</p><input value="陈金莲 · 012-345 6789" style="width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:9px 12px;background:var(--surface-soft);color:var(--ink)"></div>
+        <div><p class="u-label" style="margin-bottom:4px">收据号 №</p><input value="0001029" style="width:100%;border:1px solid var(--gold-border);border-radius:10px;padding:9px 12px;background:#FEFBF3;color:var(--accent-deep);font-weight:700"><p style="font-size:10.5px;color:var(--ink-faint);margin-top:3px">自动接续本中心号簿，可改</p></div>
+        <div><p class="u-label" style="margin-bottom:4px">收款日期</p><input value="2026-07-08" style="width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:9px 12px;background:var(--surface);color:var(--ink)"></div>
+        <div><p class="u-label" style="margin-bottom:4px">金额 RM</p><input value="100.00" style="width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:9px 12px;background:var(--surface);color:var(--ink)"></div>
+        <div><p class="u-label" style="margin-bottom:4px">渠道</p><select style="width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:9px 12px;background:var(--surface);color:var(--ink)"><option>现金（中心）</option><option>银行转账</option><option>汇至总会</option></select></div>
+        <div><p class="u-label" style="margin-bottom:4px">覆盖月份 从</p><input value="2026-09" style="width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:9px 12px;background:var(--surface);color:var(--ink)"></div>
+        <div><p class="u-label" style="margin-bottom:4px">至</p><input value="2026-10" style="width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:9px 12px;background:var(--surface);color:var(--ink)"></div>
+        <div style="grid-column:1/3" class="note">💡 金额与月份<b>互相独立</b>：系统不会用金额÷认捐推月份。RM100 覆盖两个月是财政与赞助者的共识，如实记录即可。</div>
+        <div style="grid-column:1/3;display:flex;gap:10px;justify-content:flex-end;margin-top:4px"><span class="btn-s">取消</span><button class="btn-p">保存收款</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ D4 支出记录 ============ -->
+  <div class="sec"><span class="n">D4</span><span class="t">支出记录 · Expenses</span><span class="d">中心财政 own_center · 喂给 D1/D5 的透明化数据</span></div>
+  <div class="frame">
+    <div class="body">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+        <span class="btn-s">马六甲 MLK ▾</span><span class="btn-s">2026-07 ▾</span>
+        <button class="btn-p" style="margin-left:auto">＋ 记支出</button>
+      </div>
+      <div class="card" style="padding:4px 14px 10px">
+        <table>
+          <tr><th>日期</th><th>类别</th><th>说明</th><th>金额</th><th>录入</th></tr>
+          <tr><td>02/07</td><td><span class="pill pill-gold">租金</span></td><td>七月店铺租金</td><td>RM 650.00</td><td>Kai Tsin</td></tr>
+          <tr><td>05/07</td><td><span class="pill pill-gold">水电</span></td><td>TNB + 水费</td><td>RM 180.00</td><td>Kai Tsin</td></tr>
+          <tr><td>06/07</td><td><span class="pill pill-muted">杂项</span></td><td>清洁用品</td><td>RM 50.00</td><td>王师兄</td></tr>
+          <tr><td colspan="3" style="text-align:right;color:var(--ink-muted)">本月合计</td><td><b>RM 880.00</b></td><td></td></tr>
+        </table>
+      </div>
+      <p style="font-size:11px;color:var(--ink-faint);margin-top:8px">类别固定枚举（租金/水电/维护/活动/杂项）· 可附单据照片（私有 bucket，同 C3 收据模式）· 无删除，错录=作废</p>
+    </div>
+  </div>
+
+  <!-- ============ D5 会员自查 ============ -->
+  <div class="sec"><span class="n">D5</span><span class="t">会员自查 · Member Self-Lookup</span><span class="d">公开免登录 /f · 手机号验证只见自己 · Kai Shin 痛点："付到几月忘了"</span></div>
+  <div style="display:flex;gap:22px;flex-wrap:wrap">
+    <div class="phone">
+      <div style="text-align:center;padding:10px 0 4px"><div class="plat" style="font-size:10px;color:var(--label);letter-spacing:.12em">心灵法门马来西亚</div><div class="serif" style="font-size:16px;font-weight:700">月费查询</div></div>
+      <div class="card" style="padding:16px;margin:10px 6px">
+        <p class="u-label" style="margin-bottom:6px">手机号</p>
+        <input value="012-345 6789" style="width:100%;border:1px solid var(--border-strong);border-radius:12px;padding:10px 12px;background:var(--surface-soft);color:var(--ink);font-size:14px">
+        <button class="btn-p" style="width:100%;margin-top:12px">查询</button>
+        <p style="font-size:10.5px;color:var(--ink-faint);margin-top:8px;text-align:center">只显示与此手机号绑定的记录 · 姓名打码显示</p>
+      </div>
+    </div>
+    <div class="phone">
+      <div style="text-align:center;padding:10px 0 4px"><div class="serif" style="font-size:15px;font-weight:700">陈○莲 师兄 🙏</div><div style="font-size:11px;color:var(--ink-muted)">马六甲 MLK · 认捐 RM50/月</div></div>
+      <div class="card" style="padding:18px;margin:10px 6px;text-align:center;background:linear-gradient(150deg,#FCF4DF,#F8ECCB);border-color:#EDDCAC">
+        <p class="u-label">已付至</p>
+        <p class="serif" style="font-size:30px;font-weight:700;color:var(--accent-deep);margin:4px 0">2026 年 8 月</p>
+        <p style="font-size:11px;color:var(--ink-body)">感恩护持 · 功德无量 🙏</p>
+      </div>
+      <div class="card" style="padding:12px 14px;margin:0 6px 10px">
+        <p class="u-label" style="margin-bottom:6px">缴付记录</p>
+        <table style="font-size:11.5px">
+          <tr><td>№0001029</td><td>08/07/26</td><td>RM100</td><td>2026-09 → 10</td></tr>
+          <tr><td>№0001011</td><td>03/05/26</td><td>RM150</td><td>2026-06 → 08</td></tr>
+          <tr><td>№0000988</td><td>28/02/26</td><td>RM250</td><td>2026-01 → 05</td></tr>
+        </table>
+      </div>
+      <div class="note" style="margin:0 6px">🏮 马六甲中心 7 月：已收 RM1,250 · 支出 RM880 · 结余 RM370 转入盈余互助。<b>本月已满，感恩 🙏 本月无需再缴。</b></div>
+    </div>
+  </div>
+
+  <!-- ============ D6 盈余互助 ============ -->
+  <div class="sec"><span class="n">D6</span><span class="t">盈余互助 · Surplus Mutual-Aid</span><span class="d">财务总监 + 理事会聚合视图 · 结余的去向必须可见</span></div>
+  <div class="frame">
+    <div class="body">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+        <div class="stat"><div class="v">RM 3,940</div><div class="l">互助基金累计</div></div>
+        <div class="stat"><div class="v" style="color:var(--green-ink)">+ RM 1,070</div><div class="l">本月转入（各中心结余）</div></div>
+        <div class="stat"><div class="v" style="color:var(--red-ink)">− RM 800</div><div class="l">本月支用</div></div>
+      </div>
+      <div class="card" style="padding:4px 14px 10px">
+        <table>
+          <tr><th>日期</th><th>类型</th><th>说明</th><th>金额</th><th>经手</th></tr>
+          <tr><td>31/07</td><td><span class="pill pill-green">转入</span></td><td>七月各中心结余自动归集（HQ 500 · MLK 370 · BP 200）</td><td>+RM 1,070</td><td>系统</td></tr>
+          <tr><td>18/07</td><td><span class="pill pill-red">支用</span></td><td>同修家庭急难补助（理事会 2026-07 决议 №3）</td><td>−RM 800</td><td>财务总监</td></tr>
+        </table>
+      </div>
+      <p style="font-size:11px;color:var(--ink-faint);margin-top:8px">支用必须挂理事会决议编号 · 理事会见此页（聚合），不见任何个人缴费明细</p>
+    </div>
+  </div>
+
+  <p style="margin-top:40px;font-size:12px;color:var(--ink-muted)">— 设计稿完 · 等 Ken GO 后出 D1→D6 分步 prompts（migrations 020+）—</p>
+</div>
+</body>
+</html>

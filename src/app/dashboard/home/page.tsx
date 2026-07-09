@@ -103,6 +103,7 @@ export default function HubPage() {
             members: '/dashboard/members',
             events: '/dashboard/events',
             inventory: '/dashboard/inventory',
+            finance: '/dashboard/finance',
             reports: '/dashboard/reports',
             settings: '/dashboard/settings',
           };

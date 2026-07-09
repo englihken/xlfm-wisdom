@@ -27,6 +27,7 @@ const MODULE_META = {
   members: { cn: '会员', en: 'Members' },
   events: { cn: '活动', en: 'Events' },
   inventory: { cn: '库存', en: 'Inventory' },
+  finance: { cn: '财务', en: 'Finance' },
 } as const;
 
 export function ErpGate({
@@ -38,7 +39,7 @@ export function ErpGate({
   active: NavKey;
   // Which ERP module this page belongs to — gates on grants[module] >= view and sets
   // the header title. Members pages omit it (default 'members') → unchanged behavior.
-  module?: 'members' | 'events' | 'inventory';
+  module?: 'members' | 'events' | 'inventory' | 'finance';
   // Short page-context breadcrumb (新增/资料/编辑 / 详情).
   titleSuffix?: string;
   children: (me: ErpMe) => ReactNode;

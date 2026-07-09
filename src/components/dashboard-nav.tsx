@@ -176,6 +176,28 @@ function BoxIcon({ className }: IconProps) {
   );
 }
 
+// Coins/ledger icon for 财务, in the same line-icon style.
+function CoinsIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <ellipse cx="12" cy="6" rx="8" ry="3" />
+      <path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6" />
+      <path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" />
+    </svg>
+  );
+}
+
 type Door = { label: string; href: string; Icon: (props: IconProps) => React.ReactElement };
 
 // Destination for every nav key. Which keys actually render is decided ONLY by
@@ -186,6 +208,7 @@ const DOORS: Record<NavKey, Door> = {
   members: { label: '会员', href: '/dashboard/members', Icon: PeopleIcon },
   events: { label: '活动', href: '/dashboard/events', Icon: CalendarIcon },
   inventory: { label: '库存', href: '/dashboard/inventory', Icon: BoxIcon },
+  finance: { label: '财务', href: '/dashboard/finance', Icon: CoinsIcon },
   reports: { label: '报表', href: '/dashboard/reports', Icon: ChartIcon },
   settings: { label: '设置', href: '/dashboard/settings', Icon: GearIcon },
 };
