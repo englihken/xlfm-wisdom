@@ -14,7 +14,7 @@ export const runtime = 'nodejs';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const EXPENSE_SELECT =
-  'id, spent_at, category, description, amount, voided_at, void_reason, ' +
+  'id, spent_at, category, description, amount, receipt_path, voided_at, void_reason, ' +
   'enterer:volunteers!entered_by ( display_name, email )';
 
 function gate(status: 401 | 403) {
@@ -78,10 +78,17 @@ export async function POST(req: Request) {
   const amount = Number(body.amount);
   if (!(amount > 0)) return NextResponse.json({ error: '金额须大于 0' }, { status: 400 });
 
+  let receiptPath: string | null = null;
+  if (typeof body.receipt_path === 'string' && body.receipt_path.trim()) {
+    const p = body.receipt_path.trim();
+    if (!/^receipts\/[A-Za-z0-9._-]+$/.test(p)) return NextResponse.json({ error: '单据照片无效' }, { status: 400 });
+    receiptPath = p;
+  }
+
   const me = access.volunteer;
   const { data: expense, error: insErr } = await supabaseAdmin
     .from('expenses')
-    .insert({ centre_id: centreId, spent_at: spentAt, category, description, amount, entered_by: me.id })
+    .insert({ centre_id: centreId, spent_at: spentAt, category, description, amount, receipt_path: receiptPath, entered_by: me.id })
     .select(EXPENSE_SELECT)
     .single();
   if (insErr || !expense) {

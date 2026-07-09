@@ -6,11 +6,13 @@
 
 import Link from 'next/link';
 
-export type FinanceTabKey = 'ledger' | 'expenses';
+export type FinanceTabKey = 'overview' | 'ledger' | 'expenses' | 'mutual';
 
 const TABS: { key: FinanceTabKey; label: string; href: string }[] = [
-  { key: 'ledger', label: '月费台账', href: '/dashboard/finance' },
+  { key: 'overview', label: '总览', href: '/dashboard/finance' },
+  { key: 'ledger', label: '月费台账', href: '/dashboard/finance/ledger' },
   { key: 'expenses', label: '支出记录', href: '/dashboard/finance/expenses' },
+  { key: 'mutual', label: '盈余互助', href: '/dashboard/finance/mutual-aid' },
 ];
 
 export function FinanceTabs({ active }: { active: FinanceTabKey }) {

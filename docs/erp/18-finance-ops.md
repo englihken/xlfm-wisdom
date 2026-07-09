@@ -59,8 +59,43 @@ audited as table `members`) · `GET/POST expenses` (category enum; `receipt_path
 home single-door bounce all gained `finance` → `/dashboard/finance` (finance:view). Shared tab row
 `src/components/finance-chrome.tsx` = 月费台账 · 支出记录.
 
-## Deferred to 025B
+## 025B — 总览 / 盈余互助 / 会员自查 + receipt photos + void display
 
-D1 财务总览 (all-centres aggregate), D5 会员自查 (public `/f` phone-verified self-lookup), D6 盈余互助
-(mutual-aid fund), expense **receipt photos** (private bucket), and online payments (FPX/TNG). None are
-built here.
+Migration `026_finance_receipts_bucket.sql` (**applied to prod 2026-07-10**): private bucket
+`finance-receipts`. The ledger moved to `/dashboard/finance/ledger`; `/dashboard/finance` is now the D1
+总览. Tab row: 总览 · 月费台账 · 支出记录 · 盈余互助.
+
+**Void display fix.** The 月费台账 member panel fetches `?include_void=1` and renders voided payments
+struck-through with their reason (`№0000963 (已作废：…)`). A consumed receipt number stays **visible** in
+the book — never silently vanishes.
+
+**D1 总览 stats** (`GET /api/dashboard/finance/stats?month=`, scope-aware — own_center sees only their
+centre). Definitions: `collected` = Σ non-void `fee_payments.amount` with `paid_at` in month;
+`expenses` = Σ non-void `expenses.amount` with `spent_at` in month; `surplus` = collected − expenses;
+`pledgedCount` = active members with a pledge set and **not** waived; `paidCount` = of those, max non-void
+`months_to` ≥ month start. `centres[]` per in-scope centre (collected/expenses/surplus, pause, receipt-book
+position, its `centre_finance` 财政 or 未指派). `events[]` = read-only aggregate from the events wing
+(approved-fee / verified-paid / pending-proof / waived). Grouped, no N+1.
+
+**D6 盈余互助** (`/mutual-aid`). `GET` returns the year's entries + stats (cumulative all-time in−out;
+this-month in/out). `POST collect` (finance:**admin**) is **idempotent 归集**: per centre,
+surplus(month) = non-void payments − non-void expenses; a centre with surplus > 0 **and no existing 'in'
+row for (month, centre)** gets one — already-collected centres are SKIPPED and reported, so it re-runs
+safely. A `preview:true` body dry-runs (compute, insert nothing) to power the confirm modal. `POST disburse`
+(admin) requires `resolution_no` (the DB CHECK enforces it too). Fund is aggregate — 理事会 sees it, never
+individual payments.
+
+**D5 会员自查** (public `/f`, no login — `POST /api/public/fee-lookup`). Privacy model: the ONLY key is a
+phone; returns MASKED names (`maskName`, the C1 pattern), centre, pledge, paidThrough, last 12 non-void
+payments, and the centre's current-month transparency block — **no ids, no unmasked names, no other
+members' rows**. `sameOrigin` + `rateLimit`; an unknown phone returns a uniform empty result (no
+enumeration signal). Paused centre → 本月已满，感恩 🙏. Waived → 豁免中, never an amount due.
+
+**Expense receipt photos.** `POST /api/dashboard/finance/upload` (finance:edit → `finance-receipts`
+`receipts/<uuid>.<ext>`) + `GET media-url` (signed). `expenses` POST accepts an optional `receipt_path`
+(`^receipts/` validated); the ＋记支出 modal has a `capture="environment"` photo input; rows show 📎 →
+signed URL. 支出记录 also gained a client-side CSV export (voids marked).
+
+## Still deferred (LATER)
+
+Online payments (FPX/TNG) and the A5 historic-ledger import (Melaka xlsx) — neither is built.
