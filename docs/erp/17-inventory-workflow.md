@@ -80,6 +80,48 @@ and a global item search sit on every page — a hit opens the shared **item dra
 Grants unchanged: admin=admin, erp_admin=admin, committee=view. Approve/reject need **admin**;
 release/reverse and item CRUD need **edit**; stats/list/drawer need **view**.
 
+## 023B — 盘点模式, 大件标签, 手机扫码, 分享库存表, CSV 导入
+
+Migration `024_stocktake_and_share.sql` (**applied to prod 2026-07-09**, advisor side — canonical
+record only): `inventory_stocktakes` + `inventory_stocktake_lines`, `inventory_movements.stocktake_id`
+trace link, `inventory_share_links`.
+
+**盘点模式 (guided stock-take).** A session snapshots one line per active item in scope (a location,
+optionally one category_cn) with `system_qty` = the item's current derived balance at creation.
+Counting fills `counted_qty` per line (存草稿 = bulk upsert). **Confirm** is the important part and
+follows one rule — **the counted value wins**: for each *counted* line it recomputes the item's CURRENT
+balance (not the snapshot), writes an `adjust_in`/`adjust_out` for `counted − current` (linked via
+`stocktake_id`, note `盘点 <id8>`), and sets the system to the count. Uncounted lines are skipped (and
+reported). If `current ≠ system_qty` (stock moved mid-count) the item is returned in `driftWarnings` —
+informational; the count is still applied. Manual rollback: any failure mid-confirm deletes this
+session's movements (by `stocktake_id`) and leaves it draft. The page prints a paper count sheet (a
+self-contained print window), and 📷 扫码 jumps to / focuses the scanned item's row. Confirmed sessions
+are read-only with their adjustments listed.
+
+**大件标签 (selective labels).** 品项管理 rows have checkboxes → 🏷️ 打印标签 opens
+`/dashboard/inventory/labels?ids=…`, an A4 2-col print grid: name_cn large, StockID mono, category pill,
+and a QR (dep-free `src/lib/qr.ts`) encoding `${origin}/dashboard/inventory?item=<id>`. Browser print;
+a print stylesheet shows only the label sheet. For big items (菩萨像/器材/整箱) — books don't need one.
+
+**手机扫码.** 📷 扫码 sits next to the global search on every 库存 page. Live camera
+(`getUserMedia`, environment-facing), decoded by native `BarcodeDetector` when present else a
+dynamic-imported `jsqr` (dep added). A decoded `…?item=<uuid>` URL / raw uuid / exact StockID opens the
+item drawer; no camera / permission → a friendly message pointing to the search box. 仪表板 + 库存明细
+honor `?item=<id>` on load (what the QR encodes).
+
+**分享库存表 (read-only live link).** 仪表板 → 🔗 分享库存表 (inventory:**admin**) manages
+`inventory_share_links` (create with a 24-char crypto token, revoke). Public `GET /api/public/inventory/[token]`
+(active token, service-role) returns ONLY 总会仓库 non-zero balances (name_cn, stock_id, category_cn,
+qty) — no prices, no per-location breakdown, no edits. Page `/s/[token]` is anonymous, mobile-first
+(like `/r/[token]`): title 结缘品库存（总会）, search + category filter; an invalid/revoked token shows
+链接已失效.
+
+**CSV 品项导入.** 品项管理 → ⬆ CSV 导入: a client-made template
+(`name_cn*,category_cn*,stock_id,pack_qty,low_stock_line,remark`), client-side parse (quoted fields with
+commas handled) + per-row preview/validation, then `POST /items/import` re-validates server-side and
+inserts row-by-row so a bad/duplicate row fails alone; results are shown per row and one `import` audit
+entry records the counts.
+
 ## Follow-ups
 
 1. 023B: Excel bulk import, QR label PDFs, 盘点模式 (stock-take) — the mockup's 盘点 flow is designed but

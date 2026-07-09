@@ -6,11 +6,11 @@
 
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
-import { InventoryTabs, GlobalItemSearch, type SearchItem } from '@/components/inventory-chrome';
+import { InventoryTabs, InventorySearchRow, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
 
 type Stats = {
@@ -36,18 +36,25 @@ function downloadCsv(filename: string, headers: string[], rows: (string | number
 export default function InventoryDashboardPage() {
   return (
     <ErpGate active="inventory" module="inventory">
-      {(me) => <Dashboard me={me} />}
+      {(me) => (
+        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">加载中…</p>}>
+          <Dashboard me={me} />
+        </Suspense>
+      )}
     </ErpGate>
   );
 }
 
 function Dashboard({ me }: { me: ErpMe }) {
   const canEdit = grantAllows(me.grants, 'inventory', 'edit');
+  const canAdmin = grantAllows(me.grants, 'inventory', 'admin');
   const router = useRouter();
+  const sp = useSearchParams();
   const [stats, setStats] = useState<Stats | null>(null);
   const [items, setItems] = useState<SearchItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [drawerId, setDrawerId] = useState<string | null>(sp.get('item'));
+  const [showShare, setShowShare] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -89,12 +96,19 @@ function Dashboard({ me }: { me: ErpMe }) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-4">
-      <div className="flex items-baseline gap-2">
-        <h2 className="text-xl font-bold font-serif text-ink">📊 库存仪表板</h2>
-        <span className="text-sm text-ink-faint">Inventory</span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-xl font-bold font-serif text-ink">📊 库存仪表板</h2>
+          <span className="text-sm text-ink-faint">Inventory</span>
+        </div>
+        {canAdmin && (
+          <button onClick={() => setShowShare(true)} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">
+            🔗 分享库存表
+          </button>
+        )}
       </div>
 
-      <GlobalItemSearch items={items} onPick={setDrawerId} />
+      <InventorySearchRow items={items} onPick={setDrawerId} />
       <InventoryTabs active="dash" />
 
       {loading ? (
@@ -218,7 +232,101 @@ function Dashboard({ me }: { me: ErpMe }) {
         </>
       )}
 
+      {showShare && <ShareModal onClose={() => setShowShare(false)} />}
+
       <InventoryItemDrawer itemId={drawerId} onClose={() => setDrawerId(null)} canEdit={canEdit} />
+    </div>
+  );
+}
+
+type ShareLink = { id: string; token: string; label: string | null; is_active: boolean; created_at: string };
+
+function ShareModal({ onClose }: { onClose: () => void }) {
+  const [links, setLinks] = useState<ShareLink[]>([]);
+  const [label, setLabel] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+
+  const load = () => {
+    setLoading(true);
+    fetch('/api/dashboard/inventory/share-links')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j) setLinks(j.links ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => {
+    load();
+  }, []);
+
+  const create = async () => {
+    setBusy(true);
+    try {
+      await fetch('/api/dashboard/inventory/share-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: label.trim() || undefined }),
+      });
+      setLabel('');
+      load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revoke = async (id: string, active: boolean) => {
+    await fetch(`/api/dashboard/inventory/share-links/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: !active }),
+    });
+    load();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-surface rounded-2xl max-w-lg w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold text-ink mb-1">🔗 分享库存表</h3>
+        <p className="text-xs text-ink-muted mb-3">生成只读链接，分会在 WhatsApp 打开即可看总会仓库实时库存目录 — 只能看，不能改。</p>
+
+        <div className="flex gap-2 mb-3">
+          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="备注（可选，如：分会共享）"
+            className="flex-1 text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent" />
+          <button disabled={busy} onClick={create} className="px-4 py-2 text-sm btn-primary whitespace-nowrap">＋ 新链接</button>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-ink-muted">加载中…</p>
+        ) : links.length === 0 ? (
+          <p className="text-sm text-ink-muted">还没有分享链接。</p>
+        ) : (
+          <div className="space-y-2">
+            {links.map((l) => {
+              const url = `${origin}/s/${l.token}`;
+              return (
+                <div key={l.id} className="border border-border rounded-lg p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-ink truncate">{l.label || '（无备注）'}</span>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${l.is_active ? 'bg-[#E7F0E0] text-[#3F6B2E]' : 'pill-muted'}`}>{l.is_active ? '有效' : '已停用'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <input readOnly value={url} className="flex-1 text-[11px] font-mono px-2 py-1 border border-border rounded bg-surface-soft text-ink-muted" />
+                    <button onClick={() => navigator.clipboard?.writeText(url)} className="text-xs text-accent-deep hover:underline whitespace-nowrap">复制</button>
+                    <button onClick={() => revoke(l.id, l.is_active)} className="text-xs text-ink-muted hover:text-[#B4402E] whitespace-nowrap">{l.is_active ? '停用' : '启用'}</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="flex justify-end mt-3">
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">关闭</button>
+        </div>
+      </div>
     </div>
   );
 }

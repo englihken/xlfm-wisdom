@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
-import { InventoryTabs, GlobalItemSearch, ItemPicker, type SearchItem } from '@/components/inventory-chrome';
+import { InventoryTabs, InventorySearchRow, ItemPicker, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
 import { REQUEST_STATUS_LABELS, REQUEST_STATUS_STYLES } from '@/lib/inventory-display';
 
@@ -135,7 +135,7 @@ function RequestsPipeline({ me }: { me: ErpMe }) {
         )}
       </div>
 
-      <GlobalItemSearch items={items} onPick={setDrawerId} />
+      <InventorySearchRow items={items} onPick={setDrawerId} />
       <InventoryTabs active="requests" />
 
       {loading ? (

@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
-import { InventoryTabs, GlobalItemSearch, type SearchItem } from '@/components/inventory-chrome';
+import { InventoryTabs, InventorySearchRow, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
 import { categoryPillClass } from '@/lib/inventory-display';
 
@@ -44,6 +44,20 @@ function Catalog({ me }: { me: ErpMe }) {
   const [loading, setLoading] = useState(true);
   const [drawerId, setDrawerId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Item | 'new' | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showImport, setShowImport] = useState(false);
+
+  const toggleSel = (id: string) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const printLabels = () => {
+    if (selected.size === 0) return;
+    window.open(`/dashboard/inventory/labels?ids=${[...selected].join(',')}`, '_blank');
+  };
 
   const load = useCallback(() => {
     setLoading(true);
@@ -100,7 +114,7 @@ function Catalog({ me }: { me: ErpMe }) {
         <span className="text-sm text-ink-faint">Catalog · {items.length}</span>
       </div>
 
-      <GlobalItemSearch items={searchItems} onPick={setDrawerId} />
+      <InventorySearchRow items={searchItems} onPick={setDrawerId} />
       <InventoryTabs active="catalog" />
 
       {/* category chips + search + add */}
@@ -112,8 +126,14 @@ function Catalog({ me }: { me: ErpMe }) {
         <span className="flex-1" />
         <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索名称 / 编号…"
           className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent w-44" />
+        <button onClick={printLabels} disabled={selected.size === 0} className="px-3 py-2 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition disabled:opacity-45">
+          🏷️ 打印标签{selected.size > 0 ? `（${selected.size}）` : ''}
+        </button>
         {canEdit && (
-          <button onClick={() => setEditing('new')} className="px-4 py-2 text-sm btn-primary">＋ 新品项</button>
+          <>
+            <button onClick={() => setShowImport(true)} className="px-3 py-2 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">⬆ CSV 导入</button>
+            <button onClick={() => setEditing('new')} className="px-4 py-2 text-sm btn-primary">＋ 新品项</button>
+          </>
         )}
       </div>
 
@@ -127,6 +147,7 @@ function Catalog({ me }: { me: ErpMe }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-ink-faint border-b border-border">
+                  <th className="pl-4 pr-1 py-2.5 font-normal w-8"></th>
                   <Th>编号</Th><Th>品项</Th><Th>分类</Th>
                   <th className="px-4 py-2.5 font-normal text-right">低库存线</th>
                   <Th>状态</Th>{canEdit && <Th>操作</Th>}
@@ -135,6 +156,9 @@ function Catalog({ me }: { me: ErpMe }) {
               <tbody>
                 {filtered.map((it) => (
                   <tr key={it.id} className="border-b border-border last:border-b-0 hover:bg-accent/5">
+                    <td className="pl-4 pr-1 py-2.5">
+                      <input type="checkbox" checked={selected.has(it.id)} onChange={() => toggleSel(it.id)} className="accent-[#B8860B]" aria-label="选择以打印标签" />
+                    </td>
                     <td className="px-4 py-2.5 cursor-pointer" onClick={() => setDrawerId(it.id)}>
                       {it.stock_id ? <span className="font-mono text-xs text-ink">{it.stock_id}</span> : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">未编号</span>}
                     </td>
@@ -176,7 +200,188 @@ function Catalog({ me }: { me: ErpMe }) {
         />
       )}
 
+      {showImport && (
+        <ImportModal
+          onClose={() => setShowImport(false)}
+          onDone={() => load()}
+        />
+      )}
+
       <InventoryItemDrawer itemId={drawerId} onClose={() => setDrawerId(null)} canEdit={canEdit} onEdit={(it) => { setDrawerId(null); setEditing(it as Item); }} />
+    </div>
+  );
+}
+
+// ---- CSV import ----
+const IMPORT_COLS = ['name_cn', 'category_cn', 'stock_id', 'pack_qty', 'low_stock_line', 'remark'] as const;
+type ImportRow = Record<(typeof IMPORT_COLS)[number], string>;
+
+// Minimal RFC-4180-ish parser: handles quoted fields containing commas / quotes / newlines.
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let inQuotes = false;
+  const s = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (s[i + 1] === '"') { field += '"'; i++; } else inQuotes = false;
+      } else field += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else field += c;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows.filter((r) => r.some((c) => c.trim() !== ''));
+}
+
+function validateRow(r: ImportRow): string | null {
+  if (!r.name_cn.trim()) return '缺少品项名称';
+  if (!r.category_cn.trim()) return '缺少分类';
+  for (const k of ['pack_qty', 'low_stock_line'] as const) {
+    const v = r[k].trim();
+    if (v && (!/^\d+$/.test(v) || Number(v) <= 0)) return `${k === 'pack_qty' ? '每包' : '低库存线'}须为正整数`;
+  }
+  return null;
+}
+
+function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [rows, setRows] = useState<ImportRow[]>([]);
+  const [results, setResults] = useState<{ row: number; ok: boolean; name_cn: string; error?: string }[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [parseErr, setParseErr] = useState('');
+
+  const downloadTemplate = () => {
+    const csv = IMPORT_COLS.join(',') + '\r\n' + '念佛机,法器·念佛机,,1,50,示例备注\r\n';
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '品项导入模板.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const onFile = async (file: File) => {
+    setParseErr('');
+    setResults(null);
+    const text = await file.text();
+    const grid = parseCsv(text);
+    if (grid.length < 2) {
+      setParseErr('CSV 至少要有表头行 + 一行数据。');
+      setRows([]);
+      return;
+    }
+    const header = grid[0].map((h) => h.trim().toLowerCase());
+    const idx: Record<string, number> = {};
+    for (const col of IMPORT_COLS) idx[col] = header.indexOf(col);
+    if (idx.name_cn < 0 || idx.category_cn < 0) {
+      setParseErr('表头必须包含 name_cn 和 category_cn 列。');
+      setRows([]);
+      return;
+    }
+    const parsed: ImportRow[] = grid.slice(1).map((cells) => {
+      const r = {} as ImportRow;
+      for (const col of IMPORT_COLS) r[col] = idx[col] >= 0 ? (cells[idx[col]] ?? '').trim() : '';
+      return r;
+    });
+    setRows(parsed);
+  };
+
+  const validCount = rows.filter((r) => validateRow(r) === null).length;
+
+  const doImport = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/dashboard/inventory/items/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows: rows.map((r) => ({ ...r })) }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setParseErr(j.error ?? '导入失败');
+      } else {
+        setResults(j.results ?? []);
+        onDone();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-surface rounded-2xl max-w-2xl w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold text-ink mb-1">⬆ CSV 批量导入品项</h3>
+        <p className="text-xs text-ink-muted mb-3">
+          列：name_cn*, category_cn*, stock_id, pack_qty, low_stock_line, remark（*必填）。
+          <button onClick={downloadTemplate} className="ml-1 text-accent-deep hover:underline">下载模板</button>
+        </p>
+
+        {parseErr && <p className="text-sm text-[#B4402E] bg-[#FCEBEA] border border-[#B4402E]/20 rounded-lg px-3 py-2 mb-2">{parseErr}</p>}
+
+        {!results && (
+          <input type="file" accept=".csv,text/csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }}
+            className="w-full text-xs text-ink-muted mb-3 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-border-strong file:bg-surface file:text-ink" />
+        )}
+
+        {!results && rows.length > 0 && (
+          <>
+            <p className="text-xs text-ink-muted mb-1">预览 {rows.length} 行，其中 {validCount} 行有效：</p>
+            <div className="border border-border rounded-lg overflow-auto max-h-64 mb-3">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-surface-soft">
+                  <tr className="text-left text-ink-faint"><th className="px-2 py-1.5">#</th><th className="px-2 py-1.5">名称</th><th className="px-2 py-1.5">分类</th><th className="px-2 py-1.5">编号</th><th className="px-2 py-1.5">校验</th></tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => {
+                    const err = validateRow(r);
+                    return (
+                      <tr key={i} className="border-t border-border">
+                        <td className="px-2 py-1 text-ink-faint">{i + 1}</td>
+                        <td className="px-2 py-1 text-ink">{r.name_cn}</td>
+                        <td className="px-2 py-1 text-ink-muted">{r.category_cn}</td>
+                        <td className="px-2 py-1 font-mono text-ink-muted">{r.stock_id || '—'}</td>
+                        <td className={`px-2 py-1 ${err ? 'text-[#B4402E]' : 'text-[#3F6B2E]'}`}>{err ?? '✓'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {results && (
+          <div className="border border-border rounded-lg overflow-auto max-h-72 mb-3">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-surface-soft"><tr className="text-left text-ink-faint"><th className="px-2 py-1.5">#</th><th className="px-2 py-1.5">名称</th><th className="px-2 py-1.5">结果</th></tr></thead>
+              <tbody>
+                {results.map((r) => (
+                  <tr key={r.row} className="border-t border-border">
+                    <td className="px-2 py-1 text-ink-faint">{r.row}</td>
+                    <td className="px-2 py-1 text-ink">{r.name_cn}</td>
+                    <td className={`px-2 py-1 ${r.ok ? 'text-[#3F6B2E]' : 'text-[#B4402E]'}`}>{r.ok ? '✓ 已导入' : r.error}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{results ? '完成' : '取消'}</button>
+          {!results && (
+            <button disabled={busy || validCount === 0} onClick={doImport} className="px-5 py-1.5 text-sm btn-primary">
+              {busy ? '导入中…' : `导入 ${validCount} 行`}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { useSearchParams } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPE_OPTIONS, MOVEMENT_TYPE_STYLES, itemLabel } from '@/lib/inventory-display';
-import { InventoryTabs, GlobalItemSearch, type SearchItem } from '@/components/inventory-chrome';
+import { InventoryTabs, InventorySearchRow, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
 
 type Lite = { id: string; name_cn: string; kind?: string } | null;
@@ -148,7 +148,7 @@ function MovementsList({ me }: { me: ErpMe }) {
         <span className="text-sm text-ink-faint">Movements · {total.toLocaleString()}</span>
       </div>
 
-      <GlobalItemSearch items={meta.items} onPick={setDrawerId} />
+      <InventorySearchRow items={meta.items} onPick={setDrawerId} />
       <InventoryTabs active="ledger" />
 
       {/* filters */}

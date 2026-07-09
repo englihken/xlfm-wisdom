@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
-import { InventoryTabs, GlobalItemSearch } from '@/components/inventory-chrome';
+import { InventoryTabs, InventorySearchRow } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
 import { categoryPillClass } from '@/lib/inventory-display';
 
@@ -70,7 +70,7 @@ function StockTable({ me }: { me: ErpMe }) {
   const [search, setSearch] = useState('');
   const [nonzeroOnly, setNonzeroOnly] = useState(true);
   const [visible, setVisible] = useState(PAGE);
-  const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [drawerId, setDrawerId] = useState<string | null>(sp.get('item'));
 
   // Reset the load-more window when the filter signature changes — done during render
   // (store-previous-value pattern) rather than in an effect, so it doesn't double-render.
@@ -158,7 +158,7 @@ function StockTable({ me }: { me: ErpMe }) {
         <span className="text-sm text-ink-faint">Inventory · {locName}</span>
       </div>
 
-      <GlobalItemSearch items={items} onPick={setDrawerId} />
+      <InventorySearchRow items={items} onPick={setDrawerId} />
       <InventoryTabs active="stock" />
 
       {/* filters */}
