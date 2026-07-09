@@ -44,35 +44,43 @@ export async function GET(req: Request) {
   const ids = (centres ?? []).map((c) => c.id);
   const scopeIn = ids.length ? ids : ['00000000-0000-0000-0000-000000000000'];
 
-  const [membersRes, paysRes, expRes, monthsRes, finRes, eventsRes] = await Promise.all([
+  const [membersRes, paysRes, expRes, monthsRes, finRes, eventsRes, booksRes] = await Promise.all([
     supabaseAdmin.from('members').select('id, gyt_centre_id, fee_pledge_amount, fee_waived_from').eq('status', 'active').in('gyt_centre_id', scopeIn),
-    supabaseAdmin.from('fee_payments').select('centre_id, member_id, amount, paid_at, months_to, receipt_no').is('voided_at', null).in('centre_id', scopeIn),
+    supabaseAdmin.from('fee_payments').select('centre_id, member_id, amount, paid_at, months_to').is('voided_at', null).in('centre_id', scopeIn),
     supabaseAdmin.from('expenses').select('centre_id, amount, spent_at').is('voided_at', null).in('centre_id', scopeIn),
     supabaseAdmin.from('centre_finance_months').select('centre_id, collection_paused, paused_note').eq('month', monthFirst).in('centre_id', scopeIn),
     supabaseAdmin.from('volunteers').select('centre_id, display_name').eq('role', 'centre_finance').in('centre_id', scopeIn),
     supabaseAdmin.from('events').select('id, code, title, starts_on').order('starts_on', { ascending: false }).limit(6),
+    // Receipt-book position = the highest receipt number ever ISSUED, including voided ones —
+    // a number is consumed forever (matches the ledger header + the unique constraint).
+    supabaseAdmin.from('fee_payments').select('centre_id, receipt_no').in('centre_id', scopeIn),
   ]);
 
   const members = membersRes.data ?? [];
-  const pays = (paysRes.data ?? []) as { centre_id: string; member_id: string; amount: number; paid_at: string; months_to: string; receipt_no: string }[];
+  const pays = (paysRes.data ?? []) as { centre_id: string; member_id: string; amount: number; paid_at: string; months_to: string }[];
   const exps = (expRes.data ?? []) as { centre_id: string; amount: number; spent_at: string }[];
 
-  // Per-centre collected/expenses (this month) + receipt-book position.
-  const perCentre = new Map<string, { collected: number; expenses: number; bookNo: string | null; bookNum: number }>();
+  // Per-centre collected/expenses (this month).
+  const perCentre = new Map<string, { collected: number; expenses: number }>();
   const ensure = (id: string) => {
     let v = perCentre.get(id);
-    if (!v) { v = { collected: 0, expenses: 0, bookNo: null, bookNum: -1 }; perCentre.set(id, v); }
+    if (!v) { v = { collected: 0, expenses: 0 }; perCentre.set(id, v); }
     return v;
   };
   for (const p of pays) {
-    const v = ensure(p.centre_id);
-    if (p.paid_at >= monthFirst && p.paid_at < monthEnd) v.collected += Number(p.amount);
-    const m = String(p.receipt_no).match(/(\d+)/);
-    const num = m ? parseInt(m[1], 10) : 0;
-    if (num >= v.bookNum) { v.bookNum = num; v.bookNo = p.receipt_no; }
+    if (p.paid_at >= monthFirst && p.paid_at < monthEnd) ensure(p.centre_id).collected += Number(p.amount);
   }
   for (const e of exps) {
     if (e.spent_at >= monthFirst && e.spent_at < monthEnd) ensure(e.centre_id).expenses += Number(e.amount);
+  }
+
+  // Receipt-book position over ALL rows (voided included) — a consumed number stays the top.
+  const bookAt = new Map<string, { no: string; num: number }>();
+  for (const b of (booksRes.data ?? []) as { centre_id: string; receipt_no: string }[]) {
+    const m = String(b.receipt_no).match(/(\d+)/);
+    const num = m ? parseInt(m[1], 10) : 0;
+    const cur = bookAt.get(b.centre_id);
+    if (!cur || num >= cur.num) bookAt.set(b.centre_id, { no: b.receipt_no, num });
   }
 
   // Per-member max coverage (non-void) for paidCount.
@@ -106,7 +114,7 @@ export async function GET(req: Request) {
       surplus: (pc?.collected ?? 0) - (pc?.expenses ?? 0),
       paused: pauseMap.get(c.id)?.collection_paused ?? false,
       pausedNote: pauseMap.get(c.id)?.paused_note ?? null,
-      receiptBookAt: pc?.bookNo ?? null,
+      receiptBookAt: bookAt.get(c.id)?.no ?? null,
       financeName: finMap.get(c.id) ?? null,
     };
   });

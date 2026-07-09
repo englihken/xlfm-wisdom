@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -103,6 +103,12 @@ export function MemberForm({
 }) {
   const router = useRouter();
   const [v, setV] = useState<MemberFormValues>(initial ?? EMPTY_MEMBER);
+  // Always-latest snapshot of the form values. submit() reads THIS, not the (possibly stale)
+  // render closure — and Save's onPointerDown blurs the focused field first, which commits any
+  // in-flight IME/keyboard composition into state before we read it. Together these ensure a
+  // just-typed name is never lost to a mid-composition tap or an unflushed keystroke.
+  const vRef = useRef(v);
+  vRef.current = v;
   const [centres, setCentres] = useState<Centre[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +132,8 @@ export function MemberForm({
 
   const submit = async () => {
     if (saving) return;
-    if (!v.name_cn.trim() && !v.name_en.trim()) {
+    const cur = vRef.current; // latest values (incl. a composition just committed on pointer-down)
+    if (!cur.name_cn.trim() && !cur.name_en.trim()) {
       setError('请至少填写中文或英文姓名');
       return;
     }
@@ -138,7 +145,7 @@ export function MemberForm({
       const res = await fetch(url, {
         method: mode === 'create' ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toBody(v)),
+        body: JSON.stringify(toBody(cur)),
       });
       const json = await res.json().catch(() => null);
       if (res.status === 409) {
@@ -252,6 +259,9 @@ export function MemberForm({
 
       <div className="flex items-center gap-3">
         <button
+          // Commit any in-flight IME composition (blur the focused field) BEFORE the click's
+          // submit runs, so a name typed-but-not-yet-committed isn't dropped by the tap.
+          onPointerDown={() => { (document.activeElement as HTMLElement | null)?.blur?.(); }}
           onClick={submit}
           disabled={saving}
           className="btn-primary px-5 py-2 text-sm transition disabled:opacity-50"

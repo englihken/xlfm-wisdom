@@ -43,6 +43,8 @@ export function enforceScope(
 // width of the current highest number. Empty book → '0000001' (width 7). The book can hold
 // hand-edited legacy numbers, so we scan the digits of each and track the widest current max.
 export async function nextReceiptNo(db: SupabaseClient, centreId: string): Promise<string> {
+  // NO void filter — a receipt number is consumed forever (voided or not), and the unique
+  // constraint is over ALL rows. Suggesting a voided number would clash, so scan every row.
   const { data } = await db.from('fee_payments').select('receipt_no').eq('centre_id', centreId);
   const rows = data ?? [];
   if (rows.length === 0) return '0000001';
