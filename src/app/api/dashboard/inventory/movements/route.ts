@@ -17,6 +17,7 @@ import {
   DIRECTION_RULES,
   isValidDateStr,
   locationBalance,
+  MOVEMENT_SELECT,
   type CreatableMovementType,
 } from '@/lib/inventory';
 
@@ -24,14 +25,6 @@ export const runtime = 'nodejs';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
-
-const MOVEMENT_SELECT =
-  'id, movement_type, qty, note, moved_at, created_at, ' +
-  'item:inventory_items!item_id ( id, stock_id, name_cn ), ' +
-  'from_location:inventory_locations!from_location_id ( id, name_cn, kind ), ' +
-  'to_location:inventory_locations!to_location_id ( id, name_cn, kind ), ' +
-  'event:events!event_id ( id, code, title ), ' +
-  'creator:volunteers!created_by ( display_name, email )';
 
 function gate401or403(status: 401 | 403) {
   return NextResponse.json(
@@ -56,10 +49,12 @@ export async function GET(req: Request) {
   const locationId = sp.get('location_id');
   const eventId = sp.get('event_id');
   const type = sp.get('type');
+  const requestId = sp.get('request_id');
   if (itemId) q = q.eq('item_id', itemId);
   if (locationId) q = q.or(`from_location_id.eq.${locationId},to_location_id.eq.${locationId}`);
   if (eventId) q = q.eq('event_id', eventId);
   if (type) q = q.eq('movement_type', type);
+  if (requestId) q = q.eq('request_id', requestId);
 
   q = q.order('created_at', { ascending: false }).range(from, from + limit - 1);
 
@@ -181,6 +176,14 @@ export async function POST(req: Request) {
     movedAt = body.moved_at;
   }
 
+  // Optional photo (e.g. a stock_in 到货 photo). Must be an uploaded inventory-media object.
+  let photoPath: string | null = null;
+  if (typeof body.photo_path === 'string' && body.photo_path.trim()) {
+    const p = body.photo_path.trim();
+    if (!/^photos\/[A-Za-z0-9._-]+$/.test(p)) return NextResponse.json({ error: '照片无效' }, { status: 400 });
+    photoPath = p;
+  }
+
   // Negative-stock guard: an outbound move may not exceed the source's derived balance.
   if (fromId) {
     const balance = await locationBalance(supabaseAdmin, itemId, fromId);
@@ -201,6 +204,7 @@ export async function POST(req: Request) {
       qty,
       event_id: eventId,
       note: typeof body.note === 'string' ? body.note.trim() || null : null,
+      ...(photoPath ? { photo_path: photoPath } : {}),
       ...(movedAt ? { moved_at: movedAt } : {}),
       created_by: me.id,
     })

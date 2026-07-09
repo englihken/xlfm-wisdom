@@ -14,7 +14,7 @@ export const runtime = 'nodejs';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
-const STATUSES = ['pending', 'partial', 'fulfilled', 'cancelled'] as const;
+const STATUSES = ['pending', 'approved', 'partial', 'fulfilled', 'rejected', 'cancelled'] as const;
 
 function gate401or403(status: 401 | 403) {
   return NextResponse.json(

@@ -1,82 +1,64 @@
 // src/app/dashboard/inventory/page.tsx
-// 库存总览 — per-location stock table driven by the inventory_balances view.
-// Location selector (总会仓库 first) + category / search filters + 只看有库存 toggle.
-// KPI strip: 品项总数 · 有库存品项 · 本仓总件数 · 待处理申请. inventory:view to see;
-// inventory:edit reveals 记录变动. Balances are ledger-derived — no editable qty here.
+// 仪表板 — the 库存 dashboard: only what needs action (world-class inventory practice — find by
+// search, judge health by dashboard). 5 KPIs, a 低库存·采购建议 card with a CSV 采购清单 export,
+// 最常发放 bars, 各分类库存 bars (click → 明细 filtered by category), and 库存在哪里 holdings.
+// Cards drill down to /stock. All from /api/dashboard/inventory/stats. inventory:view.
 
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
+import { InventoryTabs, GlobalItemSearch, type SearchItem } from '@/components/inventory-chrome';
+import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
 
-type Location = { id: string; kind: string; centre_id: string | null; name_cn: string };
-type BalanceRow = {
-  location_id: string;
-  item_id: string;
-  stock_id: string | null;
-  item_name: string;
-  category: string | null;
-  pack_qty: number | null;
-  qty: number;
+type Stats = {
+  kpis: { totalUnits: number; itemCount: number; pendingRequests: number; lowStockCount: number; monthOut: number; monthReturns: number };
+  lowStock: { item_id: string; stock_id: string | null; name_cn: string; category_cn: string | null; qty: number; low_stock_line: number | null; avgMonthly: number; monthsLeft: number | null }[];
+  topMovers30d: { item_id: string; stock_id: string | null; name_cn: string; qty: number }[];
+  categoryTotals: { category_cn: string; units: number }[];
+  holdings: { location_id: string; name: string; kind: string; units: number }[];
 };
 
-export default function InventoryPage() {
+function downloadCsv(filename: string, headers: string[], rows: (string | number)[][]) {
+  const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = [headers, ...rows].map((r) => r.map(esc).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export default function InventoryDashboardPage() {
   return (
     <ErpGate active="inventory" module="inventory">
-      {(me) => <InventoryOverview me={me} />}
+      {(me) => <Dashboard me={me} />}
     </ErpGate>
   );
 }
 
-function InventoryOverview({ me }: { me: ErpMe }) {
+function Dashboard({ me }: { me: ErpMe }) {
   const canEdit = grantAllows(me.grants, 'inventory', 'edit');
-
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [location, setLocation] = useState('');
-  const [rows, setRows] = useState<BalanceRow[]>([]);
-  const [pendingReqs, setPendingReqs] = useState<number | null>(null);
+  const router = useRouter();
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [items, setItems] = useState<SearchItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [drawerId, setDrawerId] = useState<string | null>(null);
 
-  const [category, setCategory] = useState('');
-  const [search, setSearch] = useState('');
-  const [nonzeroOnly, setNonzeroOnly] = useState(true);
-
-  // Meta once: locations (总会仓库 first) + categories + the pending-requests KPI.
   useEffect(() => {
     let active = true;
     Promise.all([
+      fetch('/api/dashboard/inventory/stats').then((r) => (r.ok ? r.json() : null)),
       fetch('/api/dashboard/inventory/meta').then((r) => (r.ok ? r.json() : null)),
-      fetch('/api/dashboard/inventory/requests?status=pending&limit=1').then((r) => (r.ok ? r.json() : null)),
     ])
-      .then(([meta, reqs]) => {
+      .then(([s, meta]) => {
         if (!active) return;
-        if (meta) {
-          setLocations(meta.locations ?? []);
-          setCategories(meta.categories ?? []);
-          const hq = (meta.locations ?? []).find((l: Location) => l.kind === 'hq_warehouse');
-          setLocation((cur) => cur || hq?.id || meta.locations?.[0]?.id || '');
-        }
-        if (reqs) setPendingReqs(reqs.total ?? 0);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  // Balances whenever the location changes (category/search/nonzero filter client-side
-  // on the ≤239-row set, so typing stays instant).
-  useEffect(() => {
-    if (!location) return;
-    let active = true;
-    setLoading(true);
-    fetch(`/api/dashboard/inventory/balances?location_id=${encodeURIComponent(location)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (active && j) setRows(j.balances ?? []);
+        if (s) setStats(s);
+        if (meta) setItems(meta.items ?? []);
       })
       .catch(() => {})
       .finally(() => {
@@ -85,164 +67,174 @@ function InventoryOverview({ me }: { me: ErpMe }) {
     return () => {
       active = false;
     };
-  }, [location]);
+  }, []);
 
-  const kpis = useMemo(() => {
-    let inStock = 0;
-    let units = 0;
-    for (const r of rows) {
-      if (r.qty > 0) inStock++;
-      units += r.qty;
-    }
-    return { total: rows.length, inStock, units };
-  }, [rows]);
+  const goStock = (cat?: string) =>
+    router.push(`/dashboard/inventory/stock${cat ? `?cat=${encodeURIComponent(cat)}` : ''}`);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter(
-      (r) =>
-        (!nonzeroOnly || r.qty !== 0) &&
-        (!category || r.category === category) &&
-        (!q || r.item_name.toLowerCase().includes(q) || (r.stock_id ?? '').toLowerCase().includes(q))
+  const topMax = useMemo(() => Math.max(1, ...(stats?.topMovers30d ?? []).map((m) => m.qty)), [stats]);
+  const catMax = useMemo(() => Math.max(1, ...(stats?.categoryTotals ?? []).map((c) => c.units)), [stats]);
+
+  const exportPurchase = () => {
+    if (!stats) return;
+    downloadCsv(
+      '采购清单.csv',
+      ['编号', '品项', '分类', '现有(总会)', '低库存线', '近90天月均发放', '约可用(月)'],
+      stats.lowStock.map((r) => [
+        r.stock_id ?? '', r.name_cn, r.category_cn ?? '', r.qty, r.low_stock_line ?? '',
+        r.avgMonthly, r.monthsLeft == null ? '' : r.monthsLeft.toFixed(1),
+      ])
     );
-  }, [rows, category, search, nonzeroOnly]);
-
-  const locName = locations.find((l) => l.id === location)?.name_cn ?? '';
+  };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-      {/* header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold font-serif text-ink">📦 库存总览</h2>
-          <span className="text-sm text-ink-faint">Inventory · {locName}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/inventory/requests" className="px-3 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">
-            分会申请{pendingReqs ? ` · ${pendingReqs}` : ''}
-          </Link>
-          <Link href="/dashboard/inventory/movements" className="px-3 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">
-            变动记录
-          </Link>
-          {canEdit && (
-            <Link href="/dashboard/inventory/movements/new" className="px-4 py-1.5 text-sm btn-primary">
-              ＋记录变动
-            </Link>
-          )}
-        </div>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+      <div className="flex items-baseline gap-2">
+        <h2 className="text-xl font-bold font-serif text-ink">📊 库存仪表板</h2>
+        <span className="text-sm text-ink-faint">Inventory</span>
       </div>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Kpi label="品项总数" value={kpis.total} icon="🗂️" />
-        <Kpi label="有库存品项" value={kpis.inStock} icon="📦" />
-        <Kpi label="本仓总件数" value={kpis.units} icon="🧮" />
-        <Kpi label="待处理申请" value={pendingReqs ?? 0} icon="🔔" accent={(pendingReqs ?? 0) > 0} />
-      </div>
+      <GlobalItemSearch items={items} onPick={setDrawerId} />
+      <InventoryTabs active="dash" />
 
-      {/* filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Sel value={location} onChange={setLocation}
-          options={locations.map((l) => [l.id, l.kind === 'hq_warehouse' ? `🏛️ ${l.name_cn}` : l.name_cn] as [string, string])} />
-        <Sel value={category} onChange={setCategory} options={[['', '全部分类'], ...categories.map((c) => [c, c] as [string, string])]} />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="搜索 名称 / 编号…"
-          className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent w-52"
-        />
-        <label className="flex items-center gap-1.5 text-sm text-ink-muted select-none">
-          <input type="checkbox" checked={nonzeroOnly} onChange={(e) => setNonzeroOnly(e.target.checked)} className="accent-[#B8860B]" />
-          只看有库存
-        </label>
-      </div>
-
-      {/* table */}
-      <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-        {loading ? (
-          <p className="p-6 text-sm text-ink-muted">加载中…</p>
-        ) : filtered.length === 0 ? (
-          <div className="p-10 text-center">
-            <p className="text-2xl mb-1">🪷</p>
-            <p className="text-sm text-ink">{rows.length === 0 ? '此仓还没有库存记录。' : '未找到匹配的品项'}</p>
-            {rows.length > 0 && nonzeroOnly && (
-              <p className="mt-1 text-xs text-ink-muted">试试取消「只看有库存」查看全部品项。</p>
-            )}
+      {loading ? (
+        <p className="p-6 text-sm text-ink-muted">加载中…</p>
+      ) : !stats ? (
+        <p className="p-6 text-sm text-ink-muted">无法加载统计数据。</p>
+      ) : (
+        <>
+          {/* KPIs */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <Kpi label="🧮 全库总件数" value={stats.kpis.totalUnits} sub="查看明细 →" onClick={() => goStock()} />
+            <Kpi label="🗂️ 品项" value={stats.kpis.itemCount} sub={`${stats.categoryTotals.length} 大分类 →`} onClick={() => goStock()} />
+            <Kpi label="🔔 待审批申请" value={stats.kpis.pendingRequests} sub="去处理 →" hot={stats.kpis.pendingRequests > 0} onClick={() => router.push('/dashboard/inventory/requests')} />
+            <Kpi label="⚠️ 低库存" value={stats.kpis.lowStockCount} sub="查看全部 →" alert={stats.kpis.lowStockCount > 0} onClick={() => goStock('低库存')} />
+            <Kpi label="📤 本月发放" value={stats.kpis.monthOut} sub={`↩ 退回 ${stats.kpis.monthReturns.toLocaleString()}`} />
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                  <Th>编号 StockID</Th><Th>品项 Item</Th><Th>分类</Th><Th>每包</Th>
-                  <th className="px-4 py-2.5 font-normal text-right">库存 Qty</th><Th></Th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => (
-                  <tr key={r.item_id} className="border-b border-border last:border-b-0 hover:bg-accent/5">
-                    <td className="px-4 py-2.5">
-                      {r.stock_id
-                        ? <span className="font-mono text-xs text-ink">{r.stock_id}</span>
-                        : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">未编号</span>}
-                    </td>
-                    <td className="px-4 py-2.5 font-medium text-ink">{r.item_name}</td>
-                    <td className="px-4 py-2.5">
-                      {r.category && r.category !== 'uncoded'
-                        ? <span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[11px]">{r.category}</span>
-                        : <span className="text-ink-faint">–</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-ink-muted">{r.pack_qty ?? '–'}</td>
-                    <td className={`px-4 py-2.5 text-right font-semibold tabular-nums ${r.qty > 0 ? 'text-ink' : 'text-ink-faint'}`}>
-                      {r.qty.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <Link
-                        href={`/dashboard/inventory/movements?item=${r.item_id}`}
-                        className="text-xs text-accent-deep hover:underline"
-                      >
-                        记录
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
-      <p className="text-xs text-ink-faint">
-        库存由变动台账推算（期初结存以 2026-03-02 表格为准，未盘点前仅供参考）。数量有出入时请用「盘点调增/调减」修正。
-      </p>
+          <div className="grid lg:grid-cols-2 gap-4">
+            {/* low stock + purchasing */}
+            <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex justify-between items-baseline gap-2 flex-wrap">
+                <h3 className="text-sm font-semibold text-ink">⚠️ 低库存 · 采购建议</h3>
+                <button onClick={exportPurchase} className="text-xs text-accent-deep hover:underline">⬇ 导出采购清单 (CSV)</button>
+              </div>
+              {stats.lowStock.length === 0 ? (
+                <p className="p-6 text-sm text-ink-muted">目前没有低于低库存线的品项。🪷</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-[11px] text-ink-faint border-b border-border">
+                      <th className="px-4 py-2 font-normal">品项</th>
+                      <th className="px-4 py-2 font-normal text-right">现有</th>
+                      <th className="px-4 py-2 font-normal text-right">约可用</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.lowStock.slice(0, 8).map((r) => (
+                      <tr key={r.item_id} onClick={() => setDrawerId(r.item_id)} className="border-b border-border last:border-b-0 hover:bg-accent/5 cursor-pointer">
+                        <td className="px-4 py-2">
+                          <span className="font-medium text-ink">{r.name_cn}</span>
+                          {r.stock_id && <span className="ml-1.5 font-mono text-[10px] text-ink-muted">{r.stock_id}</span>}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums text-[#B4402E] font-semibold">{r.qty.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-right tabular-nums text-ink-muted">{r.monthsLeft == null ? '—' : `${r.monthsLeft.toFixed(1)} 月`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              <p className="px-4 py-2.5 border-t border-border text-[11px] text-ink-faint">「约可用」= 现有 ÷ 近 90 天月均发放</p>
+            </div>
+
+            {/* category totals */}
+            <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex justify-between items-baseline gap-2">
+                <h3 className="text-sm font-semibold text-ink">🗂️ 各分类库存</h3>
+                <span className="text-xs text-ink-faint">点分类进明细</span>
+              </div>
+              <div className="p-4 space-y-2">
+                {stats.categoryTotals.length === 0 ? (
+                  <p className="text-sm text-ink-muted">暂无数据。</p>
+                ) : (
+                  stats.categoryTotals.map((c) => (
+                    <button key={c.category_cn} onClick={() => goStock(c.category_cn)} className="w-full flex items-center gap-2.5 text-left">
+                      <span className="w-28 shrink-0 text-xs text-ink-muted truncate">{c.category_cn}</span>
+                      <span className="flex-1 h-3 bg-surface-soft rounded-full overflow-hidden">
+                        <span className="block h-full rounded-full bg-accent/85" style={{ width: `${Math.max(2, (c.units / catMax) * 100)}%` }} />
+                      </span>
+                      <span className="w-20 text-right text-xs font-semibold tabular-nums text-ink">{c.units.toLocaleString()}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* top movers */}
+            <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border">
+                <h3 className="text-sm font-semibold text-ink">🔥 最常发放（近 30 天）</h3>
+              </div>
+              <div className="p-4 space-y-2">
+                {stats.topMovers30d.length === 0 ? (
+                  <p className="text-sm text-ink-muted">近 30 天暂无发放记录。</p>
+                ) : (
+                  stats.topMovers30d.map((m) => (
+                    <button key={m.item_id} onClick={() => setDrawerId(m.item_id)} className="w-full flex items-center gap-2.5 text-left">
+                      <span className="w-28 shrink-0 text-xs text-ink-muted truncate">{m.name_cn}</span>
+                      <span className="flex-1 h-3 bg-surface-soft rounded-full overflow-hidden">
+                        <span className="block h-full rounded-full bg-accent/85" style={{ width: `${Math.max(2, (m.qty / topMax) * 100)}%` }} />
+                      </span>
+                      <span className="w-20 text-right text-xs font-semibold tabular-nums text-ink">{m.qty.toLocaleString()}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* holdings */}
+            <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border">
+                <h3 className="text-sm font-semibold text-ink">📍 库存在哪里</h3>
+              </div>
+              <div className="p-4">
+                {stats.holdings.length === 0 ? (
+                  <p className="text-sm text-ink-muted">暂无库存。</p>
+                ) : (
+                  stats.holdings.slice(0, 10).map((h) => (
+                    <div key={h.location_id} className="flex justify-between text-[13px] py-1.5 border-b border-dashed border-border last:border-b-0">
+                      <span className="text-ink">{h.kind === 'hq_warehouse' ? `🏛️ ${h.name}` : h.name}</span>
+                      <b className="tabular-nums text-ink">{h.units.toLocaleString()}</b>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-ink-faint">
+            📌 245 项没人滚着看 — 找东西用上方搜索（认分类选品项），看健康用仪表板（只显示需要行动的），每张卡都能钻进完整明细。
+          </p>
+        </>
+      )}
+
+      <InventoryItemDrawer itemId={drawerId} onClose={() => setDrawerId(null)} canEdit={canEdit} />
     </div>
   );
 }
 
-function Kpi({ label, value, icon, accent }: { label: string; value: number; icon: string; accent?: boolean }) {
+function Kpi({ label, value, sub, hot, alert, onClick }: { label: string; value: number; sub?: string; hot?: boolean; alert?: boolean; onClick?: () => void }) {
   return (
-    <div className={`bg-surface border rounded-2xl px-4 py-3 ${accent ? 'border-accent' : 'border-border'}`}>
-      <p className="text-[11px] text-ink-faint">{icon} {label}</p>
-      <p className="mt-0.5 text-xl font-bold text-ink tabular-nums">{value.toLocaleString()}</p>
-    </div>
-  );
-}
-
-function Sel({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: [string, string][] }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
+    <button
+      onClick={onClick}
+      disabled={!onClick}
+      className={`text-left bg-surface border rounded-2xl px-4 py-3 transition ${
+        alert ? 'border-[#E5C4BF]' : hot ? 'border-accent' : 'border-border'
+      } ${onClick ? 'hover:border-gold-border cursor-pointer' : 'cursor-default'}`}
     >
-      {options.map(([v, label]) => (
-        <option key={v} value={v}>{label}</option>
-      ))}
-    </select>
+      <p className="text-[11px] text-ink-faint">{label}</p>
+      <p className={`mt-0.5 text-xl font-bold tabular-nums ${alert ? 'text-[#B4402E]' : 'text-ink'}`}>{value.toLocaleString()}</p>
+      {sub && <p className="text-[10.5px] text-accent-deep mt-0.5">{sub}</p>}
+    </button>
   );
-}
-
-function Th({ children }: { children?: React.ReactNode }) {
-  return <th className="px-4 py-2.5 font-normal">{children}</th>;
 }

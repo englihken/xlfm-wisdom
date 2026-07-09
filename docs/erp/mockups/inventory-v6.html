@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>库存 · Inventory — 流程设计稿 v6 · 最终</title>
+<style>
+  :root{
+    --bg:#FAF7F2; --surface:#FFFFFF; --surface-soft:#F5F1E9;
+    --border:#E8E2D6; --border-strong:#D9D2C2;
+    --ink:#2B2620; --ink-muted:#6B6154; --ink-faint:#A29685;
+    --accent:#B8860B; --accent-deep:#8A6508; --gold-border:#D9B65C;
+    --green-bg:#E7F0E0; --green:#3F6B2E; --red-bg:#FCEBEA; --red:#B4402E;
+    --amber-bg:#F5E1B0; --amber:#8A5A1E; --lav-bg:#EFEAF6; --lav:#6B5B8A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+  .rail{position:fixed;left:0;top:0;bottom:0;width:72px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding-top:14px;gap:10px;z-index:20}
+  .rail a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:13px 4px;margin:0 8px;border-radius:10px;color:var(--ink-muted);text-decoration:none;font-size:10.5px;position:relative}
+  .rail a.active{background:rgba(184,134,11,.1);color:var(--accent-deep)}
+  .rail a.active::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);height:28px;width:3px;border-radius:3px;background:var(--accent-deep)}
+  .rail svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+  .topbar{position:sticky;top:0;margin-left:72px;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 22px;display:flex;align-items:center;justify-content:space-between;z-index:10;gap:10px;flex-wrap:wrap}
+  .topbar .brand{font-weight:700;font-size:15px;white-space:nowrap}
+  .badge-mock{background:var(--amber-bg);color:var(--amber);border-radius:999px;padding:2px 10px;font-size:11px;margin-left:8px}
+  main{margin-left:72px;max-width:1140px;padding:18px 22px 60px}
+  h2{font-size:19px;font-weight:700;font-family:'Noto Serif SC',serif}
+  h3{font-size:14.5px;font-weight:600}
+  .sub{color:var(--ink-faint);font-size:12.5px}
+  /* global search bar */
+  .gsearch{display:flex;gap:8px;margin:12px 0;align-items:center;flex-wrap:wrap}
+  .gsearch .box{flex:1;min-width:260px;position:relative}
+  .gsearch input{width:100%;font:inherit;font-size:14px;padding:11px 14px 11px 38px;border:1.5px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+  .gsearch input:focus{outline:none;border-color:var(--accent)}
+  .gsearch .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-faint)}
+  .gdrop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;box-shadow:0 8px 24px rgba(43,38,32,.12);z-index:30;display:none;max-height:280px;overflow:auto}
+  .gdrop.show{display:block}
+  .gdrop .it{padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--border)}
+  .gdrop .it:last-child{border-bottom:none}
+  .gdrop .it:hover{background:rgba(184,134,11,.06)}
+  .tabs{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap}
+  .tab{padding:8px 14px;border-radius:10px;border:1px solid var(--border-strong);background:var(--surface);cursor:pointer;font-size:13px;color:var(--ink)}
+  .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .panel{display:none}.panel.active{display:block}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:11px 14px;cursor:pointer;transition:border-color .15s}
+  .kpi:hover{border-color:var(--gold-border)}
+  .kpi.hot{border-color:var(--accent)}
+  .kpi.alert{border-color:#E5C4BF;background:#FFFDFB}
+  .kpi .l{font-size:11px;color:var(--ink-faint)}
+  .kpi .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+  .kpi .s{font-size:10.5px;color:var(--accent-deep);margin-top:2px}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  select,input[type=text],input[type=number],input[type=search]{font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--ink)}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  .card .hd{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .card .bd{padding:13px 16px}
+  .seeall{font-size:12px;color:var(--accent-deep);cursor:pointer;white-space:nowrap}
+  .seeall:hover{text-decoration:underline}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{font-weight:400;font-size:11px;color:var(--ink-faint);text-align:left;padding:9px 14px;border-bottom:1px solid var(--border)}
+  td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tbody tr{cursor:pointer}
+  tbody tr:hover td{background:rgba(184,134,11,.05)}
+  .mono{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--ink-muted)}
+  .num{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;white-space:nowrap}
+  .pill-gold{background:rgba(184,134,11,.12);color:var(--accent-deep)}
+  .pill-outline{background:#fff;border:1px solid var(--gold-border);color:var(--accent-deep)}
+  .pill-green{background:var(--green-bg);color:var(--green)}
+  .pill-amber{background:var(--amber-bg);color:var(--amber)}
+  .pill-red{background:var(--red-bg);color:var(--red)}
+  .pill-lav{background:var(--lav-bg);color:var(--lav)}
+  .pill-muted{background:var(--surface-soft);color:var(--ink-faint);border:1px solid var(--border)}
+  .btn{font:inherit;font-size:12.5px;padding:7px 14px;border-radius:10px;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+  .btn:hover{border-color:var(--accent)}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+  .btn-primary:hover{background:var(--accent-deep)}
+  .btn-danger{color:var(--red);border-color:#E5C4BF}
+  .btn:disabled{opacity:.45;cursor:default}
+  .pipeline{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+  .col{background:var(--surface-soft);border:1px solid var(--border);border-radius:16px;padding:12px}
+  .col h4{font-size:13px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+  .col h4 .cnt{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:1px 9px;font-size:11px;color:var(--ink-muted)}
+  .req{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:10px}
+  .req .top{display:flex;justify-content:space-between;gap:6px}
+  .req .item{font-weight:600;margin-top:6px}
+  .req .meta{font-size:11.5px;color:var(--ink-muted);margin-top:4px;line-height:1.6}
+  .req .acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .note{border:1.5px dashed var(--gold-border);background:rgba(184,134,11,.05);border-radius:14px;padding:12px 14px;font-size:12.5px;color:var(--ink-muted);line-height:1.75;margin:14px 0}
+  .note b{color:var(--accent-deep)}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;opacity:0;transition:opacity .3s;z-index:99;max-width:80vw;text-align:center}
+  .toast.show{opacity:.95}
+  .grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}
+  .bar{display:flex;align-items:center;gap:10px;margin:7px 0}
+  .bar .lb{width:112px;font-size:12px;color:var(--ink-muted);flex-shrink:0}
+  .bar .tr{flex:1;height:13px;background:var(--surface-soft);border-radius:7px;overflow:hidden}
+  .bar .fl{height:100%;border-radius:7px;background:var(--accent);opacity:.85}
+  .bar .vl{width:72px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;font-weight:600}
+  /* item drawer */
+  .drawerWrap{position:fixed;inset:0;z-index:60;display:none}
+  .drawerWrap.show{display:block}
+  .drawerWrap .dim{position:absolute;inset:0;background:rgba(43,38,32,.4)}
+  .drawer{position:absolute;right:0;top:0;bottom:0;width:min(460px,94vw);background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;padding:20px}
+  .drawer .close{float:right;cursor:pointer;font-size:18px;color:var(--ink-faint)}
+  .drawer h3{font-size:17px}
+  .qr{width:84px;height:84px;border:1px solid var(--border-strong);border-radius:10px;display:grid;place-items:center;background:
+    repeating-linear-gradient(0deg,#2B2620 0 3px,transparent 3px 7px),
+    repeating-linear-gradient(90deg,#2B2620 0 3px,transparent 3px 7px);background-size:60% 60%;background-position:center;background-repeat:no-repeat}
+  .dphoto{width:84px;height:84px;border-radius:10px;background:var(--surface-soft);border:1px solid var(--border);display:grid;place-items:center;font-size:30px}
+  .drawer .quick{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+  .kv{display:flex;justify-content:space-between;font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--border)}
+  .kv b{font-variant-numeric:tabular-nums}
+  /* phone frame */
+  .phone{width:270px;border:8px solid #2B2620;border-radius:28px;background:var(--bg);overflow:hidden;flex-shrink:0}
+  .phone .ph-top{background:var(--surface);border-bottom:1px solid var(--border);padding:9px 12px;font-size:12px;font-weight:600}
+  .phone .ph-bd{padding:11px;font-size:12px}
+  .scanbox{border:2px dashed var(--gold-border);border-radius:12px;height:110px;display:grid;place-items:center;color:var(--accent-deep);font-size:12px;background:rgba(184,134,11,.05);cursor:pointer}
+  .overlay{position:fixed;inset:0;background:rgba(43,38,32,.45);display:none;align-items:center;justify-content:center;z-index:70;padding:16px}
+  .overlay.show{display:flex}
+  .modal{background:var(--surface);border-radius:18px;max-width:440px;width:100%;padding:20px}
+  .modal h3{font-size:16px;margin-bottom:4px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:11.5px;color:var(--ink-muted);margin-bottom:5px}
+  .photo{border:1.5px dashed var(--border-strong);border-radius:12px;padding:16px;text-align:center;color:var(--ink-faint);cursor:pointer;font-size:12.5px}
+  .photo.ok{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+  .warn{background:var(--amber-bg);color:var(--amber);border-radius:10px;padding:9px 12px;font-size:12px;margin:12px 0;line-height:1.6}
+  .info{background:var(--surface-soft);border-radius:10px;padding:9px 12px;font-size:12px;margin:12px 0;line-height:1.6;color:var(--ink-muted)}
+  .stkrow td input{width:86px;text-align:right}
+  .diff-plus{color:var(--green);font-weight:700}.diff-minus{color:var(--red);font-weight:700}
+  @media(max-width:940px){.pipeline,.grid2{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<nav class="rail">
+  <a><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/><path d="M9.5 21v-6h5v6"/></svg>主页</a>
+  <a><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>收件箱</a>
+  <a><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>会员</a>
+  <a><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 2.5v4M16 2.5v4"/></svg>活动</a>
+  <a class="active"><svg viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>库存</a>
+</nav>
+
+<div class="topbar">
+  <div class="brand">🪷 库存 · Inventory <span class="badge-mock">MOCKUP v6 最终稿 — 数据为示例</span></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn" onclick="toast('（示例）已生成只读链接 xlfm.app/s/8Kd2… — 分会在 WhatsApp 打开就能看实时库存目录，只能看不能改')">🔗 分享库存表</button>
+    <span class="sub">Helen 师兄 · 仓库负责</span>
+  </div>
+</div>
+
+<main>
+  <!-- ======= GLOBAL SEARCH — the front door for 245+ items ======= -->
+  <div class="gsearch">
+    <div class="box">
+      <span class="ic">🔍</span>
+      <input id="gq" type="search" placeholder="搜索任何品项 — 名称 / StockID / 分类…（245 项）" oninput="gSearch(this.value)">
+      <div class="gdrop" id="gdrop"></div>
+    </div>
+    <button class="btn btn-primary" onclick="simScan()">📷 手机扫码</button>
+    <button class="btn">＋ 记录变动</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('dash',this)">📊 仪表板</button>
+    <button class="tab" id="tabStock" onclick="showTab('stock',this)">库存明细</button>
+    <button class="tab" onclick="showTab('requests',this)">分会申请 <span class="pill pill-outline">2</span></button>
+    <button class="tab" onclick="showTab('count',this)">📋 盘点模式</button>
+    <button class="tab" onclick="showTab('catalog',this)">品项管理</button>
+    <button class="tab" onclick="showTab('ledger',this)">变动记录</button>
+  </div>
+
+  <!-- ============ TAB 仪表板 ============ -->
+  <section id="dash" class="panel active">
+    <div class="kpis">
+      <div class="kpi" onclick="goStock('全部')"><div class="l">🧮 全库总件数</div><div class="v">1,007,092</div><div class="s">查看明细 →</div></div>
+      <div class="kpi" onclick="goStock('全部')"><div class="l">🗂️ 品项</div><div class="v">245</div><div class="s">8 大分类 →</div></div>
+      <div class="kpi hot"><div class="l">🔔 待审批申请</div><div class="v">2</div><div class="s">去处理 →</div></div>
+      <div class="kpi alert" onclick="goStock('低库存')"><div class="l">⚠️ 低库存</div><div class="v" style="color:var(--red)">8</div><div class="s">查看全部 8 项 →</div></div>
+      <div class="kpi"><div class="l">📤 本月发放</div><div class="v">6,420</div><div class="s">↩ 退回 240</div></div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <div class="hd"><h3>⚠️ 低库存 · 采购建议</h3><span class="seeall" onclick="goStock('低库存')">查看全部 8 项 →</span></div>
+          <table>
+            <thead><tr><th>品项</th><th style="text-align:right">现有</th><th style="text-align:right">约可用</th><th>建议</th></tr></thead>
+            <tbody>
+              <tr onclick="openDrawer('fb')"><td><b>佛学报</b> <span class="mono">S501P0401</span></td><td class="num" style="color:var(--red)">100</td><td class="num" style="color:var(--red)">0.6 月</td><td><span class="pill pill-red">建议补 2,000</span></td></tr>
+              <tr onclick="openDrawer('bhgb')"><td><b>白话广播（二）</b></td><td class="num" style="color:var(--red)">254</td><td class="num" style="color:var(--red)">2.1 月</td><td><span class="pill pill-red">建议补 1,000</span></td></tr>
+              <tr onclick="openDrawer('tt')"><td><b>图腾世界</b></td><td class="num" style="color:var(--amber)">280</td><td class="num" style="color:var(--amber)">3.1 月</td><td><span class="pill pill-amber">留意</span></td></tr>
+            </tbody>
+          </table>
+          <div class="bd" style="border-top:1px solid var(--border);font-size:12px;color:var(--ink-muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">
+            <span>「约可用」= 现有 ÷ 近 3 月平均发放</span>
+            <a href="#" style="color:var(--accent-deep)" onclick="toast('（示例）采购清单.xlsx 已导出 — 8 项，含建议数量，直接发给采购师兄');return false">⬇ 导出采购清单 (Excel)</a>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="hd"><h3>🔥 最常发放（近 30 天）</h3><span class="seeall" onclick="toast('（示例）跳到完整排行榜 — 全部 245 项按发放量排序，可选 30/90/365 天')">完整排行 →</span></div>
+          <div class="bd">
+            <div class="bar"><span class="lb">空白小房子</span><div class="tr"><div class="fl" style="width:100%"></div></div><span class="vl">2,400</span></div>
+            <div class="bar"><span class="lb">小本经书(QR)</span><div class="tr"><div class="fl" style="width:62%"></div></div><span class="vl">1,500</span></div>
+            <div class="bar"><span class="lb">新漫画</span><div class="tr"><div class="fl" style="width:50%"></div></div><span class="vl">1,200</span></div>
+            <div class="bar"><span class="lb">护身卡</span><div class="tr"><div class="fl" style="width:33%"></div></div><span class="vl">800</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="hd"><h3>🗂️ 各分类库存</h3><span class="sub">点分类进明细</span></div>
+          <div class="bd">
+            <div class="bar" onclick="goStock('经文·纸类')" style="cursor:pointer"><span class="lb">经文·纸类</span><div class="tr"><div class="fl" style="width:100%"></div></div><span class="vl">627,689</span></div>
+            <div class="bar" onclick="goStock('结缘小物')" style="cursor:pointer"><span class="lb">贴纸·结缘小物</span><div class="tr"><div class="fl" style="width:25%"></div></div><span class="vl">155,566</span></div>
+            <div class="bar" onclick="goStock('书籍·善书')" style="cursor:pointer"><span class="lb">书籍·善书</span><div class="tr"><div class="fl" style="width:16%"></div></div><span class="vl">96,213</span></div>
+            <div class="bar" onclick="goStock('宣传单·文宣')" style="cursor:pointer"><span class="lb">宣传单·文宣</span><div class="tr"><div class="fl" style="width:10%"></div></div><span class="vl">60,610</span></div>
+            <div class="bar" onclick="goStock('小册子')" style="cursor:pointer"><span class="lb">小册子</span><div class="tr"><div class="fl" style="width:7%"></div></div><span class="vl">41,637</span></div>
+            <div class="bar" onclick="goStock('佛具·菩萨像')" style="cursor:pointer"><span class="lb">佛具·菩萨像</span><div class="tr"><div class="fl" style="width:.5%"></div></div><span class="vl">458</span></div>
+            <p class="sub" style="margin-top:6px">共 8 类 · <span class="seeall" onclick="goStock('全部')">查看全部分类 →</span></p>
+          </div>
+        </div>
+
+        <!-- volunteer-friendly phone panel (no QR — photos, favorites, undo) -->
+        <div class="card" style="margin-top:14px">
+          <div class="hd"><h3>📱 义工友好 · 零设备成本</h3><span class="sub">普通打印机 + 手机相机就够</span></div>
+          <div class="bd" style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+            <div class="phone">
+              <div class="ph-top">📷 手机扫码 + ⭐ 常用品项</div>
+              <div class="ph-bd">
+                <div class="scanbox" onclick="simScan()" style="height:64px;margin-bottom:7px">▣ 手机相机对准箱上标签的 QR<br><small>（点我模拟扫码 · 不用买扫码枪）</small></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center;cursor:pointer" onclick="openDrawer('xfz')"><div style="font-size:22px">📄</div><b style="font-size:11px">空白小房子</b></div>
+                  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center;cursor:pointer" onclick="openDrawer('tdr')"><div style="font-size:22px">📕</div><b style="font-size:11px">天地人</b></div>
+                  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center;cursor:pointer" onclick="openDrawer('nfj')"><div style="font-size:22px">🔊</div><b style="font-size:11px">念佛机</b></div>
+                  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center;cursor:pointer" onclick="openDrawer('gy')"><div style="font-size:22px">🪷</div><b style="font-size:11px">菩萨像（大）</b></div>
+                </div>
+                <div style="margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;font-size:11px">
+                  <b>刚才记的</b>：调拨 小计数器 ×200
+                  <button class="btn" style="font-size:10.5px;padding:3px 8px;margin-left:6px" onclick="toast('↩（示例）已撤销 — 系统自动记一笔反向更正，库存复原。记错不用怕。')">↩ 撤销</button>
+                </div>
+              </div>
+            </div>
+            <p class="sub" style="flex:1;min-width:150px;line-height:1.8"><b>为义工设计 · 零设备成本</b>：① <b>大件贴标签</b>（菩萨像、器材、整箱纸品）— 系统生成 PDF（名称大字 + QR），<b>普通 A4 打印机</b>自己印贴箱；书籍免贴，认封面就够；② 标签上的 QR 用<b>手机相机</b>扫 — 不买扫码枪、不买标签机；③ 每个品项配<b>照片</b>，认图不认编号；④ <b>常用品项</b>自动排前面 — 平时来去就那二十样；⑤ 记错了 <b>24 小时内一键撤销</b>，系统记反向更正，台账照样干净；⑥ 数目乱了开一场<b>盘点</b>（扫码逐项 或 印纸本清单都行），点一点就对齐，不追究。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note">📌 <b>为什么首页只放摘要？</b> 245 项没人会滚着看 — 世界级做法是：<b>找东西用搜索</b>（上方大搜索框，任何页都在，认照片选品项）、<b>看健康用仪表板</b>（只显示需要行动的），<b>每张卡都有「查看全部 →」</b>钻进完整列表。列表本身支持分类折叠、排序、分页加载和 Excel 导出。</div>
+  </section>
+
+  <!-- ============ TAB 库存明细 ============ -->
+  <section id="stock" class="panel">
+    <div class="filters">
+      <select><option>🏛️ 总会仓库</option><option>Batu Pahat</option><option>Cheras</option><option>…（36 中心）</option></select>
+      <select id="catSel"><option>全部分类</option><option>低库存</option><option>书籍·善书</option><option>经文·纸类</option><option>佛具·菩萨像</option><option>结缘小物</option></select>
+      <input type="search" placeholder="在结果内筛选…" style="width:170px">
+      <label style="font-size:13px;color:var(--ink-muted)"><input type="checkbox" checked> 只看有库存</label>
+      <span style="flex:1"></span>
+      <button class="btn" onclick="toast('（示例）当前筛选结果已导出 Excel')">⬇ 导出</button>
+    </div>
+    <div class="card">
+      <div class="hd"><h3 id="stockTitle">全部品项</h3><span class="sub" id="stockCount">显示 1–30 / 共 245 项 · 按分类分组</span></div>
+      <table>
+        <thead><tr><th>编号</th><th>品项</th><th>分类</th><th style="text-align:right">库存</th><th style="text-align:right">低库存线</th></tr></thead>
+        <tbody>
+          <tr onclick="openDrawer('tdr')"><td class="mono">S001B0301</td><td><b>天地人</b></td><td><span class="pill pill-gold">书籍·善书</span></td><td class="num">1,378</td><td class="num" style="color:var(--ink-faint)">200</td></tr>
+          <tr onclick="openDrawer('tt')"><td class="mono">S001B0201</td><td><b>图腾世界</b></td><td><span class="pill pill-gold">书籍·善书</span></td><td class="num" style="color:var(--amber)">280</td><td class="num" style="color:var(--ink-faint)">300</td></tr>
+          <tr onclick="openDrawer('fb')"><td class="mono">S501P0401</td><td><b>佛学报</b></td><td><span class="pill pill-gold">宣传单·文宣</span></td><td class="num" style="color:var(--red)">100</td><td class="num" style="color:var(--ink-faint)">500</td></tr>
+          <tr onclick="openDrawer('nfj')"><td><span class="pill pill-muted">未编号</span></td><td><b>念佛机</b></td><td><span class="pill pill-lav">法器·念佛机</span></td><td class="num">2,240</td><td class="num" style="color:var(--ink-faint)">300</td></tr>
+          <tr onclick="openDrawer('gy')"><td><span class="pill pill-muted">新</span></td><td><b>观音菩萨像（大）</b></td><td><span class="pill pill-lav">佛具·菩萨像</span></td><td class="num" style="color:var(--red)">3</td><td class="num" style="color:var(--ink-faint)">2</td></tr>
+        </tbody>
+      </table>
+      <div class="bd" style="border-top:1px solid var(--border);text-align:center">
+        <button class="btn" onclick="toast('（示例）加载下一页 31–60 / 245 — 真系统按分类折叠 + 无限下拉')">加载更多（还有 215 项）</button>
+      </div>
+    </div>
+    <div class="note">📌 <b>点任何一行 → 右侧抽屉</b>打开品项档案：各仓分布、完整历史、QR 标签、快速操作。这就是「看得深」的入口 — 列表管找，抽屉管细节。</div>
+  </section>
+
+  <!-- ============ TAB 分会申请（v3 保留）============ -->
+  <section id="requests" class="panel">
+    <p class="sub" style="margin-bottom:10px">流程同 v3：审批可批少（须写原因）→ 📷 发放才扣库存 → 可退回。此页略 — 看 v3 的完整演示。</p>
+    <div class="pipeline">
+      <div class="col"><h4>① 待审批 <span class="cnt">2</span></h4>
+        <div class="req"><div class="top"><span class="pill pill-gold">Batu Pahat</span><span class="pill pill-outline">待审批</span></div>
+        <div class="item">佛学问答(166)</div><div class="meta">申请 <b>400</b> 本</div>
+        <div class="acts"><button class="btn btn-primary" onclick="toast('审批窗（同 v3）— 可批 300 并写原因')">✓ 审批</button><button class="btn btn-danger">拒绝</button></div></div></div>
+      <div class="col"><h4>② 已批准 · 备货中 <span class="cnt">1</span></h4>
+        <div class="req"><div class="top"><span class="pill pill-gold">Ipoh</span><span class="pill pill-amber">已批准</span></div>
+        <div class="item">弘法度人辅导手册</div><div class="meta">批准 <b>200</b> · 还欠 200</div>
+        <div class="acts"><button class="btn btn-primary" onclick="toast('发放窗（同 v3）— 照片必传，确认后自动扣库存')">📷 发放</button></div></div></div>
+      <div class="col"><h4>③ 已发放 <span class="cnt">1</span></h4>
+        <div class="req"><div class="top"><span class="pill pill-gold">Skudai</span><span class="pill pill-green">已拨付</span></div>
+        <div class="item">小计数器</div><div class="meta">发放 200 · 📷 存证 · TRF-0007</div>
+        <div class="acts"><button class="btn" onclick="toast('退回窗（同 v3）— 库存自动恢复')">↩ 退回 / 撤销</button></div></div></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 盘点模式（新）============ -->
+  <section id="count" class="panel">
+    <div class="card">
+      <div class="hd"><h3>📋 盘点模式 — 引导式点算</h3><span class="sub">法会前全仓盘点用这个，不用一项一项改</span></div>
+      <div class="bd">
+        <div class="filters" style="margin-bottom:10px">
+          <select><option>盘点地点：🏛️ 总会仓库</option><option>Batu Pahat</option></select>
+          <select><option>范围：佛具·菩萨像（6 项）</option><option>书籍·善书（96 项）</option><option>全仓（245 项）</option></select>
+          <span class="pill pill-outline">进行中 · 已点 3 / 6</span>
+        </div>
+        <table>
+          <thead><tr><th>品项</th><th style="text-align:right">系统数</th><th style="text-align:right">实点数</th><th style="text-align:right">差异</th></tr></thead>
+          <tbody>
+            <tr class="stkrow"><td><b>观音菩萨像（大）</b><div class="sub">📷 手机扫码逐项点，或 🖨️ 印纸本清单点完回来填</div></td><td class="num">3</td><td class="num"><input type="number" value="3" oninput="diff(this,3,'d1')"></td><td class="num" id="d1">0</td></tr>
+            <tr class="stkrow"><td><b>观音菩萨像（小）</b></td><td class="num">12</td><td class="num"><input type="number" value="11" oninput="diff(this,12,'d2')"></td><td class="num diff-minus" id="d2">−1</td></tr>
+            <tr class="stkrow"><td><b>香炉</b></td><td class="num">8</td><td class="num"><input type="number" value="9" oninput="diff(this,8,'d3')"></td><td class="num diff-plus" id="d3">+1</td></tr>
+            <tr class="stkrow"><td><b>油灯（佛台用）</b></td><td class="num">36</td><td class="num"><input type="number" placeholder="待点"></td><td class="num" style="color:var(--ink-faint)">–</td></tr>
+          </tbody>
+        </table>
+        <div class="warn" style="margin-top:12px">确认盘点后：每个有差异的品项自动生成一笔「盘点调增/调减」（含盘点人 + 时间 + 备注），系统数立即对齐实点数。没点完可以存草稿，明天继续。</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="toast('✅（示例）盘点已确认 — 2 笔调整已入台账（菩萨像小 −1、香炉 +1），系统数已对齐')">确认盘点（2 笔差异）</button>
+          <button class="btn">存草稿</button>
+        </div>
+      </div>
+    </div>
+    <div class="note">📌 这是 BoxHero 等系统的「Inventory Count」做法：<b>一场盘点 = 一个引导式清单</b>，边点边填（喜欢纸本就先印清单，拿笔走仓库点，回来输入），差异一目了然，一键入账。差异不追究、不用怕 — 对齐了就好。期初结存（Excel 结转的 76 项）就用第一场盘点确认掉。</div>
+  </section>
+
+  <!-- ============ TAB 品项管理 ============ -->
+  <section id="catalog" class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <p class="sub">目录 + 分类 + QR 标签都在这里 · 佛具、菩萨像等实物一样入目录</p>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="toast('（示例）Excel 批量导入 — 下载模板，填好上传，一次建几十个品项')">⬆ Excel 导入</button>
+        <button class="btn" onclick="toast('（示例）盘点清单 PDF 已生成 — 按分类分页、印出来拿笔走仓库点，点完回来输入')">🖨️ 打印盘点清单</button>
+        <button class="btn" onclick="toast('（示例）勾选大件品项（菩萨像、香炉、器材、整箱物）→ 生成标签 PDF（名称大字 + QR），普通 A4 打印机自己印、贴箱，手机扫 QR 直达品项。书籍免贴 — 认封面就够。')">🏷️ 打印标签（大件）</button>
+        <button class="btn btn-primary">＋ 新品项</button>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>编号</th><th>品项</th><th>分类</th><th>低库存线</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr onclick="openDrawer('tdr')"><td class="mono">S001B0301</td><td><b>天地人</b></td><td><span class="pill pill-gold">书籍·善书</span></td><td class="mono">200</td><td><span class="pill pill-green">在用</span></td></tr>
+          <tr onclick="openDrawer('gy')"><td><span class="pill pill-muted">新</span></td><td><b>观音菩萨像（大）</b></td><td><span class="pill pill-lav">佛具·菩萨像</span></td><td class="mono">2</td><td><span class="pill pill-green">在用</span></td></tr>
+          <tr><td class="mono">S011B0201</td><td><b>Methaphysics Q&A 1 英文</b> <span class="sub">已停印</span></td><td><span class="pill pill-gold">书籍·善书</span></td><td class="mono">–</td><td><span class="pill pill-muted">停用</span></td></tr>
+        </tbody>
+      </table>
+      <div class="bd" style="border-top:1px solid var(--border);text-align:center"><button class="btn">加载更多（共 245 项）</button></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 变动记录 ============ -->
+  <section id="ledger" class="panel">
+    <div class="filters">
+      <select><option>全部类型</option></select><select><option>全部仓/中心</option></select><select><option>全部活动</option><option>XLFM-2608 八月法会</option></select>
+      <span style="flex:1"></span><button class="btn" onclick="toast('（示例）台账已导出 Excel')">⬇ 导出</button>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>日期</th><th>类型</th><th>品项</th><th style="text-align:right">数量</th><th>从 → 到</th><th>备注 / 经手</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">07-05</td><td><span class="pill pill-outline">调拨</span></td><td>小计数器</td><td class="num">200</td><td style="font-size:12px">总会仓库 → Skudai</td><td style="font-size:12px;color:var(--ink-muted)">分会申请拨付 📷 · Helen</td></tr>
+          <tr><td class="mono">03-02</td><td><span class="pill pill-muted">期初结存</span></td><td>天地人</td><td class="num">1,378</td><td style="font-size:12px">→ 总会仓库</td><td style="font-size:12px;color:var(--ink-muted)">Excel 结转 · 待盘点确认</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- ======= ITEM DRAWER — the drill-down hub ======= -->
+<div class="drawerWrap" id="dw">
+  <div class="dim" onclick="closeDrawer()"></div>
+  <div class="drawer">
+    <span class="close" onclick="closeDrawer()">✕</span>
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div class="dphoto" id="dwPhoto">📕</div>
+      <div>
+        <h3 id="dwName">天地人</h3>
+        <p class="sub"><span class="mono" id="dwSid">S001B0301</span> · <span class="pill pill-gold" id="dwCat">书籍·善书</span></p>
+        <p class="sub" id="dwPack">每包 20 · 低库存线 200</p>
+      </div>
+    </div>
+    <div class="quick">
+      <button class="btn" onclick="toast('（示例）入库窗打开')">📥 入库</button>
+      <button class="btn" onclick="toast('（示例）发放/调拨窗打开')">📤 发放</button>
+      <button class="btn" onclick="toast('（示例）加入盘点清单')">📋 盘点</button>
+      <button class="btn" onclick="toast('（示例）标签 PDF 已生成 — 名称大字 + QR，普通 A4 打印机印出贴箱，手机一扫即开此品项。适合大件：菩萨像、香炉、器材、整箱纸品；书籍不需要。')">🏷️ 打印标签（大件）</button>
+      <button class="btn" onclick="toast('（示例）编辑品项资料')">✏️ 编辑</button>
+    </div>
+    <h3 style="margin:14px 0 4px">📍 各仓分布</h3>
+    <div class="kv"><span>🏛️ 总会仓库</span><b id="dwHq">1,378</b></div>
+    <div class="kv"><span>Batu Pahat</span><b>0</b></div>
+    <div class="kv"><span>Skudai</span><b>0</b></div>
+    <div class="kv"><span style="color:var(--ink-faint)">其余 34 中心</span><b style="color:var(--ink-faint)">0</b></div>
+    <h3 style="margin:16px 0 4px">🕘 最近变动 <span class="seeall" onclick="toast('（示例）跳到变动记录页，已按此品项筛选')">全部 →</span></h3>
+    <div class="kv"><span><span class="pill pill-muted">期初结存</span> 03-02 · Excel 结转</span><b>+1,378</b></div>
+    <div class="kv"><span><span class="pill pill-outline">调拨</span> （示例更早记录…）</span><b>—</b></div>
+    <div class="info">💡 抽屉 = 每个品项的完整档案。从搜索、扫码、仪表板、任何列表点进来都是这一张 — 一个入口，看得最深。</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3600); }
+  function showTab(id, btn){
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    $(id).classList.add('active'); (btn||$('tabStock')).classList.add('active');
+  }
+  // global search
+  const ITEMS = [
+    {k:'tdr', sid:'S001B0301', n:'天地人', c:'书籍·善书', q:1378, e:'📕'},
+    {k:'tt', sid:'S001B0201', n:'图腾世界', c:'书籍·善书', q:280, e:'📕'},
+    {k:'fb', sid:'S501P0401', n:'佛学报', c:'宣传单·文宣', q:100, e:'📰'},
+    {k:'nfj', sid:null, n:'念佛机', c:'法器·念佛机', q:2240, e:'🔊'},
+    {k:'gy', sid:null, n:'观音菩萨像（大）', c:'佛具·菩萨像', q:3, e:'🪷'},
+    {k:'bhgb', sid:'S012B0502', n:'白话广播（二）', c:'书籍·善书', q:254, e:'📕'},
+    {k:'xfz', sid:'S401P0101', n:'空白小房子', c:'经文·纸类', q:416000, e:'📄'},
+  ];
+  function simScan(){ toast('📷（示例）手机相机扫到箱上标签 QR — 打开「观音菩萨像（大）」档案'); setTimeout(()=>openDrawer('gy'), 600); }
+  function gSearch(v){
+    const d = $('gdrop'); const q = v.trim().toLowerCase();
+    if(!q){ d.classList.remove('show'); return; }
+    const hits = ITEMS.filter(i => i.n.toLowerCase().includes(q) || (i.sid??'').toLowerCase().includes(q) || i.c.includes(q)).slice(0,6);
+    d.innerHTML = hits.length
+      ? hits.map(i=>'<div class="it" onclick="openDrawer(\''+i.k+'\');$(\'gdrop\').classList.remove(\'show\')"><span>'+i.e+' <b>'+i.n+'</b> <span class="mono">'+(i.sid??'未编号')+'</span></span><span class="num">'+i.q.toLocaleString()+'</span></div>').join('')
+      : '<div class="it"><span class="sub">没找到 — 试试别的关键字，或到「品项管理」＋新品项</span></div>';
+    d.classList.add('show');
+  }
+  // drawer
+  function openDrawer(k){
+    const i = ITEMS.find(x=>x.k===k) || ITEMS[0];
+    $('dwName').textContent = i.n; $('dwSid').textContent = i.sid ?? '未编号';
+    $('dwCat').textContent = i.c; $('dwHq').textContent = i.q.toLocaleString();
+    $('dwPhoto').textContent = i.e;
+    $('dwPack').textContent = i.k==='gy' ? '每包 1 · 低库存线 2' : '每包 20 · 低库存线 200';
+    $('dw').classList.add('show');
+  }
+  function closeDrawer(){ $('dw').classList.remove('show'); }
+  // dashboard drill-down
+  function goStock(cat){
+    showTab('stock', $('tabStock'));
+    $('stockTitle').textContent = cat==='全部' ? '全部品项' : cat;
+    $('stockCount').textContent = cat==='低库存' ? '显示 8 / 8 项（低于低库存线）' : cat==='佛具·菩萨像' ? '显示 6 / 6 项' : '显示 1–30 / 共 245 项 · 按分类分组';
+    if(cat!=='全部') toast('已按「'+cat+'」筛选 — 仪表板每张卡都能这样钻进来');
+  }
+  // stock take diff
+  function diff(inp, sys, id){
+    const v = +inp.value; const d = v - sys; const el = $(id);
+    el.textContent = d===0 ? '0' : (d>0 ? '+'+d : '−'+Math.abs(d));
+    el.className = 'num ' + (d>0?'diff-plus':d<0?'diff-minus':'');
+  }
+</script>
+</body>
+</html>

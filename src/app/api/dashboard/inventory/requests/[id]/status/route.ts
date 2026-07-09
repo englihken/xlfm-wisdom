@@ -1,7 +1,7 @@
 // src/app/api/dashboard/inventory/requests/[id]/status/route.ts
 // PATCH — cancel a 分会 request (inventory:edit): body { status: 'cancelled' }. Only
-// pending/partial requests can be cancelled (already-transferred stock stays where it
-// is — a cancellation closes the REMAINDER, it does not undo past拨付). Audited.
+// pending/approved/partial requests can be cancelled (already-released stock stays where it
+// is — a cancellation closes the REMAINDER, it does not undo past发放). Audited.
 // Mirrors the events [id]/status route shape.
 
 import { NextResponse } from 'next/server';
@@ -38,7 +38,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Failed to load request' }, { status: 500 });
   }
   if (!request) return NextResponse.json({ error: '申请不存在' }, { status: 404 });
-  if (request.status !== 'pending' && request.status !== 'partial') {
+  if (request.status !== 'pending' && request.status !== 'approved' && request.status !== 'partial') {
     return NextResponse.json({ error: '该申请已结案，无需取消' }, { status: 400 });
   }
 

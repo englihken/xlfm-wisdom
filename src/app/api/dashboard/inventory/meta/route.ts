@@ -29,7 +29,7 @@ export async function GET() {
       .eq('is_active', true),
     supabaseAdmin
       .from('inventory_items')
-      .select('id, stock_id, name_cn, category, pack_qty')
+      .select('id, stock_id, name_cn, category, category_cn, pack_qty, low_stock_line, photo_path')
       .eq('is_active', true)
       .order('category', { ascending: true })
       .order('stock_id', { ascending: true }),
@@ -53,6 +53,10 @@ export async function GET() {
 
   const items = itemRes.data ?? [];
   const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean))).sort();
+  // 023 display categories (category_cn) — the 8 buckets the UI groups + filters by.
+  const categoriesCn = Array.from(new Set(items.map((i) => i.category_cn).filter(Boolean))).sort((a, b) =>
+    (a as string).localeCompare(b as string, 'zh')
+  );
 
-  return NextResponse.json({ locations, items, categories, events: evRes.data ?? [] });
+  return NextResponse.json({ locations, items, categories, categoriesCn, events: evRes.data ?? [] });
 }

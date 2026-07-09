@@ -1,0 +1,81 @@
+# Inventory v2 (023A) — approval workflow, dashboard, item drawer, catalog
+
+Builds on the [016 inventory wing](16-inventory.md). Covers `migrations/023_inventory_workflow.sql`
+(**applied to prod 2026-07-09** via the Supabase connector, advisor side — recorded as migration
+`023_inventory_workflow`; never re-run locally) and the 库存 v2 pages built on it. The agreed UI is
+`docs/erp/mockups/inventory-v6.html`.
+
+> 023B (Excel import, QR labels, 盘点模式 stock-take) is deliberately **out of scope** here.
+
+## What 023 added to the schema
+
+- `inventory_items`: `category_cn` (the 8 display categories — 经文·纸类, 书籍·善书, 佛具·菩萨像 … —
+  distinct from the legacy `category` StockID prefix), `photo_path`, `low_stock_line`. All 239 items
+  were categorised advisor-side.
+- `inventory_requests`: a **6-status lifecycle** `pending → approved → partial → fulfilled`, plus
+  `rejected` / `cancelled`; `qty_approved`, `approve_reason`, `approved_by`, `approved_at`,
+  `rejected_reason`. CHECK: fulfilled ≤ approved.
+- `inventory_movements`: `photo_path` (存证/到货 photo), `request_id` (links a release to its request),
+  `reversal_of` (更正撤销 link, with a unique partial index = **at most one reversal per movement**).
+- Private storage bucket **`inventory-media`** (`proofs/`, `photos/` subfolders).
+
+## Two rules that define the workflow
+
+**Release-only-deducts.** A request is *approved* first (authorising a quantity, with a required reason
+if approved for less than requested) — approval moves **no stock**. Stock leaves the warehouse only at
+**发放 / release**, which requires a 存证 photo, creates the 总会仓库 → 分会 transfer (carrying the photo
++ `request_id`), and advances `qty_fulfilled`. So "batch approved" and "actually handed over" are never
+conflated, and every hand-over has photographic proof. Release is capped at the approved-but-unreleased
+remainder (`qty_approved − qty_fulfilled`), guarded by the HQ negative-stock check. 取消 closes the
+**remainder only** — already-released stock is untouched.
+
+**Reversal, never deletion.** The ledger stays append-only. 更正撤销 writes the **exact opposite**
+movement (sides swapped, matching type so the DB direction CHECK holds, same item/qty, `reversal_of` set,
+note `更正撤销`) — inbound → adjust_out, outbound → adjust_in, transfer/return → swapped. Who may reverse:
+the movement's **own creator within 24h, or an inventory:admin anytime**. Refused if the target is itself a
+reversal, already has a reversal, or is a seed `opening` (correct those via a future stock-take). The
+negative-stock guard applies to the opposite move.
+
+## App surface (built)
+
+New/changed API (all `requireModuleAccess('inventory', …)`, every mutation audited):
+
+- `POST …/upload?kind=proof|photo` (edit) → `{ path }` into `inventory-media`; `GET …/media-url?path=`
+  (view) → short-lived signed URL. Mirror the registrations payment-proof pattern.
+- `POST …/requests/[id]/approve` (**admin**) · `POST …/requests/[id]/reject` (**admin**, reason required)
+  · `POST …/requests/[id]/release` (edit, qty + photo required) — **replaces** the old `fulfil` route ·
+  `PATCH …/requests/[id]/status` now cancels from pending/approved/partial · `GET …/requests` returns the
+  new fields and filters all 6 statuses.
+- `POST …/movements` accepts an optional `photo_path`; `POST …/movements/[id]/reverse` (edit, 24h/creator
+  rule) · `GET …/movements` returns `photo_path` + reversal linkage and accepts `?request_id=`.
+- `GET …/stats` (view) — dashboard aggregates from a bounded, no-N+1 set of reads (catalog + non-zero
+  balances + pending count + 90-day movements): KPIs, low-stock+purchasing, top movers, category totals,
+  holdings. `GET/PATCH …/items/[id]` (drawer + edit) · `GET/POST …/items` (catalog list + create) · meta
+  now returns the distinct `category_cn` list.
+
+Pages (ErpGate `module="inventory"`; a shared tab row 仪表板 · 库存明细 · 分会申请 · 变动记录 · 品项管理
+and a global item search sit on every page — a hit opens the shared **item drawer**
+`src/components/inventory-item-drawer.tsx`):
+
+- `/dashboard/inventory` = **仪表板**: 5 KPIs, 低库存·采购建议 (⬇ CSV 采购清单), 最常发放 + 各分类库存 bars
+  (click → 明细 filtered), 库存在哪里. Every card drills down.
+- `…/stock` = **库存明细** (the relocated per-location table): drawer on row click, 低库存 filter, load-more,
+  ⬇ CSV.
+- `…/requests` = **分会申请**: 3-column pipeline (待审批 / 已批准·备货中 / 已发放) with approve / reject /
+  release modals (release input = `file … capture="environment"` → upload → release), release photo
+  thumbnails + ↩退回/撤销, and reasons on rejected/cancelled cards.
+- `…/catalog` = **品项管理**: category chips + search, ＋新品项 / 编辑 modals (photo optional), 停用/启用.
+- `…/movements`: 📷 indicator (signed-URL preview), ↩撤销 per the 24h/creator rule, reversal rows labelled
+  更正撤销.
+
+Grants unchanged: admin=admin, erp_admin=admin, committee=view. Approve/reject need **admin**;
+release/reverse and item CRUD need **edit**; stats/list/drawer need **view**.
+
+## Follow-ups
+
+1. 023B: Excel bulk import, QR label PDFs, 盘点模式 (stock-take) — the mockup's 盘点 flow is designed but
+   not built.
+2. `low_stock_line` is only set for items where an advisor filled it — items without a line never appear in
+   低库存 / 采购建议 by design.
+3. Reversing a *release* movement returns the stock via the ledger but does not rewind the request's
+   `qty_fulfilled` counter (the ledger is the source of truth); revisit if that proves confusing in use.

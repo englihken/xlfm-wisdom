@@ -8,8 +8,8 @@
 
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ErpGate } from '@/components/erp-gate';
 import { MOVEMENT_DIRECTION, MOVEMENT_TYPE_OPTIONS, itemLabel } from '@/lib/inventory-display';
 
@@ -26,24 +26,30 @@ function todayMYT(): string {
 export default function NewMovementPage() {
   return (
     <ErpGate active="inventory" module="inventory" titleSuffix="记录变动">
-      {() => <NewMovementForm />}
+      {() => (
+        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">加载中…</p>}>
+          <NewMovementForm />
+        </Suspense>
+      )}
     </ErpGate>
   );
 }
 
 function NewMovementForm() {
   const router = useRouter();
+  const sp = useSearchParams();
   const [meta, setMeta] = useState<Meta>({ locations: [], items: [], events: [] });
 
   const [type, setType] = useState('stock_in');
   const [itemSearch, setItemSearch] = useState('');
-  const [itemId, setItemId] = useState('');
+  const [itemId, setItemId] = useState(sp.get('item') ?? '');
   const [fromId, setFromId] = useState('');
   const [toId, setToId] = useState('');
   const [qty, setQty] = useState('');
   const [eventId, setEventId] = useState('');
   const [movedAt, setMovedAt] = useState(todayMYT());
   const [note, setNote] = useState('');
+  const [photo, setPhoto] = useState<File | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -78,10 +84,11 @@ function NewMovementForm() {
     );
   }, [meta.items, itemSearch]);
 
-  // Keep the selection valid when the search narrows past it.
+  // Keep the selection valid when the search narrows past it (but not before the
+  // catalog has loaded — a deep-linked ?item= must survive the first empty render).
   useEffect(() => {
-    if (itemId && !filteredItems.some((i) => i.id === itemId)) setItemId('');
-  }, [filteredItems, itemId]);
+    if (meta.items.length > 0 && itemId && !filteredItems.some((i) => i.id === itemId)) setItemId('');
+  }, [filteredItems, itemId, meta.items.length]);
 
   const submit = async () => {
     setError('');
@@ -92,6 +99,20 @@ function NewMovementForm() {
 
     setSaving(true);
     try {
+      // Optional photo (e.g. a 到货 delivery photo) → upload first, attach the path.
+      let photoPath: string | undefined;
+      if (photo) {
+        const fd = new FormData();
+        fd.append('file', photo);
+        const up = await fetch('/api/dashboard/inventory/upload?kind=photo', { method: 'POST', body: fd });
+        const uj = await up.json().catch(() => ({}));
+        if (!up.ok || !uj.path) {
+          setError(uj.error ?? '照片上传失败');
+          setSaving(false);
+          return;
+        }
+        photoPath = uj.path;
+      }
       const res = await fetch('/api/dashboard/inventory/movements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -104,6 +125,7 @@ function NewMovementForm() {
           event_id: eventId || null,
           moved_at: movedAt || null,
           note,
+          photo_path: photoPath ?? null,
         }),
       });
       const j = await res.json().catch(() => ({}));
@@ -220,6 +242,16 @@ function NewMovementForm() {
             onChange={(e) => setNote(e.target.value)}
             placeholder="如：新到货 / 823 法会拣货 / 盘点差异…"
             className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+          />
+        </Field>
+
+        <Field label="照片（可选，如到货存证）">
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+            className="w-full text-xs text-ink-muted file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-border-strong file:bg-surface file:text-ink"
           />
         </Field>
 

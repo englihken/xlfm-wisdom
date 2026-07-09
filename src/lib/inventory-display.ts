@@ -48,22 +48,36 @@ export const MOVEMENT_DIRECTION: Record<string, { from: boolean; to: boolean }> 
   adjust_out: { from: true, to: false },
 };
 
-// 分会 request lifecycle: 待处理 gold-outline · 部分拨付 amber · 已拨付 green ·
-// 已取消 muted (same neutral treatment as elsewhere — never accusatory red).
+// 分会 request lifecycle (023 workflow — 6 states): 待审批 gold-outline ·
+// 已批准·备货中 amber · 部分发放 lavender · 已发放 green · 未批准 soft-red (a HQ
+// decision, recorded plainly) · 已取消 muted. Never accusatory toward the requester.
 export const REQUEST_STATUS_LABELS: Record<string, string> = {
-  pending: '待处理',
-  partial: '部分拨付',
-  fulfilled: '已拨付',
+  pending: '待审批',
+  approved: '已批准',
+  partial: '部分发放',
+  fulfilled: '已发放',
+  rejected: '未批准',
   cancelled: '已取消',
 };
 export const REQUEST_STATUS_STYLES: Record<string, string> = {
   pending: 'bg-white border border-gold-border text-accent-deep',
-  partial: 'bg-[#F5E1B0] text-[#8A5A1E]',
+  approved: 'bg-[#F5E1B0] text-[#8A5A1E]',
+  partial: 'bg-[#EFEAF6] text-[#6B5B8A]',
   fulfilled: 'bg-[#E7F0E0] text-[#3F6B2E]',
+  rejected: 'bg-[#FCEBEA] text-[#B4402E]',
   cancelled: 'bg-surface-soft text-ink-faint border border-border',
 };
 
 // Item label helper: "S001B0101 一命二运三风水" / "（未编号）念佛机".
 export function itemLabel(i: { stock_id: string | null; name_cn: string }): string {
   return i.stock_id ? `${i.stock_id} ${i.name_cn}` : `（未编号）${i.name_cn}`;
+}
+
+// Category (category_cn) pill tone: 佛具/法器/菩萨 实物 read lavender (like the mockup's
+// 佛具·菩萨像 / 法器·念佛机); everything else reads gold. Uncategorised → muted.
+export function categoryPillClass(cat: string | null | undefined): string {
+  if (!cat) return 'pill-muted';
+  return /佛具|法器|菩萨|器材/.test(cat)
+    ? 'bg-[#EFEAF6] text-[#6B5B8A]'
+    : 'pill-gold';
 }
