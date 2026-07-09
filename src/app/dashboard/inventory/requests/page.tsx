@@ -15,9 +15,12 @@ import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { InventoryTabs, GlobalItemSearch, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
-import { REQUEST_STATUS_LABELS, REQUEST_STATUS_STYLES } from '@/lib/inventory-display';
+import { REQUEST_STATUS_LABELS, REQUEST_STATUS_STYLES, itemLabel } from '@/lib/inventory-display';
 
 type Lite<T> = T | T[] | null;
+type Centre = { id: string; code: string; name_cn: string };
+type EventLite = { id: string; code: string; title: string };
+type MetaItem = { id: string; stock_id: string | null; name_cn: string };
 type RequestRow = {
   id: string;
   qty_requested: number;
@@ -57,8 +60,11 @@ function RequestsPipeline({ me }: { me: ErpMe }) {
 
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [items, setItems] = useState<SearchItem[]>([]);
+  const [events, setEvents] = useState<EventLite[]>([]);
+  const [centres, setCentres] = useState<Centre[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<Modal>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const [drawerId, setDrawerId] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -78,12 +84,27 @@ function RequestsPipeline({ me }: { me: ErpMe }) {
 
   useEffect(() => {
     let active = true;
-    fetch('/api/dashboard/inventory/meta')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((meta) => {
-        if (active && meta) setItems(meta.items ?? []);
-      })
-      .catch(() => {});
+    // Inventory meta (items, events) + centres (the request is per-centre). erp/meta needs
+    // members:view — inventory-only accounts fall back to deriving centres from the inventory
+    // locations (kind='centre'), exactly like the v1 create form did.
+    Promise.all([
+      fetch('/api/dashboard/inventory/meta').then((r) => (r.ok ? r.json() : null)),
+      fetch('/api/dashboard/erp/meta').then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]).then(([inv, erp]) => {
+      if (!active) return;
+      if (inv) {
+        setItems(inv.items ?? []);
+        setEvents(inv.events ?? []);
+      }
+      if (erp?.centres?.length) {
+        setCentres(erp.centres);
+      } else if (inv) {
+        const derived = (inv.locations ?? [])
+          .filter((l: { kind: string; centre_id: string | null }) => l.kind === 'centre' && l.centre_id)
+          .map((l: { centre_id: string; name_cn: string }) => ({ id: l.centre_id, code: '', name_cn: l.name_cn }));
+        setCentres(derived);
+      }
+    });
     return () => {
       active = false;
     };
@@ -104,9 +125,14 @@ function RequestsPipeline({ me }: { me: ErpMe }) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-4">
-      <div className="flex items-baseline gap-2">
-        <h2 className="text-xl font-bold font-serif text-ink">📦 分会申请</h2>
-        <span className="text-sm text-ink-faint">Requests · {rows.length}</span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-xl font-bold font-serif text-ink">📦 分会申请</h2>
+          <span className="text-sm text-ink-faint">Requests · {rows.length}</span>
+        </div>
+        {canEdit && (
+          <button onClick={() => setShowCreate(true)} className="px-4 py-1.5 text-sm btn-primary">＋ 代分会录入申请</button>
+        )}
       </div>
 
       <GlobalItemSearch items={items} onPick={setDrawerId} />
@@ -178,6 +204,19 @@ function RequestsPipeline({ me }: { me: ErpMe }) {
             </div>
           )}
         </>
+      )}
+
+      {showCreate && (
+        <CreateRequestModal
+          centres={centres}
+          items={items}
+          events={events}
+          onClose={() => setShowCreate(false)}
+          onDone={() => {
+            setShowCreate(false);
+            load();
+          }}
+        />
       )}
 
       {modal?.kind === 'approve' && <ApproveModal req={modal.req} onClose={() => setModal(null)} onDone={onDone} />}
@@ -494,6 +533,108 @@ function ReleaseModal({ req, onClose, onDone }: { req: RequestRow; onClose: () =
       <div className="flex gap-2 justify-end mt-2">
         <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
         <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '发放中…' : '确认发放'}</button>
+      </div>
+    </ModalShell>
+  );
+}
+
+function CreateRequestModal({
+  centres,
+  items,
+  events,
+  onClose,
+  onDone,
+}: {
+  centres: Centre[];
+  items: MetaItem[];
+  events: EventLite[];
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [centre, setCentre] = useState('');
+  const [itemSearch, setItemSearch] = useState('');
+  const [itemId, setItemId] = useState('');
+  const [qty, setQty] = useState('');
+  const [eventId, setEventId] = useState('');
+  const [note, setNote] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const filteredItems = useMemo(() => {
+    const q = itemSearch.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((i) => i.name_cn.toLowerCase().includes(q) || (i.stock_id ?? '').toLowerCase().includes(q));
+  }, [items, itemSearch]);
+
+  const selected = items.find((i) => i.id === itemId) ?? null;
+
+  const submit = async () => {
+    setErr('');
+    if (!centre) return setErr('请选择分会/中心');
+    if (!itemId) return setErr('请选择品项');
+    const n = Number(qty);
+    if (!Number.isInteger(n) || n <= 0) return setErr('申请数量须为大于 0 的整数');
+    setBusy(true);
+    try {
+      const res = await fetch('/api/dashboard/inventory/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ centre_id: centre, item_id: itemId, qty_requested: n, event_id: eventId || null, note }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) setErr(j.error ?? '创建失败，请重试');
+      else onDone();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ModalShell title="代分会录入申请" onClose={onClose}>
+      <ErrLine msg={err} />
+      <label className="block text-xs text-ink-muted mb-1">分会/中心</label>
+      <select value={centre} onChange={(e) => setCentre(e.target.value)}
+        className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent mb-2">
+        <option value="">请选择…</option>
+        {centres.map((c) => <option key={c.id} value={c.id}>{c.name_cn}</option>)}
+      </select>
+
+      <label className="block text-xs text-ink-muted mb-1">品项</label>
+      <input type="search" value={itemSearch} onChange={(e) => setItemSearch(e.target.value)} placeholder="输入名称 / 编号筛选…"
+        className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent" />
+      <select value={itemId} onChange={(e) => setItemId(e.target.value)} size={Math.min(6, Math.max(3, filteredItems.length))}
+        className="mt-1.5 w-full text-sm px-2 py-1.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent">
+        {filteredItems.map((i) => <option key={i.id} value={i.id}>{itemLabel(i)}</option>)}
+      </select>
+      <p className="mt-1 mb-2 text-[11.5px] min-h-[16px]">
+        {selected
+          ? <span className="text-accent-deep">已选：{itemLabel(selected)}</span>
+          : <span className="text-ink-faint">在上方列表点选一个品项</span>}
+      </p>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-xs text-ink-muted mb-1">申请数量</label>
+          <input type="number" min={1} step={1} value={qty} onChange={(e) => setQty(e.target.value)}
+            className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent tabular-nums" />
+        </div>
+        <div>
+          <label className="block text-xs text-ink-muted mb-1">关联活动（可选）</label>
+          <select value={eventId} onChange={(e) => setEventId(e.target.value)}
+            className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent">
+            <option value="">（无）</option>
+            {events.map((e) => <option key={e.id} value={e.id}>{e.code} {e.title}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <label className="block text-xs text-ink-muted mb-1 mt-2">备注（可选）</label>
+      <input type="text" value={note} onChange={(e) => setNote(e.target.value)}
+        className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent mb-2" />
+
+      <div className="flex gap-2 justify-end mt-2">
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '提交中…' : '提交申请'}</button>
       </div>
     </ModalShell>
   );

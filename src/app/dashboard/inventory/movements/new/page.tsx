@@ -76,6 +76,8 @@ function NewMovementForm() {
 
   const rule = MOVEMENT_DIRECTION[type] ?? { from: false, to: true };
 
+  const selectedItem = useMemo(() => meta.items.find((i) => i.id === itemId) ?? null, [meta.items, itemId]);
+
   const filteredItems = useMemo(() => {
     const q = itemSearch.trim().toLowerCase();
     if (!q) return meta.items;
@@ -193,7 +195,11 @@ function NewMovementForm() {
               <option key={i.id} value={i.id}>{itemLabel(i)}</option>
             ))}
           </select>
-          <p className="mt-1 text-[11px] text-ink-faint">{filteredItems.length} 个品项</p>
+          <p className="mt-1 text-[11.5px] min-h-[16px]">
+            {selectedItem
+              ? <span className="text-accent-deep">已选：{itemLabel(selectedItem)}</span>
+              : <span className="text-ink-faint">在上方列表点选一个品项（共 {filteredItems.length} 项）</span>}
+          </p>
         </Field>
 
         {/* locations per direction rule */}
