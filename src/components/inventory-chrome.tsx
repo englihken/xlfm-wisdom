@@ -41,6 +41,62 @@ export function InventoryTabs({ active }: { active: InvTabKey }) {
 
 export type SearchItem = { id: string; stock_id: string | null; name_cn: string; category_cn?: string | null };
 
+export type PickItem = { id: string; stock_id: string | null; name_cn: string };
+
+// Clickable-row item picker — replaces a native multi-row <select size=N> whose change
+// event some browsers/automation don't fire on a plain click. Search filters the list; a
+// row click selects (persisting even if a later search hides it); the 已选 line confirms it.
+export function ItemPicker({ items, value, onChange }: { items: PickItem[]; value: string; onChange: (id: string) => void }) {
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return items;
+    return items.filter((i) => i.name_cn.toLowerCase().includes(s) || (i.stock_id ?? '').toLowerCase().includes(s));
+  }, [items, q]);
+  const selected = items.find((i) => i.id === value) ?? null;
+
+  return (
+    <div>
+      <input
+        type="search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="输入名称 / 编号筛选…"
+        className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+      />
+      <div role="listbox" className="mt-1.5 max-h-48 overflow-auto border border-border-strong rounded-lg bg-surface divide-y divide-border">
+        {filtered.length === 0 ? (
+          <p className="px-3 py-3 text-xs text-ink-faint">没有匹配的品项</p>
+        ) : (
+          filtered.map((i) => {
+            const isSel = i.id === value;
+            return (
+              <button
+                key={i.id}
+                type="button"
+                role="option"
+                aria-selected={isSel}
+                onClick={() => onChange(i.id)}
+                className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition ${
+                  isSel ? 'bg-accent/10 text-accent-deep font-medium' : 'text-ink hover:bg-accent/5'
+                }`}
+              >
+                <span className={`w-3.5 shrink-0 ${isSel ? 'text-accent-deep' : 'text-transparent'}`}>✓</span>
+                <span className="truncate">{itemLabel(i)}</span>
+              </button>
+            );
+          })
+        )}
+      </div>
+      <p className="mt-1 text-[11.5px] min-h-[16px]">
+        {selected
+          ? <span className="text-accent-deep">已选：{itemLabel(selected)}</span>
+          : <span className="text-ink-faint">在上方列表点选一个品项（共 {filtered.length} 项）</span>}
+      </p>
+    </div>
+  );
+}
+
 export function GlobalItemSearch({ items, onPick }: { items: SearchItem[]; onPick: (id: string) => void }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);

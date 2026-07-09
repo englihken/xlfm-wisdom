@@ -8,10 +8,11 @@
 
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ErpGate } from '@/components/erp-gate';
-import { MOVEMENT_DIRECTION, MOVEMENT_TYPE_OPTIONS, itemLabel } from '@/lib/inventory-display';
+import { MOVEMENT_DIRECTION, MOVEMENT_TYPE_OPTIONS } from '@/lib/inventory-display';
+import { ItemPicker } from '@/components/inventory-chrome';
 
 type Meta = {
   locations: { id: string; kind: string; name_cn: string }[];
@@ -41,7 +42,6 @@ function NewMovementForm() {
   const [meta, setMeta] = useState<Meta>({ locations: [], items: [], events: [] });
 
   const [type, setType] = useState('stock_in');
-  const [itemSearch, setItemSearch] = useState('');
   const [itemId, setItemId] = useState(sp.get('item') ?? '');
   const [fromId, setFromId] = useState('');
   const [toId, setToId] = useState('');
@@ -75,22 +75,6 @@ function NewMovementForm() {
   }, []);
 
   const rule = MOVEMENT_DIRECTION[type] ?? { from: false, to: true };
-
-  const selectedItem = useMemo(() => meta.items.find((i) => i.id === itemId) ?? null, [meta.items, itemId]);
-
-  const filteredItems = useMemo(() => {
-    const q = itemSearch.trim().toLowerCase();
-    if (!q) return meta.items;
-    return meta.items.filter(
-      (i) => i.name_cn.toLowerCase().includes(q) || (i.stock_id ?? '').toLowerCase().includes(q)
-    );
-  }, [meta.items, itemSearch]);
-
-  // Keep the selection valid when the search narrows past it (but not before the
-  // catalog has loaded — a deep-linked ?item= must survive the first empty render).
-  useEffect(() => {
-    if (meta.items.length > 0 && itemId && !filteredItems.some((i) => i.id === itemId)) setItemId('');
-  }, [filteredItems, itemId, meta.items.length]);
 
   const submit = async () => {
     setError('');
@@ -178,28 +162,7 @@ function NewMovementForm() {
 
         {/* item picker */}
         <Field label="品项">
-          <input
-            type="search"
-            value={itemSearch}
-            onChange={(e) => setItemSearch(e.target.value)}
-            placeholder="输入名称 / 编号筛选…"
-            className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
-          />
-          <select
-            value={itemId}
-            onChange={(e) => setItemId(e.target.value)}
-            size={Math.min(8, Math.max(3, filteredItems.length))}
-            className="mt-1.5 w-full text-sm px-2 py-1.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
-          >
-            {filteredItems.map((i) => (
-              <option key={i.id} value={i.id}>{itemLabel(i)}</option>
-            ))}
-          </select>
-          <p className="mt-1 text-[11.5px] min-h-[16px]">
-            {selectedItem
-              ? <span className="text-accent-deep">已选：{itemLabel(selectedItem)}</span>
-              : <span className="text-ink-faint">在上方列表点选一个品项（共 {filteredItems.length} 项）</span>}
-          </p>
+          <ItemPicker items={meta.items} value={itemId} onChange={setItemId} />
         </Field>
 
         {/* locations per direction rule */}

@@ -13,9 +13,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
-import { InventoryTabs, GlobalItemSearch, type SearchItem } from '@/components/inventory-chrome';
+import { InventoryTabs, GlobalItemSearch, ItemPicker, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
-import { REQUEST_STATUS_LABELS, REQUEST_STATUS_STYLES, itemLabel } from '@/lib/inventory-display';
+import { REQUEST_STATUS_LABELS, REQUEST_STATUS_STYLES } from '@/lib/inventory-display';
 
 type Lite<T> = T | T[] | null;
 type Centre = { id: string; code: string; name_cn: string };
@@ -552,21 +552,12 @@ function CreateRequestModal({
   onDone: () => void;
 }) {
   const [centre, setCentre] = useState('');
-  const [itemSearch, setItemSearch] = useState('');
   const [itemId, setItemId] = useState('');
   const [qty, setQty] = useState('');
   const [eventId, setEventId] = useState('');
   const [note, setNote] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const filteredItems = useMemo(() => {
-    const q = itemSearch.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((i) => i.name_cn.toLowerCase().includes(q) || (i.stock_id ?? '').toLowerCase().includes(q));
-  }, [items, itemSearch]);
-
-  const selected = items.find((i) => i.id === itemId) ?? null;
 
   const submit = async () => {
     setErr('');
@@ -600,17 +591,9 @@ function CreateRequestModal({
       </select>
 
       <label className="block text-xs text-ink-muted mb-1">品项</label>
-      <input type="search" value={itemSearch} onChange={(e) => setItemSearch(e.target.value)} placeholder="输入名称 / 编号筛选…"
-        className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent" />
-      <select value={itemId} onChange={(e) => setItemId(e.target.value)} size={Math.min(6, Math.max(3, filteredItems.length))}
-        className="mt-1.5 w-full text-sm px-2 py-1.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent">
-        {filteredItems.map((i) => <option key={i.id} value={i.id}>{itemLabel(i)}</option>)}
-      </select>
-      <p className="mt-1 mb-2 text-[11.5px] min-h-[16px]">
-        {selected
-          ? <span className="text-accent-deep">已选：{itemLabel(selected)}</span>
-          : <span className="text-ink-faint">在上方列表点选一个品项</span>}
-      </p>
+      <div className="mb-2">
+        <ItemPicker items={items} value={itemId} onChange={setItemId} />
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div>
