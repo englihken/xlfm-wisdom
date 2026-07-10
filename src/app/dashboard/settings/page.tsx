@@ -18,7 +18,7 @@ import { TopBar } from '@/components/top-bar';
 import type { Grants } from '@/lib/access';
 import { XLFM_CENTERS, isValidCenter } from '@/lib/xlfm-centers';
 
-type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
+type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee' | 'centre_head';
 
 type Me = { email: string; displayName: string | null; role: Role; mustChangePassword?: boolean; grants?: Grants };
 
@@ -44,6 +44,7 @@ const ROLE_LABELS: Record<string, string> = {
   volunteer: '关怀义工',
   erp_admin: 'ERP 管理员',
   committee: '理事会',
+  centre_head: '分会负责人',
 };
 
 function formatDate(iso: string): string {
@@ -57,7 +58,12 @@ function formatDate(iso: string): string {
 // Settings sections. Data-driven so future sections (retention, crisis resources,
 // categories, WhatsApp config…) are a one-line addition here + a matching block in
 // the content area. Only 义工管理 exists today.
-const SECTIONS = [{ id: 'volunteers', label: '义工管理' }] as const;
+const SECTIONS = [
+  { id: 'volunteers', label: '义工与账号' },
+  { id: 'inbox', label: '收件箱配置' },
+  { id: 'centres', label: '共修会管理' },
+  { id: 'notify', label: '通知与模板' },
+] as const;
 type SectionId = (typeof SECTIONS)[number]['id'];
 
 export default function SettingsPage() {
@@ -216,6 +222,10 @@ export default function SettingsPage() {
     setSubmitting(true);
     setAddError(null);
     setAddSuccess(false);
+    if (formRole === 'centre_head' && !formCentreId) {
+      setAddError('分会负责人必须指定共修会');
+      return;
+    }
     try {
       const res = await fetch('/api/dashboard/volunteers', {
         method: 'POST',
@@ -224,9 +234,9 @@ export default function SettingsPage() {
           email: formEmail,
           password: formPassword,
           displayName: formName,
-          // Centre fields only apply to 关怀义工; scope is derived server-side.
-          center: formRole === 'volunteer' ? formCenter : '',
-          centre_id: formRole === 'volunteer' ? formCentreId : null,
+          // Centre fields apply to 关怀义工 AND 分会负责人; scope is derived server-side.
+          center: formRole === 'volunteer' || formRole === 'centre_head' ? formCenter : '',
+          centre_id: formRole === 'volunteer' || formRole === 'centre_head' ? formCentreId : null,
           occupation: formOccupation,
           skills: formSkills,
           role: formRole,
@@ -316,7 +326,7 @@ export default function SettingsPage() {
             href="/dashboard"
             className="btn-secondary inline-block mt-5 px-4 py-2 text-sm"
           >
-            返回收件箱
+            返回智慧问答
           </Link>
         </div>
       </div>
@@ -398,10 +408,13 @@ export default function SettingsPage() {
                       className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
                     />
                   </div>
-                  {/* Centre fields apply only to 关怀义工 (own_center scope); hidden for
-                      ERP/committee roles (all_centers). */}
-                  {formRole === 'volunteer' && (
+                  {/* Centre fields apply to 关怀义工 AND 分会负责人 (own_center scope); hidden
+                      for ERP/committee roles (all_centers). 分会负责人 REQUIRES a centre. */}
+                  {(formRole === 'volunteer' || formRole === 'centre_head') && (
                     <>
+                      {formRole === 'centre_head' && (
+                        <p className="text-xs text-ink-muted">分会负责人只看只管自己共修会（信箱、会员、活动、库存、渡人）。</p>
+                      )}
                       <div>
                         <label htmlFor="add-center" className="u-label block mb-1">
                           所属中心 · 文本（可选）
@@ -478,6 +491,7 @@ export default function SettingsPage() {
                       className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent disabled:opacity-50"
                     >
                       <option value="volunteer">关怀义工</option>
+                      <option value="centre_head">分会负责人</option>
                       <option value="admin">管理员</option>
                       <option value="erp_admin">ERP 管理员</option>
                       <option value="committee">理事会</option>
@@ -655,6 +669,9 @@ export default function SettingsPage() {
               </section>
             </div>
           )}
+          {activeSection === 'inbox' && <InboxConfigSection />}
+          {activeSection === 'centres' && <CentresSection />}
+          {activeSection === 'notify' && <NotifyTemplatesSection />}
         </main>
       </div>
     </div>
@@ -761,6 +778,7 @@ function VolunteerEditForm({
           >
             <option value="admin">管理员</option>
             <option value="volunteer">关怀义工</option>
+            <option value="centre_head">分会负责人</option>
             <option value="erp_admin">ERP 管理员</option>
             <option value="committee">理事会</option>
           </select>
@@ -890,5 +908,389 @@ function StatusBadge({ active }: { active: boolean }) {
     <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FEF2F2] text-red-700">
       已停用
     </span>
+  );
+}
+
+// ─────────────────────────── E2: 收件箱配置 ───────────────────────────
+type MailboxCfg = {
+  id: string; centre_name: string; centre_code: string; centre_active: boolean;
+  is_enabled: boolean; auto_reply_enabled: boolean; auto_reply_text: string | null;
+  owners: { id: string; name: string }[];
+};
+type VolLite = { id: string; display_name: string | null; email: string; active: boolean };
+
+function useToast() {
+  const [toast, setToast] = useState<string | null>(null);
+  const flash = (m: string) => { setToast(m); setTimeout(() => setToast((t) => (t === m ? null : t)), 2500); };
+  const node = toast ? <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] px-4 py-2 rounded-full bg-ink text-white text-sm shadow-lg">{toast}</div> : null;
+  return { flash, node };
+}
+
+function InboxConfigSection() {
+  const [mailboxes, setMailboxes] = useState<MailboxCfg[]>([]);
+  const [vols, setVols] = useState<VolLite[]>([]);
+  const [remind, setRemind] = useState(7);
+  const [surface, setSurface] = useState(14);
+  const [keywords, setKeywords] = useState<string[]>([]);
+  const [newKw, setNewKw] = useState('');
+  const [ownerEdit, setOwnerEdit] = useState<MailboxCfg | null>(null);
+  const { flash, node } = useToast();
+
+  const load = useCallback(async () => {
+    const [mb, cfg, vl] = await Promise.all([
+      fetch('/api/inbox/mailboxes').then((r) => (r.ok ? r.json() : { mailboxes: [] })),
+      fetch('/api/inbox/config').then((r) => (r.ok ? r.json() : null)),
+      fetch('/api/dashboard/volunteers').then((r) => (r.ok ? r.json() : { volunteers: [] })),
+    ]);
+    setMailboxes(mb.mailboxes ?? []);
+    setVols((vl.volunteers ?? []).filter((v: VolLite) => v.active));
+    if (cfg) { setRemind(cfg.escalation.remind_centre_days); setSurface(cfg.escalation.surface_hq_days); setKeywords(cfg.crisis_keywords ?? []); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const patchMailbox = async (id: string, payload: Record<string, unknown>) => {
+    await fetch(`/api/inbox/mailboxes/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    load();
+  };
+  const saveEscalation = async () => {
+    await fetch('/api/inbox/config', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ escalation: { remind_centre_days: remind, surface_hq_days: surface } }) });
+    flash('已保存升级天数');
+  };
+  const saveKeywords = async (list: string[]) => {
+    setKeywords(list);
+    await fetch('/api/inbox/config', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ crisis_keywords: list }) });
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+      <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
+        <h2 className="font-serif text-base font-semibold text-ink">收件箱配置</h2>
+        <p className="mt-1 text-sm text-ink-muted">每个共修会一个信箱。启用后才会出现在公开来信表单里。</p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[11px] text-ink-faint border-b border-border">
+                <th className="px-2 py-2 font-normal">共修会</th>
+                <th className="px-2 py-2 font-normal">负责人</th>
+                <th className="px-2 py-2 font-normal">自动回复</th>
+                <th className="px-2 py-2 font-normal">状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mailboxes.map((m) => (
+                <tr key={m.id} className="border-b border-border last:border-b-0 align-top">
+                  <td className="px-2 py-2 text-ink">{m.centre_name} <span className="text-ink-faint text-[11px]">{m.centre_code}</span></td>
+                  <td className="px-2 py-2">
+                    <div className="text-[12px] text-ink-muted">{m.owners.length ? m.owners.map((o) => o.name).join('、') : <span className="text-[#B4402E]">未指派</span>}</div>
+                    <button onClick={() => setOwnerEdit(m)} className="text-[11px] text-accent-deep hover:underline">编辑</button>
+                  </td>
+                  <td className="px-2 py-2">
+                    <label className="flex items-center gap-1 text-[12px]">
+                      <input type="checkbox" checked={m.auto_reply_enabled} onChange={(e) => patchMailbox(m.id, { auto_reply_enabled: e.target.checked })} /> 开
+                    </label>
+                    {m.auto_reply_enabled && (
+                      <textarea
+                        defaultValue={m.auto_reply_text ?? ''}
+                        onBlur={(e) => { if (e.target.value !== (m.auto_reply_text ?? '')) patchMailbox(m.id, { auto_reply_text: e.target.value }); }}
+                        rows={2}
+                        placeholder="自动回复文字（显示在提交成功页）"
+                        className="mt-1 w-44 text-[12px] px-2 py-1 border border-border-strong rounded bg-surface-soft"
+                      />
+                    )}
+                  </td>
+                  <td className="px-2 py-2">
+                    <button
+                      onClick={() => patchMailbox(m.id, { is_enabled: !m.is_enabled })}
+                      className={`px-2.5 py-1 text-xs rounded-full border ${m.is_enabled ? 'bg-[#E7F0E0] text-[#3F6B2E] border-[#CFE3C0]' : 'pill-muted'}`}
+                    >
+                      {m.is_enabled ? '启用' : '停用'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
+        <h2 className="font-serif text-base font-semibold text-ink">升级与危机</h2>
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="text-sm">提醒共修会（天）<input type="number" min={1} value={remind} onChange={(e) => setRemind(Number(e.target.value))} className="ml-2 w-16 px-2 py-1 border border-border-strong rounded bg-surface" /></label>
+          <label className="text-sm">上报总部（天）<input type="number" min={1} value={surface} onChange={(e) => setSurface(Number(e.target.value))} className="ml-2 w-16 px-2 py-1 border border-border-strong rounded bg-surface" /></label>
+          <button onClick={saveEscalation} className="btn-secondary px-3 py-1.5 text-xs">保存天数</button>
+        </div>
+        <div className="mt-4">
+          <p className="text-sm text-ink mb-1">危机关键词（命中即刻转全国关怀组）</p>
+          <div className="flex flex-wrap gap-1.5">
+            {keywords.map((k) => (
+              <span key={k} className="pill-gold inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]">
+                {k}<button onClick={() => saveKeywords(keywords.filter((x) => x !== k))} className="text-ink-faint hover:text-[#B4402E]">×</button>
+              </span>
+            ))}
+          </div>
+          <div className="mt-2 flex gap-2">
+            <input value={newKw} onChange={(e) => setNewKw(e.target.value)} placeholder="新增关键词" className="text-sm px-2 py-1 border border-border-strong rounded bg-surface" />
+            <button onClick={() => { const k = newKw.trim(); if (k && !keywords.includes(k)) saveKeywords([...keywords, k]); setNewKw(''); }} className="btn-secondary px-3 py-1 text-xs">加入</button>
+          </div>
+        </div>
+      </section>
+
+      {ownerEdit && (
+        <OwnerEditModal mailbox={ownerEdit} vols={vols} onClose={() => setOwnerEdit(null)} onSaved={() => { setOwnerEdit(null); flash('已更新负责人'); load(); }} />
+      )}
+      {node}
+    </div>
+  );
+}
+
+function OwnerEditModal({ mailbox, vols, onClose, onSaved }: { mailbox: MailboxCfg; vols: VolLite[]; onClose: () => void; onSaved: () => void }) {
+  const [sel, setSel] = useState<Set<string>>(new Set(mailbox.owners.map((o) => o.id)));
+  const [busy, setBusy] = useState(false);
+  const toggle = (id: string) => setSel((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const save = async () => {
+    setBusy(true);
+    await fetch(`/api/inbox/mailboxes/${mailbox.id}/owners`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ volunteer_ids: [...sel] }) });
+    setBusy(false);
+    onSaved();
+  };
+  return (
+    <div className="fixed inset-0 z-[80] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-surface rounded-2xl max-w-md w-full p-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold text-ink mb-3">{mailbox.centre_name} · 负责人</h3>
+        <ul className="space-y-1 mb-4">
+          {vols.map((v) => (
+            <li key={v.id}>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={sel.has(v.id)} onChange={() => toggle(v.id)} />
+                {v.display_name || v.email}
+              </label>
+            </li>
+          ))}
+        </ul>
+        <div className="flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
+          <button disabled={busy} onClick={save} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : '保存'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────── E2: 共修会管理 ───────────────────────────
+type CentreRow = { id: string; code: string; name_cn: string; name_en: string; state: string; aliases: string[]; is_active: boolean; sort: number };
+
+function CentresSection() {
+  const [centres, setCentres] = useState<CentreRow[]>([]);
+  const [editing, setEditing] = useState<CentreRow | 'new' | null>(null);
+  const { flash, node } = useToast();
+  const load = useCallback(async () => {
+    const j = await fetch('/api/dashboard/centres').then((r) => (r.ok ? r.json() : { centres: [] }));
+    setCentres(j.centres ?? []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const toggleActive = async (c: CentreRow) => {
+    await fetch(`/api/dashboard/centres/${c.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !c.is_active }) });
+    load();
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+      <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-serif text-base font-semibold text-ink">共修会管理</h2>
+          <button onClick={() => setEditing('new')} className="btn-primary px-4 py-1.5 text-sm">＋ 新增共修会</button>
+        </div>
+        <p className="mt-1 text-sm text-ink-muted">新增共修会后，系统会自动创建对应的事务信箱（默认停用）。</p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[11px] text-ink-faint border-b border-border">
+                <th className="px-2 py-2 font-normal">代码</th><th className="px-2 py-2 font-normal">中文</th><th className="px-2 py-2 font-normal">English</th><th className="px-2 py-2 font-normal">州属</th><th className="px-2 py-2 font-normal">排序</th><th className="px-2 py-2 font-normal">状态</th><th className="px-2 py-2 font-normal"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {centres.map((c) => (
+                <tr key={c.id} className="border-b border-border last:border-b-0 hover:bg-accent/5">
+                  <td className="px-2 py-2 text-ink font-mono text-[12px]">{c.code}</td>
+                  <td className="px-2 py-2 text-ink">{c.name_cn}</td>
+                  <td className="px-2 py-2 text-ink-muted">{c.name_en}</td>
+                  <td className="px-2 py-2 text-ink-muted">{c.state}</td>
+                  <td className="px-2 py-2 text-ink-muted">{c.sort}</td>
+                  <td className="px-2 py-2">{c.is_active ? <span className="inline-block px-2 py-0.5 rounded-full text-[10px] bg-[#E7F0E0] text-[#3F6B2E]">在用</span> : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[10px]">停用</span>}</td>
+                  <td className="px-2 py-2 text-right whitespace-nowrap">
+                    <button onClick={() => setEditing(c)} className="text-[11px] text-accent-deep hover:underline mr-2">编辑</button>
+                    <button onClick={() => toggleActive(c)} className="text-[11px] text-ink-muted hover:underline">{c.is_active ? '停用' : '启用'}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {editing && (
+        <CentreModal
+          centre={editing === 'new' ? null : editing}
+          onClose={() => setEditing(null)}
+          onSaved={(created) => { setEditing(null); flash(created ? '共修会已创建，事务信箱已自动出现' : '已保存'); load(); }}
+        />
+      )}
+      {node}
+    </div>
+  );
+}
+
+function CentreModal({ centre, onClose, onSaved }: { centre: CentreRow | null; onClose: () => void; onSaved: (created: boolean) => void }) {
+  const [code, setCode] = useState(centre?.code ?? '');
+  const [nameCn, setNameCn] = useState(centre?.name_cn ?? '');
+  const [nameEn, setNameEn] = useState(centre?.name_en ?? '');
+  const [state, setState] = useState(centre?.state ?? '');
+  const [sort, setSort] = useState(centre?.sort ?? 0);
+  const [aliases, setAliases] = useState((centre?.aliases ?? []).join(', '));
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const inputCls = 'w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink mb-3';
+  const submit = async () => {
+    setErr(null);
+    const aliasArr = aliases.split(',').map((a) => a.trim()).filter(Boolean);
+    const payload = { code, name_cn: nameCn, name_en: nameEn, state, sort, aliases: aliasArr };
+    setBusy(true);
+    const res = centre
+      ? await fetch(`/api/dashboard/centres/${centre.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      : await fetch('/api/dashboard/centres', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    setBusy(false);
+    if (res.ok) onSaved(!centre); else { const j = await res.json().catch(() => ({})); setErr(j.error ?? '保存失败'); }
+  };
+  return (
+    <div className="fixed inset-0 z-[80] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-surface rounded-2xl max-w-md w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold text-ink mb-3">{centre ? '编辑共修会' : '新增共修会'}</h3>
+        {err && <p className="text-sm text-[#B4402E] bg-[#FCEBEA] border border-[#B4402E]/20 rounded-lg px-3 py-2 mb-2">{err}</p>}
+        <label className="block text-xs text-label mb-1">代码（大写，创建后不可改）</label>
+        <input value={code} disabled={!!centre} onChange={(e) => setCode(e.target.value.toUpperCase())} className={`${inputCls} ${centre ? 'opacity-60' : ''}`} />
+        <label className="block text-xs text-label mb-1">中文名称</label>
+        <input value={nameCn} onChange={(e) => setNameCn(e.target.value)} className={inputCls} />
+        <label className="block text-xs text-label mb-1">English name</label>
+        <input value={nameEn} onChange={(e) => setNameEn(e.target.value)} className={inputCls} />
+        <label className="block text-xs text-label mb-1">州属</label>
+        <input value={state} onChange={(e) => setState(e.target.value)} className={inputCls} />
+        <label className="block text-xs text-label mb-1">排序</label>
+        <input type="number" value={sort} onChange={(e) => setSort(Number(e.target.value))} className={inputCls} />
+        <label className="block text-xs text-label mb-1">别名（逗号分隔，legacy Excel 代码）</label>
+        <input value={aliases} onChange={(e) => setAliases(e.target.value)} className={inputCls} />
+        <div className="flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
+          <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : '保存'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────── E2: 通知与模板 ───────────────────────────
+type TemplateRow = { id: string; title: string; body: string; is_active: boolean };
+type NotifyRow = { id: string; display_name: string; phone: string | null; centre_name: string | null; opted_at: string | null; note: string | null };
+
+function NotifyTemplatesSection() {
+  const [templates, setTemplates] = useState<TemplateRow[]>([]);
+  const [notify, setNotify] = useState<NotifyRow[]>([]);
+  const [editing, setEditing] = useState<TemplateRow | 'new' | null>(null);
+  const { flash, node } = useToast();
+  const load = useCallback(async () => {
+    const [t, n] = await Promise.all([
+      fetch('/api/inbox/templates?all=1').then((r) => (r.ok ? r.json() : { templates: [] })),
+      fetch('/api/inbox/notify').then((r) => (r.ok ? r.json() : { contacts: [] })),
+    ]);
+    setTemplates(t.templates ?? []);
+    setNotify(n.contacts ?? []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const toggleTpl = async (t: TemplateRow) => { await fetch(`/api/inbox/templates/${t.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !t.is_active }) }); load(); };
+  const delTpl = async (t: TemplateRow) => { await fetch(`/api/inbox/templates/${t.id}`, { method: 'DELETE' }); load(); };
+  const toggleNotify = async (c: NotifyRow) => { await fetch(`/api/inbox/notify/${c.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notify_opt_in: false }) }); flash('已移出通知名单'); load(); };
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+      <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-serif text-base font-semibold text-ink">回复模板</h2>
+          <button onClick={() => setEditing('new')} className="btn-primary px-4 py-1.5 text-sm">＋ 新模板</button>
+        </div>
+        <ul className="mt-4 space-y-2">
+          {templates.map((t) => (
+            <li key={t.id} className="border border-border rounded-xl p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-ink">{t.title}</span>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => toggleTpl(t)} className={`text-[11px] px-2 py-0.5 rounded-full border ${t.is_active ? 'bg-[#E7F0E0] text-[#3F6B2E] border-[#CFE3C0]' : 'pill-muted'}`}>{t.is_active ? '启用' : '停用'}</button>
+                  <button onClick={() => setEditing(t)} className="text-[11px] text-accent-deep hover:underline">编辑</button>
+                  <button onClick={() => delTpl(t)} className="text-[11px] text-[#B4402E] hover:underline">删除</button>
+                </div>
+              </div>
+              <p className="mt-1 text-[12px] text-ink-muted whitespace-pre-wrap">{t.body}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
+        <h2 className="font-serif text-base font-semibold text-ink">通知名单（选择性通知）</h2>
+        <p className="mt-1 text-sm text-ink-muted">只联系明确同意的人 — 不群发、不催促。</p>
+        {notify.length === 0 ? (
+          <p className="mt-3 text-sm text-ink-faint">暂无同意通知的联系人。</p>
+        ) : (
+          <table className="w-full text-sm mt-3">
+            <thead><tr className="text-left text-[11px] text-ink-faint border-b border-border"><th className="px-2 py-2 font-normal">姓名</th><th className="px-2 py-2 font-normal">电话</th><th className="px-2 py-2 font-normal">共修会</th><th className="px-2 py-2 font-normal">备注</th><th className="px-2 py-2 font-normal"></th></tr></thead>
+            <tbody>
+              {notify.map((c) => (
+                <tr key={c.id} className="border-b border-border last:border-b-0">
+                  <td className="px-2 py-2 text-ink">{c.display_name}</td>
+                  <td className="px-2 py-2 text-ink-muted">{c.phone ?? '—'}</td>
+                  <td className="px-2 py-2 text-ink-muted">{c.centre_name ?? '—'}</td>
+                  <td className="px-2 py-2 text-ink-muted">{c.note ?? '—'}</td>
+                  <td className="px-2 py-2 text-right"><button onClick={() => toggleNotify(c)} className="text-[11px] text-[#B4402E] hover:underline">移出</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+      {editing && (
+        <TemplateModal template={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); flash('已保存'); load(); }} />
+      )}
+      {node}
+    </div>
+  );
+}
+
+function TemplateModal({ template, onClose, onSaved }: { template: TemplateRow | null; onClose: () => void; onSaved: () => void }) {
+  const [title, setTitle] = useState(template?.title ?? '');
+  const [body, setBody] = useState(template?.body ?? '');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const submit = async () => {
+    if (!title.trim() || !body.trim()) { setErr('请填写标题与内容'); return; }
+    setBusy(true);
+    const res = template
+      ? await fetch(`/api/inbox/templates/${template.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, body }) })
+      : await fetch('/api/inbox/templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, body }) });
+    setBusy(false);
+    if (res.ok) onSaved(); else { const j = await res.json().catch(() => ({})); setErr(j.error ?? '保存失败'); }
+  };
+  return (
+    <div className="fixed inset-0 z-[80] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-surface rounded-2xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold text-ink mb-3">{template ? '编辑模板' : '新模板'}</h3>
+        {err && <p className="text-sm text-[#B4402E] bg-[#FCEBEA] border border-[#B4402E]/20 rounded-lg px-3 py-2 mb-2">{err}</p>}
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="标题" className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink mb-3" />
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} placeholder="内容" className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface-soft text-ink mb-3" />
+        <div className="flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
+          <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : '保存'}</button>
+        </div>
+      </div>
+    </div>
   );
 }

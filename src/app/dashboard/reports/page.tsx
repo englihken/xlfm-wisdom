@@ -173,7 +173,7 @@ export default function ReportsPage() {
             href="/dashboard"
             className="btn-secondary inline-block mt-5 px-4 py-2 text-sm"
           >
-            返回收件箱
+            返回智慧问答
           </Link>
         </div>
       </div>

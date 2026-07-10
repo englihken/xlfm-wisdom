@@ -40,6 +40,19 @@ export async function GET() {
         grants[g.module as keyof Grants] = g.access;
       }
     }
+
+    // E2 inbox nav visibility: a mailbox OWNER may have no role_grant for 'inbox' (e.g. a
+    // plain 关怀义工 assigned as an owner), yet must still see the 收件箱 door. Surface that
+    // as a synthetic grants.inbox='edit' (their effective content access) when they own any
+    // mailbox and have no higher real grant. Real grants (admin/summary) always win.
+    if (!grants.inbox) {
+      const { data: owned } = await supabaseAdmin
+        .from('inbox_mailbox_owners')
+        .select('mailbox_id')
+        .eq('volunteer_id', volunteer.id)
+        .limit(1);
+      if (owned && owned.length > 0) grants.inbox = 'edit';
+    }
   }
 
   // Centre-scope dimension (migrations/015). Fail-safe: if the columns aren't present

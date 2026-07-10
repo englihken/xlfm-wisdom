@@ -16,11 +16,12 @@ export const runtime = 'nodejs';
 const VOLUNTEER_COLUMNS =
   'id, email, display_name, center, centre_id, occupation, skills, role, scope, active, created_at';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ALLOWED_ROLES = ['admin', 'volunteer', 'erp_admin', 'committee'] as const;
+const ALLOWED_ROLES = ['admin', 'volunteer', 'erp_admin', 'committee', 'centre_head'] as const;
 
-// Scope derived from role, server-side (client scope is ignored).
+// Scope derived from role, server-side (client scope is ignored). care volunteers AND
+// 分会负责人 (centre_head) are centre-scoped; every other role sees all centres.
 function scopeForRole(role: string): 'all_centers' | 'own_center' {
-  return role === 'volunteer' ? 'own_center' : 'all_centers';
+  return role === 'volunteer' || role === 'centre_head' ? 'own_center' : 'all_centers';
 }
 
 type VolunteerUpdate = {
@@ -153,6 +154,16 @@ export async function PATCH(
       update.centre_id = centreId;
     } else {
       return NextResponse.json({ error: '所属中心（结构化）无效' }, { status: 400 });
+    }
+  }
+
+  // 分会负责人 (centre_head) must stay pinned to a centre — validate the resulting state.
+  {
+    const resultRole = (update.role as string | undefined) ?? (current as { role?: string }).role;
+    const resultCentre =
+      'centre_id' in update ? (update.centre_id as string | null) : ((current as { centre_id?: string | null }).centre_id ?? null);
+    if (resultRole === 'centre_head' && !resultCentre) {
+      return NextResponse.json({ error: '分会负责人必须指定共修会' }, { status: 400 });
     }
   }
 

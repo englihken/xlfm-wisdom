@@ -20,14 +20,22 @@ import { visibleModules, grantAllows, type Grants } from '@/lib/access';
 type Me = {
   email: string;
   displayName: string | null;
-  role: 'admin' | 'volunteer' | 'erp_admin' | 'committee';
+  role: 'admin' | 'volunteer' | 'erp_admin' | 'committee' | 'centre_head';
   grants: Grants;
 };
+type Tile = { key: string; label: string; value: number; sub?: string; href: string };
+type InboxCard =
+  | { mode: 'health'; health: { mailbox_id: string; centre_name: string; new_n: number; oldest_unhandled_days: number; owners_label: string }[]; surfaced: { id: string; subject: string; age_days: number }[] }
+  | { mode: 'owner'; threads: { id: string; subject: string; sender_name: string | null; age_days: number; centre_name: string }[] }
+  | null;
 type HomeData = {
-  stats: { care?: { unread: number; myAssignedUnread: number }; members?: { activeCount: number } };
-  myConversations?: { id: string; contactName: string; preview: string; lastMessageAt: string; unread: boolean }[];
-  recentMembers?: { id: string; name: string; centreCode: string | null; updatedAt: string }[];
-  recentAudit?: { id: number; line: string; at: string }[];
+  tiles: Tile[];
+  crisis: { allowed: boolean; count: number } | null;
+  inboxCard: InboxCard;
+  myTasks: { id: string; kind: string; label: string; sub: string; href: string; chip: string }[];
+  outreachMonth: { new_contacts: number; started_chanting: number } | null;
+  recentMembers: { id: string; name: string; centreCode: string | null; updatedAt: string }[] | null;
+  recentAudit: { id: number; line: string; at: string }[] | null;
 };
 
 function todayMYT(): string {
@@ -100,6 +108,7 @@ export default function HubPage() {
           // Single-door bounce: send the caller straight into their one module.
           const DOOR_HREF: Record<string, string> = {
             inbox: '/dashboard',
+            mail: '/dashboard/inbox',
             outreach: '/dashboard/outreach',
             members: '/dashboard/members',
             events: '/dashboard/events',
@@ -126,7 +135,7 @@ export default function HubPage() {
   useEffect(() => {
     if (gate !== 'ok') return;
     let active = true;
-    fetch('/api/dashboard/home/stats')
+    fetch('/api/home/summary')
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
         if (active && j) setData(j as HomeData);
@@ -154,8 +163,9 @@ export default function HubPage() {
   }
   if (!me) return null;
 
-  const care = data?.stats.care;
-  const members = data?.stats.members;
+  const tiles = data?.tiles ?? [];
+  const crisis = data?.crisis;
+  const inboxCard = data?.inboxCard;
 
   return (
     <div className="min-h-screen flex flex-col bg-bg md:ml-[72px]">
@@ -165,111 +175,168 @@ export default function HubPage() {
       <DashboardNav role={me.role} active="home" grants={me.grants} />
 
       <main className="flex-1 min-w-0 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
           {/* 1. greeting */}
           <div>
             <h2 className="font-serif text-2xl font-bold text-ink">吉祥，{me.displayName || '师兄'} 🙏</h2>
             <p className="mt-1 text-sm text-ink-muted">{todayMYT()}</p>
           </div>
 
-          {/* 2. 今日概览 stat strip */}
-          {(care || members) && (
+          {/* 2. 今日概览 tiles */}
+          {tiles.length > 0 && (
             <div>
               <p className="u-label mb-2">今日概览</p>
               <div className="flex flex-wrap gap-3">
-                {care && <Stat label="未读对话" value={care.unread} icon="💬" />}
-                {care && <Stat label="我接手的未读" value={care.myAssignedUnread} icon="🔔" accent={care.myAssignedUnread > 0} />}
-                {members && <Stat label="会员总数" value={members.activeCount} icon="👥" />}
+                {tiles.slice(0, 4).map((t) => (
+                  <Link key={t.key} href={t.href}>
+                    <Stat label={t.label} value={t.value} sub={t.sub} accent={t.value > 0 && t.key === 'inbox'} />
+                  </Link>
+                ))}
               </div>
             </div>
           )}
 
-          {/* 3. 我的事项 (care ≥ view) */}
-          {data?.myConversations !== undefined && (
-            <Card title="💬 我的事项" en="My conversations">
-              {data.myConversations.length === 0 ? (
+          {/* 3. crisis strip */}
+          {crisis?.allowed && crisis.count > 0 && (
+            <Link href="/dashboard/inbox" className="block rounded-xl px-4 py-3 bg-[#FCEBEA] border border-[#E5C4BF] text-[#B4402E] text-sm font-medium hover:bg-[#FBDEDA]">
+              ⚠ 危机来信 {crisis.count} — 即刻跟进 →
+            </Link>
+          )}
+
+          {/* 4. two columns: 收件箱 + 我的事项 */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {inboxCard && (
+              <Card title="📬 收件箱" en="Mail">
+                {inboxCard.mode === 'health' ? (
+                  <div className="space-y-3">
+                    {inboxCard.health.length === 0 ? (
+                      <p className="text-sm text-ink-muted">暂无信箱数据</p>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead><tr className="text-left text-[11px] text-ink-faint border-b border-border"><th className="py-1 font-normal">信箱</th><th className="py-1 font-normal">未处理</th><th className="py-1 font-normal">最旧</th><th className="py-1 font-normal">负责人</th></tr></thead>
+                        <tbody>
+                          {inboxCard.health.map((h) => (
+                            <tr key={h.mailbox_id} className="border-b border-border last:border-b-0">
+                              <td className="py-1.5 text-ink">{h.centre_name}</td>
+                              <td className="py-1.5 text-ink">{h.new_n}</td>
+                              <td className="py-1.5 text-ink-muted">{h.oldest_unhandled_days}天</td>
+                              <td className="py-1.5 text-ink-faint truncate max-w-[90px]">{h.owners_label}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                    {inboxCard.surfaced.length > 0 && (
+                      <div className="pt-2 border-t border-border">
+                        <p className="text-[11px] text-[#B4402E] mb-1">超过上报天数：</p>
+                        <ul className="space-y-0.5">
+                          {inboxCard.surfaced.map((s) => <li key={s.id} className="text-[12px] text-ink-muted truncate">· {s.subject} — {s.age_days}天</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    <Link href="/dashboard/inbox" className="inline-block text-xs text-accent-deep hover:underline">打开信箱 →</Link>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {inboxCard.threads.length === 0 ? (
+                      <p className="text-sm text-ink-muted">今日无未处理来信 🙏</p>
+                    ) : (
+                      <ul className="divide-y divide-border">
+                        {inboxCard.threads.map((t) => (
+                          <li key={t.id}>
+                            <Link href={`/dashboard/inbox?thread=${t.id}`} className="block py-2 hover:bg-accent/5 -mx-2 px-2 rounded-lg">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm text-ink truncate">{t.subject}</span>
+                                <span className="shrink-0 text-[11px] text-[#B4402E]">{t.age_days}天</span>
+                              </div>
+                              <p className="text-[12px] text-ink-faint truncate">{t.sender_name ?? '匿名'} · {t.centre_name}</p>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <Link href="/dashboard/inbox" className="inline-block text-xs text-accent-deep hover:underline">打开信箱 →</Link>
+                  </div>
+                )}
+              </Card>
+            )}
+
+            <Card title="✅ 我的事项" en="My tasks">
+              {!data?.myTasks || data.myTasks.length === 0 ? (
                 <p className="text-sm text-ink-muted">今日无待办 🙏</p>
               ) : (
                 <ul className="divide-y divide-border">
-                  {data.myConversations.map((c) => (
-                    <li key={c.id}>
-                      <Link href="/dashboard" className="block py-2.5 hover:bg-accent/5 -mx-2 px-2 rounded-lg transition">
+                  {data.myTasks.map((t) => (
+                    <li key={`${t.kind}-${t.id}`}>
+                      <Link href={t.href} className="block py-2.5 hover:bg-accent/5 -mx-2 px-2 rounded-lg transition">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {c.unread && <span className="shrink-0 w-2 h-2 rounded-full bg-accent" aria-label="未读" />}
-                            <span className={`truncate text-ink ${c.unread ? 'font-semibold' : 'font-medium'}`}>{c.contactName}</span>
-                          </div>
-                          <span className="shrink-0 text-xs text-ink-faint">{relTime(c.lastMessageAt)}</span>
+                          <span className="text-sm text-ink truncate">{t.label}</span>
+                          <span className="shrink-0 pill-gold inline-block px-2 py-0.5 rounded-full text-[10px]">{t.chip}</span>
                         </div>
-                        <p className="mt-0.5 text-sm text-ink-muted line-clamp-1">{c.preview || '（无消息）'}</p>
+                        <p className="text-[12px] text-ink-faint truncate">{t.sub}</p>
                       </Link>
                     </li>
                   ))}
                 </ul>
               )}
             </Card>
-          )}
+          </div>
 
-          {/* 4. 最近会员动态 (members ≥ view) */}
-          {data?.recentMembers !== undefined && (
-            <Card title="👥 最近会员动态" en="Recent members">
-              {data.recentMembers.length === 0 ? (
-                <p className="text-sm text-ink-muted">暂无会员</p>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {data.recentMembers.map((m) => (
-                    <li key={m.id}>
-                      <Link href={`/dashboard/members/${m.id}`} className="flex items-center justify-between gap-2 py-2.5 hover:bg-accent/5 -mx-2 px-2 rounded-lg transition">
-                        <div className="flex items-center gap-2 min-w-0">
+          {/* 5. row: 渡人本月 · 最近会员动态 · 系统动态(admin) */}
+          <div className="grid gap-6 md:grid-cols-3">
+            {data?.outreachMonth && (
+              <Card title="🪷 渡人 · 本月" en="Outreach">
+                <div className="flex gap-4">
+                  <div><div className="text-2xl font-bold text-ink">{data.outreachMonth.new_contacts}</div><div className="text-[11px] text-ink-faint">新结缘</div></div>
+                  <div><div className="text-2xl font-bold text-ink">{data.outreachMonth.started_chanting}</div><div className="text-[11px] text-ink-faint">开始念经</div></div>
+                </div>
+                <Link href="/dashboard/outreach" className="mt-2 inline-block text-xs text-accent-deep hover:underline">去渡人 →</Link>
+              </Card>
+            )}
+
+            {data?.recentMembers && (
+              <Card title="👥 最近会员" en="Members">
+                {data.recentMembers.length === 0 ? (
+                  <p className="text-sm text-ink-muted">暂无会员</p>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {data.recentMembers.map((m) => (
+                      <li key={m.id}>
+                        <Link href={`/dashboard/members/${m.id}`} className="flex items-center justify-between gap-2 py-2 hover:bg-accent/5 -mx-2 px-2 rounded-lg transition">
                           <span className="font-medium text-ink truncate">{m.name}</span>
-                          {m.centreCode && (
-                            <span className="shrink-0 inline-block px-2 py-0.5 rounded-full text-[11px] bg-accent/10 text-accent-deep">{m.centreCode}</span>
-                          )}
-                        </div>
-                        <span className="shrink-0 text-xs text-ink-faint">{relTime(m.updatedAt)}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          )}
+                          <span className="shrink-0 text-xs text-ink-faint">{relTime(m.updatedAt)}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            )}
 
-          {/* 5. 系统动态 (audit ≥ view — admin only today) */}
-          {data?.recentAudit !== undefined && (
-            <Card title="📜 系统动态" en="Activity">
-              {data.recentAudit.length === 0 ? (
-                <p className="text-sm text-ink-muted">暂无记录</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {data.recentAudit.map((a) => (
-                    <li key={a.id} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="text-ink truncate">{a.line}</span>
-                      <span className="shrink-0 text-xs text-ink-faint">{relTime(a.at)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          )}
+            {data?.recentAudit && (
+              <Card title="📜 系统动态" en="Activity">
+                {data.recentAudit.length === 0 ? (
+                  <p className="text-sm text-ink-muted">暂无记录</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {data.recentAudit.map((a) => (
+                      <li key={a.id} className="flex items-center justify-between gap-3 text-[13px]">
+                        <span className="text-ink truncate">{a.line}</span>
+                        <span className="shrink-0 text-[11px] text-ink-faint">{relTime(a.at)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            )}
+          </div>
 
-          {/* 6. 快捷操作 — grant-gated buttons only */}
+          {/* quick actions */}
           <div className="flex flex-wrap gap-2">
-            {grantAllows(me.grants, 'care', 'view') && (
-              <QuickLink href="/dashboard" label="去收件箱" />
-            )}
-            {grantAllows(me.grants, 'outreach', 'view') && (
-              <QuickLink href="/dashboard/outreach" label="🪷 渡人名单" />
-            )}
-            {grantAllows(me.grants, 'members', 'view') && (
-              <QuickLink href="/dashboard/members" label="会员列表" />
-            )}
-            {grantAllows(me.grants, 'events', 'view') && (
-              <QuickLink href="/dashboard/events" label="活动列表" />
-            )}
-            {grantAllows(me.grants, 'members', 'edit') && (
-              <QuickLink href="/dashboard/members/new" label="＋新增会员" primary />
-            )}
+            {grantAllows(me.grants, 'care', 'view') && <QuickLink href="/dashboard" label="去智慧问答" />}
+            {grantAllows(me.grants, 'inbox', 'summary') && <QuickLink href="/dashboard/inbox" label="📬 收件箱" />}
+            {grantAllows(me.grants, 'outreach', 'view') && <QuickLink href="/dashboard/outreach" label="🪷 渡人名单" />}
+            {grantAllows(me.grants, 'members', 'view') && <QuickLink href="/dashboard/members" label="会员列表" />}
           </div>
         </div>
       </main>
@@ -277,14 +344,12 @@ export default function HubPage() {
   );
 }
 
-function Stat({ label, value, icon, accent }: { label: string; value: number; icon?: string; accent?: boolean }) {
+function Stat({ label, value, sub, accent }: { label: string; value: number; sub?: string; accent?: boolean }) {
   return (
-    <div className={`rounded-xl px-4 py-3 min-w-[120px] border ${accent ? 'bg-accent/10 border-gold-border' : 'bg-surface-soft border-border'}`}>
-      <div className="flex items-center justify-between gap-2">
-        <div className={`text-3xl font-bold ${accent ? 'text-accent-deep' : 'text-ink'}`}>{value}</div>
-        {icon && <span className="text-lg opacity-80">{icon}</span>}
-      </div>
+    <div className={`rounded-xl px-4 py-3 min-w-[120px] border transition hover:border-accent ${accent ? 'bg-accent/10 border-gold-border' : 'bg-surface-soft border-border'}`}>
+      <div className={`text-3xl font-bold ${accent ? 'text-accent-deep' : 'text-ink'}`}>{value}</div>
       <div className="text-xs text-ink-muted mt-0.5">{label}</div>
+      {sub && <div className="text-[10.5px] text-ink-faint mt-0.5">{sub}</div>}
     </div>
   );
 }

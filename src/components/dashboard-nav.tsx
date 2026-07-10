@@ -16,7 +16,7 @@
 import Link from 'next/link';
 import { visibleModules, type Grants, type ModuleDoor } from '@/lib/access';
 
-type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
+type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee' | 'centre_head';
 // The nav keys are the module doors (from visibleModules) plus the hub 'home'.
 export type NavKey = ModuleDoor | 'home';
 
@@ -220,13 +220,38 @@ function LotusIcon({ className }: IconProps) {
   );
 }
 
+// Chat-bubble icon for 智慧问答 (the care chat inbox), same line-icon style.
+function ChatIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M21 11.5c0 4.1-4 7.5-9 7.5-1 0-2-.13-2.9-.38L4 20l1.2-3.6C3.8 15.1 3 13.4 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z" />
+      <path d="M8 10.5h8M8 13h5" />
+    </svg>
+  );
+}
+
 type Door = { label: string; href: string; Icon: (props: IconProps) => React.ReactElement };
 
 // Destination for every nav key. Which keys actually render is decided ONLY by
 // visibleModules (+ the hub, for multi-door accounts) — never here.
+// E2 (Ken 2026-07-10): the care module's rail label is now 智慧问答 (chat icon; key stays
+// 'inbox', route /dashboard unchanged); the freed name 收件箱 is the NEW centre-mail module
+// (door 'mail' → /dashboard/inbox, envelope icon).
 const DOORS: Record<NavKey, Door> = {
   home: { label: '主页', href: '/dashboard/home', Icon: HomeIcon },
-  inbox: { label: '收件箱', href: '/dashboard', Icon: InboxIcon },
+  mail: { label: '收件箱', href: '/dashboard/inbox', Icon: InboxIcon },
+  inbox: { label: '智慧问答', href: '/dashboard', Icon: ChatIcon },
   outreach: { label: '渡人', href: '/dashboard/outreach', Icon: LotusIcon },
   members: { label: '会员', href: '/dashboard/members', Icon: PeopleIcon },
   events: { label: '活动', href: '/dashboard/events', Icon: CalendarIcon },

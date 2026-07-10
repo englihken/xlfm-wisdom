@@ -18,7 +18,25 @@ export type AuditAction =
   | 'outreach.person_update'
   | 'outreach.milestone_record'
   | 'outreach.milestone_update'
-  | 'outreach.milestone_delete';
+  | 'outreach.milestone_delete'
+  | 'outreach.notify_opt_in_changed'
+  // 共修会事务信箱 (E2 inbox) — module='inbox' unless noted (centres → module='settings').
+  | 'thread_created'
+  | 'replied'
+  | 'note_added'
+  | 'status_changed'
+  | 'assigned'
+  | 'transferred'
+  | 'break_glass_view'
+  | 'mailbox_updated'
+  | 'owner_added'
+  | 'owner_removed'
+  | 'template_created'
+  | 'template_updated'
+  | 'template_deleted'
+  | 'settings_updated'
+  | 'centre_created'
+  | 'centre_updated';
 
 export async function writeAudit(entry: {
   actorId: string | null;

@@ -53,9 +53,9 @@ export async function getAuthenticatedUser(): Promise<User | null> {
   return data.user;
 }
 
-// Platform roles across both wings (widened in migrations/013 — the DB CHECK on
-// volunteers.role now permits these four values).
-export type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee';
+// Platform roles across both wings (widened in migrations/013; 030 added centre_head —
+// the DB CHECK on volunteers.role now permits these values).
+export type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee' | 'centre_head';
 
 // A row from the `volunteers` table (migrations/006). `role` gates admin-only
 // features; `active` gates dashboard access.

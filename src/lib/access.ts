@@ -12,6 +12,7 @@ export type ModuleKey =
   | 'duty'
   | 'inventory'
   | 'outreach'
+  | 'inbox' // 共修会事务信箱 (E2) — the centre-mail module (module='inbox' in role_grants)
   | 'reports'
   | 'settings'
   | 'audit';
@@ -45,15 +46,22 @@ export function grantAllows(
 }
 
 // A "door" the caller can enter — a module page with a real destination. The care
-// door is the inbox at /dashboard. (Hub 'home' is not a door — it's the chooser.)
-export type ModuleDoor = 'inbox' | 'outreach' | 'members' | 'events' | 'inventory' | 'finance' | 'reports' | 'settings';
+// door is the 智慧问答 chat inbox at /dashboard (door key stays 'inbox' for back-compat);
+// the E2 centre-mail 收件箱 is a SEPARATE door 'mail' → /dashboard/inbox. (Hub 'home' is
+// not a door — it's the chooser.)
+export type ModuleDoor = 'inbox' | 'mail' | 'outreach' | 'members' | 'events' | 'inventory' | 'finance' | 'reports' | 'settings';
 
 // THE single source of truth for door visibility, used by BOTH the nav rail and the
 // hub. Returns only the doors the caller can actually enter, in display order.
 // NEVER emit a door the caller can't open (privacy rule). Grows as modules ship.
 export function visibleModules(me: { role: string; grants?: Grants }): ModuleDoor[] {
   const doors: ModuleDoor[] = [];
-  if (grantAllows(me.grants, 'care', 'view')) doors.push('inbox'); // 人文关怀 → /dashboard
+  // E2 centre-mail 收件箱 → /dashboard/inbox. Show when the caller has ANY inbox reach
+  // (admin/summary/edit grant, OR mailbox ownership — the latter is surfaced by
+  // /api/dashboard/me as a synthetic grants.inbox='edit', see that route). Nav order
+  // (Ken 2026-07-10): 主页 · 收件箱 · 智慧问答 · 渡人 · …
+  if (grantAllows(me.grants, 'inbox', 'summary')) doors.push('mail');
+  if (grantAllows(me.grants, 'care', 'view')) doors.push('inbox'); // 智慧问答 (care) → /dashboard
   if (grantAllows(me.grants, 'outreach', 'view')) doors.push('outreach'); // 渡人 → /dashboard/outreach
   if (grantAllows(me.grants, 'members', 'view')) doors.push('members');
   if (grantAllows(me.grants, 'events', 'view')) doors.push('events'); // 活动 → /dashboard/events

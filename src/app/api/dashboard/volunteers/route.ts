@@ -16,12 +16,12 @@ export const runtime = 'nodejs';
 const VOLUNTEER_COLUMNS =
   'id, email, display_name, center, centre_id, occupation, skills, role, scope, active, created_at';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ALLOWED_ROLES = ['admin', 'volunteer', 'erp_admin', 'committee'] as const;
+const ALLOWED_ROLES = ['admin', 'volunteer', 'erp_admin', 'committee', 'centre_head'] as const;
 
 // Centre scope is derived from the role SERVER-SIDE (never trusted from the client):
-// only care volunteers are centre-scoped; every other role sees all centres.
+// care volunteers AND 分会负责人 (centre_head) are centre-scoped; every other role sees all.
 function scopeForRole(role: string): 'all_centers' | 'own_center' {
-  return role === 'volunteer' ? 'own_center' : 'all_centers';
+  return role === 'volunteer' || role === 'centre_head' ? 'own_center' : 'all_centers';
 }
 
 type NewVolunteer = {
@@ -129,6 +129,11 @@ export async function POST(req: Request) {
   const skills = skillsRaw || null;
   // Scope is derived from the role — client-sent scope is ignored.
   const scope = scopeForRole(role);
+
+  // 分会负责人 (centre_head) only makes sense pinned to a centre — require one.
+  if (role === 'centre_head' && !centreId) {
+    return NextResponse.json({ error: '分会负责人必须指定共修会' }, { status: 400 });
+  }
 
   // Create the auth user (service role). email_confirm so they can log in now.
   const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
