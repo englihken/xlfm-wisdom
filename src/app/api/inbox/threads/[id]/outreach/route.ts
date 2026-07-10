@@ -3,10 +3,9 @@
 // the E1b create shape: channel='manual' (never the chat-trigger channel) + an explicit
 // first_contact milestone (E2 §7.1). Idempotent on thread.contact_id. Audits module='outreach'.
 //
-// NOTE (architect follow-up): contacts.source_type has a CHECK constraint
-// in ('chat','event','referral','walkin') — migration 030 did NOT add 'form'. So we cannot
-// write source_type='form' without a new migration. Until then the form provenance lives in
-// the first_contact milestone note 「…（表单）」 (browser-test #9 checks this) and source_note.
+// source_type='form' is permitted by the DB CHECK as of migration 031; the 渡人卡 shows a
+// 表单 source chip. The first_contact milestone note 「自动记录：初次接触（表单）」 also carries
+// the provenance in the journey ledger.
 
 import { NextResponse } from 'next/server';
 import { resolveInbox, notFound, threadReach } from '@/lib/inbox-server';
@@ -52,7 +51,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       display_name: displayName,
       stage: '初次接触',
       phone: (t.sender_phone as string | null) ?? null,
-      source_type: null, // 'form' not yet permitted by the DB CHECK — see file header
+      source_type: 'form', // permitted by migration 031; surfaces as the 表单 source chip
       source_note: (t.subject as string | null) ?? null,
       centre_id: centreId,
       first_seen: nowIso,

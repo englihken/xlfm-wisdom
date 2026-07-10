@@ -41,6 +41,7 @@ export const SOURCES = [
   { key: 'event', label: '活动' },
   { key: 'referral', label: '亲友介绍' },
   { key: 'walkin', label: '自己走进来' },
+  { key: 'form', label: '表单' }, // 共修会事务信箱 write-in bridged into 渡人 (E2, migration 031)
 ] as const;
 
 export type SourceKey = (typeof SOURCES)[number]['key'];
