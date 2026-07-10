@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { outreachScope } from '@/lib/outreach-scope';
 
 export const runtime = 'nodejs';
 
@@ -18,16 +19,27 @@ export async function GET() {
   if (!access.ok) return NextResponse.json({ error: access.status === 401 ? 'Unauthorized' : 'Forbidden' }, { status: access.status });
   if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
 
+  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  if (scope.locked && !scope.centreId) return NextResponse.json({ newThisMonth: 0, chantingThisMonth: 0, total: 0, stale: 0 });
+
   const now = new Date();
   const monthStart = now.toISOString().slice(0, 8) + '01';
   const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  const [{ data: contacts, error: cErr }, { data: milestones, error: mErr }] = await Promise.all([
-    supabaseAdmin.from('contacts').select('id, last_seen'),
-    supabaseAdmin.from('contact_milestones').select('contact_id, milestone, happened_on'),
-  ]);
-  if (cErr || mErr) {
-    console.error('[outreach/summary] load failed:', cErr ?? mErr);
+  // Scope contacts first; milestone counts follow the visible contact set.
+  let contactQ = supabaseAdmin.from('contacts').select('id, last_seen');
+  if (scope.locked) contactQ = contactQ.eq('centre_id', scope.centreId);
+  const { data: contacts, error: cErr } = await contactQ;
+  if (cErr) {
+    console.error('[outreach/summary] contacts failed:', cErr);
+    return NextResponse.json({ error: 'Failed to load summary' }, { status: 500 });
+  }
+  const ids = (contacts ?? []).map((c) => (c as { id: string }).id);
+  const { data: milestones, error: mErr } = ids.length
+    ? await supabaseAdmin.from('contact_milestones').select('contact_id, milestone, happened_on').in('contact_id', ids)
+    : { data: [], error: null };
+  if (mErr) {
+    console.error('[outreach/summary] milestones failed:', mErr);
     return NextResponse.json({ error: 'Failed to load summary' }, { status: 500 });
   }
 

@@ -137,16 +137,19 @@ export function OutreachCardDrawer({
               {MILESTONES.filter((m) => present.includes(m.key)).map((m) => {
                 const row = d.milestones.find((x) => x.milestone === m.key)!;
                 return (
-                  <div key={row.id} className="flex items-center gap-2 text-sm border-b border-dashed border-border pb-1.5">
-                    <span className="w-28 shrink-0 text-ink">{m.emoji} {m.label}</span>
-                    {canEdit ? (
-                      <input type="date" defaultValue={row.happened_on} onChange={(e) => e.target.value && editMilestoneDate(row.id, e.target.value)} className="text-xs px-2 py-1 border border-border-strong rounded-lg bg-surface text-ink-muted" />
-                    ) : (
-                      <span className="text-xs text-ink-muted">{row.happened_on}</span>
-                    )}
-                    {canEdit && m.key !== 'first_contact' && (
-                      <button onClick={() => deleteMilestone(row.id)} className="ml-auto text-[11px] text-ink-faint hover:text-[#B4402E]">删除</button>
-                    )}
+                  <div key={row.id} className="border-b border-dashed border-border pb-1.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="w-28 shrink-0 text-ink">{m.emoji} {m.label}</span>
+                      {canEdit ? (
+                        <input type="date" defaultValue={row.happened_on} onChange={(e) => e.target.value && editMilestoneDate(row.id, e.target.value)} className="text-xs px-2 py-1 border border-border-strong rounded-lg bg-surface text-ink-muted" />
+                      ) : (
+                        <span className="text-xs text-ink-muted">{row.happened_on}</span>
+                      )}
+                      {canEdit && m.key !== 'first_contact' && (
+                        <button onClick={() => deleteMilestone(row.id)} className="ml-auto text-[11px] text-ink-faint hover:text-[#B4402E]">删除</button>
+                      )}
+                    </div>
+                    {row.note && <p className="mt-0.5 pl-1 text-[11px] text-ink-faint leading-snug">{row.note}</p>}
                   </div>
                 );
               })}

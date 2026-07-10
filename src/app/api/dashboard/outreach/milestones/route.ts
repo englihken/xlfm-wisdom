@@ -8,6 +8,7 @@ import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
 import { MILESTONE_KEYS, milestoneLabel } from '@/lib/outreach';
+import { outreachScope, scopeAllowsContact } from '@/lib/outreach-scope';
 
 export const runtime = 'nodejs';
 
@@ -26,8 +27,14 @@ export async function POST(req: Request) {
   const milestone = typeof body.milestone === 'string' ? body.milestone : '';
   if (!(MILESTONE_KEYS as readonly string[]).includes(milestone)) return NextResponse.json({ error: '里程碑无效' }, { status: 400 });
 
-  const { data: contact } = await supabaseAdmin.from('contacts').select('id, display_name').eq('id', contactId).maybeSingle();
+  const { data: contact } = await supabaseAdmin.from('contacts').select('id, display_name, centre_id').eq('id', contactId).maybeSingle();
   if (!contact) return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
+
+  // Centre-scope wall: a locked account may only record on its own centre's 善缘.
+  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  if (!scopeAllowsContact(scope, (contact as { centre_id: string | null }).centre_id)) {
+    return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
+  }
 
   const happenedOn = typeof body.happened_on === 'string' && DATE_RE.test(body.happened_on) ? body.happened_on : new Date().toISOString().slice(0, 10);
   let eventId: string | null = null;

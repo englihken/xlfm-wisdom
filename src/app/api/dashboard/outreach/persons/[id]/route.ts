@@ -9,6 +9,7 @@ import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
 import { MILESTONE_KEYS, SOURCE_KEYS } from '@/lib/outreach';
+import { outreachScope, scopeAllowsContact } from '@/lib/outreach-scope';
 
 export const runtime = 'nodejs';
 
@@ -27,6 +28,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Failed to load' }, { status: 500 });
   }
   if (!contact) return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
+
+  // Centre-scope wall: a locked account may not read another centre's (or a national) contact.
+  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  if (!scopeAllowsContact(scope, (contact as { centre_id: string | null }).centre_id)) {
+    return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
+  }
 
   const c = contact as Record<string, unknown>;
   const [{ data: milestones }, convRes, memberRes, eventRes, centreRes] = await Promise.all([
@@ -64,6 +71,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { data: before } = await supabaseAdmin.from('contacts').select(CONTACT_SELECT).eq('id', id).maybeSingle();
   if (!before) return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
 
+  // Centre-scope wall: a locked account may not touch another centre's contact, and its centre
+  // picker is pinned to its own centre (any centre_id edit is forced back to it).
+  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  if (!scopeAllowsContact(scope, (before as { centre_id: string | null }).centre_id)) {
+    return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
+  }
+
   const patch: Record<string, unknown> = {};
   if ('phone' in body) patch.phone = typeof body.phone === 'string' && body.phone.trim() ? body.phone.trim() : null;
   if ('source_note' in body) patch.source_note = typeof body.source_note === 'string' && body.source_note.trim() ? body.source_note.trim() : null;
@@ -100,6 +114,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       patch.member_id = mid;
     }
   }
+
+  // Pin a locked account's contacts to its own centre — it can never move one out of scope.
+  if (scope.locked && 'centre_id' in body) patch.centre_id = scope.centreId;
 
   if (Object.keys(patch).length === 0) return NextResponse.json({ error: '没有可更新的字段' }, { status: 400 });
 

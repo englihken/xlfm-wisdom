@@ -12,6 +12,7 @@ import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
 import { deriveRung, MILESTONE_KEYS, SOURCE_KEYS } from '@/lib/outreach';
+import { outreachScope } from '@/lib/outreach-scope';
 
 export const runtime = 'nodejs';
 
@@ -37,8 +38,18 @@ export async function GET(req: Request) {
     .select('id, display_name, phone, wa_id, source_type, source_event_id, centre_id, stage, last_seen');
   const source = sp.get('source');
   if (source && (SOURCE_KEYS as readonly string[]).includes(source)) q = q.eq('source_type', source);
-  const centreId = sp.get('centre_id');
-  if (centreId) q = q.eq('centre_id', centreId);
+
+  // Centre-scope wall: a locked own_center account sees ONLY its own centre (NULL-centre national
+  // contacts are invisible to it); the centre filter param is honoured only for all_centers.
+  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  if (scope.locked) {
+    if (!scope.centreId) return NextResponse.json({ persons: [], total: 0, page, limit, totalPages: 1 });
+    q = q.eq('centre_id', scope.centreId);
+  } else {
+    const centreId = sp.get('centre_id');
+    if (centreId) q = q.eq('centre_id', centreId);
+  }
+
   const search = (sp.get('q') ?? '').trim();
   if (search) {
     const safe = search.replace(/[,.()%*"\\]/g, ' ').trim();
@@ -127,16 +138,28 @@ export async function POST(req: Request) {
   const sourceNote = typeof body.source_note === 'string' ? body.source_note.trim() || null : null;
 
   let sourceEventId: string | null = null;
+  let eventCentre: string | null = null;
   if (typeof body.source_event_id === 'string' && body.source_event_id) {
-    const { data: ev } = await supabaseAdmin.from('events').select('id').eq('id', body.source_event_id).maybeSingle();
+    const { data: ev } = await supabaseAdmin.from('events').select('id, organizing_centre_id').eq('id', body.source_event_id).maybeSingle();
     if (!ev) return NextResponse.json({ error: '关联活动无效' }, { status: 400 });
     sourceEventId = body.source_event_id;
+    eventCentre = (ev as { organizing_centre_id: string | null }).organizing_centre_id ?? null;
   }
   let centreId: string | null = null;
   if (typeof body.centre_id === 'string' && body.centre_id) {
     const { data: ce } = await supabaseAdmin.from('centres').select('id').eq('id', body.centre_id).maybeSingle();
     if (!ce) return NextResponse.json({ error: '中心无效' }, { status: 400 });
     centreId = body.centre_id;
+  }
+  // The 带入渡人名单 bridge inherits the EVENT's organizing centre when no centre was given —
+  // a centre's event leads belong to that centre.
+  if (!centreId && eventCentre) centreId = eventCentre;
+
+  // Centre-scope wall: a locked account can only create a 善缘 in its own centre.
+  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  if (scope.locked) {
+    if (!scope.centreId) return NextResponse.json({ error: '账号未绑定中心，无法新增' }, { status: 400 });
+    centreId = scope.centreId;
   }
 
   const firstOn = typeof body.first_contact_date === 'string' && DATE_RE.test(body.first_contact_date)
