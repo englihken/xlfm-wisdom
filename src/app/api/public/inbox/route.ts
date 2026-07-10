@@ -43,27 +43,34 @@ export async function POST(req: Request) {
   if (!rateLimit(`pub:inbox:phone:${phone}`, 5, 86_400_000)) return NextResponse.json({ error: '今日提交太多，请明天再试' }, { status: 429 });
 
   // ---- route to a mailbox: centre_code → that centre's ENABLED mailbox, else HQ ----
+  // NB: resolve the centre by code FIRST, then find its enabled mailbox by centre_id.
+  // Do NOT filter inbox_mailboxes by an embedded column (.eq('centre.code', …)): PostgREST
+  // treats a dotted filter as a filter on the EMBEDDED resource, not the parent rows, so
+  // without an !inner join it doesn't restrict the mailbox rows — the query then returns
+  // every enabled mailbox and .maybeSingle() errors on multiple rows (the original 503 bug).
   const centreCode = typeof body.centre_code === 'string' && body.centre_code.trim() ? body.centre_code.trim().toUpperCase() : null;
+
+  const enabledMailboxForCentre = async (code: string): Promise<string | null> => {
+    const { data: centre, error: cErr } = await supabaseAdmin!.from('centres').select('id').eq('code', code).maybeSingle();
+    if (cErr) { console.error('[public/inbox] centre lookup failed:', code, cErr); return null; }
+    if (!centre) return null;
+    const { data: mb, error: mErr } = await supabaseAdmin!
+      .from('inbox_mailboxes')
+      .select('id')
+      .eq('centre_id', centre.id as string)
+      .eq('is_enabled', true)
+      .maybeSingle();
+    if (mErr) { console.error('[public/inbox] mailbox lookup failed for centre:', code, mErr); return null; }
+    return (mb?.id as string | undefined) ?? null;
+  };
+
   let mailboxId: string | null = null;
-  if (centreCode) {
-    const { data: mb } = await supabaseAdmin
-      .from('inbox_mailboxes')
-      .select('id, is_enabled, centre:centres!centre_id ( code )')
-      .eq('is_enabled', true)
-      .eq('centre.code', centreCode)
-      .maybeSingle();
-    mailboxId = (mb?.id as string | undefined) ?? null;
-  }
+  if (centreCode) mailboxId = await enabledMailboxForCentre(centreCode);
+  if (!mailboxId && centreCode !== 'HQ') mailboxId = await enabledMailboxForCentre('HQ');
   if (!mailboxId) {
-    const { data: hq } = await supabaseAdmin
-      .from('inbox_mailboxes')
-      .select('id, centre:centres!centre_id ( code )')
-      .eq('is_enabled', true)
-      .eq('centre.code', 'HQ')
-      .maybeSingle();
-    mailboxId = (hq?.id as string | undefined) ?? null;
+    console.error('[public/inbox] no enabled mailbox resolved (centre_code=%s) — returning 503', centreCode ?? '(none)');
+    return NextResponse.json({ error: '暂时无法接收来信，请稍后再试' }, { status: 503 });
   }
-  if (!mailboxId) return NextResponse.json({ error: '暂时无法接收来信，请稍后再试' }, { status: 503 });
 
   // ---- crisis scan (subject + body, case-insensitive substring) ----
   const keywords = await loadCrisisKeywords(supabaseAdmin);
