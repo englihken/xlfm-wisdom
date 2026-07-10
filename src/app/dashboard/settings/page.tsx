@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
+import { createSupabaseBrowserClient, signOutEverywhere } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
@@ -103,8 +103,7 @@ export default function SettingsPage() {
 
   // Clear the session and return to login (登出 button + expired/invalid session).
   const forceSignOut = useCallback(async () => {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+    await signOutEverywhere();
     router.replace('/dashboard/login');
   }, [router]);
 

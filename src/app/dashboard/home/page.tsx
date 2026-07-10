@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
+import { createSupabaseBrowserClient, signOutEverywhere } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
@@ -67,8 +67,7 @@ export default function HubPage() {
   const [data, setData] = useState<HomeData | null>(null);
 
   const forceSignOut = useCallback(async () => {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+    await signOutEverywhere();
     router.replace('/dashboard/login');
   }, [router]);
 

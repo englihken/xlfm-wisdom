@@ -65,12 +65,32 @@ export async function GET() {
     internalNew = (internal ?? []).filter((t) => t.status === 'new').length;
   }
 
+  // Compose/transfer targets: ALL enabled mailboxes (any centre). Sending/transferring TO a
+  // mailbox is not reading it, so this is intentionally NOT wall-scoped — a 分会负责人 must be
+  // able to address 总会 (the 分会→总会 调货/批核 flow, E2 §4). Only exposed to content roles.
+  const canCompose = access.level === 'admin' || access.level === 'edit' || access.level === 'owner-only';
+  let composeTargets: { id: string; centre_name: string }[] = [];
+  if (canCompose) {
+    const { data: allEnabled } = await db
+      .from('inbox_mailboxes')
+      .select('id, centre:centres!centre_id ( name_cn, sort )')
+      .eq('is_enabled', true);
+    composeTargets = (allEnabled ?? [])
+      .map((m) => {
+        const c = Array.isArray(m.centre) ? m.centre[0] : m.centre;
+        return { id: m.id as string, centre_name: (c?.name_cn as string) ?? '—', sort: (c?.sort as number) ?? 0 };
+      })
+      .sort((a, b) => a.sort - b.sort || a.centre_name.localeCompare(b.centre_name))
+      .map(({ id, centre_name }) => ({ id, centre_name }));
+  }
+
   return NextResponse.json({
     level: access.level,
     escalation,
     mailboxes: out,
     internal: { new_n: internalNew },
-    can_compose_internal: access.level === 'admin' || access.level === 'edit' || access.level === 'owner-only',
+    can_compose_internal: canCompose,
+    compose_targets: composeTargets,
     my_centre_ids: centreIds,
   });
 }

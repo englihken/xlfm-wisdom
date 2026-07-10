@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
+import { createSupabaseBrowserClient, signOutEverywhere } from '@/lib/supabase-browser';
 import { TopBar } from '@/components/top-bar';
 import { DashboardNav } from '@/components/dashboard-nav';
 import type { Grants } from '@/lib/access';
@@ -28,6 +28,7 @@ type Meta = {
   mailboxes: Mailbox[];
   internal: { new_n: number };
   can_compose_internal: boolean;
+  compose_targets: { id: string; centre_name: string }[];
 };
 type ListRow = {
   id: string; mailbox_id: string; kind: string; subject: string; sender_name: string | null;
@@ -155,9 +156,16 @@ export default function InboxPage() {
 
   useEffect(() => {
     if (!selKey) return;
+    // Never fetch a non-owned mailbox's content without break-glass — that returns 404 and
+    // would render 暂无来信 over a real (non-empty) mailbox. Show the 代管 prompt instead; the
+    // fetch only fires once break-glass is confirmed (this effect re-runs on breakGlassed).
+    if (selKey !== 'internal') {
+      const mb = meta?.mailboxes.find((m) => m.id === selKey);
+      if (mb && mb.locked && !breakGlassed.has(selKey)) { setList([]); setListLoading(false); return; }
+    }
     loadList(selKey, filter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selKey, filter]);
+  }, [selKey, filter, breakGlassed]);
 
   // deep-link ?thread= (read from the URL directly to avoid a Suspense boundary)
   useEffect(() => {
@@ -182,15 +190,21 @@ export default function InboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selThread]);
 
-  // ---- selecting a mailbox (with break-glass confirm for admin locked ones) ----
+  // ---- selecting a mailbox ----
+  // Selecting a non-owned (locked) mailbox does NOT fetch content; it lands on the 代管 prompt
+  // (rendered in the list pane) so the audited break-glass confirm always precedes any content —
+  // whether the mailbox was auto-selected on load or clicked in the rail.
   const selectMailbox = (m: Mailbox) => {
-    if (m.locked && meta?.level === 'admin' && !breakGlassed.has(m.id)) {
-      if (!window.confirm('代管查看会记入审计日志。确定打开这个共修会的信箱吗？')) return;
-      setBreakGlassed((prev) => new Set(prev).add(m.id));
-    }
     setSelThread(null);
     setDetail(null);
     setSelKey(m.id);
+  };
+
+  // Audited break-glass: confirm, then mark the mailbox — the list effect re-runs and fetches
+  // with breakglass=1 (the server writes the break_glass_view audit on that fetch).
+  const confirmBreakGlass = (mailboxId: string) => {
+    if (!window.confirm('代管查看会记入审计日志。确定代管打开这个共修会的信箱吗？')) return;
+    setBreakGlassed((prev) => new Set(prev).add(mailboxId));
   };
 
   const refreshAll = async () => {
@@ -239,7 +253,7 @@ export default function InboxPage() {
     else { const j = await r.json().catch(() => ({})); flash(j.error ?? '操作失败'); if (r.status === 409) refreshAll(); }
   };
 
-  const handleLogout = async () => { await createSupabaseBrowserClient().auth.signOut(); router.refresh(); };
+  const handleLogout = async () => { await signOutEverywhere(); router.replace('/dashboard/login'); };
 
   if (checking) {
     return <div className="min-h-screen bg-bg flex items-center justify-center"><p className="text-sm text-ink-muted">加载中…</p></div>;
@@ -261,6 +275,8 @@ export default function InboxPage() {
   }
 
   const crisisCount = crisis.length;
+  const selMb = selKey && selKey !== 'internal' ? mailboxById(selKey) : null;
+  const needsBreakGlass = !!selMb && selMb.locked && !breakGlassed.has(selMb.id);
 
   return (
     <div className="h-screen flex flex-col bg-bg md:ml-[72px]">
@@ -350,7 +366,17 @@ export default function InboxPage() {
               </div>
             )}
             <div className="flex-1 overflow-y-auto">
-              {listLoading ? (
+              {needsBreakGlass ? (
+                <div className="p-6 text-center">
+                  <p className="text-2xl mb-2">🔒</p>
+                  <p className="text-sm text-ink">此信箱由他人负责</p>
+                  <p className="mt-1 text-xs text-ink-muted">代管查看会记入审计日志。</p>
+                  {selMb!.owners.length > 0 && (
+                    <p className="mt-1 text-[11px] text-ink-faint">负责人：{selMb!.owners.map((o) => o.name).join('、')}</p>
+                  )}
+                  <button onClick={() => confirmBreakGlass(selMb!.id)} className="btn-secondary px-4 py-1.5 text-sm mt-3">代管查看</button>
+                </div>
+              ) : listLoading ? (
                 <p className="p-4 text-sm text-ink-muted">加载中…</p>
               ) : list.length === 0 ? (
                 <p className="p-4 text-sm text-ink-faint">暂无来信 🙏</p>
@@ -393,7 +419,7 @@ export default function InboxPage() {
             ) : (
               <ReadingPane
                 detail={detail}
-                mailboxes={meta.mailboxes}
+                transferTargets={meta.compose_targets}
                 templates={templates}
                 reply={reply} setReply={setReply}
                 replyMode={replyMode} setReplyMode={setReplyMode}
@@ -408,7 +434,7 @@ export default function InboxPage() {
       )}
 
       {composeOpen && meta && (
-        <ComposeInternal mailboxes={meta.mailboxes} onClose={() => setComposeOpen(false)} onSent={() => { setComposeOpen(false); flash('内部件已发送'); refreshAll(); }} />
+        <ComposeInternal targets={meta.compose_targets} onClose={() => setComposeOpen(false)} onSent={() => { setComposeOpen(false); flash('内部件已发送'); refreshAll(); }} />
       )}
       {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] px-4 py-2 rounded-full bg-ink text-white text-sm shadow-lg">{toast}</div>}
     </div>
@@ -438,9 +464,9 @@ function ListHeader({ meta, selKey, filter, setFilter }: { meta: Meta; selKey: s
 }
 
 function ReadingPane({
-  detail, mailboxes, templates, reply, setReply, replyMode, setReplyMode, busy, onSend, onPatch, onOutreach,
+  detail, transferTargets, templates, reply, setReply, replyMode, setReplyMode, busy, onSend, onPatch, onOutreach,
 }: {
-  detail: Detail; mailboxes: Mailbox[]; templates: Tpl[];
+  detail: Detail; transferTargets: { id: string; centre_name: string }[]; templates: Tpl[];
   reply: string; setReply: (s: string) => void; replyMode: 'outbound' | 'note'; setReplyMode: (m: 'outbound' | 'note') => void;
   busy: boolean; onSend: () => void; onPatch: (p: Record<string, unknown>, ok: string) => void; onOutreach: () => void;
 }) {
@@ -541,7 +567,7 @@ function ReadingPane({
             <div className="flex items-center gap-1">
               <select value={transferTo} onChange={(e) => setTransferTo(e.target.value)} className="text-xs px-2 py-1.5 border border-border-strong rounded-lg bg-surface text-ink">
                 <option value="">转给其他信箱…</option>
-                {mailboxes.filter((m) => m.id !== t.mailbox_id).map((m) => <option key={m.id} value={m.id}>{m.centre_name}</option>)}
+                {transferTargets.filter((m) => m.id !== t.mailbox_id).map((m) => <option key={m.id} value={m.id}>{m.centre_name}</option>)}
               </select>
               {transferTo && <button disabled={busy} onClick={() => { onPatch({ mailbox_id: transferTo }, '已转办'); setTransferTo(''); }} className="btn-secondary px-2 py-1.5 text-xs">转</button>}
             </div>
@@ -592,7 +618,7 @@ function HealthBoard({ health, escalation }: { health: Health | null; escalation
   );
 }
 
-function ComposeInternal({ mailboxes, onClose, onSent }: { mailboxes: Mailbox[]; onClose: () => void; onSent: () => void }) {
+function ComposeInternal({ targets, onClose, onSent }: { targets: { id: string; centre_name: string }[]; onClose: () => void; onSent: () => void }) {
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
@@ -613,7 +639,7 @@ function ComposeInternal({ mailboxes, onClose, onSent }: { mailboxes: Mailbox[];
         <label className="block text-xs text-label mb-1">收件信箱</label>
         <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink mb-3">
           <option value="">选择共修会信箱…</option>
-          {mailboxes.map((m) => <option key={m.id} value={m.id}>{m.centre_name}</option>)}
+          {targets.map((m) => <option key={m.id} value={m.id}>{m.centre_name}</option>)}
         </select>
         <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="主题" className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink mb-3" />
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder="内容" className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface-soft text-ink mb-3" />

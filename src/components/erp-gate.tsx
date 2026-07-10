@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
+import { createSupabaseBrowserClient, signOutEverywhere } from '@/lib/supabase-browser';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav, type NavKey } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
@@ -53,8 +53,7 @@ export function ErpGate({
   const [gate, setGate] = useState<'checking' | 'denied' | 'ok'>('checking');
 
   const forceSignOut = useCallback(async () => {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+    await signOutEverywhere();
     router.replace('/dashboard/login');
   }, [router]);
 

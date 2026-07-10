@@ -9,7 +9,7 @@
 
 import { useEffect, useState, useCallback, useRef, Fragment, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
+import { createSupabaseBrowserClient, signOutEverywhere } from '@/lib/supabase-browser';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
@@ -200,8 +200,7 @@ export default function DashboardPage() {
   // Clear the Supabase session and return to login. Used both by the 登出 button
   // and when /me reports the account is no longer an active volunteer (403).
   const forceSignOut = useCallback(async () => {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+    await signOutEverywhere();
     router.replace('/dashboard/login');
   }, [router]);
 
