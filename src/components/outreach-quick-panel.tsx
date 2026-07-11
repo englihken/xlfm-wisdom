@@ -8,11 +8,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { deriveRung, milestoneMeta, milestoneLabel, nextMilestones } from '@/lib/outreach';
+import { deriveRung, milestoneMeta, nextMilestones } from '@/lib/outreach';
+import { useT } from '@/lib/i18n-react';
+import { stageLabelT } from '@/lib/display-maps';
 
 type Milestone = { milestone: string };
 
 export function OutreachQuickPanel({ contactId }: { contactId: string }) {
+  const t = useT();
   const [milestones, setMilestones] = useState<Milestone[] | null>(null);
   const [busy, setBusy] = useState('');
   const [flash, setFlash] = useState('');
@@ -33,9 +36,9 @@ export function OutreachQuickPanel({ contactId }: { contactId: string }) {
     try {
       const res = await fetch('/api/dashboard/outreach/milestones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contact_id: contactId, milestone }) });
       const j = await res.json().catch(() => ({}));
-      if (res.status === 409) setFlash(j.error ?? '已记录过');
-      else if (!res.ok) setFlash(j.error ?? '记录失败');
-      else { setFlash(`已记录「${milestoneLabel(milestone)}」🙏`); load(); }
+      if (res.status === 409) setFlash(j.error ?? t('duren.alreadyRecorded'));
+      else if (!res.ok) setFlash(j.error ?? t('duren.recordFailed'));
+      else { setFlash(t('duren.recordedFlash', { label: stageLabelT(t, milestone) })); load(); }
     } finally {
       setBusy('');
     }
@@ -48,18 +51,18 @@ export function OutreachQuickPanel({ contactId }: { contactId: string }) {
   return (
     <div className="border-t border-border pt-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-ink">🪷 渡人</span>
-        <Link href={`/dashboard/outreach?contact=${contactId}`} className="text-[11px] text-accent-deep hover:underline">打开渡人卡 →</Link>
+        <span className="text-xs font-semibold text-ink">{t('duren.title')}</span>
+        <Link href={`/dashboard/outreach?contact=${contactId}`} className="text-[11px] text-accent-deep hover:underline">{t('duren.openCard')}</Link>
       </div>
       <p className="mt-1.5 text-xs text-ink-muted">
-        当前：<span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[11px]">{milestoneMeta(rung)?.emoji} {milestoneLabel(rung)}</span>
+        {t('duren.currentPrefix')}<span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[11px]">{milestoneMeta(rung)?.emoji} {stageLabelT(t, rung)}</span>
       </p>
       {next.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {next.slice(0, 3).map((m) => (
             <button key={m.key} disabled={busy === m.key} onClick={() => record(m.key)}
               className="px-2.5 py-1.5 rounded-lg text-xs border border-gold-border bg-surface text-ink hover:border-accent transition disabled:opacity-50">
-              {busy === m.key ? '…' : `${m.emoji} ${m.label}`}
+              {busy === m.key ? '…' : `${m.emoji} ${stageLabelT(t, m.key)}`}
             </button>
           ))}
         </div>

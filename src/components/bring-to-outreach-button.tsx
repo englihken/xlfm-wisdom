@@ -8,8 +8,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useT } from '@/lib/i18n-react';
 
 export function BringToOutreachButton({ eventId, name, phone }: { eventId: string; name: string; phone: string | null }) {
+  const t = useT();
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'exists'>('idle');
   const [existingId, setExistingId] = useState<string | null>(null);
 
@@ -30,16 +32,16 @@ export function BringToOutreachButton({ eventId, name, phone }: { eventId: strin
     }
   };
 
-  if (state === 'done') return <span className="text-[11px] text-[#3F6B2E]">已加入渡人名单 🪷</span>;
+  if (state === 'done') return <span className="text-[11px] text-[#3F6B2E]">{t('duren.addedToList')}</span>;
   if (state === 'exists')
     return (
       <span className="text-[11px] text-ink-faint">
-        已在名单中{existingId && <> · <Link href={`/dashboard/outreach?contact=${existingId}`} className="text-accent-deep hover:underline">查看</Link></>}
+        {t('duren.alreadyOnList')}{existingId && <> · <Link href={`/dashboard/outreach?contact=${existingId}`} className="text-accent-deep hover:underline">{t('duren.view')}</Link></>}
       </span>
     );
   return (
-    <button disabled={state === 'busy'} onClick={bring} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40" title="加入渡人名单跟进">
-      {state === 'busy' ? '…' : '🪷 带入渡人'}
+    <button disabled={state === 'busy'} onClick={bring} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40" title={t('duren.bringTitle')}>
+      {state === 'busy' ? '…' : t('duren.bring')}
     </button>
   );
 }

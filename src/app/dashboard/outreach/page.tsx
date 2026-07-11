@@ -13,7 +13,9 @@ import { useSearchParams } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { OutreachCardDrawer } from '@/components/outreach-card-drawer';
-import { MILESTONES, SOURCES, milestoneMeta, milestoneLabel, sourceLabel } from '@/lib/outreach';
+import { MILESTONES, SOURCES, milestoneMeta } from '@/lib/outreach';
+import { useT } from '@/lib/i18n-react';
+import { stageLabelT, sourceLabelT } from '@/lib/display-maps';
 
 type Meta = { centres: { id: string; code: string; name_cn: string }[]; events: { id: string; code: string; title: string }[] };
 type Person = {
@@ -24,10 +26,11 @@ type Person = {
 const inputCls = 'text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent';
 
 export default function OutreachPage() {
+  const t = useT();
   return (
     <ErpGate active="outreach" module="outreach">
       {(me) => (
-        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">加载中…</p>}>
+        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">{t('duren.loading')}</p>}>
           <Workbench me={me} />
         </Suspense>
       )}
@@ -36,6 +39,7 @@ export default function OutreachPage() {
 }
 
 function Workbench({ me }: { me: ErpMe }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'outreach', 'edit');
   const sp = useSearchParams();
 
@@ -94,65 +98,65 @@ function Workbench({ me }: { me: ErpMe }) {
     <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold font-serif text-ink">🪷 渡人</h2>
-          <span className="text-sm text-ink-faint">善缘名单 · 只记录善缘的成长</span>
+          <h2 className="text-xl font-bold font-serif text-ink">{t('duren.title')}</h2>
+          <span className="text-sm text-ink-faint">{t('duren.subtitle')}</span>
         </div>
-        {canEdit && <button onClick={() => setShowCreate(true)} className="px-4 py-1.5 text-sm btn-primary">＋ 新增善缘</button>}
+        {canEdit && <button onClick={() => setShowCreate(true)} className="px-4 py-1.5 text-sm btn-primary">{t('duren.addGoodAffinity')}</button>}
       </div>
 
       {/* header numbers — plain, no charts */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Num label="本月新结缘" value={summary?.newThisMonth} />
-        <Num label="本月开始念经" value={summary?.chantingThisMonth} />
-        <Num label="名单总数" value={summary?.total} />
-        <Num label="超过 30 天没动静" value={summary?.stale} alert />
+        <Num label={t('duren.stat.newThisMonth')} value={summary?.newThisMonth} />
+        <Num label={t('duren.stat.chantingThisMonth')} value={summary?.chantingThisMonth} />
+        <Num label={t('duren.stat.total')} value={summary?.total} />
+        <Num label={t('duren.stat.stale')} value={summary?.stale} alert />
       </div>
 
       {/* filters */}
       <div className="flex flex-wrap items-center gap-2">
         <select value={source} onChange={(e) => setSource(e.target.value)} className={inputCls}>
-          <option value="">全部来源</option>
-          {SOURCES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+          <option value="">{t('duren.filter.allSources')}</option>
+          {SOURCES.map((s) => <option key={s.key} value={s.key}>{sourceLabelT(t, s.key)}</option>)}
         </select>
         <select value={rung} onChange={(e) => setRung(e.target.value)} className={inputCls}>
-          <option value="">全部阶段</option>
-          {MILESTONES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+          <option value="">{t('duren.filter.allStages')}</option>
+          {MILESTONES.map((m) => <option key={m.key} value={m.key}>{stageLabelT(t, m.key)}</option>)}
         </select>
         <select value={centre} onChange={(e) => setCentre(e.target.value)} className={inputCls}>
-          <option value="">全部中心</option>
+          <option value="">{t('duren.filter.allCentres')}</option>
           {meta.centres.map((c) => <option key={c.id} value={c.id}>{c.name_cn}</option>)}
         </select>
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索姓名 / 电话…" className={`${inputCls} w-44`} />
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('duren.searchPlaceholder')} className={`${inputCls} w-44`} />
         <span className="flex-1" />
         <div className="flex gap-1">
-          <button onClick={() => setSort('stale')} className={`px-3 py-1.5 text-xs rounded-lg border ${sort === 'stale' ? 'bg-accent text-white border-accent' : 'bg-surface text-ink border-border-strong'}`}>最久未跟进</button>
-          <button onClick={() => setSort('recent')} className={`px-3 py-1.5 text-xs rounded-lg border ${sort === 'recent' ? 'bg-accent text-white border-accent' : 'bg-surface text-ink border-border-strong'}`}>最近动静</button>
+          <button onClick={() => setSort('stale')} className={`px-3 py-1.5 text-xs rounded-lg border ${sort === 'stale' ? 'bg-accent text-white border-accent' : 'bg-surface text-ink border-border-strong'}`}>{t('duren.sort.stale')}</button>
+          <button onClick={() => setSort('recent')} className={`px-3 py-1.5 text-xs rounded-lg border ${sort === 'recent' ? 'bg-accent text-white border-accent' : 'bg-surface text-ink border-border-strong'}`}>{t('duren.sort.recent')}</button>
         </div>
       </div>
 
       {/* queue */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {loading ? (
-          <p className="p-6 text-sm text-ink-muted">加载中…</p>
+          <p className="p-6 text-sm text-ink-muted">{t('duren.loading')}</p>
         ) : persons.length === 0 ? (
-          <div className="p-10 text-center"><p className="text-2xl mb-1">🪷</p><p className="text-sm text-ink">名单里还没有符合条件的善缘。</p></div>
+          <div className="p-10 text-center"><p className="text-2xl mb-1">🪷</p><p className="text-sm text-ink">{t('duren.emptyList')}</p></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                  <th className="px-4 py-2.5 font-normal">姓名</th><th className="px-4 py-2.5 font-normal">电话</th>
-                  <th className="px-4 py-2.5 font-normal">来源</th><th className="px-4 py-2.5 font-normal">当前阶段</th>
-                  <th className="px-4 py-2.5 font-normal">中心</th><th className="px-4 py-2.5 font-normal">最后动静</th>
+                  <th className="px-4 py-2.5 font-normal">{t('duren.col.name')}</th><th className="px-4 py-2.5 font-normal">{t('duren.col.phone')}</th>
+                  <th className="px-4 py-2.5 font-normal">{t('duren.col.source')}</th><th className="px-4 py-2.5 font-normal">{t('duren.col.stage')}</th>
+                  <th className="px-4 py-2.5 font-normal">{t('duren.col.centre')}</th><th className="px-4 py-2.5 font-normal">{t('duren.col.lastActivity')}</th>
                 </tr>
               </thead>
               <tbody>
                 {persons.map((p) => (
                   <tr key={p.id} onClick={() => setDrawerId(p.id)} className="border-b border-border last:border-b-0 hover:bg-accent/5 cursor-pointer">
-                    <td className="px-4 py-2.5 font-medium text-ink">{p.display_name || '匿名结缘人'}</td>
+                    <td className="px-4 py-2.5 font-medium text-ink">{p.display_name || t('duren.anonymous')}</td>
                     <td className="px-4 py-2.5 text-xs text-ink-muted">{p.phone || p.wa_id || '—'}</td>
-                    <td className="px-4 py-2.5"><span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">{sourceLabel(p.source_type)}</span></td>
-                    <td className="px-4 py-2.5"><span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[11px]">{milestoneMeta(p.rung)?.emoji} {milestoneLabel(p.rung)}</span></td>
+                    <td className="px-4 py-2.5"><span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">{sourceLabelT(t, p.source_type)}</span></td>
+                    <td className="px-4 py-2.5"><span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[11px]">{milestoneMeta(p.rung)?.emoji} {stageLabelT(t, p.rung)}</span></td>
                     <td className="px-4 py-2.5 text-xs text-ink-muted">{p.centre_name || '—'}</td>
                     <td className="px-4 py-2.5 text-xs text-ink-faint">{p.lastActivity || '—'}</td>
                   </tr>
@@ -165,9 +169,9 @@ function Workbench({ me }: { me: ErpMe }) {
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-3 text-sm">
-          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1.5 border border-border-strong rounded-lg bg-surface text-ink disabled:opacity-40">上一页</button>
-          <span className="text-ink-muted">{page} / {totalPages} · 共 {total}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 border border-border-strong rounded-lg bg-surface text-ink disabled:opacity-40">下一页</button>
+          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1.5 border border-border-strong rounded-lg bg-surface text-ink disabled:opacity-40">{t('duren.prevPage')}</button>
+          <span className="text-ink-muted">{t('duren.pageInfo', { page, totalPages, total })}</span>
+          <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 border border-border-strong rounded-lg bg-surface text-ink disabled:opacity-40">{t('duren.nextPage')}</button>
         </div>
       )}
 
@@ -187,6 +191,7 @@ function Num({ label, value, alert }: { label: string; value: number | undefined
 }
 
 function CreateModal({ meta, onClose, onDone }: { meta: Meta; onClose: () => void; onDone: (id?: string) => void }) {
+  const t = useT();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [sourceType, setSourceType] = useState('');
@@ -201,7 +206,7 @@ function CreateModal({ meta, onClose, onDone }: { meta: Meta; onClose: () => voi
   const submit = async () => {
     setErr('');
     setExisting(null);
-    if (!name.trim()) return setErr('请填写姓名');
+    if (!name.trim()) return setErr(t('duren.create.nameRequired'));
     setBusy(true);
     try {
       const res = await fetch('/api/dashboard/outreach/persons', {
@@ -209,8 +214,8 @@ function CreateModal({ meta, onClose, onDone }: { meta: Meta; onClose: () => voi
         body: JSON.stringify({ display_name: name.trim(), phone: phone.trim() || undefined, source_type: sourceType || undefined, source_event_id: sourceType === 'event' ? eventId || undefined : undefined, source_note: sourceNote.trim() || undefined, centre_id: centreId || undefined, first_contact_date: date }),
       });
       const j = await res.json().catch(() => ({}));
-      if (res.status === 409) { setErr(j.error ?? '已在名单中'); setExisting(j.existing?.id ?? null); }
-      else if (!res.ok) setErr(j.error ?? '创建失败');
+      if (res.status === 409) { setErr(j.error ?? t('duren.alreadyOnList')); setExisting(j.existing?.id ?? null); }
+      else if (!res.ok) setErr(j.error ?? t('duren.create.createFailed'));
       else onDone(j.person?.id);
     } finally {
       setBusy(false);
@@ -220,43 +225,43 @@ function CreateModal({ meta, onClose, onDone }: { meta: Meta; onClose: () => voi
   return (
     <div className="fixed inset-0 z-[70] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-surface rounded-2xl max-w-md w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold font-serif text-ink mb-3">＋ 新增善缘</h3>
+        <h3 className="text-base font-semibold font-serif text-ink mb-3">{t('duren.addGoodAffinity')}</h3>
         {err && (
           <p className="text-sm text-[#B4402E] bg-[#FCEBEA] border border-[#B4402E]/20 rounded-lg px-3 py-2 mb-2">
-            {err}{existing && <> · <button onClick={() => onDone(existing)} className="underline">打开已有渡人卡</button></>}
+            {err}{existing && <> · <button onClick={() => onDone(existing)} className="underline">{t('duren.create.openExistingCard')}</button></>}
           </p>
         )}
         <div className="space-y-2.5">
-          <div><p className="text-[11px] text-ink-muted mb-1">姓名（必填）</p><input value={name} onChange={(e) => setName(e.target.value)} className={`${inputCls} w-full`} /></div>
-          <div><p className="text-[11px] text-ink-muted mb-1">电话</p><input value={phone} onChange={(e) => setPhone(e.target.value)} className={`${inputCls} w-full`} /></div>
+          <div><p className="text-[11px] text-ink-muted mb-1">{t('duren.field.name')}</p><input value={name} onChange={(e) => setName(e.target.value)} className={`${inputCls} w-full`} /></div>
+          <div><p className="text-[11px] text-ink-muted mb-1">{t('duren.field.phone')}</p><input value={phone} onChange={(e) => setPhone(e.target.value)} className={`${inputCls} w-full`} /></div>
           <div className="grid grid-cols-2 gap-2">
-            <div><p className="text-[11px] text-ink-muted mb-1">来源</p>
+            <div><p className="text-[11px] text-ink-muted mb-1">{t('duren.field.source')}</p>
               <select value={sourceType} onChange={(e) => setSourceType(e.target.value)} className={`${inputCls} w-full`}>
-                <option value="">（未填）</option>
-                {SOURCES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                <option value="">{t('duren.opt.unfilled')}</option>
+                {SOURCES.map((s) => <option key={s.key} value={s.key}>{sourceLabelT(t, s.key)}</option>)}
               </select>
             </div>
-            <div><p className="text-[11px] text-ink-muted mb-1">中心</p>
+            <div><p className="text-[11px] text-ink-muted mb-1">{t('duren.field.centre')}</p>
               <select value={centreId} onChange={(e) => setCentreId(e.target.value)} className={`${inputCls} w-full`}>
-                <option value="">（未指定）</option>
+                <option value="">{t('duren.opt.unspecified')}</option>
                 {meta.centres.map((c) => <option key={c.id} value={c.id}>{c.name_cn}</option>)}
               </select>
             </div>
           </div>
           {sourceType === 'event' && (
-            <div><p className="text-[11px] text-ink-muted mb-1">来源活动</p>
+            <div><p className="text-[11px] text-ink-muted mb-1">{t('duren.field.sourceEvent')}</p>
               <select value={eventId} onChange={(e) => setEventId(e.target.value)} className={`${inputCls} w-full`}>
-                <option value="">（不指定）</option>
+                <option value="">{t('duren.opt.none')}</option>
                 {meta.events.map((e) => <option key={e.id} value={e.id}>{e.code} {e.title}</option>)}
               </select>
             </div>
           )}
-          <div><p className="text-[11px] text-ink-muted mb-1">来源备注（可选）</p><input value={sourceNote} onChange={(e) => setSourceNote(e.target.value)} className={`${inputCls} w-full`} /></div>
-          <div><p className="text-[11px] text-ink-muted mb-1">初次接触日期</p><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`${inputCls} w-full`} /></div>
+          <div><p className="text-[11px] text-ink-muted mb-1">{t('duren.field.sourceNoteOptional')}</p><input value={sourceNote} onChange={(e) => setSourceNote(e.target.value)} className={`${inputCls} w-full`} /></div>
+          <div><p className="text-[11px] text-ink-muted mb-1">{t('duren.field.firstContactDate')}</p><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`${inputCls} w-full`} /></div>
         </div>
         <div className="flex gap-2 justify-end mt-3">
-          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-          <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '创建中…' : '加入名单'}</button>
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('duren.cancel')}</button>
+          <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('duren.create.creating') : t('duren.create.join')}</button>
         </div>
       </div>
     </div>

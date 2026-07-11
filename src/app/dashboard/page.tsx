@@ -17,6 +17,8 @@ import { TopBar } from '@/components/top-bar';
 import { visibleModules, grantAllows, type Grants } from '@/lib/access';
 import { OutreachQuickPanel } from '@/components/outreach-quick-panel';
 import { STAGES, stageLabel } from '@/lib/outreach';
+import { useT } from '@/lib/i18n-react';
+import type { TFunc } from '@/lib/i18n';
 
 // ── Types (mirror the API route shapes) ──────────────────────────────────────
 type ListItem = {
@@ -71,21 +73,24 @@ type Detail = {
 };
 
 // ── Display helpers ──────────────────────────────────────────────────────────
-const CHANNELS: Record<string, { icon: string; label: string }> = {
-  web: { icon: '◍', label: '网页' },
-  whatsapp: { icon: '✆', label: 'WhatsApp' },
+const CHANNELS: Record<string, { icon: string; labelKey?: string }> = {
+  web: { icon: '◍', labelKey: 'care.channelWeb' },
+  whatsapp: { icon: '✆' },
 };
-function channelMeta(channel: string) {
-  return CHANNELS[channel] ?? { icon: '◍', label: channel };
+function channelMeta(t: TFunc, channel: string) {
+  const meta = CHANNELS[channel];
+  if (!meta) return { icon: '◍', label: channel };
+  // whatsapp has no labelKey — its label is the (non-translated) brand name.
+  return { icon: meta.icon, label: meta.labelKey ? t(meta.labelKey) : 'WhatsApp' };
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  ai_handling: 'AI处理中',
-  needs_human: '需人工',
-  volunteer_handling: '义工处理中',
-  human_handling: '义工处理中',
-  resolved: '已完成',
-  closed: '已关闭',
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  ai_handling: 'care.status.aiHandling',
+  needs_human: 'care.status.needsHuman',
+  volunteer_handling: 'care.status.volunteerHandling',
+  human_handling: 'care.status.volunteerHandling',
+  resolved: 'care.status.resolved',
+  closed: 'care.status.closed',
 };
 // Gold pill for ACTIVE handling states; muted pill for FINISHED/terminal states;
 // needs_human keeps a semantic red (a warning that a human is required) — never
@@ -98,8 +103,9 @@ const STATUS_STYLES: Record<string, string> = {
   resolved: 'pill-muted',
   closed: 'pill-muted',
 };
-function statusLabel(status: string) {
-  return STATUS_LABELS[status] ?? status;
+function statusLabel(t: TFunc, status: string) {
+  const key = STATUS_LABEL_KEYS[status];
+  return key ? t(key) : status;
 }
 function statusStyle(status: string) {
   return STATUS_STYLES[status] ?? 'pill-gold';
@@ -128,14 +134,20 @@ function formatDateTime(iso: string): string {
 function mytDayKey(iso: string): string {
   return new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' });
 }
-function dayLabelFromKey(key: string, todayKey: string, yesterdayKey: string): string {
-  if (key === todayKey) return '今天';
-  if (key === yesterdayKey) return '昨天';
+function dayLabelFromKey(
+  t: TFunc,
+  key: string,
+  todayKey: string,
+  yesterdayKey: string
+): string {
+  if (key === todayKey) return t('care.today');
+  if (key === yesterdayKey) return t('care.yesterday');
   const [, m, d] = key.split('-');
   return `${m}/${d}`;
 }
 // Group an already-newest-first list under consecutive MYT day headers.
 function buildDayGroups(
+  t: TFunc,
   items: ListItem[],
   todayKey: string,
   yesterdayKey: string
@@ -145,7 +157,7 @@ function buildDayGroups(
     const key = mytDayKey(c.lastMessageAt);
     let g = groups[groups.length - 1];
     if (!g || g.key !== key) {
-      g = { key, label: dayLabelFromKey(key, todayKey, yesterdayKey), items: [] };
+      g = { key, label: dayLabelFromKey(t, key, todayKey, yesterdayKey), items: [] };
       groups.push(g);
     }
     g.items.push(c);
@@ -163,6 +175,7 @@ type Me = {
 };
 
 export default function DashboardPage() {
+  const t = useT();
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
@@ -407,11 +420,13 @@ export default function DashboardPage() {
       }
       const json = await res.json().catch(() => null);
       if (res.status === 409) {
-        setActionError(`此对话已被 ${json?.assignedTo ?? '另一位义工'} 接手`);
+        setActionError(
+          t('care.takenBy', { name: json?.assignedTo ?? t('care.anotherVolunteer') })
+        );
         return;
       }
       if (!res.ok) {
-        setActionError(json?.error ?? '操作失败，请重试');
+        setActionError(json?.error ?? t('care.actionFailed'));
         return;
       }
       setDetail((prev) =>
@@ -421,7 +436,7 @@ export default function DashboardPage() {
               conversation: {
                 ...prev.conversation,
                 status: 'volunteer_handling',
-                assignedVolunteerName: me?.displayName ?? '我',
+                assignedVolunteerName: me?.displayName ?? t('care.me'),
                 assignedToMe: true,
               },
             }
@@ -429,7 +444,7 @@ export default function DashboardPage() {
       );
       loadList();
     } catch {
-      setActionError('操作失败，请重试');
+      setActionError(t('care.actionFailed'));
     } finally {
       setActionBusy(false);
     }
@@ -447,7 +462,7 @@ export default function DashboardPage() {
       }
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        setActionError(json?.error ?? '操作失败，请重试');
+        setActionError(json?.error ?? t('care.actionFailed'));
         return;
       }
       setDetail((prev) =>
@@ -465,7 +480,7 @@ export default function DashboardPage() {
       );
       loadList();
     } catch {
-      setActionError('操作失败，请重试');
+      setActionError(t('care.actionFailed'));
     } finally {
       setActionBusy(false);
     }
@@ -501,7 +516,7 @@ export default function DashboardPage() {
                   content: msg.content,
                   sources: null,
                   created_at: msg.created_at,
-                  sentByName: msg.sentByName ?? me?.displayName ?? '义工',
+                  sentByName: msg.sentByName ?? me?.displayName ?? t('care.volunteerLabel'),
                 },
               ],
             }
@@ -524,7 +539,7 @@ export default function DashboardPage() {
   if (checking || !profileReady) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
-        <p className="text-sm text-ink-muted">加载中…</p>
+        <p className="text-sm text-ink-muted">{t('care.loading')}</p>
       </div>
     );
   }
@@ -542,12 +557,12 @@ export default function DashboardPage() {
   const nowMs = Date.now();
   const todayKey = mytDayKey(new Date(nowMs).toISOString());
   const yesterdayKey = mytDayKey(new Date(nowMs - 86_400_000).toISOString());
-  const dayGroups = buildDayGroups(visibleConversations, todayKey, yesterdayKey);
+  const dayGroups = buildDayGroups(t, visibleConversations, todayKey, yesterdayKey);
 
   return (
     <div className="h-screen flex flex-col bg-bg md:ml-[72px]">
       {/* TOP BAR — navigation lives in the rail now; shared frame carries brand. */}
-      <TopBar moduleTitle="人文关怀 · Care" userLabel={me?.displayName || email || undefined} onLogout={handleLogout} />
+      <TopBar moduleTitle={t('care.moduleTitle')} userLabel={me?.displayName || email || undefined} onLogout={handleLogout} />
 
       <DashboardNav role={me?.role ?? 'volunteer'} active="inbox" grants={me?.grants} />
 
@@ -561,14 +576,14 @@ export default function DashboardPage() {
               type="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="搜索姓名 / 号码 / 内容…"
+              placeholder={t('care.searchPlaceholder')}
               className="w-full text-sm px-4 py-2 border border-border-strong rounded-full bg-surface-soft text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
             />
           </div>
 
           {/* FILTER TABS */}
           <div className="shrink-0 px-3 py-2 border-b border-border flex items-center gap-1">
-            {([['all', '全部'], ['mine', '我接手的']] as const).map(([f, label]) => (
+            {([['all', t('care.filterAll')], ['mine', t('care.filterMine')]] as const).map(([f, label]) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -586,10 +601,14 @@ export default function DashboardPage() {
           {/* LIST (scrolls; day headers stick within this container) */}
           <div className="flex-1 overflow-y-auto">
             {listLoading ? (
-              <p className="p-6 text-sm text-ink-muted">加载中…</p>
+              <p className="p-6 text-sm text-ink-muted">{t('care.loading')}</p>
             ) : visibleConversations.length === 0 ? (
               <p className="p-6 text-sm text-ink-muted">
-                {filter === 'mine' ? '暂无接手的对话' : query ? '未找到相关对话' : '暂无对话'}
+                {filter === 'mine'
+                  ? t('care.emptyMine')
+                  : query
+                    ? t('care.emptySearch')
+                    : t('care.emptyAll')}
               </p>
             ) : (
               <ul className="pb-2">
@@ -599,7 +618,7 @@ export default function DashboardPage() {
                       {group.label}
                     </li>
                     {group.items.map((c) => {
-                      const ch = channelMeta(c.channel);
+                      const ch = channelMeta(t, c.channel);
                       const selected = c.id === selectedId;
                       // Never dot the conversation that's currently open.
                       const showUnread = c.unread && !selected;
@@ -618,7 +637,7 @@ export default function DashboardPage() {
                                 {showUnread && (
                                   <span
                                     className="shrink-0 w-2 h-2 rounded-full bg-accent"
-                                    aria-label="未读"
+                                    aria-label={t('care.unread')}
                                   />
                                 )}
                                 <span className="text-accent" title={ch.label}>{ch.icon}</span>
@@ -633,11 +652,11 @@ export default function DashboardPage() {
                               <span className="shrink-0 text-[11.5px] text-label">{formatTime(c.lastMessageAt)}</span>
                             </div>
                             <p className="mt-1 text-sm text-ink-body line-clamp-2 break-words">
-                              {c.lastMessagePreview || '（无消息）'}
+                              {c.lastMessagePreview || t('care.noMessage')}
                             </p>
                             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                               <span className={`inline-block px-2 py-0.5 rounded-full text-[10.5px] ${statusStyle(c.status)}`}>
-                                {statusLabel(c.status)}
+                                {statusLabel(t, c.status)}
                               </span>
                               {c.crisisFlag && <CrisisTag />}
                               {c.category && <CategoryTag category={c.category} />}
@@ -657,15 +676,15 @@ export default function DashboardPage() {
         <main className="flex-1 min-w-0 flex flex-col min-h-0">
           {!selectedId ? (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-ink-muted">选择一个对话查看</p>
+              <p className="text-sm text-ink-muted">{t('care.selectConversation')}</p>
             </div>
           ) : detailLoading ? (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-ink-muted">加载中…</p>
+              <p className="text-sm text-ink-muted">{t('care.loading')}</p>
             </div>
           ) : !detail ? (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-ink-muted">无法加载对话</p>
+              <p className="text-sm text-ink-muted">{t('care.loadFailed')}</p>
             </div>
           ) : (
             <>
@@ -696,14 +715,14 @@ export default function DashboardPage() {
                         ) : m.role === 'volunteer' ? (
                           <>
                             <div className="text-xs font-medium text-accent-deep mb-1.5">
-                              义工 · {m.sentByName ?? '义工'}
+                              {t('care.volunteerLabel')} · {m.sentByName ?? t('care.volunteerLabel')}
                             </div>
                             <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
                           </>
                         ) : (
                           <>
                             <MasterMarkdown>{m.content}</MasterMarkdown>
-                            <MessageSources sources={m.sources ?? []} title="参考开示：" />
+                            <MessageSources sources={m.sources ?? []} title={t('care.sourcesTitle')} />
                           </>
                         )}
                         <div
@@ -717,7 +736,7 @@ export default function DashboardPage() {
                     </div>
                   ))}
                   {detail.messages.length === 0 && (
-                    <p className="text-center text-sm text-ink-muted py-12">此对话暂无消息</p>
+                    <p className="text-center text-sm text-ink-muted py-12">{t('care.threadEmpty')}</p>
                   )}
                 </div>
               </div>
@@ -734,9 +753,9 @@ export default function DashboardPage() {
         {/* RIGHT — contact profile */}
         <aside className="w-[300px] shrink-0 border-l border-border bg-surface-soft overflow-y-auto">
           {!selectedId ? (
-            <p className="p-6 text-sm text-ink-muted">联系人资料</p>
+            <p className="p-6 text-sm text-ink-muted">{t('care.contactSidebar')}</p>
           ) : !detail ? (
-            <p className="p-6 text-sm text-ink-muted">加载中…</p>
+            <p className="p-6 text-sm text-ink-muted">{t('care.loading')}</p>
           ) : (
             <ContactPanel
               key={detail.contact?.id ?? 'none'}
@@ -770,6 +789,7 @@ function ThreadHeader({
   onTakeover: () => void;
   onHandback: () => void;
 }) {
+  const t = useT();
   const isVolunteerHandling = detail.conversation.status === 'volunteer_handling';
   const canHandback = Boolean(detail.conversation.assignedToMe) || isAdmin;
 
@@ -778,10 +798,10 @@ function ThreadHeader({
       <div className="min-w-0 text-sm">
         {isVolunteerHandling ? (
           <span className="text-accent-deep">
-            义工处理中 · <span className="font-medium">{detail.conversation.assignedVolunteerName ?? '义工'}</span>
+            {t('care.status.volunteerHandling')} · <span className="font-medium">{detail.conversation.assignedVolunteerName ?? t('care.volunteerLabel')}</span>
           </span>
         ) : (
-          <span className="pill-gold inline-block px-2.5 py-0.5 rounded-full text-[10.5px]">AI 处理中</span>
+          <span className="pill-gold inline-block px-2.5 py-0.5 rounded-full text-[10.5px]">{t('care.aiHandlingPill')}</span>
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -792,7 +812,7 @@ function ThreadHeader({
             disabled={actionBusy}
             className="btn-primary px-4 py-1.5 text-sm"
           >
-            接手对话
+            {t('care.takeover')}
           </button>
         ) : canHandback ? (
           <button
@@ -800,7 +820,7 @@ function ThreadHeader({
             disabled={actionBusy}
             className="btn-secondary px-4 py-1.5 text-sm"
           >
-            交回 AI
+            {t('care.handback')}
           </button>
         ) : null}
       </div>
@@ -816,6 +836,7 @@ function ReplyComposer({
 }: {
   onSend: (text: string) => Promise<'ok' | 'window_expired' | 'error'>;
 }) {
+  const t = useT();
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -830,9 +851,9 @@ function ReplyComposer({
     if (result === 'ok') {
       setText('');
     } else if (result === 'window_expired') {
-      setNotice('对方已超过24小时未回复，暂时无法发送普通消息');
+      setNotice(t('care.windowExpired'));
     } else {
-      setNotice('发送失败，请重试');
+      setNotice(t('care.sendFailed'));
     }
   };
 
@@ -850,7 +871,7 @@ function ReplyComposer({
               }
             }}
             rows={2}
-            placeholder="以义工身份回复…（Enter 发送，Shift+Enter 换行）"
+            placeholder={t('care.replyPlaceholder')}
             disabled={sending}
             className="flex-1 text-sm p-2.5 border border-border rounded-lg bg-surface text-ink placeholder:text-ink-faint leading-relaxed resize-y focus:outline-none focus:border-accent disabled:opacity-60"
           />
@@ -859,7 +880,7 @@ function ReplyComposer({
             disabled={sending || !text.trim()}
             className="btn-primary px-5 py-2.5 text-sm"
           >
-            {sending ? '发送中…' : '发送'}
+            {sending ? t('care.sending') : t('care.send')}
           </button>
         </div>
         {/* 24h-window / send-failure notice — a semantic warning, kept amber. */}
@@ -878,13 +899,14 @@ const STAGE_OPTIONS: string[] = STAGES.map((s) => s.key);
 // 本次对话 — a one-line gist of the OPEN conversation (distinct from the contact's
 // evolving 有缘人档案). Muted placeholder until the nightly cron generates it.
 function ConversationGistLine({ summary }: { summary: string | null | undefined }) {
+  const t = useT();
   return (
     <div>
-      <p className="u-label mb-1">本次对话</p>
+      <p className="u-label mb-1">{t('care.gistTitle')}</p>
       {summary?.trim() ? (
         <p className="text-sm text-ink leading-relaxed">{summary.trim()}</p>
       ) : (
-        <p className="text-sm text-ink-faint italic">本次对话摘要待今夜生成</p>
+        <p className="text-sm text-ink-faint italic">{t('care.gistPending')}</p>
       )}
     </div>
   );
@@ -908,14 +930,15 @@ function ContactPanel({
   onUnauthorized: () => void;
   onContactUpdate: (updates: Partial<ContactProfile>) => void;
 }) {
+  const t = useT();
   const c = detail.contact;
   const contactId = c?.id ?? null;
-  const name = c?.display_name || '匿名访客';
-  const ch = channelMeta(detail.conversation.channel);
+  const name = c?.display_name || t('care.anonymousVisitor');
+  const ch = channelMeta(t, detail.conversation.channel);
   // 联系方式 is system-managed (read-only). Show the WhatsApp phone when we have
   // one; for web visitors show a friendly label rather than the raw browser_id
   // (a system UUID, meaningless to volunteers).
-  const contactPoint = c?.wa_id || (c ? '网页访客' : '—');
+  const contactPoint = c?.wa_id || (c ? t('care.webVisitor') : '—');
 
   // Stage (dropdown, saves on change).
   const [stage, setStage] = useState<string>(c?.stage ?? '');
@@ -995,7 +1018,7 @@ function ContactPanel({
     return (
       <div className="p-5 space-y-5">
         <div>
-          <p className="text-lg font-semibold text-ink">未识别访客</p>
+          <p className="text-lg font-semibold text-ink">{t('care.unidentifiedVisitor')}</p>
           <p className="mt-0.5 text-sm text-ink-muted">
             <span className="text-accent">{ch.icon}</span> {ch.label}
           </p>
@@ -1007,7 +1030,7 @@ function ContactPanel({
           )}
         </div>
         <ConversationGistLine summary={detail.conversation.summary} />
-        <p className="text-xs text-ink-faint leading-relaxed">此访客的浏览器未提供身份，无法建立档案。</p>
+        <p className="text-xs text-ink-faint leading-relaxed">{t('care.orphanNote')}</p>
       </div>
     );
   }
@@ -1031,13 +1054,13 @@ function ContactPanel({
 
       {canOutreach && contactId && <OutreachQuickPanel contactId={contactId} />}
 
-      <Field label="联系方式" value={contactPoint} mono />
+      <Field label={t('care.contactMethod')} value={contactPoint} mono />
 
       {/* 修行阶段 — editable dropdown, saves on change */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <p className="u-label">修行阶段</p>
-          {stageSaved && <span className="text-xs text-accent-deep">已保存 ✓</span>}
+          <p className="u-label">{t('care.practiceStage')}</p>
+          {stageSaved && <span className="text-xs text-accent-deep">{t('care.saved')}</span>}
         </div>
         <select
           value={stage}
@@ -1049,7 +1072,7 @@ function ContactPanel({
             // legacy value (or empty): keep it visible via the raw-value
             // fallback so the row reads correctly pre-033
             <option value={stage} disabled>
-              {stage ? stageLabel(stage) : '暂无'}
+              {stage ? stageLabel(stage) : t('care.none')}
             </option>
           )}
           {STAGE_OPTIONS.map((s) => (
@@ -1064,21 +1087,21 @@ function ContactPanel({
       <ConversationGistLine summary={detail.conversation.summary} />
 
       <div>
-        <p className="u-label mb-1">有缘人档案</p>
+        <p className="u-label mb-1">{t('care.contactProfile')}</p>
         <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
-          {c.summary?.trim() || '暂无'}
+          {c.summary?.trim() || t('care.none')}
         </p>
       </div>
 
       {/* 义工备注 — editable textarea, saves on button click */}
       <div>
-        <p className="u-label mb-1">义工备注</p>
+        <p className="u-label mb-1">{t('care.volunteerNotes')}</p>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           disabled={!contactId}
           rows={4}
-          placeholder="为这位联系人添加备注…"
+          placeholder={t('care.notesPlaceholder')}
           className="w-full text-sm text-ink bg-surface border border-border-strong rounded-lg px-2.5 py-2 leading-relaxed resize-y focus:outline-none focus:border-accent disabled:opacity-60 placeholder:text-ink-faint"
         />
         <div className="mt-1.5 flex items-center gap-2">
@@ -1087,17 +1110,17 @@ function ContactPanel({
             disabled={!contactId || notesSaving}
             className="btn-primary px-3 py-1 text-xs"
           >
-            {notesSaving ? '保存中…' : '保存'}
+            {notesSaving ? t('care.saving') : t('care.save')}
           </button>
-          {notesSaved && <span className="text-xs text-accent-deep">已保存 ✓</span>}
-          {notesError && <span className="text-xs text-red-600">保存失败，请重试</span>}
+          {notesSaved && <span className="text-xs text-accent-deep">{t('care.saved')}</span>}
+          {notesError && <span className="text-xs text-red-600">{t('care.saveFailed')}</span>}
         </div>
       </div>
 
       {c && (
         <div className="pt-3 border-t border-border space-y-1 text-xs text-ink-faint">
-          <p>首次联系：{formatDateTime(c.first_seen)}</p>
-          <p>最近活跃：{formatDateTime(c.last_seen)}</p>
+          <p>{t('care.firstContact', { time: formatDateTime(c.first_seen) })}</p>
+          <p>{t('care.lastActive', { time: formatDateTime(c.last_seen) })}</p>
         </div>
       )}
     </div>
@@ -1115,9 +1138,10 @@ function CategoryTag({ category }: { category: string }) {
 }
 
 function CrisisTag() {
+  const t = useT();
   return (
     <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FEF2F2] text-red-700">
-      危机
+      {t('care.crisis')}
     </span>
   );
 }

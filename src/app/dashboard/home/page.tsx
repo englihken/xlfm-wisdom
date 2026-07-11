@@ -16,6 +16,7 @@ import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
 import { visibleModules, grantAllows, type Grants } from '@/lib/access';
+import { useT } from '@/lib/i18n-react';
 
 type Me = {
   email: string;
@@ -59,6 +60,7 @@ function relTime(iso: string): string {
 }
 
 export default function HubPage() {
+  const t = useT();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
@@ -153,7 +155,7 @@ export default function HubPage() {
   if (checking || gate === 'checking') {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
-        <p className="text-sm text-ink-muted">加载中…</p>
+        <p className="text-sm text-ink-muted">{t('cockpit.loading')}</p>
       </div>
     );
   }
@@ -177,14 +179,14 @@ export default function HubPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
           {/* 1. greeting */}
           <div>
-            <h2 className="font-serif text-2xl font-bold text-ink">吉祥，{me.displayName || '师兄'} 🙏</h2>
+            <h2 className="font-serif text-2xl font-bold text-ink">{t('cockpit.greeting', { name: me.displayName || t('cockpit.defaultName') })}</h2>
             <p className="mt-1 text-sm text-ink-muted">{todayMYT()}</p>
           </div>
 
           {/* 2. 今日概览 tiles */}
           {tiles.length > 0 && (
             <div>
-              <p className="u-label mb-2">今日概览</p>
+              <p className="u-label mb-2">{t('cockpit.todayOverview')}</p>
               <div className="flex flex-wrap gap-3">
                 {tiles.slice(0, 4).map((t) => (
                   <Link key={t.key} href={t.href}>
@@ -198,27 +200,27 @@ export default function HubPage() {
           {/* 3. crisis strip */}
           {crisis?.allowed && crisis.count > 0 && (
             <Link href="/dashboard/inbox" className="block rounded-xl px-4 py-3 bg-[#FCEBEA] border border-[#E5C4BF] text-[#B4402E] text-sm font-medium hover:bg-[#FBDEDA]">
-              ⚠ 危机来信 {crisis.count} — 即刻跟进 →
+              {t('cockpit.crisis', { count: crisis.count })}
             </Link>
           )}
 
           {/* 4. two columns: 收件箱 + 我的事项 */}
           <div className="grid gap-6 md:grid-cols-2">
             {inboxCard && (
-              <Card title="📬 收件箱" en="Mail">
+              <Card title={t('cockpit.card.inbox')} en="Mail">
                 {inboxCard.mode === 'health' ? (
                   <div className="space-y-3">
                     {inboxCard.health.length === 0 ? (
-                      <p className="text-sm text-ink-muted">暂无信箱数据</p>
+                      <p className="text-sm text-ink-muted">{t('cockpit.inbox.noMailboxes')}</p>
                     ) : (
                       <table className="w-full text-sm">
-                        <thead><tr className="text-left text-[11px] text-ink-faint border-b border-border"><th className="py-1 font-normal">信箱</th><th className="py-1 font-normal">未处理</th><th className="py-1 font-normal">最旧</th><th className="py-1 font-normal">负责人</th></tr></thead>
+                        <thead><tr className="text-left text-[11px] text-ink-faint border-b border-border"><th className="py-1 font-normal">{t('cockpit.inbox.colMailbox')}</th><th className="py-1 font-normal">{t('cockpit.inbox.colUnhandled')}</th><th className="py-1 font-normal">{t('cockpit.inbox.colOldest')}</th><th className="py-1 font-normal">{t('cockpit.inbox.colOwners')}</th></tr></thead>
                         <tbody>
                           {inboxCard.health.map((h) => (
                             <tr key={h.mailbox_id} className="border-b border-border last:border-b-0">
                               <td className="py-1.5 text-ink">{h.centre_name}</td>
                               <td className="py-1.5 text-ink">{h.new_n}</td>
-                              <td className="py-1.5 text-ink-muted">{h.oldest_unhandled_days}天</td>
+                              <td className="py-1.5 text-ink-muted">{t('cockpit.days', { n: h.oldest_unhandled_days })}</td>
                               <td className="py-1.5 text-ink-faint truncate max-w-[90px]">{h.owners_label}</td>
                             </tr>
                           ))}
@@ -227,42 +229,42 @@ export default function HubPage() {
                     )}
                     {inboxCard.surfaced.length > 0 && (
                       <div className="pt-2 border-t border-border">
-                        <p className="text-[11px] text-[#B4402E] mb-1">超过上报天数：</p>
+                        <p className="text-[11px] text-[#B4402E] mb-1">{t('cockpit.inbox.overEscalation')}</p>
                         <ul className="space-y-0.5">
-                          {inboxCard.surfaced.map((s) => <li key={s.id} className="text-[12px] text-ink-muted truncate">· {s.subject} — {s.age_days}天</li>)}
+                          {inboxCard.surfaced.map((s) => <li key={s.id} className="text-[12px] text-ink-muted truncate">· {s.subject} — {t('cockpit.days', { n: s.age_days })}</li>)}
                         </ul>
                       </div>
                     )}
-                    <Link href="/dashboard/inbox" className="inline-block text-xs text-accent-deep hover:underline">打开信箱 →</Link>
+                    <Link href="/dashboard/inbox" className="inline-block text-xs text-accent-deep hover:underline">{t('cockpit.openInbox')}</Link>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {inboxCard.threads.length === 0 ? (
-                      <p className="text-sm text-ink-muted">今日无未处理来信 🙏</p>
+                      <p className="text-sm text-ink-muted">{t('cockpit.inbox.noThreads')}</p>
                     ) : (
                       <ul className="divide-y divide-border">
-                        {inboxCard.threads.map((t) => (
-                          <li key={t.id}>
-                            <Link href={`/dashboard/inbox?thread=${t.id}`} className="block py-2 hover:bg-accent/5 -mx-2 px-2 rounded-lg">
+                        {inboxCard.threads.map((th) => (
+                          <li key={th.id}>
+                            <Link href={`/dashboard/inbox?thread=${th.id}`} className="block py-2 hover:bg-accent/5 -mx-2 px-2 rounded-lg">
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm text-ink truncate">{t.subject}</span>
-                                <span className="shrink-0 text-[11px] text-[#B4402E]">{t.age_days}天</span>
+                                <span className="text-sm text-ink truncate">{th.subject}</span>
+                                <span className="shrink-0 text-[11px] text-[#B4402E]">{t('cockpit.days', { n: th.age_days })}</span>
                               </div>
-                              <p className="text-[12px] text-ink-faint truncate">{t.sender_name ?? '匿名'} · {t.centre_name}</p>
+                              <p className="text-[12px] text-ink-faint truncate">{th.sender_name ?? t('cockpit.anonymous')} · {th.centre_name}</p>
                             </Link>
                           </li>
                         ))}
                       </ul>
                     )}
-                    <Link href="/dashboard/inbox" className="inline-block text-xs text-accent-deep hover:underline">打开信箱 →</Link>
+                    <Link href="/dashboard/inbox" className="inline-block text-xs text-accent-deep hover:underline">{t('cockpit.openInbox')}</Link>
                   </div>
                 )}
               </Card>
             )}
 
-            <Card title="✅ 我的事项" en="My tasks">
+            <Card title={t('cockpit.card.myTasks')} en="My tasks">
               {!data?.myTasks || data.myTasks.length === 0 ? (
-                <p className="text-sm text-ink-muted">今日无待办 🙏</p>
+                <p className="text-sm text-ink-muted">{t('cockpit.tasks.empty')}</p>
               ) : (
                 <ul className="divide-y divide-border">
                   {data.myTasks.map((t) => (
@@ -284,19 +286,19 @@ export default function HubPage() {
           {/* 5. row: 渡人本月 · 最近会员动态 · 系统动态(admin) */}
           <div className="grid gap-6 md:grid-cols-3">
             {data?.outreachMonth && (
-              <Card title="🪷 渡人 · 本月" en="Outreach">
+              <Card title={t('cockpit.card.outreachMonth')} en="Outreach">
                 <div className="flex gap-4">
-                  <div><div className="text-2xl font-bold text-ink">{data.outreachMonth.new_contacts}</div><div className="text-[11px] text-ink-faint">新结缘</div></div>
-                  <div><div className="text-2xl font-bold text-ink">{data.outreachMonth.started_chanting}</div><div className="text-[11px] text-ink-faint">开始念经</div></div>
+                  <div><div className="text-2xl font-bold text-ink">{data.outreachMonth.new_contacts}</div><div className="text-[11px] text-ink-faint">{t('cockpit.outreach.newContacts')}</div></div>
+                  <div><div className="text-2xl font-bold text-ink">{data.outreachMonth.started_chanting}</div><div className="text-[11px] text-ink-faint">{t('cockpit.outreach.startedChanting')}</div></div>
                 </div>
-                <Link href="/dashboard/outreach" className="mt-2 inline-block text-xs text-accent-deep hover:underline">去渡人 →</Link>
+                <Link href="/dashboard/outreach" className="mt-2 inline-block text-xs text-accent-deep hover:underline">{t('cockpit.outreach.go')}</Link>
               </Card>
             )}
 
             {data?.recentMembers && (
-              <Card title="👥 最近会员" en="Members">
+              <Card title={t('cockpit.card.recentMembers')} en="Members">
                 {data.recentMembers.length === 0 ? (
-                  <p className="text-sm text-ink-muted">暂无会员</p>
+                  <p className="text-sm text-ink-muted">{t('cockpit.members.empty')}</p>
                 ) : (
                   <ul className="divide-y divide-border">
                     {data.recentMembers.map((m) => (
@@ -313,9 +315,9 @@ export default function HubPage() {
             )}
 
             {data?.recentAudit && (
-              <Card title="📜 系统动态" en="Activity">
+              <Card title={t('cockpit.card.activity')} en="Activity">
                 {data.recentAudit.length === 0 ? (
-                  <p className="text-sm text-ink-muted">暂无记录</p>
+                  <p className="text-sm text-ink-muted">{t('cockpit.activity.empty')}</p>
                 ) : (
                   <ul className="space-y-1.5">
                     {data.recentAudit.map((a) => (
@@ -332,10 +334,10 @@ export default function HubPage() {
 
           {/* quick actions */}
           <div className="flex flex-wrap gap-2">
-            {grantAllows(me.grants, 'care', 'view') && <QuickLink href="/dashboard" label="去智慧问答" />}
-            {grantAllows(me.grants, 'inbox', 'summary') && <QuickLink href="/dashboard/inbox" label="📬 收件箱" />}
-            {grantAllows(me.grants, 'outreach', 'view') && <QuickLink href="/dashboard/outreach" label="🪷 渡人名单" />}
-            {grantAllows(me.grants, 'members', 'view') && <QuickLink href="/dashboard/members" label="会员列表" />}
+            {grantAllows(me.grants, 'care', 'view') && <QuickLink href="/dashboard" label={t('cockpit.quick.wisdom')} />}
+            {grantAllows(me.grants, 'inbox', 'summary') && <QuickLink href="/dashboard/inbox" label={t('cockpit.quick.inbox')} />}
+            {grantAllows(me.grants, 'outreach', 'view') && <QuickLink href="/dashboard/outreach" label={t('cockpit.quick.outreachList')} />}
+            {grantAllows(me.grants, 'members', 'view') && <QuickLink href="/dashboard/members" label={t('cockpit.quick.members')} />}
           </div>
         </div>
       </main>

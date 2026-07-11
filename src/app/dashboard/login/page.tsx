@@ -10,9 +10,11 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PLATFORM_NAME } from '@/lib/platform';
 import { visibleModules } from '@/lib/access';
+import { useT } from '@/lib/i18n-react';
 
 export default function DashboardLoginPage() {
   const router = useRouter();
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export default function DashboardLoginPage() {
       });
 
       if (signInError) {
-        setError('登录失败，请检查邮箱和密码是否正确。');
+        setError(t('login.errorInvalid'));
         setIsLoading(false);
         return;
       }
@@ -58,7 +60,7 @@ export default function DashboardLoginPage() {
       router.replace(dest);
       router.refresh();
     } catch {
-      setError('暂时无法连接，请稍后再试。');
+      setError(t('login.errorConnection'));
       setIsLoading(false);
     }
   };
@@ -70,7 +72,7 @@ export default function DashboardLoginPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/xlfm-logo.png" alt="" width={40} height={40} className="w-10 h-10 object-contain mb-3" />
           <h1 className="font-serif text-2xl font-bold text-ink">{PLATFORM_NAME}</h1>
-          <p className="mt-2 text-sm text-ink-muted">登录</p>
+          <p className="mt-2 text-sm text-ink-muted">{t('login.subtitle')}</p>
         </div>
 
         <form
@@ -79,7 +81,7 @@ export default function DashboardLoginPage() {
         >
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-ink mb-1.5">
-              邮箱
+              {t('login.emailLabel')}
             </label>
             <input
               id="email"
@@ -96,7 +98,7 @@ export default function DashboardLoginPage() {
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-ink mb-1.5">
-              密码
+              {t('login.passwordLabel')}
             </label>
             <input
               id="password"
@@ -122,12 +124,12 @@ export default function DashboardLoginPage() {
             disabled={isLoading || !email.trim() || !password}
             className="btn-primary w-full py-3 text-sm font-medium"
           >
-            {isLoading ? '登录中…' : '登录'}
+            {isLoading ? t('login.submitting') : t('login.submit')}
           </button>
         </form>
 
         <p className="text-center text-xs text-ink-muted mt-6">
-          一切免费结缘 · 菩萨慈悲 🙏
+          {t('login.footer')}
         </p>
       </div>
     </div>

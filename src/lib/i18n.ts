@@ -8,9 +8,8 @@
 // walks a per-locale FALLBACK chain (id → en → zh, en → zh) and finally returns
 // the raw key — a missing key is never blank, it shows dev-visibly.
 
-import { zh } from './locales/zh';
-import { en } from './locales/en';
-import { id } from './locales/id';
+// Merged dictionaries (core zh/en/id + all per-surface parts) — see locales/index.ts.
+import { zh, en, id } from './locales';
 
 export type Locale = 'zh' | 'en' | 'id';
 export const LOCALES: Locale[] = ['zh', 'en', 'id'];
