@@ -210,6 +210,37 @@ export const zh: Record<string, string> = {
   'public.closed': '本服务暂停中，请稍后再来 🙏',
   'public.closedSub': 'This service is temporarily paused. Please come back later.',
 
+  // ── shell (top bar user menu + rail) ──────────────────────────────────────
+  'shell.usermenu.label': '用户菜单',
+  'shell.usermenu.account': '账号设置',
+  'shell.usermenu.settings': '系统设置',
+  'shell.usermenu.logout': '登出',
+  'shell.role.admin': '管理员',
+  'shell.role.volunteer': '关怀义工',
+  'shell.role.erpAdmin': 'ERP 管理员',
+  'shell.role.committee': '理事会',
+  'shell.role.centreHead': '分会负责人',
+  'shell.role.financeDirector': '财务总监',
+  'shell.role.centreFinance': '分会财政',
+
+  // ── 账号设置 page ──────────────────────────────────────────────────────────
+  'account.moduleTitle': '账号设置 · Account',
+  'account.identityTitle': '我的账号',
+  'account.identityHint': '账号资料由管理员维护 — 这里只读。',
+  'account.field.name': '显示名称',
+  'account.field.role': '角色',
+  'account.field.centre': '共修会',
+  'account.field.email': '邮箱',
+  'account.pw.title': '修改密码',
+  'account.pw.hint': '设置新密码后，下次登录使用新密码。',
+  'account.pw.new': '新密码（至少 8 位）',
+  'account.pw.confirm': '确认新密码',
+  'account.pw.submit': '更新密码',
+  'account.pw.saving': '更新中…',
+  'account.pw.done': '密码已更新 ✓',
+  'account.pw.tooShort': '密码至少需要 8 位',
+  'account.pw.mismatch': '两次输入的密码不一致',
+
   // ── 主页 polish ───────────────────────────────────────────────────────────
   'home.tile.pendingRegs': '待审报名',
   'home.tile.lowStock': '低库存品项',

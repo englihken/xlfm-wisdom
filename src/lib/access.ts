@@ -48,7 +48,9 @@ export function grantAllows(
 // A "door" the caller can enter — a module page with a real destination. The care
 // door is the 智慧问答 chat inbox at /dashboard (door key stays 'inbox' for back-compat);
 // the E2 centre-mail 收件箱 is a SEPARATE door 'mail' → /dashboard/inbox. (Hub 'home' is
-// not a door — it's the chooser.)
+// not a door — it's the chooser.) 'settings' stays in this union for nav typing but is
+// NO LONGER emitted by visibleModules — the shell refactor moved 设置 off the rail into
+// the top-right user menu (canOpenSettings below is its gate).
 export type ModuleDoor = 'inbox' | 'mail' | 'outreach' | 'members' | 'events' | 'inventory' | 'finance' | 'reports' | 'settings';
 
 // THE single source of truth for door visibility, used by BOTH the nav rail and the
@@ -69,9 +71,17 @@ export function visibleModules(me: { role: string; grants?: Grants }): ModuleDoo
   if (grantAllows(me.grants, 'finance', 'view')) doors.push('finance'); // 财务 → /dashboard/finance
   // E3: the 报表 door re-gates onto the 'reports' grants (migration 032 — admin
   // manages; erp_admin/committee/finance_director national view; centre_head
-  // own-centre slice). 设置 opens at settings≥edit (admin + erp_admin); the
-  // 义工与账号 section inside stays admin-only (section-gated, Ken 2026-07-11).
+  // own-centre slice).
   if (grantAllows(me.grants, 'reports', 'view')) doors.push('reports');
-  if (grantAllows(me.grants, 'settings', 'edit')) doors.push('settings');
+  // Shell refactor: 设置 is deliberately NOT a rail door anymore — it lives in
+  // the top-right user menu, gated by canOpenSettings (same grant as before).
   return doors;
+}
+
+// The 设置 gate the header/UserMenu reads — the EXACT check that used to govern
+// the old rail item (settings≥edit: admin + erp_admin; 义工与账号 inside the page
+// stays admin-only via its own section gate). /dashboard/settings enforces this
+// server- and page-side regardless of what any menu shows.
+export function canOpenSettings(grants: Grants | undefined): boolean {
+  return grantAllows(grants, 'settings', 'edit');
 }

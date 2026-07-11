@@ -267,7 +267,9 @@ export function DashboardNav({
   grants,
 }: {
   role: Role;
-  active: NavKey;
+  // 'settings' and 'account' are accepted but no rail item matches them (设置
+  // lives in the user menu now) — the rail simply shows nothing highlighted.
+  active: NavKey | 'account';
   grants?: Grants;
 }) {
   // Single source of truth for door visibility. Multi-door accounts also get the
@@ -280,9 +282,21 @@ export function DashboardNav({
       aria-label="主导航"
       className="z-20 shrink-0 flex flex-row md:flex-col items-stretch bg-surface border-b md:border-b-0 md:border-r border-border md:fixed md:left-0 md:top-0 md:bottom-0 md:w-[72px]"
     >
-      {/* Icons + labels only — the TopBar carries the brand now. Rail items
-          start from the top padding. */}
-      <ul className="flex flex-row md:flex-col flex-1 md:flex-none items-stretch justify-around md:justify-start gap-1 md:gap-3 px-2 py-2 md:pt-4">
+      {/* Gold lotus at the TOP of the rail (shell refactor) — the existing
+          asset, desktop only (mobile keeps it in the top bar), NO divider
+          beneath it, just padding before the nav list. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/xlfm-logo.png"
+        alt=""
+        width={40}
+        height={40}
+        className="hidden md:block w-10 h-10 object-contain select-none mx-auto mt-3 mb-1"
+      />
+      {/* Icons + labels only — the TopBar carries the wordmark. ~56px cells on
+          desktop so all 9 operational modules fit a 768px viewport without
+          scroll (设置 moved to the user menu); mobile row unchanged. */}
+      <ul className="flex flex-row md:flex-col flex-1 md:flex-none items-stretch justify-around md:justify-start gap-1 md:gap-1.5 px-2 py-2 md:pt-2">
         {keys.map((key) => {
           const { label, href, Icon } = DOORS[key];
           const isActive = key === active;
@@ -291,7 +305,7 @@ export function DashboardNav({
               <Link
                 href={href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`relative flex flex-col items-center justify-center gap-1 py-[14px] px-1 rounded-lg transition ${
+                className={`relative flex flex-col items-center justify-center gap-1 py-[14px] md:py-2 px-1 rounded-lg transition ${
                   isActive
                     ? 'bg-accent/10 text-accent-deep'
                     : 'text-ink-muted hover:bg-accent/5'

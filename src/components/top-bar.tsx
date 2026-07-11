@@ -1,16 +1,19 @@
 // src/components/top-bar.tsx
 // The shared platform top bar (2b theme). One frame for every wing: a white
 // surface with a --border bottom edge and a 3px gold hairline, the platform
-// logo + small-caps platform label, an optional serif wing/module title, and
-// the signed-in user + logout on the right.
+// wordmark + optional serif wing/module title on the left, and the UserMenu
+// (avatar + name + dropdown: 账号设置 / 系统设置 / 登出) on the right.
 //
-// T1 wires this into the hub (dashboard/home) only; module pages adopt it in
-// T2/T3. Purely presentational — the caller owns auth/logout logic and passes
-// `userLabel` + `onLogout`.
+// Shell refactor: the static user name is replaced by the functional UserMenu;
+// the gold lotus lives at the TOP OF THE RAIL on desktop (dashboard-nav), so
+// the top-bar logo renders on MOBILE ONLY (where the rail is a horizontal row
+// with no room for it) — never twice on one breakpoint. The caller still owns
+// auth/logout and passes `userLabel` + `onLogout` exactly as before.
 
 'use client';
 
 import { PLATFORM_NAME } from '@/lib/platform';
+import { UserMenu } from '@/components/user-menu';
 
 export function TopBar({
   moduleTitle,
@@ -19,14 +22,14 @@ export function TopBar({
 }: {
   /** Serif wing/module title (e.g. 收件箱). Omit on the hub for brand-only. */
   moduleTitle?: string;
-  /** Display name or email of the signed-in user. */
+  /** Display name or email of the signed-in user (UserMenu fallback while /me loads). */
   userLabel?: string;
   onLogout?: () => void;
 }) {
   return (
     <header className="shrink-0 bg-surface border-b border-border">
       <div className="px-5 py-3 flex items-center justify-between gap-3">
-        {/* brand: logo + (platform label kicker · serif title) */}
+        {/* brand: wordmark (+ serif module title). Lotus is rail-top on desktop. */}
         <div className="flex items-center gap-3 min-w-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -34,7 +37,7 @@ export function TopBar({
             alt=""
             width={40}
             height={40}
-            className="w-10 h-10 object-contain select-none shrink-0"
+            className="w-10 h-10 object-contain select-none shrink-0 md:hidden"
           />
           <div className="min-w-0">
             {moduleTitle ? (
@@ -52,21 +55,7 @@ export function TopBar({
           </div>
         </div>
 
-        {/* user + logout */}
-        {(userLabel || onLogout) && (
-          <div className="flex items-center gap-4 shrink-0">
-            {userLabel && (
-              <span className="hidden sm:inline text-sm text-ink-muted truncate max-w-[40vw]">
-                {userLabel}
-              </span>
-            )}
-            {onLogout && (
-              <button onClick={onLogout} className="btn-secondary px-4 py-1.5 text-sm">
-                登出
-              </button>
-            )}
-          </div>
-        )}
+        <UserMenu fallbackLabel={userLabel} onLogout={onLogout} />
       </div>
       {/* 3px gold hairline under the bar */}
       <div
