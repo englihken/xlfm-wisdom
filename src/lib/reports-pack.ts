@@ -3,15 +3,21 @@
 // whole scope-aware pack — the /api/reports/pack route returns it verbatim and
 // the .csv route flattens it, so the numbers can never drift between the two.
 //
-// Definitions are the brief's source-of-truth list:
-//   新结缘  = first_contact milestones with happened_on in the month
-//   开始念经 = started_chanting milestones in the month (keys from lib/outreach)
+// Definitions are the brief's source-of-truth list (as amended by the
+// architect-verified fix batch 2026-07-11):
+//   新结缘  = contacts counted by first_seen in the MYT month (the auto-created
+//             first_contact milestone stamps a UTC date — counting it put the
+//             contact tiles a window behind the conversation numbers)
+//   开始念经 = started_chanting milestones in the month (keys from lib/outreach;
+//             happened_on is a date column, compared as stored)
 //   发心义工 = volunteer milestones inside the rolling funnel window
 //   funnel  = milestone counts over org_settings outreach.event_window_days
 //   收入    = 月费 fee_payments (non-void, paid_at in month) + 随喜 event fees
-//             (registrations payment_verified_at in month)
-// Month boundaries are MYT (UTC+8): date columns compare as YYYY-MM-DD, and
-// timestamptz columns against the UTC instant of MYT midnight.
+//             (registrations payment_verified_at in month, MYT-bucketed)
+// EVERY month boundary comes from the ONE mytMonthWindow helper below: date
+// columns compare as YYYY-MM-DD against its calendar dates, timestamptz
+// columns against its UTC instants of MYT midnight — one implementation, so
+// code paths can't drift between timezones again.
 //
 // Scope: national roles see everything; a locked centre_head sees the own-centre
 // slice — per-centre rollups collapse to their row, the 关怀 and 运营·财务 pages
@@ -31,11 +37,51 @@ type Db = NonNullable<typeof supabaseAdmin>;
 // its centre; centre_finance holds no reports grant and never reaches here.
 const NATIONAL_REPORT_ROLES = new Set(['admin', 'erp_admin', 'committee', 'finance_director', 'volunteer']);
 
-// ── MYT month helpers ─────────────────────────────────────────────────────────
+// ── THE ONE MYT month-window helper (fix batch 2026-07-11) ───────────────────
+// Every month-scoped metric on all 5 pages goes through mytMonthWindow /
+// mytMonthOf — no per-metric window math, so contact-based and conversation-
+// based numbers can never drift apart again (the E3 browser-round bug: contact
+// tiles counted UTC months while the relocated conversation queries counted
+// MYT). Rules:
+//   - timestamptz columns → filter with window.startUtc / endUtc (the UTC
+//     instant of MYT midnight), or bucket with mytMonthOf (shift +8h, then
+//     take YYYY-MM);
+//   - date-typed columns (happened_on, paid_at, spent_at, starts_on) compare
+//     as stored against window.startDate / endDate — NO tz shifting;
+//   - "today" for rolling windows is the MYT calendar date (mytToday).
 const MYT_MS = 8 * 60 * 60 * 1000;
 
+export type MonthWindow = {
+  ym: string;
+  startUtc: string; // UTC instant of MYT month start — for timestamptz filters
+  endUtc: string;
+  startDate: string; // YYYY-MM-01 — for date-typed columns, as stored
+  endDate: string;
+};
+
+export function mytMonthWindow(ym: string): MonthWindow {
+  return {
+    ym,
+    startUtc: new Date(`${ym}-01T00:00:00+08:00`).toISOString(),
+    endUtc: new Date(`${monthAdd(ym, 1)}-01T00:00:00+08:00`).toISOString(),
+    startDate: `${ym}-01`,
+    endDate: `${monthAdd(ym, 1)}-01`,
+  };
+}
+
+// MYT calendar month of a timestamptz value: shift +8h, then take YYYY-MM.
+export function mytMonthOf(isoTs: string): string {
+  return new Date(new Date(isoTs).getTime() + MYT_MS).toISOString().slice(0, 7);
+}
+
+// Today's MYT calendar date (during the first 8h of a new MYT day, UTC still
+// shows yesterday — rolling windows must anchor here, not on the UTC date).
+export function mytToday(): string {
+  return new Date(Date.now() + MYT_MS).toISOString().slice(0, 10);
+}
+
 export function currentMonthMYT(): string {
-  return new Date(Date.now() + MYT_MS).toISOString().slice(0, 7);
+  return mytToday().slice(0, 7);
 }
 
 export function monthAdd(ym: string, delta: number): string {
@@ -47,7 +93,6 @@ export function monthAdd(ym: string, delta: number): string {
 }
 
 const firstDay = (ym: string) => `${ym}-01`;
-const monthStartUtcIso = (ym: string) => new Date(`${ym}-01T00:00:00+08:00`).toISOString();
 
 function ymdAddDays(ymd: string, days: number): string {
   const d = new Date(`${ymd}T00:00:00Z`);
@@ -159,15 +204,19 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
   const centreName = locked ? ((centreJoin?.name_cn as string | undefined) ?? null) : null;
 
   const windowDays = await loadEventWindowDays();
-  const monthStart = firstDay(month);
-  const monthEnd = firstDay(monthAdd(month, 1));
-  const prevStart = firstDay(prev);
+  // ALL month boundaries come from the one MYT helper (fix batch 2026-07-11).
+  const w = mytMonthWindow(month);
+  const wPrev = mytMonthWindow(prev);
+  const wTrendStart = mytMonthWindow(trendMonths[0]);
+  const monthStart = w.startDate;
+  const monthEnd = w.endDate;
+  const prevStart = wPrev.startDate;
   const windowStart = ymdAddDays(monthEnd, -windowDays);
-  const monthStartUtc = monthStartUtcIso(month);
-  const monthEndUtc = monthStartUtcIso(monthAdd(month, 1));
-  const prevStartUtc = monthStartUtcIso(prev);
-  const trendStart = firstDay(trendMonths[0]);
-  const trendStartUtc = monthStartUtcIso(trendMonths[0]);
+  const monthStartUtc = w.startUtc;
+  const monthEndUtc = w.endUtc;
+  const prevStartUtc = wPrev.startUtc;
+  const trendStart = wTrendStart.startDate;
+  const trendStartUtc = wTrendStart.startUtc;
 
   // ── batched reads ───────────────────────────────────────────────────────────
   const [
@@ -185,7 +234,7 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
     stocktakesRes,
     movesRes,
   ] = await Promise.all([
-    db.from('contacts').select('id, centre_id, source_type, source_event_id').limit(50000),
+    db.from('contacts').select('id, centre_id, source_type, source_event_id, first_seen').limit(50000),
     db.from('contact_milestones').select('contact_id, milestone, happened_on').limit(50000),
     locked
       ? Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
@@ -229,7 +278,13 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
     if ((r as { error: unknown }).error) console.error(`[reports-pack] ${name} read failed:`, (r as { error: unknown }).error);
   }
 
-  const contacts = (contactsRes.data ?? []) as { id: string; centre_id: string | null; source_type: string | null; source_event_id: string | null }[];
+  const contacts = (contactsRes.data ?? []) as {
+    id: string;
+    centre_id: string | null;
+    source_type: string | null;
+    source_event_id: string | null;
+    first_seen: string | null;
+  }[];
   const milestones = (milestonesRes.data ?? []) as { contact_id: string; milestone: string; happened_on: string }[];
   const centres = ((centresRes.data ?? []) as { id: string; name_cn: string }[]).sort((a, b) => a.name_cn.localeCompare(b.name_cn, 'zh'));
   const centreNameById = new Map(centres.map((c) => [c.id, c.name_cn]));
@@ -253,27 +308,39 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
   let chatNew = 0;
   let chatNewPrev = 0;
 
+  // 新结缘-family metrics (tile + 上月 + trend + 来源 donut + 随喜各会 + 经聊天
+  // 新结缘) count CONTACTS by first_seen bucketed into MYT calendar months via
+  // the shared helper — the architect-verified source (fix batch 2026-07-11).
+  // The auto-created first_contact milestone stamps a UTC date, which is what
+  // put the contact tiles a window behind the conversation numbers.
+  for (const c of contacts) {
+    if (!inScope(c) || !c.first_seen) continue;
+    const ym = mytMonthOf(c.first_seen);
+    if (ym === month) {
+      newContacts++;
+      const src = c.source_type ?? null;
+      sourceCounts.set(src ?? '__null', (sourceCounts.get(src ?? '__null') ?? 0) + 1);
+      if (c.centre_id) {
+        const r = centreRoll.get(c.centre_id) ?? { newContacts: 0, chanting: 0 };
+        r.newContacts++;
+        centreRoll.set(c.centre_id, r);
+      }
+      if (src === 'chat') chatNew++;
+    } else if (ym === prev) {
+      newPrev++;
+      if ((c.source_type ?? null) === 'chat') chatNewPrev++;
+    }
+    const ti = trendMonths.indexOf(ym);
+    if (ti >= 0) trendNew[ti]++;
+  }
+
+  // Milestone-based metrics (开始念经, 发心义工, funnel) keep happened_on AS
+  // STORED — it is a date column, no tz shifting (fix brief rule 5). The
+  // window boundaries are the helper's MYT calendar dates.
   for (const m of milestones) {
     const c = contactById.get(m.contact_id);
     if (!inScope(c)) continue;
     const d = m.happened_on;
-    if (m.milestone === 'first_contact') {
-      if (inMonth(d, monthStart, monthEnd)) {
-        newContacts++;
-        const src = c?.source_type ?? null;
-        sourceCounts.set(src ?? '__null', (sourceCounts.get(src ?? '__null') ?? 0) + 1);
-        if (c?.centre_id) {
-          const r = centreRoll.get(c.centre_id) ?? { newContacts: 0, chanting: 0 };
-          r.newContacts++;
-          centreRoll.set(c.centre_id, r);
-        }
-        if (src === 'chat') chatNew++;
-      }
-      if (inMonth(d, prevStart, monthStart)) {
-        newPrev++;
-        if ((c?.source_type ?? null) === 'chat') chatNewPrev++;
-      }
-    }
     if (m.milestone === 'started_chanting') {
       if (inMonth(d, monthStart, monthEnd)) {
         chanting++;
@@ -284,13 +351,10 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
         }
       }
       if (inMonth(d, prevStart, monthStart)) chantingPrev++;
+      const ti = trendMonths.findIndex((tm) => inMonth(d, firstDay(tm), firstDay(monthAdd(tm, 1))));
+      if (ti >= 0) trendChant[ti]++;
     }
     if (m.milestone === 'volunteer' && d >= windowStart && d < monthEnd) volunteersWindow++;
-    const ti = trendMonths.findIndex((tm) => inMonth(d, firstDay(tm), firstDay(monthAdd(tm, 1))));
-    if (ti >= 0) {
-      if (m.milestone === 'first_contact') trendNew[ti]++;
-      if (m.milestone === 'started_chanting') trendChant[ti]++;
-    }
     if (d >= windowStart && d < monthEnd && funnelCounts.has(m.milestone)) {
       funnelCounts.set(m.milestone, (funnelCounts.get(m.milestone) ?? 0) + 1);
     }
@@ -332,7 +396,7 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
     set.add(c.id);
     contactsByEvent.set(c.source_event_id, set);
   }
-  const today = new Date(Date.now() + MYT_MS).toISOString().slice(0, 10);
+  const today = mytToday();
   const eventRows = events.map((e) => {
     const eventContacts = contactsByEvent.get(e.id) ?? new Set<string>();
     const end = e.ends_on ?? e.starts_on;
@@ -440,8 +504,8 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
       }
     }
     for (const rp of regPays) {
-      // MYT month of the verification instant
-      const ym = new Date(new Date(rp.payment_verified_at).getTime() + MYT_MS).toISOString().slice(0, 7);
+      // MYT month of the verification instant (shared helper)
+      const ym = mytMonthOf(rp.payment_verified_at);
       incomeByMonth.set(ym, (incomeByMonth.get(ym) ?? 0) + Number(rp.paid_amount ?? 0));
     }
     for (const e of expenses) {
@@ -553,7 +617,9 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
   let avgFirstResponseDays: number | null = null;
   const surfaced: { subject: string; age_days: number }[] = [];
   if (mbIds.length) {
-    const since30Utc = new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString();
+    // 30d 平均首次回复 window anchors on the MYT calendar date, not the UTC one
+    // (fix brief rule 4): midnight MYT thirty days before MYT-today.
+    const since30Utc = new Date(`${ymdAddDays(mytToday(), -30)}T00:00:00+08:00`).toISOString();
     const { data: th, error: thErr } = await db
       .from('inbox_threads')
       .select('subject, status, created_at, first_response_at, last_message_at')
