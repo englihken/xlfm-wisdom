@@ -49,7 +49,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .insert({
       channel: 'manual',
       display_name: displayName,
-      stage: '初次接触',
+      stage: 'first_contact', // E3 §4: stage writes use canonical keys
+
       phone: (t.sender_phone as string | null) ?? null,
       source_type: 'form', // permitted by migration 031; surfaces as the 表单 source chip
       source_note: (t.subject as string | null) ?? null,

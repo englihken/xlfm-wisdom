@@ -67,7 +67,11 @@ export function visibleModules(me: { role: string; grants?: Grants }): ModuleDoo
   if (grantAllows(me.grants, 'events', 'view')) doors.push('events'); // 活动 → /dashboard/events
   if (grantAllows(me.grants, 'inventory', 'view')) doors.push('inventory'); // 库存 → /dashboard/inventory
   if (grantAllows(me.grants, 'finance', 'view')) doors.push('finance'); // 财务 → /dashboard/finance
-  if (me.role === 'admin') doors.push('reports'); // care analytics — admin-only for now
-  if (me.role === 'admin') doors.push('settings'); // account mgmt — admin-only until A6
+  // E3: the 报表 door re-gates onto the 'reports' grants (migration 032 — admin
+  // manages; erp_admin/committee/finance_director national view; centre_head
+  // own-centre slice). 设置 opens at settings≥edit (admin + erp_admin); the
+  // 义工与账号 section inside stays admin-only (section-gated, Ken 2026-07-11).
+  if (grantAllows(me.grants, 'reports', 'view')) doors.push('reports');
+  if (grantAllows(me.grants, 'settings', 'edit')) doors.push('settings');
   return doors;
 }

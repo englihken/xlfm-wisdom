@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XLFM · E3 报表中心 + 设置扩建 — 界面设计预览（配合现有风格）</title>
+<style>
+:root{
+  --paper:#f7f3ea; --card:#ffffff; --ink:#33302a; --muted:#948a76;
+  --line:#e9e1d0; --line-soft:#f1ebdd;
+  --gold:#b8902e; --gold-deep:#8f6f1e; --gold-soft:#f7efdd; --gold-line:#e3d3a8;
+  --jade:#2f7d5e; --jade-soft:#e7f2ec; --jade-line:#cde4d8;
+  --sky:#3a7ca5; --sky-soft:#e8f1f7; --sky-line:#cfe2ee;
+  --rose:#b04a4a; --rose-soft:#f9eae8; --rose-line:#eccfca;
+  --indigo:#4b5aa7; --indigo-soft:#eceff9;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{background:var(--paper); color:var(--ink); font-size:14px; line-height:1.6;
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;}
+.serif{font-family:"Noto Serif SC","Songti SC","STSong","SimSun",serif;}
+button{font:inherit; cursor:pointer;}
+
+/* ===== preview meta bar (not part of the app) ===== */
+.meta{position:sticky; top:0; z-index:99; background:#3d3729; color:#f5efdf; padding:9px 16px;
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap; box-shadow:0 2px 8px rgba(40,32,10,.25);}
+.meta .t{font-size:12px; opacity:.8; margin-right:6px;}
+.mtab{border:1px solid rgba(255,255,255,.3); background:transparent; color:#eadfc2;
+  border-radius:99px; padding:4px 14px; font-size:12.5px; font-weight:600;}
+.mtab:hover{background:rgba(255,255,255,.1);}
+.mtab.on{background:#caa74b; border-color:#caa74b; color:#2e2812;}
+
+/* ===== app shell ===== */
+.app{display:flex; min-height:calc(100vh - 46px);}
+.snav{width:78px; background:#fff; border-right:1px solid var(--line); padding:14px 8px;
+  display:flex; flex-direction:column; gap:4px; align-items:center; flex-shrink:0;}
+.nitem{width:62px; padding:9px 2px 7px; border-radius:13px; text-align:center; color:#847a66;
+  font-size:10.5px; position:relative; line-height:1.3;}
+.nitem svg{width:21px; height:21px; display:block; margin:0 auto 3px; stroke:currentColor; fill:none;
+  stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round;}
+.nitem.on{background:#efe8d8; color:#5d532f; font-weight:600;}
+.nitem .nb{position:absolute; top:4px; right:8px; background:var(--rose); color:#fff; font-size:9px;
+  border-radius:99px; padding:0 5px; font-weight:700; line-height:1.5;}
+.nitem .newtag{position:absolute; top:4px; left:6px; background:var(--gold-soft); color:var(--gold-deep);
+  border:1px solid var(--gold-line); font-size:8.5px; border-radius:6px; padding:0 3px; font-weight:700;}
+
+.main{flex:1; min-width:0; display:flex; flex-direction:column;}
+.hd{background:#fff; padding:13px 26px 11px; display:flex; align-items:center; gap:13px;}
+.logo{width:38px; height:38px; flex-shrink:0;}
+.brand .sub{font-size:11px; color:#9a9080;}
+.brand .ttl{font-size:19.5px; font-weight:700; letter-spacing:.5px;}
+.hd .right{margin-left:auto; display:flex; align-items:center; gap:14px; font-size:13.5px; color:#5d5443;}
+.pillbtn{border:1.5px solid #d9cdb2; background:#fffdf8; color:#6d6248; border-radius:999px;
+  padding:6px 20px; font-size:13.5px;}
+.goldline{height:3px; background:linear-gradient(90deg,#c9a244,#e6d3a3 45%,#f3ead2);}
+.page{padding:22px 28px 60px; max-width:1280px; width:100%; margin:0 auto;}
+
+/* ===== shared bits ===== */
+.card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px 20px;
+  box-shadow:0 1px 3px rgba(120,100,40,.05);}
+.seclabel{font-size:12px; color:var(--muted); font-weight:600; letter-spacing:.5px; margin:20px 0 10px;}
+.chip{display:inline-block; border-radius:99px; padding:1.5px 10px; font-size:11px; font-weight:600;
+  border:1px solid var(--line); background:#fff; color:var(--muted); white-space:nowrap;}
+.chip.gold{background:var(--gold-soft); border-color:var(--gold-line); color:var(--gold-deep);}
+.chip.jade{background:var(--jade-soft); border-color:var(--jade-line); color:var(--jade);}
+.chip.sky{background:var(--sky-soft); border-color:var(--sky-line); color:var(--sky);}
+.chip.rose{background:var(--rose-soft); border-color:var(--rose-line); color:var(--rose);}
+.chip.indigo{background:var(--indigo-soft); border-color:#d5daf0; color:var(--indigo);}
+.btn{display:inline-block; border-radius:11px; padding:8px 18px; font-size:13.5px; font-weight:600;
+  border:1px solid var(--line); background:#fff; color:#5d5443;}
+.btn.primary{background:var(--gold); border-color:var(--gold); color:#fff;}
+.btn.sm{padding:5px 13px; font-size:12.5px; border-radius:9px;}
+.btn.ghost{border-color:transparent; color:var(--muted);}
+.small{font-size:12px; color:var(--muted);}
+.mono{font-variant-numeric:tabular-nums;}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+.grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+@media (max-width:980px){.grid2,.grid3,.grid4{grid-template-columns:1fr;}}
+table.t{width:100%; border-collapse:collapse; font-size:13px;}
+table.t th{color:var(--muted); font-weight:600; text-align:left; padding:7px 8px;
+  border-bottom:1px solid var(--line); font-size:12px;}
+table.t td{padding:9px 8px; border-bottom:1px solid var(--line-soft); vertical-align:middle;}
+table.t tr:last-child td{border-bottom:none;}
+.designnote{background:var(--gold-soft); border:1px dashed var(--gold-line); border-radius:13px;
+  padding:11px 15px; font-size:12.5px; margin:14px 0; color:#6b5a28;}
+.designnote b{color:var(--gold-deep);}
+.toggle{width:34px; height:19px; border-radius:99px; background:var(--jade); position:relative; display:inline-block; vertical-align:middle;}
+.toggle::after{content:""; position:absolute; right:2.5px; top:2.5px; width:14px; height:14px; background:#fff; border-radius:99px;}
+.toggle.off{background:#d8d2c4;}
+.toggle.off::after{left:2.5px; right:auto;}
+section.view{display:none;}
+section.view.on{display:block;}
+
+/* ===== tab1 home ===== */
+.greet{font-size:30px; font-weight:700; margin:6px 0 2px;}
+.gdate{color:var(--muted); font-size:13.5px; margin-bottom:20px;}
+.stat{background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px 18px; position:relative;}
+.stat .v{font-size:27px; font-weight:800;}
+.stat .k{font-size:12.5px; color:var(--muted); margin-top:1px;}
+.stat .sub{font-size:11px; color:#b3a88f; margin-top:2px;}
+.stat .ico{position:absolute; top:12px; right:14px; font-size:18px;}
+.crisisbar{background:var(--rose-soft); border:1px solid var(--rose-line); color:var(--rose);
+  border-radius:13px; padding:10px 16px; font-size:13px; font-weight:600; margin:14px 0;
+  display:flex; align-items:center; gap:10px;}
+.hcard-h{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+.hcard-h b{font-size:14.5px;}
+.hcard-h .en{font-size:11px; color:var(--muted); font-weight:400;}
+.hcard-h a{margin-left:auto; color:var(--gold-deep); font-size:12.5px; text-decoration:none; font-weight:600;}
+.task{display:flex; align-items:center; gap:9px; padding:9px 4px; border-bottom:1px solid var(--line-soft); font-size:13.5px;}
+.task:last-child{border-bottom:none;}
+.task .go{margin-left:auto; color:var(--gold-deep); font-size:13px;}
+.actrow{display:flex; gap:8px; padding:7px 4px; border-bottom:1px solid var(--line-soft); font-size:12.5px;}
+.actrow:last-child{border-bottom:none;}
+.actrow .tm{margin-left:auto; color:#b3a88f; font-size:11.5px; white-space:nowrap;}
+
+/* ===== tab2/3 mail ===== */
+.mail{display:grid; grid-template-columns:212px 336px 1fr; border:1px solid var(--line);
+  border-radius:16px; overflow:hidden; background:#fff; min-height:560px;}
+@media (max-width:1020px){.mail{grid-template-columns:1fr;}}
+.rail{background:#fbf8f1; border-right:1px solid var(--line); padding:12px 9px;}
+.rail .gt{font-size:10.5px; color:#b3a88f; font-weight:700; padding:9px 10px 4px; letter-spacing:.6px;}
+.folder{display:flex; justify-content:space-between; align-items:center; padding:7.5px 10px;
+  border-radius:10px; cursor:pointer; font-size:13px; color:#5d5443;}
+.folder:hover{background:#f2ecdd;}
+.folder.on{background:var(--gold-soft); color:var(--gold-deep); font-weight:700;}
+.folder .n{background:var(--rose); color:#fff; font-size:10px; border-radius:99px; padding:0 7px; font-weight:700;}
+.folder .n.q{background:#ddd5c3;}
+.mlist{border-right:1px solid var(--line); overflow:auto; background:#fff;}
+.lhead{padding:11px 13px 9px; border-bottom:1px solid var(--line); display:flex; gap:6px; align-items:center; flex-wrap:wrap;}
+.lhead b{font-size:13.5px; margin-right:2px;}
+.warnbar{background:var(--gold-soft); border-bottom:1px solid var(--gold-line); color:#8a6d1d;
+  padding:7px 13px; font-size:12px; font-weight:600;}
+.mrow{padding:11px 13px; border-bottom:1px solid var(--line-soft); cursor:pointer; position:relative;}
+.mrow:hover{background:#fbf8f1;}
+.mrow.on{background:var(--gold-soft);}
+.mrow.overdue{box-shadow:inset 3px 0 0 var(--gold);}
+.mrow .l1{display:flex; justify-content:space-between; gap:8px; font-weight:700; font-size:13px;}
+.mrow .l1 .tm{color:#b3a88f; font-weight:400; font-size:11px; white-space:nowrap;}
+.mrow .l2{font-size:12.5px; margin-top:1px; font-weight:600;}
+.mrow .prev{color:var(--muted); font-size:12px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.mrow .l3{display:flex; gap:5px; margin-top:6px; align-items:center; flex-wrap:wrap;}
+.mrow.read .l1, .mrow.read .l2{font-weight:400;}
+.dot{width:7px; height:7px; border-radius:99px; background:var(--sky); display:inline-block; margin-right:5px;}
+.od{font-size:10.5px; color:var(--gold-deep); font-weight:700;}
+.rpane{padding:16px 20px; overflow:auto; background:#fdfbf6;}
+.rh{border-bottom:1px solid var(--line); padding-bottom:11px; margin-bottom:13px;}
+.rh h3{font-size:16px;}
+.rh .mt{font-size:12px; color:var(--muted); margin-top:4px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.bubble{border:1px solid var(--line); border-radius:14px; padding:11px 15px; margin:10px 0; font-size:13.5px; background:#fff; max-width:92%;}
+.bubble .who{font-size:11px; color:var(--muted); margin-bottom:3px; font-weight:700;}
+.bubble.me{background:var(--jade-soft); border-color:var(--jade-line); margin-left:auto;}
+.bubble.note{background:var(--gold-soft); border:1px dashed var(--gold-line);}
+.bubble.note .who{color:var(--gold-deep);}
+.replybox{border:1px solid var(--line); border-radius:14px; padding:12px 15px; margin-top:14px; background:#fff;}
+.replybox .fake{color:#b3a88f; font-size:13px; padding:4px 0 24px;}
+.rowbtns{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+.assign{display:flex; gap:8px; align-items:center; margin-top:11px; font-size:12px; color:var(--muted); flex-wrap:wrap;}
+.assign select, .fsel{font:inherit; font-size:12.5px; padding:5px 10px; border-radius:9px; border:1px solid var(--line); background:#fff; color:var(--ink);}
+.linkchip{display:inline-flex; align-items:center; gap:5px; background:var(--gold-soft); border:1px solid var(--gold-line);
+  color:var(--gold-deep); border-radius:10px; padding:4px 11px; font-size:12px; font-weight:700; cursor:pointer;}
+
+/* health cards */
+.hbx{background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px 17px;}
+.hbx .cn{font-weight:700; font-size:14.5px;}
+.hbx .own{font-size:11.5px; color:var(--muted); margin-top:1px;}
+.hbx .nums{display:flex; gap:18px; margin-top:10px;}
+.hbx .nums .n{font-size:22px; font-weight:800;}
+.hbx .nums .k{font-size:11px; color:var(--muted);}
+.hbx.warn{border-color:var(--gold-line); background:#fffdf6;}
+.dlg{max-width:430px; margin:0 auto; background:#fff; border:1px solid var(--line); border-radius:16px;
+  padding:20px 22px; box-shadow:0 12px 40px rgba(60,48,15,.14); text-align:center;}
+
+/* settings */
+.set{display:grid; grid-template-columns:225px 1fr; border:1px solid var(--line); border-radius:16px;
+  overflow:hidden; background:#fff; min-height:520px;}
+@media (max-width:900px){.set{grid-template-columns:1fr;}}
+.sn{background:#fbf8f1; border-right:1px solid var(--line); padding:12px 9px;}
+.sitem{padding:9px 12px; border-radius:10px; cursor:pointer; font-size:13.5px; display:flex; justify-content:space-between; align-items:center; color:#5d5443;}
+.sitem:hover{background:#f2ecdd;}
+.sitem.on{background:var(--gold-soft); color:var(--gold-deep); font-weight:700;}
+.sitem .chip{font-size:9px; padding:0 6px;}
+.sp{padding:19px 22px; overflow:auto;}
+.sp h3{font-size:15.5px; margin-bottom:2px;}
+.sp .hint{font-size:12px; color:var(--muted); margin-bottom:12px;}
+.kwtag{display:inline-flex; align-items:center; gap:5px; background:#fff; border:1px solid var(--line);
+  border-radius:99px; padding:3px 11px; font-size:12px; margin:0 5px 6px 0; color:#5d5443;}
+.kwtag i{font-style:normal; color:#c2b79c; cursor:pointer;}
+.numin{width:52px; text-align:center; font:inherit; padding:4px 6px; border:1px solid var(--line); border-radius:8px; background:#fff;}
+
+/* public form */
+.pubwrap{max-width:640px; margin:0 auto;}
+.urlbar{background:#efe9dc; border:1px solid var(--line); border-radius:12px 12px 0 0; padding:8px 14px;
+  display:flex; gap:8px; align-items:center; font-size:12px; color:var(--muted);}
+.urlbar .u{background:#fff; border:1px solid var(--line); border-radius:99px; padding:3px 16px; flex:1; text-align:center;}
+.pubpage{border:1px solid var(--line); border-top:none; border-radius:0 0 16px 16px; background:var(--paper); padding:34px 22px 40px;}
+.pcard{max-width:520px; margin:0 auto; background:#fff; border:1px solid var(--line); border-radius:18px; padding:26px 28px;
+  box-shadow:0 2px 10px rgba(120,100,40,.06);}
+.fl{font-size:12.5px; font-weight:600; color:#5d5443; margin:13px 0 5px;}
+.fl em{color:var(--rose); font-style:normal;}
+.fin{width:100%; font:inherit; padding:9px 12px; border:1px solid var(--line); border-radius:11px; background:#fffdf8; color:var(--ink);}
+textarea.fin{min-height:96px; resize:vertical;}
+footer{margin:36px 0 8px; text-align:center; font-size:11.5px; color:#b3a88f;}
+
+/* ===== E3 charts (dataviz specs: thin marks, 4px ends, 2px gaps, recessive grid) ===== */
+.charthead{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:14px;}
+.lgd{font-size:11.5px; color:var(--muted);} .lgd i{display:inline-block; width:10px; height:10px; border-radius:3px; vertical-align:-1px; margin-right:4px;}
+svg.chart{width:100%; height:auto;}
+.dlgd{font-size:12.5px; line-height:2;} .dlgd i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px;}
+.dlgd b{margin-left:6px;}
+.funl .frow{display:flex; align-items:center; gap:10px; margin:3px 0;}
+.funl .fl{width:104px; font-size:12.5px; text-align:right; flex-shrink:0; color:#5D5443;}
+.funl .fb{height:26px; border-radius:4px; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; padding-left:8px; min-width:26px; border:2px solid #fff;}
+.funl .fpct{font-size:10.5px; color:var(--muted); padding-left:118px; line-height:1.1;}
+.hbars .hrow{display:flex; align-items:center; gap:10px; margin:7px 0;}
+.hbars .hl{width:104px; font-size:12.5px; text-align:right; flex-shrink:0; color:#5D5443;}
+.hbars .hb{height:20px; border-radius:4px; color:#fff; font-size:11.5px; font-weight:700; display:flex; align-items:center; padding-left:7px; min-width:20px; border:2px solid #fff;}
+.hbars .hb.warn{background:#B04A4A;}
+.hbars .track{flex:1; background:#F1EBDD; border-radius:4px;}
+.hbars .track .hb{border:2px solid #F1EBDD;}
+.hbars .hsub{font-size:11px; color:var(--muted); white-space:nowrap;}
+.delta{font-size:11px; font-weight:700; vertical-align:6px; margin-left:4px;}
+.delta.up{color:#009E63;} .delta.flat{color:var(--muted);}
+.dept{border:none; font:inherit; font-size:12px; font-weight:600; padding:4px 14px; cursor:pointer;}
+.dept:not(.gold){border:1px solid var(--line); background:#fff;}
+/* ===== presentation mode ===== */
+body.present .meta, body.present .snav, body.present .hd, body.present .goldline,
+body.present .nopresent, body.present .deptbar{display:none !important;}
+body.present .app{display:block;}
+body.present .page{max-width:1500px; padding:34px 60px;}
+body.present .rpage[data-on="1"]{display:block !important;}
+body.present .rpage{display:none !important;}
+body.present .stat .v{font-size:44px;}
+body.present .stat .k{font-size:15px;}
+body.present .card, body.present .stat, body.present .hbx{border-radius:20px;}
+body.present table.t{font-size:15px;}
+body.present .funl .fb{height:34px; font-size:15px;}
+body.present .hbars .hb{height:26px; font-size:13px;}
+.ptitle{display:none;}
+body.present .ptitle{display:flex; justify-content:space-between; align-items:baseline; font-family:"Noto Serif SC","Songti SC",serif; font-size:30px; font-weight:700; margin-bottom:18px;}
+body.present .ptitle .pm{font-size:14px; color:var(--muted); font-family:inherit;}
+.pnav{display:none;}
+body.present .pnav{display:flex; position:fixed; bottom:22px; left:50%; transform:translateX(-50%); gap:10px; align-items:center; z-index:99; background:#fff; border:1px solid var(--line); border-radius:99px; padding:8px 16px; box-shadow:0 4px 20px rgba(60,48,15,.12);}
+.pnav button{border:none; background:none; font-size:16px; cursor:pointer; color:#5D5443;}
+.pnav .dots{display:flex; gap:5px;}
+.pnav .dots i{width:7px; height:7px; border-radius:99px; background:#DDD5C3;}
+.pnav .dots i.on{background:var(--gold);}
+
+</style>
+</head>
+<body>
+
+<div class="meta">
+  <span class="t">E3 设计预览 · 配合现有界面风格 · 全部示范数据</span>
+  <button class="mtab on" data-tab="t1">① 报表中心 · 月检包</button>
+  <button class="mtab" data-tab="t2">② 权限矩阵 + 审计查看器</button>
+  <button class="mtab" data-tab="t3">③ 智慧问答 · 渡人阶段 · 公开页面</button>
+  <button class="mtab" data-tab="t4">④ 主页补全 + i18n 地基</button>
+</div>
+
+<div class="app">
+  <!-- ===== left icon nav (matches live app) ===== -->
+  <nav class="snav" id="snav">
+    <div class="nitem" data-nav="home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>主页</div>
+    <div class="nitem" data-nav="mail"><span class="newtag">新</span><span class="nb">3</span><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3.5 6.5 8.5 7 8.5-7"/></svg>收件箱</div>
+    <div class="nitem" data-nav="care"><svg viewBox="0 0 24 24"><path d="M21 11.5c0 4.1-4 7.5-9 7.5-1 0-2-.13-2.9-.38L4 20l1.2-3.6C3.8 15.1 3 13.4 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z"/><path d="M8 10.5h8M8 13h5"/></svg>智慧问答</div>
+    <div class="nitem" data-nav="duren"><svg viewBox="0 0 24 24"><path d="M12 20c-4 0-7-3-7-7 2 0 4 .7 5 2-.5-3 .5-7 2-9 1.5 2 2.5 6 2 9 1-1.3 3-2 5-2 0 4-3 7-7 7z"/></svg>渡人</div>
+    <div class="nitem" data-nav="members"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c.6-3.4 3.1-5.2 6.2-5.2s5.6 1.8 6.2 5.2"/><path d="M16 5.4a3.2 3.2 0 0 1 0 5.9M17.8 15c2 .7 3.1 2.4 3.4 5"/></svg>会员</div>
+    <div class="nitem" data-nav="events"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10.5h17"/></svg>活动</div>
+    <div class="nitem" data-nav="inv"><svg viewBox="0 0 24 24"><path d="m12 3 8.5 4.5v9L12 21l-8.5-4.5v-9z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>库存</div>
+    <div class="nitem" data-nav="fin"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="2.8"/><path d="M4 6v6c0 1.5 3.6 2.8 8 2.8s8-1.3 8-2.8V6"/><path d="M4 12v6c0 1.5 3.6 2.8 8 2.8s8-1.3 8-2.8v-6"/></svg>财务</div>
+    <div class="nitem" data-nav="reports"><svg viewBox="0 0 24 24"><path d="M4 20V9M10 20V4M16 20v-8M21 20H3.5"/></svg>报表</div>
+    <div class="nitem" data-nav="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.15-1.4l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2.4-1.4L13.8 3h-3.6l-.35 2.3a7 7 0 0 0-2.4 1.4l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .5.05.9.15 1.4l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2.4 1.4l.35 2.3h3.6l.35-2.3a7 7 0 0 0 2.4-1.4l2.3 1 2-3.4-2-1.5c.1-.5.15-.9.15-1.4z"/></svg>设置</div>
+  </nav>
+
+  <div class="main">
+    <!-- ===== header (matches live app) ===== -->
+    <div class="hd">
+      <svg class="logo" viewBox="0 0 40 40"><g fill="#e0b13c"><ellipse cx="20" cy="13" rx="4.2" ry="7.5"/><ellipse cx="20" cy="14" rx="4.2" ry="7.5" transform="rotate(40 20 14)"/><ellipse cx="20" cy="14" rx="4.2" ry="7.5" transform="rotate(-40 20 14)"/><ellipse cx="20" cy="16" rx="4" ry="7" transform="rotate(75 20 16)"/><ellipse cx="20" cy="16" rx="4" ry="7" transform="rotate(-75 20 16)"/></g><circle cx="20" cy="15" r="3.4" fill="#8f6f1e"/></svg>
+      <div class="brand">
+        <div class="sub">心灵法门数字平台</div>
+        <div class="ttl serif" id="modttl">报表中心 · Reports</div>
+      </div>
+      <div class="right"><span>Ken</span><button class="pillbtn">登出</button></div>
+    </div>
+    <div class="goldline"></div>
+
+    <div class="page">
+
+<!-- ================================================== TAB 1 : 报表中心 ================================================== -->
+<section class="view on" id="t1">
+    <div class="ptitle"><span id="ptText">🪷 渡人 · 2026年7月</span><span class="pm">XLFM 月度检讨包 · 演示模式（ESC 退出）</span></div>
+    <div class="pnav"><button id="pPrev">←</button><div class="dots" id="pDots"></div><button id="pNext">→</button></div>
+
+  <div class="designnote nopresent">📊 <b>报表中心 = 月会的投屏主角</b>：选月份 → 每部门一页真图表。<b>▶ 演示模式</b>全屏翻页（←→ 键），开会不用导出；要留档就 <b>导出 PPT</b>（原生可编辑图表）或打印。分会负责人只见本会切片。</div>
+
+  <div class="card nopresent" style="margin-bottom:14px;">
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <b>检讨月份</b>
+      <span class="chip">2026-05</span><span class="chip">2026-06</span><span class="chip gold">2026-07</span>
+      <span style="margin-left:auto;"></span>
+      <button class="btn primary sm" id="presentBtn">▶ 演示模式</button>
+      <span class="btn sm">📽️ 导出 PPT</span>
+      <span class="btn sm ghost">🖨️ 打印</span>
+      <span class="btn sm ghost">CSV</span>
+    </div>
+  </div>
+
+  <div class="deptbar nopresent" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;">
+    <button class="chip gold dept" data-group="rp" data-key="dr">🪷 渡人</button>
+    <button class="chip dept" data-group="rp" data-key="care">💬 关怀·智慧问答</button>
+    <button class="chip dept" data-group="rp" data-key="ops">🏛️ 运营 · 财务</button>
+    <button class="chip dept" data-group="rp" data-key="evinv">📅 活动 · 📦 库存</button>
+    <button class="chip dept" data-group="rp" data-key="inbox">📮 收件箱健康</button>
+  </div>
+
+  <!-- ============ 渡人 page ============ -->
+  <div data-pane="rp:dr" class="rpage" data-title="🪷 渡人 · 2026年7月">
+    <div class="grid3">
+      <div class="stat"><div class="v mono">42 <span class="delta up">▲ +11%</span></div><div class="k">本月新结缘</div><div class="sub">上月 38</div></div>
+      <div class="stat"><div class="v mono" style="color:#009E63;">11 <span class="delta up">▲ +2</span></div><div class="k">本月开始念经 🙏</div><div class="sub">上月 9 · 这是关键一步</div></div>
+      <div class="stat"><div class="v mono">4 <span class="delta flat">— 持平</span></div><div class="k">发心义工（近90天）</div><div class="sub">随喜赞叹 ✨</div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:14px;">
+      <div class="card">
+        <div class="charthead"><b>近六个月趋势</b>
+          <span class="lgd"><i style="background:#0E86D4"></i>新结缘 <i style="background:#009E63; margin-left:10px;"></i>开始念经</span></div>
+        <svg viewBox="0 0 560 190" class="chart" role="img" aria-label="近六个月：新结缘与开始念经趋势线">
+          <g stroke="#EEE8DB" stroke-width="1"><line x1="46" y1="20" x2="540" y2="20"/><line x1="46" y1="70" x2="540" y2="70"/><line x1="46" y1="120" x2="540" y2="120"/><line x1="46" y1="170" x2="540" y2="170"/></g>
+          <g fill="#948A76" font-size="11" text-anchor="end"><text x="40" y="24">50</text><text x="40" y="74">33</text><text x="40" y="124">17</text><text x="40" y="174">0</text></g>
+          <g fill="#948A76" font-size="11" text-anchor="middle"><text x="70" y="186">2月</text><text x="164" y="186">3月</text><text x="258" y="186">4月</text><text x="352" y="186">5月</text><text x="446" y="186">6月</text><text x="522" y="186">7月</text></g>
+          <polyline fill="none" stroke="#0E86D4" stroke-width="2" stroke-linejoin="round" points="70,86 164,65 258,77 352,56 446,50 522,44"/>
+          <polyline fill="none" stroke="#009E63" stroke-width="2" stroke-linejoin="round" points="70,152 164,143 258,146 352,143 446,140 522,137"/>
+          <g fill="#0E86D4"><circle cx="522" cy="44" r="4.5"/></g><g fill="#009E63"><circle cx="522" cy="137" r="4.5"/></g>
+          <text x="534" y="40" font-size="12" font-weight="700" fill="#33302A">42</text>
+          <text x="534" y="141" font-size="12" font-weight="700" fill="#33302A">11</text>
+        </svg>
+      </div>
+
+      <div class="card">
+        <div class="charthead"><b>本月来源分布</b><span class="small">合计 42 位</span></div>
+        <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+          <svg viewBox="0 0 140 140" width="132" role="img" aria-label="来源分布圆环">
+            <g transform="rotate(-90 70 70)" fill="none" stroke-width="22" stroke-linecap="butt">
+              <circle cx="70" cy="70" r="48" stroke="#009E63" stroke-dasharray="215.5 301.6" stroke-dashoffset="0"/>
+              <circle cx="70" cy="70" r="48" stroke="#0E86D4" stroke-dasharray="34 301.6" stroke-dashoffset="-217.5"/>
+              <circle cx="70" cy="70" r="48" stroke="#D97706" stroke-dasharray="27 301.6" stroke-dashoffset="-253.5"/>
+              <circle cx="70" cy="70" r="48" stroke="#7C5CDB" stroke-dasharray="12.5 301.6" stroke-dashoffset="-282.5"/>
+              <circle cx="70" cy="70" r="48" stroke="#A79E8B" stroke-dasharray="4.6 301.6" stroke-dashoffset="-297"/>
+            </g>
+            <text x="70" y="66" text-anchor="middle" font-size="24" font-weight="800" fill="#33302A">42</text>
+            <text x="70" y="84" text-anchor="middle" font-size="10.5" fill="#948A76">新结缘</text>
+          </svg>
+          <div class="dlgd">
+            <div><i style="background:#009E63"></i>智慧问答 <b class="mono">30</b></div>
+            <div><i style="background:#0E86D4"></i>活动 <b class="mono">5</b></div>
+            <div><i style="background:#D97706"></i>表单 <b class="mono">4</b></div>
+            <div><i style="background:#7C5CDB"></i>亲友介绍 <b class="mono">2</b></div>
+            <div><i style="background:#A79E8B"></i>走进来 <b class="mono">1</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:14px;">
+      <div class="card">
+        <div class="charthead"><b>善缘漏斗 · 近90天</b><span class="small">窗口可调（设置→渡人阶段）</span></div>
+        <div class="funl">
+          <div class="frow"><span class="fl">初次接触</span><div class="fb" style="width:100%; background:#C6F2DF; color:#33302A;" title="126 位">126</div></div>
+          <div class="fpct">→ 46%</div>
+          <div class="frow"><span class="fl">参加活动·共修</span><div class="fb" style="width:46%; background:#7FE3B8; color:#33302A;">58</div></div>
+          <div class="fpct">→ 53%</div>
+          <div class="frow"><span class="fl">开始念经 🙏</span><div class="fb" style="width:24.6%; background:#2FC488;">31</div></div>
+          <div class="fpct">→ 58%</div>
+          <div class="frow"><span class="fl">持续修学</span><div class="fb" style="width:14.3%; background:#009E63;">18</div></div>
+          <div class="fpct">→ 33%</div>
+          <div class="frow"><span class="fl">发心义工</span><div class="fb" style="width:4.8%; background:#00744A;">6</div></div>
+        </div>
+        <div class="small" style="margin-top:8px;">🔒 只记录成长，不贴标签、不催促、不排名。</div>
+      </div>
+
+      <div class="card">
+        <div class="charthead"><b>随喜各共修会 · 开始念经</b><span class="small">不排名 · 按名称序</span></div>
+        <div class="hbars">
+          <div class="hrow"><span class="hl">总会 HQ</span><div class="hb" style="width:80%; background:#009E63;">4</div><span class="hsub">新结缘 14</span></div>
+          <div class="hrow"><span class="hl">八打灵</span><div class="hb" style="width:40%; background:#009E63;">2</div><span class="hsub">新结缘 6</span></div>
+          <div class="hrow"><span class="hl">巴生</span><div class="hb" style="width:20%; background:#009E63;">1</div><span class="hsub">新结缘 5</span></div>
+          <div class="hrow"><span class="hl">蒲种</span><div class="hb" style="width:60%; background:#009E63;">3</div><span class="hsub">新结缘 9</span></div>
+          <div class="hrow"><span class="hl">蕉赖</span><div class="hb" style="width:20%; background:#009E63;">1</div><span class="hsub">新结缘 8</span></div>
+        </div>
+        <div class="small" style="margin-top:8px;">月会看法：哪种来源转化好，资源就放哪里。分会负责人只见本会一行。</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="charthead"><b>活动效果</b><span class="small">报名 → 新结缘 → 窗口内开始念经（无签到功能，暂不显示出席）</span></div>
+      <table class="t">
+        <tr><th>活动</th><th>月份</th><th class="mono">报名</th><th class="mono">新结缘</th><th class="mono">开始念经≤90天</th><th>转化</th></tr>
+        <tr><td><b>卫塞节浴佛共修</b></td><td>2026-05</td><td class="mono">86</td><td class="mono">19</td><td class="mono" style="color:#009E63; font-weight:700;">7</td><td><span class="chip jade">37%</span></td></tr>
+        <tr><td>观音诞共修</td><td>2026-04</td><td class="mono">54</td><td class="mono">8</td><td class="mono" style="color:#009E63; font-weight:700;">3</td><td><span class="chip jade">38%</span></td></tr>
+        <tr><td>八月法会 XLFM-2608</td><td>2026-08</td><td class="mono" colspan="3" style="color:var(--muted);">筹备中 — 法会后自动出效果</td><td><span class="chip">待办</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ 关怀 page ============ -->
+  <div data-pane="rp:care" class="rpage" data-title="💬 关怀 · 智慧问答 · 2026年7月" style="display:none">
+    <div class="grid3">
+      <div class="stat"><div class="v mono">201 <span class="delta up">▲ +9%</span></div><div class="k">本月对话量</div><div class="sub">上月 185</div></div>
+      <div class="stat"><div class="v mono" style="color:#B04A4A;">2</div><div class="k">危机对话 ⚠</div><div class="sub">均已即刻跟进 · 状态公开</div></div>
+      <div class="stat"><div class="v mono">30 <span class="delta up">▲ +4</span></div><div class="k">经聊天新结缘</div><div class="sub">转入渡人名单</div></div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="charthead"><b>问题分布</b><span class="small">分类词可在 设置→智慧问答设定 管理</span></div>
+      <div class="hbars">
+        <div class="hrow"><span class="hl">修行方法</span><div class="hb" style="width:100%; background:#0E86D4;">223</div></div>
+        <div class="hrow"><span class="hl">解梦</span><div class="hb" style="width:25%; background:#0E86D4;">55</div></div>
+        <div class="hrow"><span class="hl">玄学问答</span><div class="hb" style="width:19%; background:#0E86D4;">43</div></div>
+        <div class="hrow"><span class="hl">健康</span><div class="hb" style="width:9%; background:#0E86D4;">19</div></div>
+        <div class="hrow"><span class="hl">因果业障</span><div class="hb" style="width:8%; background:#0E86D4;">18</div></div>
+        <div class="hrow"><span class="hl">其他类</span><div class="hb" style="width:32%; background:#A79E8B;">70</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 运营+财务 page ============ -->
+  <div data-pane="rp:ops" class="rpage" data-title="🏛️ 运营 · 财务 · 2026年7月" style="display:none">
+    <div class="grid4">
+      <div class="stat"><div class="v mono">483</div><div class="k">活跃会员</div><div class="sub">示范 · 导入后启用</div></div>
+      <div class="stat">
+        <svg viewBox="0 0 84 84" width="64" style="float:right; margin-top:-4px;">
+          <circle cx="42" cy="42" r="34" fill="none" stroke="#EEE8DB" stroke-width="9"/>
+          <circle cx="42" cy="42" r="34" fill="none" stroke="#009E63" stroke-width="9" stroke-linecap="round"
+                  stroke-dasharray="153.8 213.6" transform="rotate(-90 42 42)"/>
+          <text x="42" y="47" text-anchor="middle" font-size="17" font-weight="800" fill="#33302A">72%</text>
+        </svg>
+        <div class="k" style="margin-top:6px;">月费收缴率</div><div class="sub">无逾期 · 无催缴 · 可豁免</div></div>
+      <div class="stat"><div class="v mono">RM 12,840</div><div class="k">本月收入</div><div class="sub">月费 + 随喜</div></div>
+      <div class="stat"><div class="v mono">RM 9,215</div><div class="k">本月支出</div><div class="sub">结余 <b style="color:#009E63;">RM 3,625</b></div></div>
+    </div>
+    <div class="grid2" style="margin-top:14px;">
+      <div class="card">
+        <div class="charthead"><b>近六个月收支</b>
+          <span class="lgd"><i style="background:#009E63"></i>收入 <i style="background:#D97706; margin-left:10px;"></i>支出</span></div>
+        <svg viewBox="0 0 560 190" class="chart" role="img" aria-label="近六个月收支柱状图">
+          <g stroke="#EEE8DB" stroke-width="1"><line x1="46" y1="20" x2="540" y2="20"/><line x1="46" y1="95" x2="540" y2="95"/><line x1="46" y1="170" x2="540" y2="170"/></g>
+          <g fill="#948A76" font-size="11" text-anchor="end"><text x="40" y="24">15k</text><text x="40" y="99">7.5k</text><text x="40" y="174">0</text></g>
+          <g>
+            <rect x="62"  y="76"  width="26" height="94"  rx="4" fill="#009E63"/><rect x="92"  y="102" width="26" height="68" rx="4" fill="#D97706"/>
+            <rect x="142" y="66"  width="26" height="104" rx="4" fill="#009E63"/><rect x="172" y="96"  width="26" height="74" rx="4" fill="#D97706"/>
+            <rect x="222" y="84"  width="26" height="86"  rx="4" fill="#009E63"/><rect x="252" y="108" width="26" height="62" rx="4" fill="#D97706"/>
+            <rect x="302" y="58"  width="26" height="112" rx="4" fill="#009E63"/><rect x="332" y="92"  width="26" height="78" rx="4" fill="#D97706"/>
+            <rect x="382" y="52"  width="26" height="118" rx="4" fill="#009E63"/><rect x="412" y="88"  width="26" height="82" rx="4" fill="#D97706"/>
+            <rect x="462" y="42"  width="26" height="128" rx="4" fill="#009E63"/><rect x="492" y="78"  width="26" height="92" rx="4" fill="#D97706"/>
+          </g>
+          <g fill="#948A76" font-size="11" text-anchor="middle"><text x="90" y="186">2月</text><text x="170" y="186">3月</text><text x="250" y="186">4月</text><text x="330" y="186">5月</text><text x="410" y="186">6月</text><text x="490" y="186">7月</text></g>
+          <text x="475" y="36" font-size="12" font-weight="700" fill="#33302A">12.8k</text>
+        </svg>
+      </div>
+      <div class="card">
+        <div class="charthead"><b>各会收缴率</b><span class="small">按名称序 · 参考用</span></div>
+        <div class="hbars">
+          <div class="hrow"><span class="hl">总会 HQ</span><div class="hb" style="width:75%; background:#009E63;">75%</div></div>
+          <div class="hrow"><span class="hl">八打灵</span><div class="hb" style="width:71%; background:#009E63;">71%</div></div>
+          <div class="hrow"><span class="hl">巴生</span><div class="hb" style="width:66%; background:#009E63;">66%</div></div>
+          <div class="hrow"><span class="hl">蒲种</span><div class="hb" style="width:78%; background:#009E63;">78%</div></div>
+          <div class="hrow"><span class="hl">蕉赖</span><div class="hb" style="width:69%; background:#009E63;">69%</div></div>
+        </div>
+        <div class="small" style="margin-top:8px;">低就检讨是否启动盈余互助 — 不是去追人。明细在财务模块。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 活动+库存 page ============ -->
+  <div data-pane="rp:evinv" class="rpage" data-title="📅 活动 · 📦 库存 · 2026年7月" style="display:none">
+    <div class="grid2">
+      <div class="card">
+        <div class="charthead"><b>活动报名 vs 名额</b><span class="lgd"><i style="background:#0E86D4"></i>报名 <i style="background:#EEE8DB; margin-left:10px;"></i>名额</span></div>
+        <div class="hbars">
+          <div class="hrow"><span class="hl">八月法会</span><div class="track"><div class="hb" style="width:41%; background:#0E86D4;">82</div></div><span class="hsub">/ 200</span></div>
+          <div class="hrow"><span class="hl">周末共修</span><div class="track"><div class="hb" style="width:85%; background:#0E86D4;">51</div></div><span class="hsub">/ 60</span></div>
+        </div>
+        <div class="small" style="margin-top:8px;">满额率高的场次考虑加场；报名数每日更新。</div>
+      </div>
+      <div class="card">
+        <div class="charthead"><b>低库存品项</b><span class="small">当前 / 警戒线</span></div>
+        <div class="hbars">
+          <div class="hrow"><span class="hl">念佛机</span><div class="track"><div class="hb warn" style="width:30%;">6</div></div><span class="hsub">/ 20</span></div>
+          <div class="hrow"><span class="hl">经书《白话佛法》</span><div class="track"><div class="hb warn" style="width:45%;">18</div></div><span class="hsub">/ 40</span></div>
+          <div class="hrow"><span class="hl">香</span><div class="track"><div class="hb warn" style="width:25%;">5</div></div><span class="hsub">/ 20</span></div>
+        </div>
+        <div class="small" style="margin-top:8px;">⚠ 低库存=状态色（含图标），不是普通系列色。盘点差异 2 项 · 本月放行拍照 14 张。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 收件箱健康 page ============ -->
+  <div data-pane="rp:inbox" class="rpage" data-title="📮 收件箱健康 · 2026年7月" style="display:none">
+    <div class="grid4">
+      <div class="hbx"><div class="cn">总会 HQ</div><div class="own">负责人：秀兰 · 志明</div>
+        <div class="nums"><div><div class="n mono">2</div><div class="k">未处理</div></div><div><div class="n mono" style="color:#A07C22;">9天</div><div class="k">最旧</div></div><div><div class="n mono">0</div><div class="k">危机</div></div></div></div>
+      <div class="hbx"><div class="cn">蒲种</div><div class="own">负责人：美凤</div>
+        <div class="nums"><div><div class="n mono">1</div><div class="k">未处理</div></div><div><div class="n mono">2天</div><div class="k">最旧</div></div><div><div class="n mono">0</div><div class="k">危机</div></div></div></div>
+      <div class="hbx"><div class="cn">蕉赖</div><div class="own">负责人：阿豪</div>
+        <div class="nums"><div><div class="n mono">0</div><div class="k">未处理</div></div><div><div class="n mono">—</div><div class="k">最旧</div></div><div><div class="n mono">0</div><div class="k">危机</div></div></div></div>
+      <div class="stat"><div class="v mono">1.2天</div><div class="k">平均首次回复</div><div class="sub">近30天 · 全国</div></div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="charthead"><b>超过上报天数（14天）</b><span class="small">只显示标题与天数 — 内容仍在会里</span></div>
+      <div class="task"><span class="chip gold">总会</span>「场地租借询问 — 八月法会礼堂」<span class="go" style="color:#A07C22;">已 16 天</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================== TAB 2 : 权限矩阵 + 审计查看器 ================================================== -->
+<section class="view" id="t2">
+  <div class="designnote">🔐 <b>设置扩建（一）</b>：设置页现在开放给 erp_admin（<b>义工与账号除外</b> — 该区仍 admin 专属，Ken 2026-07-11 决定）。权限矩阵为<b>只读</b>（改动找架构师 — 防自锁）；审计日志只可查不可改。</div>
+
+  <div class="seclabel">🔐 部门与权限（只读 · 读取 role_grants 实时数据）</div>
+  <div class="card" style="overflow-x:auto;">
+    <table class="t" style="min-width:760px;">
+      <tr><th>角色 \ 模块</th><th>关怀</th><th>收件箱</th><th>渡人</th><th>会员</th><th>活动</th><th>库存</th><th>财务</th><th>报表</th><th>设置</th><th>审计</th><th>范围</th><th class="mono">账号</th></tr>
+      <tr><td><b>管理员</b></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip sky">查看</span></td><td>全国</td><td class="mono">1</td></tr>
+      <tr><td><b>ERP 管理员</b></td><td>—</td><td><span class="chip">数字</span></td><td><span class="chip sky">查看</span></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip gold">管理</span></td><td><span class="chip sky">查看</span></td><td><span class="chip jade">部分</span></td><td>—</td><td>全国</td><td class="mono">1</td></tr>
+      <tr><td><b>关怀义工</b></td><td><span class="chip jade">编辑</span></td><td>—</td><td><span class="chip jade">编辑</span></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>全国</td><td class="mono">1</td></tr>
+      <tr><td><b>分会负责人</b></td><td>—</td><td><span class="chip jade">编辑</span></td><td><span class="chip jade">编辑</span></td><td><span class="chip jade">编辑</span></td><td><span class="chip jade">编辑</span></td><td><span class="chip jade">编辑</span></td><td>—</td><td><span class="chip sky">本会</span></td><td>—</td><td>—</td><td><b>本会</b></td><td class="mono">0</td></tr>
+      <tr><td colspan="13" class="small">理事会 · 财务总监 · 分会财政 依现有 grants 显示。矩阵直接读 role_grants — 永不过时。改权限：出于安全，界面不提供编辑（防误锁），由架构师经连接器调整并记录。</td></tr>
+    </table>
+  </div>
+
+  <div class="seclabel">🧾 审计日志查看器（append-only · 只可查）</div>
+  <div class="card">
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+      <select class="fsel"><option>全部模块</option><option>inbox</option><option>outreach</option><option>settings</option><option>finance</option></select>
+      <select class="fsel"><option>全部动作</option><option>break_glass_view</option><option>transferred</option><option>settings_updated</option></select>
+      <input class="fin" style="width:170px;" placeholder="搜索 record_id / 邮箱">
+      <span class="chip" style="align-self:center;">共 182 条 · 每页 50</span>
+    </div>
+    <table class="t">
+      <tr><th>时间</th><th>谁</th><th>模块</th><th>动作</th><th>对象</th><th></th></tr>
+      <tr><td class="mono small">07-11 09:14</td><td>englihken@…</td><td><span class="chip">inbox</span></td><td>break_glass_view</td><td class="mono small">inbox_mailboxes · 8e15a8b7</td><td><button class="btn sm ghost">展开 ▾</button></td></tr>
+      <tr><td class="mono small">07-11 09:02</td><td>test-fenhui@…</td><td><span class="chip">inbox</span></td><td>status_changed</td><td class="mono small">inbox_threads · fc9c710b</td><td><button class="btn sm ghost">展开 ▾</button></td></tr>
+      <tr><td colspan="6" class="small">展开显示 before/after JSON。这是全系统的黑匣子 — 代管查看、转办、改设置，每一步都在这里。</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ================================================== TAB 3 : 智慧问答设定 / 渡人阶段 / 公开页面 ================================================== -->
+<section class="view" id="t3">
+  <div class="designnote">⚙️ <b>设置扩建（二）</b>：三个新分区。分类词与开关存 org_settings；聊天 AI 分类器改读这份清单（缺键时回退内建预设）。</div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="hcard-h">🪷 <b>智慧问答设定</b></div>
+      <div class="seclabel" style="margin-top:6px;">问题分类词（AI 分类器同步使用）</div>
+      <div>
+        <span class="kwtag">修行方法 <i>×</i></span><span class="kwtag">解梦 <i>×</i></span><span class="kwtag">玄学问答 <i>×</i></span>
+        <span class="kwtag">健康 <i>×</i></span><span class="kwtag">因果业障 <i>×</i></span><span class="kwtag">事业财运 <i>×</i></span>
+        <span class="kwtag">家庭 <i>×</i></span><span class="kwtag">感情婚姻 <i>×</i></span><span class="kwtag">…</span>
+        <button class="btn sm ghost">＋ 添加</button>
+      </div>
+      <div class="seclabel">AI 草稿</div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="toggle"></span><span class="small">开启 — AI 起草，义工审核后发出。关闭 = 全部直接进人工队列。</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hcard-h">🌱 <b>渡人阶段</b> <span class="en">read-only + 1 个数字</span></div>
+      <div class="small" style="margin:6px 0 8px;">阶段与来源词汇由系统统一维护（E3 起以键值储存 · E4 出三语）— 这里只看不改，防止改词破坏历史数据。</div>
+      <table class="t">
+        <tr><th>阶段（顺序）</th><th>键值</th></tr>
+        <tr><td>初次接触</td><td class="mono small">first_contact</td></tr>
+        <tr><td>参加活动·共修</td><td class="mono small">（依 E1 词汇）</td></tr>
+        <tr><td>开始念经 🙏</td><td class="mono small">started_chanting</td></tr>
+        <tr><td colspan="2" class="small">来源：智慧问答 · 活动 · 亲友介绍 · 走进来 · 表单</td></tr>
+      </table>
+      <div style="margin-top:10px; font-size:13px;">活动转化统计窗口：<input class="numin" value="90"> 天 <button class="btn sm">保存</button></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <div class="hcard-h">🌐 <b>公开页面</b></div>
+    <table class="t">
+      <tr><th>页面</th><th>说明</th><th>状态</th></tr>
+      <tr><td class="mono">/f</td><td>月费自查</td><td><span class="toggle"></span></td></tr>
+      <tr><td class="mono">/m</td><td>公开来信表单（可加通知语，显示在表单顶部）</td><td><span class="toggle"></span></td></tr>
+      <tr><td class="mono">/r</td><td>活动报名 — 按活动开关（活动详情页控制）</td><td><span class="chip">按活动</span></td></tr>
+      <tr><td class="mono">/s</td><td>库存分享链接 — 按链接管理</td><td><span class="chip">按链接</span></td></tr>
+    </table>
+    <div class="small" style="margin-top:8px;">关闭时公开页显示温和的「暂停服务」讯息；系统内不受影响。缺键回退为开启（fail-open）。</div>
+  </div>
+</section>
+
+<!-- ================================================== TAB 4 : 主页 polish ================================================== -->
+<section class="view" id="t4">
+  <div class="designnote">🏠 <b>主页补全（E2 遗留清单）</b>：补两块瓷砖、补两类我的事项、break-glass 审计去重（30 分钟内同信箱只记一次 — 日志更好读，代管仍然必留痕）。</div>
+
+  <div class="seclabel">今日概览 — 新增两块（按角色出现，最多 4 块）</div>
+  <div class="grid4">
+    <div class="stat"><div class="v mono">488</div><div class="k">未读对话</div><div class="sub">现有</div></div>
+    <div class="stat"><div class="v mono">0</div><div class="k">事务未处理</div><div class="sub">现有</div></div>
+    <div class="stat" style="border-color:var(--gold-line); background:#fffdf6;"><div class="v mono">2</div><div class="k">待审报名 ✨新</div><div class="sub">events ≥ edit</div></div>
+    <div class="stat" style="border-color:var(--gold-line); background:#fffdf6;"><div class="v mono">6</div><div class="k">低库存品项 ✨新</div><div class="sub">inventory ≥ edit</div></div>
+  </div>
+
+  <div class="seclabel">我的事项 — 新增两类行</div>
+  <div class="card" style="max-width:560px;">
+    <div class="task"><span class="chip gold">事务</span>收据补发申请 — 指派给我<span class="go">现有 →</span></div>
+    <div class="task" style="background:#fffdf6;"><span class="chip indigo">关怀</span>我接手的对话 · 2 未读 ✨新<span class="go">→</span></div>
+    <div class="task" style="background:#fffdf6;"><span class="chip jade">库存</span>待批核申请 #REQ-118 ✨新<span class="go">→</span></div>
+  </div>
+
+  <div class="designnote" style="margin-top:14px;">🌐 <b>i18n 地基（本阶段规则）</b>：E3 所有新界面文字一律走 <span class="mono">t('key')</span> 字典（默认中文，外观零变化）。E4 只需补英文/印尼文字典 + 切换器 — 新代码永不返工。</div>
+</section>
+
+    <footer>XLFM 智慧系统 · E3 报表中心+设置扩建界面预览 · 2026-07 · 顾问端出图，配合现有界面风格 — 全部示范数据</footer>
+    </div><!-- /page -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* preview tabs + nav highlight + module title */
+var NAVMAP={t1:['reports','报表中心 · Reports'],t2:['settings','设置 · Settings'],t3:['settings','设置 · Settings'],t4:['home','主页']};
+document.querySelectorAll('.mtab').forEach(function(b){
+  b.addEventListener('click',function(){
+    document.querySelectorAll('.mtab').forEach(function(x){x.classList.remove('on');});
+    document.querySelectorAll('section.view').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    document.getElementById(b.dataset.tab).classList.add('on');
+    var m=NAVMAP[b.dataset.tab];
+    document.querySelectorAll('.nitem').forEach(function(n){n.classList.toggle('on', m[0]!==null && n.dataset.nav===m[0]);});
+    document.getElementById('modttl').textContent=m[1];
+    window.scrollTo({top:0});
+  });
+});
+document.querySelector('.nitem[data-nav="reports"]').classList.add('on');
+/* generic pane switcher: [data-group][data-key] controls [data-pane="group:key"] */
+document.querySelectorAll('[data-group]').forEach(function(b){
+  b.addEventListener('click',function(){
+    var g=b.dataset.group,k=b.dataset.key;
+    document.querySelectorAll('[data-group="'+g+'"]').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    document.querySelectorAll('[data-pane^="'+g+':"]').forEach(function(p){
+      p.style.display=(p.dataset.pane===g+':'+k)?'':'none';
+    });
+  });
+});
+
+/* presentation mode */
+(function(){
+  var pages=[].slice.call(document.querySelectorAll('#t1 .rpage'));
+  var idx=0, dots=document.getElementById('pDots');
+  pages.forEach(function(_,i){var d=document.createElement('i'); if(i===0)d.className='on'; dots.appendChild(d);});
+  function show(i){
+    idx=(i+pages.length)%pages.length;
+    pages.forEach(function(p,j){p.setAttribute('data-on', j===idx?'1':'0');});
+    document.getElementById('ptText').textContent=pages[idx].dataset.title;
+    [].slice.call(dots.children).forEach(function(d,j){d.className=j===idx?'on':'';});
+  }
+  function enter(){document.body.classList.add('present'); show(idx); if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function(){});}
+  function exit(){document.body.classList.remove('present'); if(document.fullscreenElement) document.exitFullscreen().catch(function(){});}
+  document.getElementById('presentBtn').addEventListener('click', enter);
+  document.getElementById('pPrev').addEventListener('click', function(){show(idx-1);});
+  document.getElementById('pNext').addEventListener('click', function(){show(idx+1);});
+  document.addEventListener('keydown', function(e){
+    if(!document.body.classList.contains('present')) return;
+    if(e.key==='ArrowRight'||e.key==='PageDown') show(idx+1);
+    if(e.key==='ArrowLeft'||e.key==='PageUp') show(idx-1);
+    if(e.key==='Escape') exit();
+  });
+})();
+</script>
+</body>
+</html>

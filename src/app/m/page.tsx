@@ -1,131 +1,19 @@
 // src/app/m/page.tsx
-// PUBLIC 共修会事务来信 form (E2 §5.4). Same visual language as /f · /r. Posts to
-// /api/public/inbox (no auth). Success screen shows the mailbox auto-reply (on-screen only —
-// no email in plumbing A) + the crisis-openness line. Hidden 'website' honeypot for bots.
+// PUBLIC 共修会事务来信 — E3: now a SERVER component that checks org_settings
+// public.inbox_form_enabled before rendering the client form and passes the
+// optional inbox_form_notice down (brief §3.5). FAIL-OPEN: a missing key or
+// unreachable table renders the form as before; only an explicit false shows
+// the gentle 暂停 page — never an error.
 
-'use client';
+import { isPublicPageEnabled, loadInboxFormNotice } from '@/lib/org-settings';
+import { PublicPageClosed } from '@/components/public-page-closed';
+import { MailFormClient } from './mail-form-client';
 
-import { useEffect, useState } from 'react';
+export const dynamic = 'force-dynamic';
 
-type Centre = { code: string; name_cn: string };
-
-export default function MailFormPage() {
-  const [centres, setCentres] = useState<Centre[]>([]);
-  const [centreCode, setCentreCode] = useState('HQ');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
-  const [body, setBody] = useState('');
-  const [website, setWebsite] = useState(''); // honeypot — must stay empty
-  const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle');
-  const [err, setErr] = useState<string | null>(null);
-  const [autoReply, setAutoReply] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    fetch('/api/public/centres')
-      .then((r) => (r.ok ? r.json() : { centres: [] }))
-      .then((j) => { if (active) setCentres(j.centres ?? []); })
-      .catch(() => {});
-    return () => { active = false; };
-  }, []);
-
-  const submit = async () => {
-    setErr(null);
-    if (!name.trim() || !phone.trim() || !subject.trim() || !body.trim()) {
-      setErr('请填写姓名、电话、主题与内容');
-      return;
-    }
-    setState('loading');
-    try {
-      const res = await fetch('/api/public/inbox', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ centre_code: centreCode, name: name.trim(), phone: phone.trim(), email: email.trim() || undefined, subject: subject.trim(), body: body.trim(), website }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setErr(j.error ?? '提交失败，请稍后再试');
-        setState('idle');
-        return;
-      }
-      setAutoReply(j.auto_reply_text ?? null);
-      setState('done');
-    } catch {
-      setErr('网络错误，请稍后再试');
-      setState('idle');
-    }
-  };
-
-  if (state === 'done') {
-    return (
-      <div className="bg-surface border border-border rounded-2xl p-6 text-center">
-        <p className="text-4xl mb-2">🪷</p>
-        <p className="font-serif font-semibold text-ink text-lg">已收到，感恩您的来信 🙏</p>
-        <p className="mt-1 text-sm text-ink-muted">Your message has been received</p>
-        {autoReply && (
-          <p className="mt-4 text-sm text-ink leading-relaxed bg-accent/10 rounded-xl px-4 py-3 text-left whitespace-pre-wrap">{autoReply}</p>
-        )}
-        <p className="mt-4 text-xs text-ink-muted leading-relaxed">涉及危机的来信，系统会即刻转给全国关怀组跟进。</p>
-      </div>
-    );
-  }
-
-  const inputCls = 'w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-ink outline-none focus:border-accent';
-
-  return (
-    <div className="space-y-3">
-      <div className="bg-surface border border-border rounded-2xl p-5 space-y-3">
-        {err && <p className="text-sm text-red-600">{err}</p>}
-
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1">共修会</label>
-          <select value={centreCode} onChange={(e) => setCentreCode(e.target.value)} className={inputCls}>
-            <option value="HQ">总会</option>
-            {centres.filter((c) => c.code !== 'HQ').map((c) => (
-              <option key={c.code} value={c.code}>{c.name_cn}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1">姓名 <span className="text-red-600">*</span></label>
-          <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1">电话 <span className="text-red-600">*</span></label>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="012-345 6789" className={inputCls} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1">邮箱 <span className="text-ink-faint">(选填)</span></label>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} inputMode="email" className={inputCls} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1">主题 <span className="text-red-600">*</span></label>
-          <input value={subject} onChange={(e) => setSubject(e.target.value)} className={inputCls} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1">内容 <span className="text-red-600">*</span></label>
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} className={inputCls} />
-        </div>
-
-        {/* honeypot — visually hidden; bots fill it, humans don't */}
-        <input
-          type="text" name="website" value={website} onChange={(e) => setWebsite(e.target.value)}
-          tabIndex={-1} autoComplete="off" aria-hidden="true"
-          className="absolute -left-[9999px] w-px h-px opacity-0"
-        />
-
-        <button disabled={state === 'loading'} onClick={submit} className="w-full mt-1 py-2.5 text-sm btn-primary disabled:opacity-50">
-          {state === 'loading' ? '提交中…' : '提交来信'}
-        </button>
-        <p className="text-[10.5px] text-ink-faint text-center leading-relaxed">涉及危机的来信，系统会即刻转给全国关怀组跟进。</p>
-      </div>
-    </div>
-  );
+export default async function MailFormPage() {
+  const enabled = await isPublicPageEnabled('public.inbox_form_enabled');
+  if (!enabled) return <PublicPageClosed />;
+  const notice = await loadInboxFormNotice();
+  return <MailFormClient notice={notice} />;
 }

@@ -11,7 +11,8 @@ import { grantAllows, type Grants } from '@/lib/access';
 import { getInboxAccess, contentMailboxIds } from '@/lib/inbox-scope';
 import { loadVisibleMailboxes, countsByMailbox, ownersByMailbox, loadEscalation } from '@/lib/inbox-server';
 import { ageDays, overdueLevel, snippet } from '@/lib/inbox';
-import { countUnreadConversations } from '@/lib/care-inbox';
+import { countUnreadConversations, isUnread } from '@/lib/care-inbox';
+import { t } from '@/lib/i18n';
 
 export const runtime = 'nodejs';
 
@@ -136,6 +137,46 @@ export async function GET() {
     }
   }
 
+  // ── E3 tiles (brief §5): 待审报名 (events≥edit) + 低库存品项 (inventory≥edit).
+  // Role-qualified first-4 rule unchanged — the page still slices to 4. Same
+  // wall logic as the modules: a locked account counts only its centre's events.
+  const { data: myScopeRow } = await db.from('volunteers').select('scope, centre_id').eq('id', me.id).maybeSingle();
+  const myLockedCentre = myScopeRow?.scope !== 'all_centers' ? ((myScopeRow?.centre_id as string | null) ?? null) : null;
+
+  if (grantAllows(grants, 'events', 'edit')) {
+    let pendingRegs = 0;
+    if (myLockedCentre) {
+      const { data: evs } = await db.from('events').select('id').eq('organizing_centre_id', myLockedCentre);
+      const evIds = (evs ?? []).map((e) => e.id as string);
+      if (evIds.length) {
+        const { count } = await db.from('registrations').select('id', { count: 'exact', head: true }).eq('status', 'pending').in('event_id', evIds);
+        pendingRegs = count ?? 0;
+      }
+    } else {
+      const { count } = await db.from('registrations').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+      pendingRegs = count ?? 0;
+    }
+    tiles.push({ key: 'pendingRegs', label: t('home.tile.pendingRegs'), value: pendingRegs, href: '/dashboard/events' });
+  }
+
+  if (grantAllows(grants, 'inventory', 'edit')) {
+    // Existing threshold logic (inventory/stats): active items with a
+    // low_stock_line whose HQ balance is at/under it.
+    const [{ data: invItems }, { data: hqLoc }] = await Promise.all([
+      db.from('inventory_items').select('id, low_stock_line').eq('is_active', true).not('low_stock_line', 'is', null),
+      db.from('inventory_locations').select('id').eq('kind', 'hq_warehouse').maybeSingle(),
+    ]);
+    let lowStock = 0;
+    if (hqLoc?.id && (invItems ?? []).length) {
+      const { data: bal } = await db.from('inventory_balances').select('item_id, qty').eq('location_id', hqLoc.id);
+      const qtyBy = new Map((bal ?? []).map((b) => [b.item_id as string, b.qty as number]));
+      for (const it of invItems ?? []) {
+        if ((qtyBy.get(it.id as string) ?? 0) <= (it.low_stock_line as number)) lowStock++;
+      }
+    }
+    tiles.push({ key: 'lowStock', label: t('home.tile.lowStock'), value: lowStock, href: '/dashboard/inventory' });
+  }
+
   // ── members fallback tile (only if no care/inbox tile yet) ──────────────────
   if (tiles.length === 0 && grantAllows(grants, 'members', 'view')) {
     const { count } = await db.from('members').select('id', { count: 'exact', head: true }).eq('status', 'active');
@@ -168,6 +209,69 @@ export async function GET() {
         sub: `${(centre?.name_cn as string) ?? ''} · ${ageDays(t.last_message_at as string, nowMs)} 天`,
         href: `/dashboard/inbox?thread=${t.id}`,
         chip: '事务',
+      });
+    }
+  }
+
+  // ── E3 我的事项: care conversations I've taken over (unread first) ───────────
+  if (careEdit) {
+    const { data: mine } = await db
+      .from('conversations')
+      .select('id, last_message_at, category, contact:contacts!contact_id ( display_name )')
+      .eq('status', 'volunteer_handling')
+      .eq('assigned_volunteer', me.id)
+      .order('last_message_at', { ascending: false })
+      .limit(8);
+    if (mine && mine.length) {
+      const { data: reads } = await db
+        .from('conversation_reads')
+        .select('conversation_id, last_read_at')
+        .eq('volunteer_id', me.id)
+        .in('conversation_id', mine.map((c) => c.id as string));
+      const readMap = new Map((reads ?? []).map((r) => [r.conversation_id as string, r.last_read_at as string]));
+      const rows = mine
+        .map((c) => {
+          const contact = Array.isArray(c.contact) ? c.contact[0] : c.contact;
+          return {
+            id: c.id as string,
+            name: (contact?.display_name as string | undefined) || '匿名访客',
+            category: (c.category as string | null) ?? null,
+            unread: isUnread(c.last_message_at as string, readMap.get(c.id as string)),
+          };
+        })
+        .sort((a, b) => Number(b.unread) - Number(a.unread))
+        .slice(0, 4);
+      for (const r of rows) {
+        out.myTasks.push({
+          id: r.id,
+          kind: 'care',
+          label: `${r.name}${r.category ? ` · ${r.category}` : ''}`,
+          sub: r.unread ? t('home.task.careUnread') : t('home.task.careHandling'),
+          href: '/dashboard',
+          chip: t('home.chip.care'),
+        });
+      }
+    }
+  }
+
+  // ── E3 我的事项: inventory requests awaiting approval (inventory≥edit) ───────
+  if (grantAllows(grants, 'inventory', 'edit')) {
+    const { data: reqs } = await db
+      .from('inventory_requests')
+      .select('id, qty_requested, created_at, item:inventory_items!item_id ( name_cn ), centre:centres!centre_id ( name_cn )')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .limit(4);
+    for (const r of reqs ?? []) {
+      const item = Array.isArray(r.item) ? r.item[0] : r.item;
+      const centre = Array.isArray(r.centre) ? r.centre[0] : r.centre;
+      out.myTasks.push({
+        id: r.id as string,
+        kind: 'inventory',
+        label: `${(item?.name_cn as string) ?? '—'} × ${r.qty_requested as number}`,
+        sub: `${(centre?.name_cn as string) ?? ''} · ${t('home.task.awaitingApproval')}`,
+        href: '/dashboard/inventory/requests',
+        chip: t('home.chip.inventory'),
       });
     }
   }

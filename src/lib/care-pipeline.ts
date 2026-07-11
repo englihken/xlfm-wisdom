@@ -17,6 +17,7 @@ import {
   type RetrievedPassage,
 } from './vector-search';
 import { supabaseAdmin } from './supabase';
+import { loadCareCategories } from './org-settings';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -110,17 +111,27 @@ export async function generateReply(
 // Moved verbatim from the web chat route. A tiny classification pass that runs
 // AFTER the reply is delivered; never touches the reply text and is fully
 // fail-safe (returns null on any failure so the caller leaves the tag untouched).
+//
+// E3 (brief §3.3): the category list now comes from org_settings
+// 'care.categories' (editable in 设置 → 智慧问答设定); this hardcoded list is
+// the FALLBACK when the key is missing or unreachable. Off-list answers fold to
+// 其他, which is always appended if the configured list omits it.
 
 export const CONVERSATION_CATEGORIES = [
   '感情婚姻', '家庭', '健康', '事业财运', '学业', '人际关系',
   '修行方法', '因果业障', '解梦', '玄学问答', '闲聊测试', '其他',
 ] as const;
-export type ConversationCategory = (typeof CONVERSATION_CATEGORIES)[number];
+export type ConversationCategory = string;
 
 export async function classifyConversation(
   messages: CareMessage[]
 ): Promise<{ category: ConversationCategory; crisis_flag: boolean } | null> {
   try {
+    // org_settings list with built-in fallback (never throws; null → fallback).
+    const configured = await loadCareCategories();
+    const categories = configured ?? [...CONVERSATION_CATEGORIES];
+    if (!categories.includes('其他')) categories.push('其他');
+
     // Only the recent turns, as plain transcript text — keeps the call small.
     const transcript = messages
       .slice(-10)
@@ -136,7 +147,7 @@ export async function classifyConversation(
           content:
             'Read this conversation between a person and a Buddhist care assistant. ' +
             'Reply with EXACTLY ONE category label from this list and nothing else:\n' +
-            CONVERSATION_CATEGORIES.join('、') +
+            categories.join('、') +
             '\nIf the conversation shows crisis / self-harm / severe distress signals, ' +
             'prefix your answer with "危机:" (e.g. "危机:家庭").\n\n' +
             `对话:\n${transcript}`,
@@ -156,11 +167,7 @@ export async function classifyConversation(
       label = label.replace(/^危机[:：]\s*/, '').trim();
     }
 
-    const category: ConversationCategory = (CONVERSATION_CATEGORIES as readonly string[]).includes(
-      label
-    )
-      ? (label as ConversationCategory)
-      : '其他';
+    const category: ConversationCategory = categories.includes(label) ? label : '其他';
 
     return { category, crisis_flag };
   } catch (e) {

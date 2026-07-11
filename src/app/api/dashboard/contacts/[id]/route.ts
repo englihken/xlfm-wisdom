@@ -13,11 +13,16 @@
 import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { STAGE_KEYS } from '@/lib/outreach';
 
 export const runtime = 'nodejs';
 
-// Allowed 修行阶段 values (mirrors the contacts.stage default in migrations/002).
-const ALLOWED_STAGES = ['初次接触', '学习中', '共修者', '义工'] as const;
+// Allowed 修行阶段 values — E3 stage-vocab unification (brief §4): WRITES now
+// use the canonical stage KEYS (aligned with the milestone ladder in
+// lib/outreach). Legacy Chinese rows stay readable via stageLabel on the
+// client; the architect's migration 033 rewrites stored data later. The DB
+// column default is deliberately untouched here.
+const ALLOWED_STAGES: readonly string[] = STAGE_KEYS;
 
 type ContactUpdate = { stage?: string; notes?: string };
 
@@ -52,10 +57,7 @@ export async function PATCH(
     const update: { stage?: string; notes?: string } = {};
 
     if (body.stage !== undefined) {
-      if (
-        typeof body.stage !== 'string' ||
-        !ALLOWED_STAGES.includes(body.stage as (typeof ALLOWED_STAGES)[number])
-      ) {
+      if (typeof body.stage !== 'string' || !ALLOWED_STAGES.includes(body.stage)) {
         return NextResponse.json({ error: 'Invalid stage' }, { status: 400 });
       }
       update.stage = body.stage;

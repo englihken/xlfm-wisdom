@@ -7,6 +7,7 @@ import { NextRequest } from 'next/server';
 import { searchRelevantTeachings, formatPassagesAsContext } from '@/lib/vector-search';
 import { supabaseAdmin } from '@/lib/supabase';
 import { buildSystemBlocks, buildSources, classifyAndSaveCategory } from '@/lib/care-pipeline';
+import { isAiDraftEnabled } from '@/lib/org-settings';
 
 export const runtime = 'nodejs'; // Node runtime for Pinecone SDK compatibility
 export const maxDuration = 60;
@@ -172,6 +173,13 @@ export async function POST(req: NextRequest) {
     // the first token. persistInbound never throws.
     const storagePromise = persistInbound({ conversationId, browserId, language, message });
 
+    // E3 (brief §3.3): the AI-draft master switch. When 设置 turns it off, the
+    // reply pipeline skips Claude entirely — the inbound is stored, the
+    // conversation goes straight to the human queue (needs_human), and the
+    // client gets the same silent volunteer-handling stream it already knows.
+    // Missing key / unreachable table → true (today's behavior).
+    const aiDraftEnabled = await isAiDraftEnabled();
+
     // Step 1: Search for relevant teachings from vector DB (default top_k = 10)
     const passages = await searchRelevantTeachings(message, undefined, language);
     const contextBlock = formatPassagesAsContext(passages);
@@ -182,6 +190,43 @@ export async function POST(req: NextRequest) {
     // BEFORE deciding whether to call Claude, so a human takeover isn't billed a
     // wasted generation.
     const { conversationId: convId, status } = await storagePromise;
+
+    // AI drafting disabled (E3): mark the conversation needs_human so it lands
+    // in the human queue with NO draft, bump activity, and go silent exactly
+    // like a human takeover. Never applies when a volunteer already owns it —
+    // that path below stays authoritative.
+    if (!aiDraftEnabled && status !== 'volunteer_handling') {
+      if (supabaseAdmin && convId) {
+        try {
+          await supabaseAdmin
+            .from('conversations')
+            .update({ status: 'needs_human', last_message_at: new Date().toISOString() })
+            .eq('id', convId);
+        } catch (e) {
+          console.error('[chat] needs_human flip failed (ai draft off):', e);
+        }
+      }
+      const encoder = new TextEncoder();
+      const silentStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(
+            `data: ${JSON.stringify({ type: 'conversation', conversationId: convId })}\n\n`
+          ));
+          controller.enqueue(encoder.encode(
+            `data: ${JSON.stringify({ type: 'volunteer_handling' })}\n\n`
+          ));
+          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+          controller.close();
+        },
+      });
+      return new Response(silentStream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    }
 
     // PART 2 — AI silence under human takeover. The inbound user message is already
     // persisted (persistInbound); bump last_message_at so it surfaces in the inbox,

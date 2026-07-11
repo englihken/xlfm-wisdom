@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { sendWhatsAppText, formatForWhatsApp } from '@/lib/whatsapp';
 import { generateReply, classifyAndSaveCategory, type CareMessage } from '@/lib/care-pipeline';
+import { isAiDraftEnabled } from '@/lib/org-settings';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -162,6 +163,21 @@ async function handleInboundMessage(msg: WaMessage, contacts: WaContact[]): Prom
   // dashboard (which sends through the Cloud API); the AI stays quiet.
   if (status === 'volunteer_handling') {
     await bumpConversation(conversationId);
+    return;
+  }
+
+  // E3 (brief §3.3): AI drafting disabled → the reply pipeline skips Claude,
+  // the conversation lands in the human queue as needs_human, and the AI sends
+  // nothing. Missing key / unreachable table → enabled (today's behavior).
+  if (!(await isAiDraftEnabled())) {
+    try {
+      await supabaseAdmin
+        .from('conversations')
+        .update({ status: 'needs_human', last_message_at: new Date().toISOString() })
+        .eq('id', conversationId);
+    } catch (e) {
+      console.error('[wa] needs_human flip failed (ai draft off):', e);
+    }
     return;
   }
 

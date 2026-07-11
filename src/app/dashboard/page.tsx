@@ -16,6 +16,7 @@ import { DashboardNav } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
 import { visibleModules, grantAllows, type Grants } from '@/lib/access';
 import { OutreachQuickPanel } from '@/components/outreach-quick-panel';
+import { STAGES, stageLabel } from '@/lib/outreach';
 
 // ── Types (mirror the API route shapes) ──────────────────────────────────────
 type ListItem = {
@@ -868,8 +869,11 @@ function ReplyComposer({
   );
 }
 
-// 修行阶段 options — must match ALLOWED_STAGES in the contacts PATCH route.
-const STAGE_OPTIONS = ['初次接触', '学习中', '共修者', '义工'] as const;
+// 修行阶段 options — E3 stage-vocab unification (brief §4): the dropdown WRITES
+// canonical stage KEYS (matching ALLOWED_STAGES in the contacts PATCH route)
+// and renders labels via the shared vocab. A legacy Chinese value on the row
+// still displays correctly through the raw-value fallback (until migration 033).
+const STAGE_OPTIONS: string[] = STAGES.map((s) => s.key);
 
 // 本次对话 — a one-line gist of the OPEN conversation (distinct from the contact's
 // evolving 有缘人档案). Muted placeholder until the nightly cron generates it.
@@ -1041,14 +1045,16 @@ function ContactPanel({
           disabled={!contactId || stageSaving}
           className="w-full text-sm text-ink bg-surface border border-border-strong rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-accent disabled:opacity-60"
         >
-          {!STAGE_OPTIONS.includes(stage as (typeof STAGE_OPTIONS)[number]) && (
-            <option value="" disabled>
-              暂无
+          {!STAGE_OPTIONS.includes(stage) && (
+            // legacy value (or empty): keep it visible via the raw-value
+            // fallback so the row reads correctly pre-033
+            <option value={stage} disabled>
+              {stage ? stageLabel(stage) : '暂无'}
             </option>
           )}
           {STAGE_OPTIONS.map((s) => (
             <option key={s} value={s}>
-              {s}
+              {stageLabel(s)}
             </option>
           ))}
         </select>

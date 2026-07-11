@@ -11,6 +11,7 @@ import { normalizePhone } from '@/lib/members';
 import { scanCrisis } from '@/lib/inbox';
 import { loadCrisisKeywords } from '@/lib/inbox-server';
 import { writeAudit } from '@/lib/audit';
+import { isPublicPageEnabled } from '@/lib/org-settings';
 
 export const runtime = 'nodejs';
 
@@ -21,6 +22,12 @@ export async function POST(req: Request) {
   const ip = clientIp(req);
   if (!rateLimit(`pub:inbox:${ip}`, 5, 86_400_000)) return NextResponse.json({ error: '今日提交太多，请明天再试' }, { status: 429 });
   if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
+
+  // E3 (brief §3.5): the /m switch is enforced HERE too, not just on the page.
+  // FAIL-OPEN: missing key / unreachable table keeps the form working.
+  if (!(await isPublicPageEnabled('public.inbox_form_enabled'))) {
+    return NextResponse.json({ error: '本服务暂停中，请稍后再来 🙏' }, { status: 403 });
+  }
 
   const body = await readJsonCapped(req);
   if (!body || hasUnknownKeys(body, ALLOWED)) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

@@ -15,8 +15,16 @@ import { createSupabaseBrowserClient, signOutEverywhere } from '@/lib/supabase-b
 import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
-import type { Grants } from '@/lib/access';
+import { grantAllows, type Grants } from '@/lib/access';
 import { XLFM_CENTERS, isValidCenter } from '@/lib/xlfm-centers';
+import { t } from '@/lib/i18n';
+import {
+  PermMatrixSection,
+  AuditViewerSection,
+  CareCfgSection,
+  StagesSection,
+  PublicPagesSection,
+} from './e3-sections';
 
 type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee' | 'centre_head';
 
@@ -55,16 +63,31 @@ function formatDate(iso: string): string {
   });
 }
 
-// Settings sections. Data-driven so future sections (retention, crisis resources,
-// categories, WhatsApp config…) are a one-line addition here + a matching block in
-// the content area. Only 义工管理 exists today.
-const SECTIONS = [
-  { id: 'volunteers', label: '义工与账号' },
+// Settings sections. Data-driven so future sections are a one-line addition here
+// + a matching block in the content area. E3 (brief §3): the page itself opens to
+// settings≥edit (admin + erp_admin); 义工与账号 stays ADMIN-ONLY (section-gated,
+// not a forked page); 审计查看器 additionally needs the 'audit' grant.
+type SectionId =
+  | 'volunteers'
+  | 'inbox'
+  | 'centres'
+  | 'notify'
+  | 'matrix'
+  | 'audit'
+  | 'careCfg'
+  | 'stages'
+  | 'publicPages';
+const SECTIONS: { id: SectionId; label: string; adminOnly?: boolean; needsAudit?: boolean }[] = [
+  { id: 'volunteers', label: '义工与账号', adminOnly: true },
   { id: 'inbox', label: '收件箱配置' },
   { id: 'centres', label: '共修会管理' },
   { id: 'notify', label: '通知与模板' },
-] as const;
-type SectionId = (typeof SECTIONS)[number]['id'];
+  { id: 'matrix', label: t('settings.section.matrix') },
+  { id: 'audit', label: t('settings.section.audit'), needsAudit: true },
+  { id: 'careCfg', label: t('settings.section.careCfg') },
+  { id: 'stages', label: t('settings.section.stages') },
+  { id: 'publicPages', label: t('settings.section.publicPages') },
+];
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -170,14 +193,18 @@ export default function SettingsPage() {
         });
         // Fail open: only gate when the flag is explicitly true.
         if (meJson.mustChangePassword) setMustChangePassword(true);
-        if (meJson.role !== 'admin') {
+        // E3 gate change (Ken 2026-07-11): the page opens at settings≥edit
+        // (admin + erp_admin); 义工与账号 below is section-gated to admin only.
+        if (!grantAllows(meJson.grants ?? {}, 'settings', 'edit')) {
           setGate('denied');
           return;
         }
-        // Confirmed admin — reveal the page, THEN load the team (never in parallel
-        // with the role check).
+        // Non-admins land on a section they can actually see.
+        if (meJson.role !== 'admin') setActiveSection('inbox');
+        // Gate passed — reveal the page, THEN load the team (admin only; the
+        // volunteers API would 403 anyone else anyway).
         setGate('ok');
-        await reloadVolunteers();
+        if (meJson.role === 'admin') await reloadVolunteers();
       } catch {
         /* leave the list empty; the notice/loading state covers it */
       } finally {
@@ -343,7 +370,11 @@ export default function SettingsPage() {
       <div className="flex-1 flex flex-col md:flex-row min-h-0">
         <nav className="shrink-0 md:w-[220px] border-b md:border-b-0 md:border-r border-border bg-surface-soft p-3 md:p-4">
           <ul className="flex flex-wrap md:flex-col gap-1">
-            {SECTIONS.map((s) => {
+            {SECTIONS.filter(
+              (s) =>
+                (!s.adminOnly || me?.role === 'admin') &&
+                (!s.needsAudit || grantAllows(me?.grants, 'audit', 'view'))
+            ).map((s) => {
               const selected = s.id === activeSection;
               return (
                 <li key={s.id}>
@@ -364,7 +395,7 @@ export default function SettingsPage() {
         </nav>
 
         <main className="flex-1 min-w-0 overflow-y-auto">
-          {activeSection === 'volunteers' && (
+          {activeSection === 'volunteers' && me?.role === 'admin' && (
             <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
               {/* ADD VOLUNTEER */}
               <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
@@ -671,6 +702,11 @@ export default function SettingsPage() {
           {activeSection === 'inbox' && <InboxConfigSection />}
           {activeSection === 'centres' && <CentresSection />}
           {activeSection === 'notify' && <NotifyTemplatesSection />}
+          {activeSection === 'matrix' && <PermMatrixSection />}
+          {activeSection === 'audit' && grantAllows(me?.grants, 'audit', 'view') && <AuditViewerSection />}
+          {activeSection === 'careCfg' && <CareCfgSection />}
+          {activeSection === 'stages' && <StagesSection />}
+          {activeSection === 'publicPages' && <PublicPagesSection />}
         </main>
       </div>
     </div>

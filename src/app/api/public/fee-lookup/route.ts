@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { normalizePhone } from '@/lib/members';
 import { sameOrigin, rateLimit, clientIp, readJsonCapped, hasUnknownKeys, maskName } from '@/lib/public-event';
+import { isPublicPageEnabled } from '@/lib/org-settings';
 
 export const runtime = 'nodejs';
 
@@ -24,6 +25,12 @@ export async function POST(req: Request) {
   if (!sameOrigin(req)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   if (!rateLimit(`pub:fee:${clientIp(req)}`, 20, 60_000)) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
+
+  // E3 (brief §3.5): the /f switch is enforced HERE too, not just on the page.
+  // FAIL-OPEN: missing key / unreachable table keeps the lookup working.
+  if (!(await isPublicPageEnabled('public.fee_check_enabled'))) {
+    return NextResponse.json({ error: '本服务暂停中，请稍后再来 🙏' }, { status: 403 });
+  }
 
   const body = await readJsonCapped(req);
   if (!body || hasUnknownKeys(body, ALLOWED)) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

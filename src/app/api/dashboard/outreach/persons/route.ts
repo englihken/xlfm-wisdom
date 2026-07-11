@@ -186,7 +186,8 @@ export async function POST(req: Request) {
     .insert({
       channel: 'manual',
       display_name: displayName,
-      stage: '初次接触',
+      stage: 'first_contact', // E3 §4: stage writes use canonical keys
+
       phone,
       source_type: sourceType,
       source_event_id: sourceEventId,

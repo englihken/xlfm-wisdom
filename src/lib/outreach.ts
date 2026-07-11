@@ -51,3 +51,18 @@ export const sourceLabel = (key: string | null | undefined) => SOURCES.find((s) 
 // Legacy care-module stages that warrant a gray 旧记录 chip on the 渡人卡 (contacts.stage is
 // owned by the care module and never written here).
 export const LEGACY_STAGE_CHIP = new Set(['学习中', '共修者', '义工']);
+
+// ── E3 stage-vocab unification (brief §4) ────────────────────────────────────
+// contacts.stage now stores canonical KEYS aligned with the milestone ladder
+// above — one vocabulary for stages and milestones. All WRITES use these keys;
+// all READS render through stageLabel, whose raw-value fallback keeps legacy
+// Chinese rows ('初次接触' / '学习中' / '共修者' / '义工') displaying correctly
+// until the architect's data migration (033) rewrites them.
+export const STAGES = MILESTONES.map(({ key, label, emoji }) => ({ key, label, emoji }));
+export const STAGE_KEYS = MILESTONE_KEYS;
+export type StageKey = MilestoneKey;
+
+export function stageLabel(value: string | null | undefined): string {
+  if (!value) return '';
+  return milestoneMeta(value)?.label ?? value; // key → label; legacy raw value → itself
+}

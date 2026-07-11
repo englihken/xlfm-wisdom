@@ -13,6 +13,26 @@ const THREAD_SEL =
   'id, mailbox_id, kind, from_centre_id, subject, sender_name, sender_phone, sender_email, status, assigned_to, contact_id, linked_module, linked_record_id, linked_label, crisis_flag, first_response_at, last_message_at, created_at';
 
 async function auditBreakGlass(db: Db, actorId: string, actorEmail: string, mailboxId: string) {
+  // E3 dedupe (brief §5): the same actor re-opening the same mailbox within 30
+  // minutes writes ONE break_glass_view row, not one per thread click — the log
+  // stays readable while 代管 still always leaves a trace. Thread-action audits
+  // are untouched. Fail-open: if the dedupe check errors, we WRITE (never skip
+  // an audit because a read failed).
+  const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const { data: recent, error: dedupeErr } = await db
+    .from('audit_log')
+    .select('id')
+    .eq('actor_id', actorId)
+    .eq('action', 'break_glass_view')
+    .eq('record_id', mailboxId)
+    .gte('at', since)
+    .limit(1);
+  if (dedupeErr) {
+    console.error('[inbox] break-glass dedupe check failed (writing anyway):', dedupeErr);
+  } else if (recent && recent.length > 0) {
+    return;
+  }
+
   const { data: mb } = await db.from('inbox_mailboxes').select('centre:centres!centre_id ( name_cn )').eq('id', mailboxId).maybeSingle();
   const centre = mb ? (Array.isArray(mb.centre) ? mb.centre[0] : mb.centre) : null;
   await writeAudit({
