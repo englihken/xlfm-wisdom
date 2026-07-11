@@ -12,7 +12,8 @@ import { getInboxAccess, contentMailboxIds } from '@/lib/inbox-scope';
 import { loadVisibleMailboxes, countsByMailbox, ownersByMailbox, loadEscalation } from '@/lib/inbox-server';
 import { ageDays, overdueLevel, snippet } from '@/lib/inbox';
 import { countUnreadConversations, isUnread } from '@/lib/care-inbox';
-import { t } from '@/lib/i18n';
+import { createT } from '@/lib/i18n';
+import { getRequestLocale } from '@/lib/i18n-server';
 
 export const runtime = 'nodejs';
 
@@ -23,6 +24,7 @@ const ACTION_CN: Record<string, string> = {
 };
 
 export async function GET() {
+  const tr = createT(await getRequestLocale()); // localized tile/task labels
   const access = await getActiveVolunteer();
   if (!access) {
     const user = await getAuthenticatedUser();
@@ -156,7 +158,7 @@ export async function GET() {
       const { count } = await db.from('registrations').select('id', { count: 'exact', head: true }).eq('status', 'pending');
       pendingRegs = count ?? 0;
     }
-    tiles.push({ key: 'pendingRegs', label: t('home.tile.pendingRegs'), value: pendingRegs, href: '/dashboard/events' });
+    tiles.push({ key: 'pendingRegs', label: tr('home.tile.pendingRegs'), value: pendingRegs, href: '/dashboard/events' });
   }
 
   if (grantAllows(grants, 'inventory', 'edit')) {
@@ -174,7 +176,7 @@ export async function GET() {
         if ((qtyBy.get(it.id as string) ?? 0) <= (it.low_stock_line as number)) lowStock++;
       }
     }
-    tiles.push({ key: 'lowStock', label: t('home.tile.lowStock'), value: lowStock, href: '/dashboard/inventory' });
+    tiles.push({ key: 'lowStock', label: tr('home.tile.lowStock'), value: lowStock, href: '/dashboard/inventory' });
   }
 
   // ── members fallback tile (only if no care/inbox tile yet) ──────────────────
@@ -246,9 +248,9 @@ export async function GET() {
           id: r.id,
           kind: 'care',
           label: `${r.name}${r.category ? ` · ${r.category}` : ''}`,
-          sub: r.unread ? t('home.task.careUnread') : t('home.task.careHandling'),
+          sub: r.unread ? tr('home.task.careUnread') : tr('home.task.careHandling'),
           href: '/dashboard',
-          chip: t('home.chip.care'),
+          chip: tr('home.chip.care'),
         });
       }
     }
@@ -269,9 +271,9 @@ export async function GET() {
         id: r.id as string,
         kind: 'inventory',
         label: `${(item?.name_cn as string) ?? '—'} × ${r.qty_requested as number}`,
-        sub: `${(centre?.name_cn as string) ?? ''} · ${t('home.task.awaitingApproval')}`,
+        sub: `${(centre?.name_cn as string) ?? ''} · ${tr('home.task.awaitingApproval')}`,
         href: '/dashboard/inventory/requests',
-        chip: t('home.chip.inventory'),
+        chip: tr('home.chip.inventory'),
       });
     }
   }

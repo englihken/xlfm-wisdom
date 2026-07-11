@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Noto_Sans_SC, Noto_Serif_SC } from "next/font/google";
 import "./globals.css";
+import { I18nProvider } from "@/lib/i18n-react";
+import { getRequestLocale } from "@/lib/i18n-server";
 
 // Base body font (2b theme). Serif is reserved for titles/dividers/quotes.
 const notoSansSC = Noto_Sans_SC({
@@ -21,15 +23,18 @@ export const metadata: Metadata = {
     "心灵法门以念经、许愿、放生三大法宝，帮助无数人走出困境。一切免费结缘。",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // SSR-resolve the locale from the NEXT_LOCALE cookie and seed the client provider,
+  // so the first paint is already in the viewer's language (no flash on public pages).
+  const locale = await getRequestLocale();
   return (
-    <html lang="zh-CN" className={`${notoSansSC.variable} ${notoSerifSC.variable} antialiased`}>
+    <html lang={locale === "zh" ? "zh-CN" : locale} className={`${notoSansSC.variable} ${notoSerifSC.variable} antialiased`}>
       <body className="min-h-screen bg-bg text-ink-body font-sans">
-        {children}
+        <I18nProvider initialLocale={locale}>{children}</I18nProvider>
       </body>
     </html>
   );

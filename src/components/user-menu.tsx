@@ -17,7 +17,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { canOpenSettings, type Grants } from '@/lib/access';
-import { t } from '@/lib/i18n';
+import { LOCALES, LOCALE_NATIVE_NAME, type TFunc } from '@/lib/i18n';
+import { useT, useLocale, useChangeLocale } from '@/lib/i18n-react';
 
 type MenuMe = {
   displayName: string | null;
@@ -37,7 +38,7 @@ const ROLE_KEY: Record<string, string> = {
   centre_finance: 'shell.role.centreFinance',
 };
 
-const roleLabel = (role: string): string => (ROLE_KEY[role] ? t(ROLE_KEY[role]) : role);
+const roleLabel = (t: TFunc, role: string): string => (ROLE_KEY[role] ? t(ROLE_KEY[role]) : role);
 
 function Avatar({ name, size = 'sm' }: { name: string; size?: 'sm' | 'md' }) {
   const initial = (name.trim()[0] ?? '?').toUpperCase();
@@ -54,6 +55,9 @@ function Avatar({ name, size = 'sm' }: { name: string; size?: 'sm' | 'md' }) {
 }
 
 export function UserMenu({ fallbackLabel, onLogout }: { fallbackLabel?: string; onLogout?: () => void }) {
+  const t = useT();
+  const locale = useLocale();
+  const changeLocale = useChangeLocale();
   const [open, setOpen] = useState(false);
   const [me, setMe] = useState<MenuMe | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -144,7 +148,7 @@ export function UserMenu({ fallbackLabel, onLogout }: { fallbackLabel?: string; 
               {me && (
                 <>
                   <p className="text-[11.5px] text-ink-muted truncate">
-                    {roleLabel(me.role)}
+                    {roleLabel(t, me.role)}
                     {me.centreName ? ` · ${me.centreName}` : ''}
                   </p>
                   <p className="text-[11px] text-ink-faint truncate">{me.email}</p>
@@ -162,11 +166,30 @@ export function UserMenu({ fallbackLabel, onLogout }: { fallbackLabel?: string; 
                 <span aria-hidden="true">⚙️</span> {t('shell.usermenu.settings')}
               </Link>
             )}
-            {/* ── E4 slot ─────────────────────────────────────────────────
-                语言 / Language (中 / EN / ID) row goes HERE — between 系统设置
-                and 登出. Deliberately not built in this brief (zh is the only
-                locale today); E4 inserts a menuitem that writes the locale
-                preference and re-renders through the existing t() layer. */}
+            {/* 语言 / Language (E4) — between 系统设置 and 登出. Persists to the
+                session volunteer's volunteers.locale (+ NEXT_LOCALE cookie) and
+                re-renders through the t() layer. Names always in their own language. */}
+            <div className="my-1 border-t border-border" />
+            <div className="px-4 pt-1.5 pb-1 text-[11px] text-ink-faint">{t('shell.usermenu.language')}</div>
+            <div className="px-2 pb-1.5 flex flex-col">
+              {LOCALES.map((loc) => (
+                <button
+                  key={loc}
+                  role="menuitemradio"
+                  aria-checked={locale === loc}
+                  onClick={() => {
+                    void changeLocale(loc, { persist: true });
+                    setOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-sm text-left transition ${
+                    locale === loc ? 'bg-accent/10 text-accent-deep font-medium' : 'text-ink hover:bg-accent/5'
+                  }`}
+                >
+                  <span className={`w-3.5 shrink-0 ${locale === loc ? 'text-accent-deep' : 'text-transparent'}`}>✓</span>
+                  <span>{LOCALE_NATIVE_NAME[loc]}</span>
+                </button>
+              ))}
+            </div>
             <div className="my-1 border-t border-border" />
             <button
               role="menuitem"

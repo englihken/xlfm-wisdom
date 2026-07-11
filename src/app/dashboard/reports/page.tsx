@@ -22,7 +22,8 @@ import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
 import { grantAllows, type Grants } from '@/lib/access';
-import { t } from '@/lib/i18n';
+import { useT, useLocale } from '@/lib/i18n-react';
+import type { Locale, TFunc } from '@/lib/i18n';
 import type { ReportsPack } from '@/lib/reports-pack';
 import { StatTile } from '@/components/charts/StatTile';
 import { TrendLine } from '@/components/charts/TrendLine';
@@ -44,7 +45,8 @@ const DEPT_META: Record<string, { chip: string; title: string }> = {
   inbox: { chip: 'reports.dept.inbox', title: 'reports.dept.inbox' },
 };
 
-function monthCn(ym: string): string {
+function monthCn(ym: string, locale: Locale = 'zh'): string {
+  if (locale !== 'zh') return ym; // dates stay ISO (YYYY-MM) in en/id
   const [y, m] = ym.split('-');
   return `${y}年${Number(m)}月`;
 }
@@ -54,6 +56,8 @@ function moneyRM(v: number): string {
 }
 
 export default function ReportsPage() {
+  const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
@@ -195,7 +199,7 @@ export default function ReportsPage() {
     if (!pack || exporting) return;
     setExporting(true);
     try {
-      await buildPptx(pack);
+      await buildPptx(pack, t, locale);
     } catch (e) {
       console.error('[reports] PPT export failed:', e);
     } finally {
@@ -335,7 +339,7 @@ export default function ReportsPage() {
               {/* 演示模式 slide title + dot navigator */}
               <div className="rpt-ptitle hidden justify-between items-baseline font-serif text-[30px] font-bold text-ink mb-2">
                 <span>
-                  {t(DEPT_META[pack.pages[shownIdx]]?.title ?? '')} · {monthCn(pack.month)}
+                  {t(DEPT_META[pack.pages[shownIdx]]?.title ?? '')} · {monthCn(pack.month, locale)}
                 </span>
                 <span className="text-sm font-sans font-normal text-ink-muted">{t('reports.presentHint')}</span>
               </div>
@@ -362,7 +366,7 @@ export default function ReportsPage() {
                 >
                   {/* print-only page title */}
                   <h3 className="rpt-print-title hidden font-serif text-lg font-bold text-ink">
-                    {t(DEPT_META[p]?.title ?? p)} · {monthCn(pack.month)}
+                    {t(DEPT_META[p]?.title ?? p)} · {monthCn(pack.month, locale)}
                   </h3>
                   {p === 'outreach' && <OutreachPage pack={pack} />}
                   {p === 'care' && pack.care && <CarePage pack={pack} />}
@@ -405,6 +409,7 @@ function Faded({ note, children, when }: { note: string; when: boolean; children
 
 // ── 渡人 page ─────────────────────────────────────────────────────────────────
 function OutreachPage({ pack }: { pack: ReportsPack }) {
+  const t = useT();
   const o = pack.outreach;
   return (
     <>
@@ -538,6 +543,7 @@ function OutreachPage({ pack }: { pack: ReportsPack }) {
 
 // ── 关怀 page (relocated care-report queries) ─────────────────────────────────
 function CarePage({ pack }: { pack: ReportsPack }) {
+  const t = useT();
   const c = pack.care!;
   return (
     <>
@@ -572,6 +578,7 @@ function CarePage({ pack }: { pack: ReportsPack }) {
 
 // ── 运营·财务 page ────────────────────────────────────────────────────────────
 function OpsPage({ pack }: { pack: ReportsPack }) {
+  const t = useT();
   const o = pack.ops!;
   const noFinance = o.income === 0 && o.expenses === 0;
   return (
@@ -630,6 +637,7 @@ function OpsPage({ pack }: { pack: ReportsPack }) {
 
 // ── 活动·库存 page ────────────────────────────────────────────────────────────
 function EventsInvPage({ pack }: { pack: ReportsPack }) {
+  const t = useT();
   const e = pack.eventsInv;
   return (
     <>
@@ -678,6 +686,7 @@ function EventsInvPage({ pack }: { pack: ReportsPack }) {
 
 // ── 收件箱健康 page ───────────────────────────────────────────────────────────
 function InboxPage({ pack }: { pack: ReportsPack }) {
+  const t = useT();
   const ib = pack.inbox;
   return (
     <>
@@ -769,7 +778,7 @@ function InboxPage({ pack }: { pack: ReportsPack }) {
 // ── PPT export (brief §2 导出 PPT): title slide + one slide per dept page, hero
 // numbers as text + NATIVE pptx charts in the binding palette, footer page
 // numbers. pptxgenjs is dynamically imported so it never enters the main bundle.
-async function buildPptx(pack: ReportsPack) {
+async function buildPptx(pack: ReportsPack, t: TFunc, locale: Locale) {
   const PptxGenJS = (await import('pptxgenjs')).default;
   const pptx = new PptxGenJS();
   const P = { emerald: '009E63', azure: '0E86D4', amber: 'D97706', violet: '7C5CDB', neutral: 'A79E8B', rose: 'B04A4A', ink: '33302A', muted: '948A76' };
@@ -778,7 +787,7 @@ async function buildPptx(pack: ReportsPack) {
     background: { color: 'FFFFFF' },
     slideNumber: { x: 9.2, y: 5.3, color: P.muted, fontSize: 10 },
   });
-  const mcn = monthCn(pack.month);
+  const mcn = monthCn(pack.month, locale);
 
   // title slide
   const s0 = pptx.addSlide({ masterName: 'E3' });
@@ -914,5 +923,5 @@ async function buildPptx(pack: ReportsPack) {
     }
   }
 
-  await pptx.writeFile({ fileName: `${t('reports.packTitle')}-${pack.month}.pptx` });
+  await pptx.writeFile({ fileName: `${t('reports.pptFilename')}-${pack.month}.pptx` });
 }

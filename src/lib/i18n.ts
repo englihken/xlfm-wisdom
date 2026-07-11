@@ -9,10 +9,17 @@
 // the raw key — a missing key is never blank, it shows dev-visibly.
 
 import { zh } from './locales/zh';
+import { en } from './locales/en';
+import { id } from './locales/id';
 
 export type Locale = 'zh' | 'en' | 'id';
 export const LOCALES: Locale[] = ['zh', 'en', 'id'];
 export const DEFAULT_LOCALE: Locale = 'zh';
+
+// The public/UI locale cookie: SSR seeds the provider from it (public pages read it
+// directly; the dashboard also mirrors the session volunteer's saved locale into it
+// so subsequent server paints match). Shared by i18n-server.ts and i18n-react.tsx.
+export const LOCALE_COOKIE = 'NEXT_LOCALE';
 
 // Language names ALWAYS shown in their own language (switchers).
 export const LOCALE_NATIVE_NAME: Record<Locale, string> = {
@@ -29,9 +36,9 @@ export const LOCALE_SHORT_NAME: Record<Locale, string> = {
 
 type Dict = Record<string, string>;
 
-// zh is the master. E4 adds en/id here (typed Record<keyof typeof zh, string>);
-// until a locale ships, translate() falls back through the FALLBACK chain to zh.
-const DICTIONARIES: Partial<Record<Locale, Dict>> = { zh };
+// zh is the master; en/id are typed Record<keyof typeof zh, string> so gaps are
+// compile errors. A locale still missing a key falls back through FALLBACK to zh.
+const DICTIONARIES: Record<Locale, Dict> = { zh, en, id };
 
 // First hit wins; every chain ends at zh, then translate() falls back to the raw key.
 const FALLBACK: Record<Locale, Locale[]> = {

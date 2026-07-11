@@ -17,7 +17,7 @@ import { DashboardNav } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
 import { grantAllows, type Grants } from '@/lib/access';
 import { XLFM_CENTERS, isValidCenter } from '@/lib/xlfm-centers';
-import { t } from '@/lib/i18n';
+import { useT } from '@/lib/i18n-react';
 import {
   PermMatrixSection,
   AuditViewerSection,
@@ -77,19 +77,20 @@ type SectionId =
   | 'careCfg'
   | 'stages'
   | 'publicPages';
-const SECTIONS: { id: SectionId; label: string; adminOnly?: boolean; needsAudit?: boolean }[] = [
-  { id: 'volunteers', label: '义工与账号', adminOnly: true },
-  { id: 'inbox', label: '收件箱配置' },
-  { id: 'centres', label: '共修会管理' },
-  { id: 'notify', label: '通知与模板' },
-  { id: 'matrix', label: t('settings.section.matrix') },
-  { id: 'audit', label: t('settings.section.audit'), needsAudit: true },
-  { id: 'careCfg', label: t('settings.section.careCfg') },
-  { id: 'stages', label: t('settings.section.stages') },
-  { id: 'publicPages', label: t('settings.section.publicPages') },
+const SECTIONS: { id: SectionId; labelKey: string; adminOnly?: boolean; needsAudit?: boolean }[] = [
+  { id: 'volunteers', labelKey: 'settings.section.volunteers', adminOnly: true },
+  { id: 'inbox', labelKey: 'settings.section.inbox' },
+  { id: 'centres', labelKey: 'settings.section.centres' },
+  { id: 'notify', labelKey: 'settings.section.notify' },
+  { id: 'matrix', labelKey: 'settings.section.matrix' },
+  { id: 'audit', labelKey: 'settings.section.audit', needsAudit: true },
+  { id: 'careCfg', labelKey: 'settings.section.careCfg' },
+  { id: 'stages', labelKey: 'settings.section.stages' },
+  { id: 'publicPages', labelKey: 'settings.section.publicPages' },
 ];
 
 export default function SettingsPage() {
+  const t = useT();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
@@ -386,7 +387,7 @@ export default function SettingsPage() {
                         : 'text-ink-muted hover:bg-accent/5'
                     }`}
                   >
-                    {s.label}
+                    {t(s.labelKey)}
                   </button>
                 </li>
               );

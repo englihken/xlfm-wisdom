@@ -4,12 +4,17 @@
 // rankings, no chasing language. A person's rung is DERIVED from their milestones, never stored.
 
 // The journey ladder, in order (lowest → highest). deriveRung returns the highest present.
+// E4 relabel (brief §B.5): these labels are the DISPLAY vocabulary and were corrected in
+// zh too (新佛友 / 佛友 / 新同修 / 同修 / 义工 — the old 初次接触 / 参加过活动 / 开始念经 /
+// 稳定共修 wording is retired). The dictionary key `stage.<key>` mirrors each label and
+// carries the en/id translations; locale-aware display goes through stageLabelFor() in
+// display-maps.ts. These `label` fields are the zh source of truth.
 export const MILESTONES = [
-  { key: 'first_contact', label: '初次接触', emoji: '🌱' },
-  { key: 'attended', label: '参加活动·共修', emoji: '🪷' },
-  { key: 'started_chanting', label: '开始念经', emoji: '🙏' },
-  { key: 'steady_practice', label: '持续修学', emoji: '📿' },
-  { key: 'volunteer', label: '发心义工', emoji: '💛' },
+  { key: 'first_contact', label: '新佛友', emoji: '🌱' },
+  { key: 'attended', label: '佛友', emoji: '🪷' },
+  { key: 'started_chanting', label: '新同修', emoji: '🙏' },
+  { key: 'steady_practice', label: '同修', emoji: '📿' },
+  { key: 'volunteer', label: '义工', emoji: '💛' },
 ] as const;
 
 export type MilestoneKey = (typeof MILESTONES)[number]['key'];

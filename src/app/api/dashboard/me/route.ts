@@ -60,10 +60,11 @@ export async function GET() {
   let scope: 'all_centers' | 'own_center' = 'own_center';
   let centreId: string | null = null;
   let centreName: string | null = null;
+  let locale: 'zh' | 'en' | 'id' = 'zh';
   if (supabaseAdmin) {
     const { data: vol, error: volErr } = await supabaseAdmin
       .from('volunteers')
-      .select('scope, centre_id, centre:centres ( name_cn, name_en )')
+      .select('scope, centre_id, locale, centre:centres ( name_cn, name_en )')
       .eq('id', volunteer.id)
       .maybeSingle();
     if (volErr) {
@@ -73,6 +74,7 @@ export async function GET() {
       centreId = (vol.centre_id as string | null) ?? null;
       const centre = Array.isArray(vol.centre) ? vol.centre[0] : vol.centre;
       centreName = (centre?.name_cn as string | undefined) ?? null;
+      if (vol.locale === 'zh' || vol.locale === 'en' || vol.locale === 'id') locale = vol.locale;
     }
   }
 
@@ -86,5 +88,6 @@ export async function GET() {
     scope,
     centreId,
     centreName,
+    locale,
   });
 }

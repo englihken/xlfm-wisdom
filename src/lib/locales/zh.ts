@@ -1,9 +1,10 @@
 // src/lib/locales/zh.ts
-// The zh dictionary for the E3 i18n primer (brief §0). Plain object,
-// dot-namespaced keys. Every NEW user-facing string in E3 code lives here and
-// is read through t(); E4 adds en/id siblings without touching call sites.
+// The zh MASTER dictionary. Plain object, dot-namespaced keys. Every user-facing
+// string routed through t() lives here; en.ts + id.ts mirror this key set (they are
+// typed Record<keyof typeof zh, string>, so the compiler flags any gap). `satisfies`
+// (not a Record annotation) keeps the literal key union for that typing.
 
-export const zh: Record<string, string> = {
+export const zh = {
   // ── common ────────────────────────────────────────────────────────────────
   'common.loading': '加载中…',
   'common.saved': '已保存 ✓',
@@ -31,6 +32,7 @@ export const zh: Record<string, string> = {
   'reports.exporting': '导出中…',
   'reports.print': '🖨️ 打印',
   'reports.packTitle': '月度检讨包',
+  'reports.pptFilename': '月度检讨包',
   'reports.orgName': '心灵法门马来西亚',
   'reports.prevMonth': '上月',
   'reports.daySuffix': '天',
@@ -46,7 +48,7 @@ export const zh: Record<string, string> = {
   'reports.col.event': '活动',
   'reports.col.month': '月份',
   'reports.col.registrations': '报名',
-  'reports.col.newContacts': '新结缘',
+  'reports.col.newContacts': '新佛友',
   'reports.col.chanting': '开始念经',
   'reports.col.conversion': '转化',
   'reports.col.count': '人数',
@@ -55,13 +57,13 @@ export const zh: Record<string, string> = {
   'reports.col.category': '分类',
   'reports.col.item': '品项',
 
-  'reports.outreach.newContacts': '本月新结缘',
+  'reports.outreach.newContacts': '本月新佛友',
   'reports.outreach.chanting': '本月开始念经 🙏',
   'reports.outreach.chantingSub': '这是关键一步',
   'reports.outreach.volunteers': '发心义工',
   'reports.outreach.volunteersSub': '随喜赞叹 ✨',
   'reports.outreach.trendTitle': '近六个月趋势',
-  'reports.outreach.seriesNew': '新结缘',
+  'reports.outreach.seriesNew': '新佛友',
   'reports.outreach.seriesChanting': '开始念经',
   'reports.outreach.sourcesTitle': '本月来源分布',
   'reports.outreach.sourcesTotal': '合计',
@@ -79,7 +81,7 @@ export const zh: Record<string, string> = {
   'reports.care.conversations': '本月对话量',
   'reports.care.crisis': '危机对话',
   'reports.care.crisisSub': '均已即刻跟进 · 状态公开',
-  'reports.care.chatNew': '经聊天新结缘',
+  'reports.care.chatNew': '经聊天新佛友',
   'reports.care.chatNewSub': '转入渡人名单',
   'reports.care.categoriesTitle': '问题分布',
   'reports.care.categoriesNote': '分类词可在 设置→智慧问答设定 管理',
@@ -124,6 +126,10 @@ export const zh: Record<string, string> = {
   'reports.inbox.agedPrefix': '已',
 
   // ── 设置扩建 ──────────────────────────────────────────────────────────────
+  'settings.section.volunteers': '义工与账号',
+  'settings.section.inbox': '收件箱配置',
+  'settings.section.centres': '共修会管理',
+  'settings.section.notify': '通知与模板',
   'settings.section.matrix': '权限矩阵',
   'settings.section.audit': '审计查看器',
   'settings.section.careCfg': '智慧问答设定',
@@ -241,6 +247,48 @@ export const zh: Record<string, string> = {
   'account.pw.tooShort': '密码至少需要 8 位',
   'account.pw.mismatch': '两次输入的密码不一致',
 
+  // ── display maps: stages / sources / care categories (E4 §B.5–6) ────────────
+  // Stage labels relabelled (correct the old app wording in zh too). Legacy raw
+  // Chinese values fall through unmapped until the architect's migration 033.
+  'stage.first_contact': '新佛友',
+  'stage.attended': '佛友',
+  'stage.started_chanting': '新同修',
+  'stage.steady_practice': '同修',
+  'stage.volunteer': '义工',
+  'source.chat': '智慧问答',
+  'source.event': '活动',
+  'source.referral': '亲友介绍',
+  'source.walkin': '自己走进来',
+  'source.form': '表单',
+  'careCat.修行方法': '修行方法',
+  'careCat.解梦': '解梦',
+  'careCat.玄学问答': '玄学问答',
+  'careCat.健康': '健康',
+  'careCat.因果业障': '因果业障',
+  'careCat.事业财运': '事业财运',
+  'careCat.家庭': '家庭',
+  'careCat.感情婚姻': '感情婚姻',
+  'careCat.人际关系': '人际关系',
+  'careCat.学业': '学业',
+  'careCat.其他': '其他',
+  'careCat.闲聊测试': '闲聊测试',
+
+  // ── language switcher (dashboard user menu + public pill) ────────────────────
+  'shell.usermenu.language': '语言 / Language',
+  'public.langLabel': '语言',
+
+  // ── public page shells (/m /f /s /r layouts) ────────────────────────────────
+  'public.org': '心灵法门马来西亚',
+  'publicLayout.m.title': '共修会来信',
+  'publicLayout.m.footer': '感恩您的来信 · 我们会用心回复 🙏',
+  'publicLayout.f.title': '月费查询',
+  'publicLayout.f.footer': '缴费自愿 · 功德无量 🙏',
+  'publicLayout.s.title': '结缘品库存（总会仓库）· 只读',
+  'publicLayout.s.footer': '本页为实时库存目录，仅供查阅；如需结缘请联系总会。',
+  'publicLayout.r.title': '活动报名',
+  'publicLayout.r.footer': '提交即表示您同意本会为活动联络与安排保存您提供的资料。',
+  'publicLayout.r.footerNote': '（PLACEHOLDER · 待理事会确认）',
+
   // ── 财务总览 (Part A — grouped views) ──────────────────────────────────────
   'finance.tab.overview': '总览',
   'finance.tab.ledger': '月费台账',
@@ -284,4 +332,4 @@ export const zh: Record<string, string> = {
   'home.task.careUnread': '有新讯息 · 我接手的对话',
   'home.task.careHandling': '处理中 · 我接手的对话',
   'home.task.awaitingApproval': '待批核申请',
-};
+} satisfies Record<string, string>;

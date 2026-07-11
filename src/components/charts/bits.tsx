@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, type ReactNode, type MouseEvent } from 'react';
-import { t } from '@/lib/i18n';
+import { useT } from '@/lib/i18n-react';
 
 export type LegendItem = { label: string; color: string };
 export type TableSpec = { headers: string[]; rows: (string | number)[][] };
@@ -45,6 +45,7 @@ export function ChartShell({
   table: TableSpec;
   children: ReactNode;
 }) {
+  const t = useT();
   const [showTable, setShowTable] = useState(false);
   return (
     <div>

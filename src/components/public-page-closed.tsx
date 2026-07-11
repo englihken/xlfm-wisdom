@@ -3,9 +3,12 @@
 // switch is off (brief §3.5) — a calm message, never an error page. The pages
 // fail OPEN when the key is missing; only an explicit false lands here.
 
-import { t } from '@/lib/i18n';
+'use client';
+
+import { useT } from '@/lib/i18n-react';
 
 export function PublicPageClosed() {
+  const t = useT();
   return (
     <div className="bg-surface border border-border rounded-2xl p-8 text-center">
       <p className="text-4xl mb-3">🪷</p>

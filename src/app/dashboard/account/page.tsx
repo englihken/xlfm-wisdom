@@ -16,7 +16,7 @@ import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
 import type { Grants } from '@/lib/access';
-import { t } from '@/lib/i18n';
+import { useT } from '@/lib/i18n-react';
 
 type Me = {
   email: string;
@@ -37,6 +37,7 @@ const ROLE_KEY: Record<string, string> = {
 };
 
 export default function AccountPage() {
+  const t = useT();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
@@ -147,6 +148,7 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
 
 // 修改密码 — reuses the existing own-account change-password route.
 function ChangePasswordCard() {
+  const t = useT();
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
   const [busy, setBusy] = useState(false);

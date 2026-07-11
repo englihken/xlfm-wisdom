@@ -13,7 +13,14 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { createT, DEFAULT_LOCALE, toLocale, type Locale, type TFunc } from './i18n';
+import { createT, DEFAULT_LOCALE, LOCALE_COOKIE, toLocale, type Locale, type TFunc } from './i18n';
+
+// Persist the UI locale into the NEXT_LOCALE cookie (1 year) so the next SSR paint
+// seeds the provider in the same language. Client-only.
+export function setLocaleCookie(locale: Locale) {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+}
 
 type Ctx = { locale: Locale; setLocale: (l: Locale) => void };
 const I18nContext = createContext<Ctx>({ locale: DEFAULT_LOCALE, setLocale: () => {} });
@@ -54,7 +61,11 @@ export function LocaleFromSession() {
     fetch('/api/dashboard/me')
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
-        if (active && j?.locale) setLocale(toLocale(j.locale));
+        if (active && j?.locale) {
+          const loc = toLocale(j.locale);
+          setLocale(loc);
+          setLocaleCookie(loc); // keep SSR seed in sync with the saved preference
+        }
       })
       .catch(() => {});
     return () => {
@@ -64,8 +75,27 @@ export function LocaleFromSession() {
   return null;
 }
 
-// Convenience for imperatively binding a t at an event handler etc.
-export function useBoundT() {
-  const t = useT();
-  return useCallback(t, [t]);
+// Change the active locale everywhere: update the provider, mirror to the cookie,
+// and (dashboard) persist to the session volunteer's volunteers.locale. On public
+// pages pass persist=false. Returns a promise so callers can await the save.
+export function useChangeLocale() {
+  const setLocale = useSetLocale();
+  return useCallback(
+    async (locale: Locale, opts?: { persist?: boolean }) => {
+      setLocale(locale);
+      setLocaleCookie(locale);
+      if (opts?.persist) {
+        try {
+          await fetch('/api/dashboard/me/locale', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ locale }),
+          });
+        } catch {
+          /* cookie already applied; a failed save just won't survive re-login */
+        }
+      }
+    },
+    [setLocale]
+  );
 }

@@ -7,7 +7,7 @@
 
 import { ChartShell, useTip } from './bits';
 import { GRID, INK, INK_MUTED } from './palette';
-import { t } from '@/lib/i18n';
+import { useT } from '@/lib/i18n-react';
 
 export type TrendSeries = { label: string; color: string; points: number[] };
 
@@ -19,6 +19,7 @@ const T = 14;
 const B = 20;
 
 export function TrendLine({ series, labels }: { series: TrendSeries[]; labels: string[] }) {
+  const t = useT();
   const { show, hide, layer } = useTip();
   const n = labels.length;
   const max = Math.max(1, ...series.flatMap((s) => s.points));

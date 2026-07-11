@@ -9,10 +9,11 @@
 
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { MILESTONES, SOURCES } from '@/lib/outreach';
-import { t } from '@/lib/i18n';
+import { useT } from '@/lib/i18n-react';
 
 // Local toast (mirrors the page's useToast — kept private there).
 function useToast() {
+  const t = useT();
   const [toast, setToast] = useState<string | null>(null);
   const flash = (m: string) => {
     setToast(m);
@@ -27,30 +28,32 @@ function useToast() {
 // ─────────────────────────── 权限矩阵 (read-only) ───────────────────────────
 type MatrixRow = { role: string; grants: Record<string, string>; activeCount: number; scope: string | null };
 
-const MATRIX_MODULES: { key: string; label: string }[] = [
-  { key: 'care', label: t('matrix.mod.care') },
-  { key: 'inbox', label: t('matrix.mod.inbox') },
-  { key: 'outreach', label: t('matrix.mod.outreach') },
-  { key: 'members', label: t('matrix.mod.members') },
-  { key: 'events', label: t('matrix.mod.events') },
-  { key: 'inventory', label: t('matrix.mod.inventory') },
-  { key: 'finance', label: t('matrix.mod.finance') },
-  { key: 'reports', label: t('matrix.mod.reports') },
-  { key: 'settings', label: t('matrix.mod.settings') },
-  { key: 'audit', label: t('matrix.mod.audit') },
+// i18n KEYS (resolved at render with useT — module scope can't call the hook).
+const MATRIX_MODULES: { key: string; labelKey: string }[] = [
+  { key: 'care', labelKey: 'matrix.mod.care' },
+  { key: 'inbox', labelKey: 'matrix.mod.inbox' },
+  { key: 'outreach', labelKey: 'matrix.mod.outreach' },
+  { key: 'members', labelKey: 'matrix.mod.members' },
+  { key: 'events', labelKey: 'matrix.mod.events' },
+  { key: 'inventory', labelKey: 'matrix.mod.inventory' },
+  { key: 'finance', labelKey: 'matrix.mod.finance' },
+  { key: 'reports', labelKey: 'matrix.mod.reports' },
+  { key: 'settings', labelKey: 'matrix.mod.settings' },
+  { key: 'audit', labelKey: 'matrix.mod.audit' },
 ];
 
-const MATRIX_ROLE_LABELS: Record<string, string> = {
-  admin: '管理员',
-  volunteer: '关怀义工',
-  erp_admin: 'ERP 管理员',
-  committee: '理事会',
-  centre_head: '分会负责人',
-  finance_director: t('matrix.role.financeDirector'),
-  centre_finance: t('matrix.role.centreFinance'),
+const MATRIX_ROLE_KEYS: Record<string, string> = {
+  admin: 'shell.role.admin',
+  volunteer: 'shell.role.volunteer',
+  erp_admin: 'shell.role.erpAdmin',
+  committee: 'shell.role.committee',
+  centre_head: 'shell.role.centreHead',
+  finance_director: 'shell.role.financeDirector',
+  centre_finance: 'shell.role.centreFinance',
 };
 
 function AccessChip({ access }: { access: string | undefined }) {
+  const t = useT();
   if (!access || access === 'none') return <span className="text-ink-faint">—</span>;
   const map: Record<string, { label: string; cls: string }> = {
     admin: { label: t('matrix.access.admin'), cls: 'pill-gold' },
@@ -63,6 +66,7 @@ function AccessChip({ access }: { access: string | undefined }) {
 }
 
 export function PermMatrixSection() {
+  const t = useT();
   const [rows, setRows] = useState<MatrixRow[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -96,7 +100,7 @@ export function PermMatrixSection() {
                   <th className="px-2 py-2 font-normal">{t('matrix.col.role')}</th>
                   {MATRIX_MODULES.map((m) => (
                     <th key={m.key} className="px-2 py-2 font-normal">
-                      {m.label}
+                      {t(m.labelKey)}
                     </th>
                   ))}
                   <th className="px-2 py-2 font-normal">{t('matrix.col.scope')}</th>
@@ -106,7 +110,7 @@ export function PermMatrixSection() {
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.role} className="border-b border-border last:border-b-0 align-middle">
-                    <td className="px-2 py-2 font-medium text-ink whitespace-nowrap">{MATRIX_ROLE_LABELS[r.role] ?? r.role}</td>
+                    <td className="px-2 py-2 font-medium text-ink whitespace-nowrap">{MATRIX_ROLE_KEYS[r.role] ? t(MATRIX_ROLE_KEYS[r.role]) : r.role}</td>
                     {MATRIX_MODULES.map((m) => (
                       <td key={m.key} className="px-2 py-2">
                         <AccessChip access={r.grants[m.key]} />
@@ -189,6 +193,7 @@ function fmtAuditTime(iso: string): string {
 }
 
 export function AuditViewerSection() {
+  const t = useT();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -390,6 +395,7 @@ function useOrgSettings() {
 
 // ─────────────────────────── 智慧问答设定 ───────────────────────────
 export function CareCfgSection() {
+  const t = useT();
   const { values, save } = useOrgSettings();
   const [newCat, setNewCat] = useState('');
   const { flash, node } = useToast();
@@ -473,6 +479,7 @@ export function CareCfgSection() {
 
 // ─────────────────────────── 渡人阶段 (read-only vocab + window) ─────────────
 export function StagesSection() {
+  const t = useT();
   const { values, save } = useOrgSettings();
   const [windowDays, setWindowDays] = useState<number | null>(null);
   const { flash, node } = useToast();
@@ -562,6 +569,7 @@ export function StagesSection() {
 
 // ─────────────────────────── 公开页面 ───────────────────────────
 export function PublicPagesSection() {
+  const t = useT();
   const { values, save } = useOrgSettings();
   const [notice, setNotice] = useState<string | null>(null);
   const { flash, node } = useToast();
