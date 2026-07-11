@@ -127,7 +127,7 @@ function MemberCard({ m }: { m: Member }) {
 
       {t && (
         <div className="text-xs text-[#4A3A14] bg-[#FBF3DE] border border-gold-border rounded-xl px-4 py-3 leading-relaxed">
-          🏮 {m.centre ?? '本中心'} 本月：已收 {moneyRM(t.collected)} · 支出 {moneyRM(t.expenses)} · 结余 {moneyRM(t.surplus)} 转入盈余互助。
+          🏮 {m.centre ?? '本中心'} 本月：已收 {moneyRM(t.collected)} · 支出 {moneyRM(t.expenses)} · 结余 {moneyRM(t.surplus)}。
           {t.paused && <b> 本月已满，感恩 🙏 本月无需再缴。</b>}
           {t.paused && t.pausedNote && <span className="block mt-1 text-ink-muted">{t.pausedNote}</span>}
         </div>

@@ -31,12 +31,14 @@ export async function GET(req: Request) {
   const monthEnd = nextMonthFirst(monthFirst);
   const scope = await financeScope(supabaseAdmin, access.volunteer.id);
 
-  let centreQ = supabaseAdmin.from('centres').select('id, code, name_cn').eq('is_active', true);
+  let centreQ = supabaseAdmin.from('centres').select('id, code, name_cn, name_en, state, sort').eq('is_active', true);
   if (scope.locked) {
     if (!scope.centreId) return NextResponse.json({ error: '账号未绑定中心，无法访问财务数据' }, { status: 400 });
     centreQ = centreQ.eq('id', scope.centreId);
   }
-  const { data: centres, error: cErr } = await centreQ.order('name_cn', { ascending: true });
+  // Order by sort (the same key the overview groups by: state band order = min(sort) in group,
+  // rows within a group by sort). name_cn is no longer the ordering key.
+  const { data: centres, error: cErr } = await centreQ.order('sort', { ascending: true });
   if (cErr) {
     console.error('[finance/stats] centres failed:', cErr);
     return NextResponse.json({ error: 'Failed to load' }, { status: 500 });
@@ -89,13 +91,20 @@ export async function GET(req: Request) {
     const cur = maxTo.get(p.member_id);
     if (!cur || p.months_to > cur) maxTo.set(p.member_id, p.months_to);
   }
+  // Global + per-centre pledged/paid counts (the overview table shows 已缴/认捐 per centre).
+  const pledgedByCentre = new Map<string, number>();
+  const paidByCentre = new Map<string, number>();
   let pledgedCount = 0;
   let paidCount = 0;
-  for (const m of members as { id: string; fee_pledge_amount: number | null; fee_waived_from: string | null }[]) {
+  for (const m of members as { id: string; gyt_centre_id: string; fee_pledge_amount: number | null; fee_waived_from: string | null }[]) {
     if (m.fee_pledge_amount == null || m.fee_waived_from != null) continue;
     pledgedCount += 1;
+    pledgedByCentre.set(m.gyt_centre_id, (pledgedByCentre.get(m.gyt_centre_id) ?? 0) + 1);
     const to = maxTo.get(m.id);
-    if (to && to >= monthFirst) paidCount += 1;
+    if (to && to >= monthFirst) {
+      paidCount += 1;
+      paidByCentre.set(m.gyt_centre_id, (paidByCentre.get(m.gyt_centre_id) ?? 0) + 1);
+    }
   }
 
   const pauseMap = new Map<string, { collection_paused: boolean; paused_note: string | null }>();
@@ -109,9 +118,14 @@ export async function GET(req: Request) {
       id: c.id,
       code: c.code,
       name_cn: c.name_cn,
+      name_en: c.name_en,
+      state: c.state,
+      sort: c.sort,
       collected: pc?.collected ?? 0,
       expenses: pc?.expenses ?? 0,
       surplus: (pc?.collected ?? 0) - (pc?.expenses ?? 0),
+      pledgedCount: pledgedByCentre.get(c.id) ?? 0,
+      paidCount: paidByCentre.get(c.id) ?? 0,
       paused: pauseMap.get(c.id)?.collection_paused ?? false,
       pausedNote: pauseMap.get(c.id)?.paused_note ?? null,
       receiptBookAt: bookAt.get(c.id)?.no ?? null,

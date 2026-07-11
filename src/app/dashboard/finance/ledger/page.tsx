@@ -60,10 +60,12 @@ export default function FinancePage() {
 
 function Ledger({ me }: { me: ErpMe }) {
   const canEdit = grantAllows(me.grants, 'finance', 'edit');
+  // Preselect from the overview click-through (?centre=<id>&year=<YYYY>) when present.
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const [centres, setCentres] = useState<Centre[]>([]);
   const [locked, setLocked] = useState(false);
-  const [centreId, setCentreId] = useState('');
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [centreId, setCentreId] = useState(urlParams?.get('centre') ?? '');
+  const [year, setYear] = useState(Number(urlParams?.get('year')) || new Date().getFullYear());
   const [search, setSearch] = useState('');
   const [members, setMembers] = useState<Member[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -80,7 +82,11 @@ function Ledger({ me }: { me: ErpMe }) {
         if (!j) return;
         setCentres(j.centres ?? []);
         setLocked(!!j.scope?.locked);
-        setCentreId((c) => c || j.centres?.[0]?.id || '');
+        // Keep a valid preselected centre (from the click-through) only if it is in
+        // the caller's scope; otherwise fall back to the first centre they can see.
+        setCentreId((c) =>
+          c && (j.centres ?? []).some((x: { id: string }) => x.id === c) ? c : j.centres?.[0]?.id || ''
+        );
       })
       .catch(() => {});
   }, []);

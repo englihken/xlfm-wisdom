@@ -1,16 +1,79 @@
 // src/lib/i18n.ts
-// E3 i18n primer (§0): every NEW user-facing string goes through t(). Locale is
-// hardcoded 'zh' this phase; E4 adds en/id dictionaries + a switcher without
-// touching call sites. A missing key returns the key itself — deliberately
-// dev-visible so gaps surface in the UI instead of failing silently.
-// Client-safe: pure lookup, no server imports.
+// i18n core (E3 primer → E4 three-locale). PURE — no React, no server imports —
+// so it is safe to import from BOTH server code (API routes / server components:
+// createT(locale)) and client code (via the hooks in i18n-react.tsx: useT()).
+//
+// zh is the master dictionary (locales/zh.ts). E4 adds en.ts + id.ts, each typed
+// Record<keyof typeof zh, string> so the compiler catches any gap. Resolution
+// walks a per-locale FALLBACK chain (id → en → zh, en → zh) and finally returns
+// the raw key — a missing key is never blank, it shows dev-visibly.
 
 import { zh } from './locales/zh';
 
-const LOCALE: 'zh' = 'zh';
+export type Locale = 'zh' | 'en' | 'id';
+export const LOCALES: Locale[] = ['zh', 'en', 'id'];
+export const DEFAULT_LOCALE: Locale = 'zh';
 
-const DICTIONARIES: Record<typeof LOCALE, Record<string, string>> = { zh };
+// Language names ALWAYS shown in their own language (switchers).
+export const LOCALE_NATIVE_NAME: Record<Locale, string> = {
+  zh: '中文',
+  en: 'English',
+  id: 'Bahasa Indonesia',
+};
+// Compact label for the public pill.
+export const LOCALE_SHORT_NAME: Record<Locale, string> = {
+  zh: '中文',
+  en: 'EN',
+  id: 'ID',
+};
 
-export function t(key: string): string {
-  return DICTIONARIES[LOCALE][key] ?? key;
+type Dict = Record<string, string>;
+
+// zh is the master. E4 adds en/id here (typed Record<keyof typeof zh, string>);
+// until a locale ships, translate() falls back through the FALLBACK chain to zh.
+const DICTIONARIES: Partial<Record<Locale, Dict>> = { zh };
+
+// First hit wins; every chain ends at zh, then translate() falls back to the raw key.
+const FALLBACK: Record<Locale, Locale[]> = {
+  zh: ['zh'],
+  en: ['en', 'zh'],
+  id: ['id', 'en', 'zh'],
+};
+
+export function isLocale(v: unknown): v is Locale {
+  return v === 'zh' || v === 'en' || v === 'id';
 }
+
+// Coerce anything (cookie value, db column, query param) to a valid Locale.
+export function toLocale(v: unknown): Locale {
+  return isLocale(v) ? v : DEFAULT_LOCALE;
+}
+
+// {name}-style interpolation — full-sentence keys with named params (never
+// concatenate translated fragments).
+function interpolate(s: string, params?: Record<string, string | number>): string {
+  if (!params) return s;
+  return s.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
+}
+
+export function translate(
+  locale: Locale,
+  key: string,
+  params?: Record<string, string | number>
+): string {
+  for (const loc of FALLBACK[locale] ?? FALLBACK.zh) {
+    const v = DICTIONARIES[loc]?.[key];
+    if (v != null) return interpolate(v, params);
+  }
+  return key; // dev-visible gap — never blank
+}
+
+export type TFunc = (key: string, params?: Record<string, string | number>) => string;
+
+export function createT(locale: Locale): TFunc {
+  return (key, params) => translate(locale, key, params);
+}
+
+// Legacy zh-bound export. Kept for non-hook / server callers that don't yet carry
+// a per-request locale; client components use useT() from i18n-react.tsx instead.
+export const t: TFunc = createT('zh');
