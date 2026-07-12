@@ -49,7 +49,7 @@ const zh = {
 
   // ── conversation gist ─────────────────────────────────────────────────────────
   'care.gistTitle': '本次对话',
-  'care.gistPending': '本次对话摘要待今夜生成',
+  'care.gistPending': '本次对话摘要将在义工接手时或今夜自动生成',
 
   // ── contact profile panel ─────────────────────────────────────────────────────
   'care.anonymousVisitor': '匿名访客',
@@ -59,6 +59,7 @@ const zh = {
   'care.contactMethod': '联系方式',
   'care.practiceStage': '修行阶段',
   'care.contactProfile': '有缘人档案',
+  'care.profileUpdated': '档案更新于 {time}',
   'care.volunteerNotes': '义工备注',
   'care.notesPlaceholder': '为这位联系人添加备注…',
   'care.firstContact': '首次联系：{time}',
@@ -130,7 +131,8 @@ export const carePart: {
     'care.send': 'Send',
 
     'care.gistTitle': 'This conversation',
-    'care.gistPending': 'A summary of this conversation will be generated tonight',
+    'care.gistPending':
+      'A summary of this conversation will be generated when a volunteer takes over, or tonight',
 
     'care.anonymousVisitor': 'Anonymous visitor',
     'care.webVisitor': 'Web visitor',
@@ -140,6 +142,7 @@ export const carePart: {
     'care.contactMethod': 'Contact',
     'care.practiceStage': 'Practice stage',
     'care.contactProfile': 'Contact profile',
+    'care.profileUpdated': 'Profile updated {time}',
     'care.volunteerNotes': 'Volunteer notes',
     'care.notesPlaceholder': 'Add a note for this contact…',
     'care.firstContact': 'First contact: {time}',
@@ -203,7 +206,8 @@ export const carePart: {
     'care.send': 'Kirim',
 
     'care.gistTitle': 'Percakapan ini',
-    'care.gistPending': 'Ringkasan percakapan ini akan dibuat malam ini',
+    'care.gistPending':
+      'Ringkasan percakapan ini akan dibuat saat relawan mengambil alih, atau malam ini',
 
     'care.anonymousVisitor': 'Pengunjung anonim',
     'care.webVisitor': 'Pengunjung web',
@@ -213,6 +217,7 @@ export const carePart: {
     'care.contactMethod': 'Kontak',
     'care.practiceStage': 'Tahap latihan',
     'care.contactProfile': 'Profil umat',
+    'care.profileUpdated': 'Profil diperbarui {time}',
     'care.volunteerNotes': 'Catatan relawan',
     'care.notesPlaceholder': 'Tambahkan catatan untuk kontak ini…',
     'care.firstContact': 'Kontak pertama: {time}',

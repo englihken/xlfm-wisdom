@@ -2,12 +2,26 @@
 // GET one full conversation for the dashboard: the contact profile (right panel)
 // plus every message in order (center thread). Auth-gated, then queried with the
 // service-role client (supabaseAdmin).
+//
+// Staleness self-heal: if the contact still has unsummarized idle conversations
+// (the pre-fix backlog, or anything the nightly cron hasn't reached yet), simply
+// OPENING a conversation schedules a background refresh (after() — runs once the
+// response is sent, adds no latency). The next poll (~30s) then shows the fresh
+// 有缘人档案. Throttled in the lib so the 30s polling can't hammer the model.
 
 import { NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
+import {
+  contactHasPendingSummaries,
+  getProfileUpdatedAt,
+  refreshContactSummaries,
+  HEAL_IDLE_MS,
+} from '@/lib/care-summary';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60; // headroom for the after() background refresh
 
 type ContactProfile = {
   id: string;
@@ -75,6 +89,25 @@ export async function GET(
   const rawContact = (conversation as { contact: ContactProfile | ContactProfile[] | null }).contact;
   const contact = Array.isArray(rawContact) ? rawContact[0] ?? null : rawContact;
 
+  // 档案更新于 — when this contact's profile was last refreshed (max summarized_at
+  // over its conversations), plus the background self-heal when work is pending.
+  let profileUpdatedAt: string | null = null;
+  if (contact) {
+    const db = supabaseAdmin;
+    const contactId = contact.id;
+    profileUpdatedAt = await getProfileUpdatedAt(db, contactId);
+    if (await contactHasPendingSummaries(db, contactId)) {
+      after(async () => {
+        try {
+          const idleCutoffIso = new Date(Date.now() - HEAL_IDLE_MS).toISOString();
+          await refreshContactSummaries(db, contactId, { idleCutoffIso, throttled: true });
+        } catch (e) {
+          console.error(`[dashboard] background summary heal failed for contact ${contactId}:`, e);
+        }
+      });
+    }
+  }
+
   // Resolve volunteer names for the assignee + every sent_by, in one lookup.
   const rows = (messages ?? []) as { sent_by: string | null }[];
   const volunteerIds = new Set<string>();
@@ -108,7 +141,7 @@ export async function GET(
       assignedVolunteerName: assignedVolunteer ? nameById.get(assignedVolunteer) ?? '义工' : null,
       assignedToMe: assignedVolunteer === access.volunteer.id,
     },
-    contact,
+    contact: contact ? { ...contact, profile_updated_at: profileUpdatedAt } : null,
     messages: (messages ?? []).map((m) => ({
       ...m,
       sentByName: m.sent_by ? nameById.get(m.sent_by) ?? '义工' : null,

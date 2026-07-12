@@ -55,6 +55,8 @@ type ContactProfile = {
   notes: string | null;
   first_seen: string;
   last_seen: string;
+  // When the rolling 有缘人档案 was last regenerated (server-derived; null = never).
+  profile_updated_at?: string | null;
 };
 
 type Detail = {
@@ -438,7 +440,19 @@ export default function DashboardPage() {
                 status: 'volunteer_handling',
                 assignedVolunteerName: me?.displayName ?? t('care.me'),
                 assignedToMe: true,
+                // Takeover regenerates this conversation's gist server-side —
+                // show it immediately (null = refresh unavailable, keep current).
+                summary: json?.conversationSummary ?? prev.conversation.summary,
               },
+              contact:
+                prev.contact && json?.contactSummary
+                  ? {
+                      ...prev.contact,
+                      summary: json.contactSummary,
+                      profile_updated_at:
+                        json.profileUpdatedAt ?? prev.contact.profile_updated_at,
+                    }
+                  : prev.contact,
             }
           : prev
       );
@@ -1091,6 +1105,12 @@ function ContactPanel({
         <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
           {c.summary?.trim() || t('care.none')}
         </p>
+        {/* Staleness always visible: when this rolling profile was last regenerated. */}
+        {c.profile_updated_at && (
+          <p className="mt-1 text-xs text-ink-faint">
+            {t('care.profileUpdated', { time: formatDateTime(c.profile_updated_at) })}
+          </p>
+        )}
       </div>
 
       {/* 义工备注 — editable textarea, saves on button click */}
