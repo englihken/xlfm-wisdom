@@ -12,15 +12,32 @@ import { getInboxAccess, contentMailboxIds } from '@/lib/inbox-scope';
 import { loadVisibleMailboxes, countsByMailbox, ownersByMailbox, loadEscalation } from '@/lib/inbox-server';
 import { ageDays, overdueLevel, snippet } from '@/lib/inbox';
 import { countUnreadConversations, isUnread } from '@/lib/care-inbox';
-import { createT } from '@/lib/i18n';
-import { getVolunteerLocale } from '@/lib/i18n-server';
 
 export const runtime = 'nodejs';
 
-const ACTION_CN: Record<string, string> = {
-  create: '新增', update: '更新', deactivate: '停用', reactivate: '启用', import: '导入',
-  thread_created: '新建来信', replied: '回复', assigned: '指派', transferred: '转办',
-  status_changed: '更新状态', 'outreach.person_create': '新增善缘', centre_created: '新增共修会',
+// E4: this route returns STABLE KEYS (+params) for every UI label — never
+// pre-translated text. The home page renders them with the client t(), so labels
+// react instantly to a locale switch (baked strings went stale until refresh).
+// User DATA (names, subjects, centre names, categories) stays raw text.
+
+// A label the client resolves with t(key, params).
+type L10n = { key: string; params?: Record<string, string | number> };
+
+// audit_log action → i18n key (home.audit.action.*); unknown actions fall back
+// to the raw action string client-side (actionKey null → render actionRaw).
+const ACTION_KEY: Record<string, string> = {
+  create: 'home.audit.action.create',
+  update: 'home.audit.action.update',
+  deactivate: 'home.audit.action.deactivate',
+  reactivate: 'home.audit.action.reactivate',
+  import: 'home.audit.action.import',
+  thread_created: 'home.audit.action.threadCreated',
+  replied: 'home.audit.action.replied',
+  assigned: 'home.audit.action.assigned',
+  transferred: 'home.audit.action.transferred',
+  status_changed: 'home.audit.action.statusChanged',
+  'outreach.person_create': 'home.audit.action.outreachPersonCreate',
+  centre_created: 'home.audit.action.centreCreated',
 };
 
 export async function GET() {
@@ -32,10 +49,6 @@ export async function GET() {
   if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
   const db = supabaseAdmin;
   const me = access.volunteer;
-  // Localize tile/task labels by the SIGNED-IN volunteer's saved locale — never the
-  // browser cookie (the home tiles must match the rest of the dashboard, not whoever
-  // used this browser last).
-  const tr = createT(await getVolunteerLocale(me.id));
 
   const grants: Grants = {};
   const { data: grantRows } = await db.from('role_grants').select('module, access').eq('role', me.role);
@@ -43,22 +56,27 @@ export async function GET() {
   const careEdit = grantAllows(grants, 'care', 'edit');
 
   const nowMs = Date.now();
-  const tiles: { key: string; label: string; value: number; sub?: string; href: string }[] = [];
+  const tiles: { key: string; labelKey: string; value: number; sub?: L10n; href: string }[] = [];
   const out: {
     role: string;
     tiles: typeof tiles;
     crisis: { allowed: boolean; count: number } | null;
     inboxCard: unknown;
-    myTasks: { id: string; kind: string; label: string; sub: string; href: string; chip: string }[];
+    // label = raw DATA text (inbox subject / inventory item×qty); care tasks carry
+    // careName/careCategory instead so the anonymous-name fallback localizes client-side.
+    myTasks: {
+      id: string; kind: string; href: string; chipKey: string; sub: L10n;
+      label?: string; careName?: string | null; careCategory?: string | null;
+    }[];
     outreachMonth: { new_contacts: number; started_chanting: number } | null;
-    recentMembers: { id: string; name: string; centreCode: string | null; updatedAt: string }[] | null;
-    recentAudit: { id: number; line: string; at: string }[] | null;
+    recentMembers: { id: string; name: string | null; centreCode: string | null; updatedAt: string }[] | null;
+    recentAudit: { id: number; actor: string | null; actionKey: string | null; actionRaw: string; ref: string; at: string }[] | null;
   } = { role: me.role, tiles, crisis: null, inboxCard: null, myTasks: [], outreachMonth: null, recentMembers: null, recentAudit: null };
 
   // ── care unread tile (care ≥ edit) ─────────────────────────────────────────
   if (careEdit) {
     const unread = await countUnreadConversations(me.id);
-    tiles.push({ key: 'care', label: '未读对话', value: unread, href: '/dashboard' });
+    tiles.push({ key: 'care', labelKey: 'home.tile.careUnread', value: unread, href: '/dashboard' });
   }
 
   // ── inbox blocks ────────────────────────────────────────────────────────────
@@ -77,7 +95,7 @@ export async function GET() {
         totalNew += c.new_n;
         if (c.oldest_unhandled_iso) oldest = Math.max(oldest, ageDays(c.oldest_unhandled_iso, nowMs));
       }
-      tiles.push({ key: 'inbox', label: '事务未处理', value: totalNew, sub: totalNew ? `最旧 ${oldest} 天 · 全国` : undefined, href: '/dashboard/inbox' });
+      tiles.push({ key: 'inbox', labelKey: 'home.tile.mailUnhandled', value: totalNew, sub: totalNew ? { key: 'home.tile.inboxSubNational', params: { n: oldest } } : undefined, href: '/dashboard/inbox' });
 
       const esc = await loadEscalation(db);
       const owners = await ownersByMailbox(db, ids);
@@ -90,7 +108,8 @@ export async function GET() {
           centre_name: m.centre_name,
           new_n: c.new_n,
           oldest_unhandled_days: c.oldest_unhandled_iso ? ageDays(c.oldest_unhandled_iso, nowMs) : 0,
-          owners_label: (owners.get(m.id) ?? []).map((o) => o.name).join('、') || '未指派',
+          // Owner NAMES are data; when none, null → the client renders t('common.unassigned').
+          owners_label: (owners.get(m.id) ?? []).map((o) => o.name).join('、') || null,
         }));
 
       // surfaced (>surface_hq_days) subjects — the sanctioned HQ exception
@@ -118,7 +137,7 @@ export async function GET() {
         if (c.oldest_unhandled_iso) oldest = Math.max(oldest, ageDays(c.oldest_unhandled_iso, nowMs));
         if (!centreLabel) centreLabel = m.centre_name;
       }
-      tiles.push({ key: 'inbox', label: '事务未处理', value: totalNew, sub: totalNew ? `最旧 ${oldest} 天 · ${centreLabel}` : undefined, href: '/dashboard/inbox' });
+      tiles.push({ key: 'inbox', labelKey: 'home.tile.mailUnhandled', value: totalNew, sub: totalNew ? { key: 'home.tile.inboxSubCentre', params: { n: oldest, centre: centreLabel } } : undefined, href: '/dashboard/inbox' });
 
       let threads: { id: string; subject: string; sender_name: string | null; age_days: number; centre_name: string }[] = [];
       if (myBoxes.length) {
@@ -161,7 +180,7 @@ export async function GET() {
       const { count } = await db.from('registrations').select('id', { count: 'exact', head: true }).eq('status', 'pending');
       pendingRegs = count ?? 0;
     }
-    tiles.push({ key: 'pendingRegs', label: tr('home.tile.pendingRegs'), value: pendingRegs, href: '/dashboard/events' });
+    tiles.push({ key: 'pendingRegs', labelKey: 'home.tile.pendingRegs', value: pendingRegs, href: '/dashboard/events' });
   }
 
   if (grantAllows(grants, 'inventory', 'edit')) {
@@ -179,13 +198,13 @@ export async function GET() {
         if ((qtyBy.get(it.id as string) ?? 0) <= (it.low_stock_line as number)) lowStock++;
       }
     }
-    tiles.push({ key: 'lowStock', label: tr('home.tile.lowStock'), value: lowStock, href: '/dashboard/inventory' });
+    tiles.push({ key: 'lowStock', labelKey: 'home.tile.lowStock', value: lowStock, href: '/dashboard/inventory' });
   }
 
   // ── members fallback tile (only if no care/inbox tile yet) ──────────────────
   if (tiles.length === 0 && grantAllows(grants, 'members', 'view')) {
     const { count } = await db.from('members').select('id', { count: 'exact', head: true }).eq('status', 'active');
-    tiles.push({ key: 'members', label: '会员总数', value: count ?? 0, href: '/dashboard/members' });
+    tiles.push({ key: 'members', labelKey: 'home.tile.membersTotal', value: count ?? 0, href: '/dashboard/members' });
   }
 
   // ── crisis strip (admin OR care ≥ edit) ────────────────────────────────────
@@ -211,9 +230,9 @@ export async function GET() {
         id: t.id as string,
         kind: 'inbox',
         label: snippet(t.subject as string, 40),
-        sub: `${(centre?.name_cn as string) ?? ''} · ${ageDays(t.last_message_at as string, nowMs)} 天`,
+        sub: { key: 'home.task.inboxSub', params: { centre: (centre?.name_cn as string) ?? '', n: ageDays(t.last_message_at as string, nowMs) } },
         href: `/dashboard/inbox?thread=${t.id}`,
-        chip: '事务',
+        chipKey: 'home.chip.inbox',
       });
     }
   }
@@ -239,7 +258,8 @@ export async function GET() {
           const contact = Array.isArray(c.contact) ? c.contact[0] : c.contact;
           return {
             id: c.id as string,
-            name: (contact?.display_name as string | undefined) || '匿名访客',
+            // null → the client renders t('home.task.anonVisitor') so it localizes
+            name: (contact?.display_name as string | undefined) || null,
             category: (c.category as string | null) ?? null,
             unread: isUnread(c.last_message_at as string, readMap.get(c.id as string)),
           };
@@ -250,10 +270,11 @@ export async function GET() {
         out.myTasks.push({
           id: r.id,
           kind: 'care',
-          label: `${r.name}${r.category ? ` · ${r.category}` : ''}`,
-          sub: r.unread ? tr('home.task.careUnread') : tr('home.task.careHandling'),
+          careName: r.name,
+          careCategory: r.category,
+          sub: { key: r.unread ? 'home.task.careUnread' : 'home.task.careHandling' },
           href: '/dashboard',
-          chip: tr('home.chip.care'),
+          chipKey: 'home.chip.care',
         });
       }
     }
@@ -274,9 +295,9 @@ export async function GET() {
         id: r.id as string,
         kind: 'inventory',
         label: `${(item?.name_cn as string) ?? '—'} × ${r.qty_requested as number}`,
-        sub: `${(centre?.name_cn as string) ?? ''} · ${tr('home.task.awaitingApproval')}`,
+        sub: { key: 'home.task.inventorySub', params: { centre: (centre?.name_cn as string) ?? '' } },
         href: '/dashboard/inventory/requests',
-        chip: tr('home.chip.inventory'),
+        chipKey: 'home.chip.inventory',
       });
     }
   }
@@ -317,7 +338,8 @@ export async function GET() {
       const { data: rows } = await rq;
       out.recentMembers = (rows ?? []).map((r) => {
         const centre = Array.isArray(r.centre) ? r.centre[0] : r.centre;
-        return { id: r.id as string, name: (r.name_cn as string) || (r.name_en as string) || '（无名）', centreCode: (centre?.code as string) ?? null, updatedAt: r.updated_at as string };
+        // null name → the client renders t('home.member.unnamed')
+        return { id: r.id as string, name: (r.name_cn as string) || (r.name_en as string) || null, centreCode: (centre?.code as string) ?? null, updatedAt: r.updated_at as string };
       });
     } else {
       out.recentMembers = [];
@@ -328,10 +350,16 @@ export async function GET() {
   if (me.role === 'admin') {
     const { data: rows } = await db.from('audit_log').select('id, at, actor_email, action, table_name, record_id').order('id', { ascending: false }).limit(6);
     out.recentAudit = (rows ?? []).map((r) => {
-      const actor = (r.actor_email as string | null) || '系统';
-      const act = ACTION_CN[r.action as string] ?? (r.action as string);
       const ref = r.record_id ? ` (${String(r.record_id).slice(0, 8)})` : '';
-      return { id: r.id as number, line: `${actor} ${act}${ref}`, at: r.at as string };
+      // Parts, not a baked line: the client composes `${actor ?? t(system)} ${t(actionKey) ?? actionRaw}${ref}`
+      return {
+        id: r.id as number,
+        actor: (r.actor_email as string | null) || null,
+        actionKey: ACTION_KEY[r.action as string] ?? null,
+        actionRaw: r.action as string,
+        ref,
+        at: r.at as string,
+      };
     });
   }
 

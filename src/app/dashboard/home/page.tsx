@@ -25,19 +25,25 @@ type Me = {
   role: 'admin' | 'volunteer' | 'erp_admin' | 'committee' | 'centre_head';
   grants: Grants;
 };
-type Tile = { key: string; label: string; value: number; sub?: string; href: string };
+// The summary API returns STABLE KEYS (+params) for every label — the page renders
+// them with t() so the whole cockpit re-translates instantly on a locale switch.
+type L10n = { key: string; params?: Record<string, string | number> };
+type Tile = { key: string; labelKey: string; value: number; sub?: L10n; href: string };
 type InboxCard =
-  | { mode: 'health'; health: { mailbox_id: string; centre_name: string; new_n: number; oldest_unhandled_days: number; owners_label: string }[]; surfaced: { id: string; subject: string; age_days: number }[] }
+  | { mode: 'health'; health: { mailbox_id: string; centre_name: string; new_n: number; oldest_unhandled_days: number; owners_label: string | null }[]; surfaced: { id: string; subject: string; age_days: number }[] }
   | { mode: 'owner'; threads: { id: string; subject: string; sender_name: string | null; age_days: number; centre_name: string }[] }
   | null;
 type HomeData = {
   tiles: Tile[];
   crisis: { allowed: boolean; count: number } | null;
   inboxCard: InboxCard;
-  myTasks: { id: string; kind: string; label: string; sub: string; href: string; chip: string }[];
+  myTasks: {
+    id: string; kind: string; href: string; chipKey: string; sub: L10n;
+    label?: string; careName?: string | null; careCategory?: string | null;
+  }[];
   outreachMonth: { new_contacts: number; started_chanting: number } | null;
-  recentMembers: { id: string; name: string; centreCode: string | null; updatedAt: string }[] | null;
-  recentAudit: { id: number; line: string; at: string }[] | null;
+  recentMembers: { id: string; name: string | null; centreCode: string | null; updatedAt: string }[] | null;
+  recentAudit: { id: number; actor: string | null; actionKey: string | null; actionRaw: string; ref: string; at: string }[] | null;
 };
 
 function todayMYT(): string {
@@ -189,9 +195,9 @@ export default function HubPage() {
             <div>
               <p className="u-label mb-2">{t('cockpit.todayOverview')}</p>
               <div className="flex flex-wrap gap-3">
-                {tiles.slice(0, 4).map((t) => (
-                  <Link key={t.key} href={t.href}>
-                    <Stat label={t.label} value={t.value} sub={t.sub} accent={t.value > 0 && t.key === 'inbox'} />
+                {tiles.slice(0, 4).map((tile) => (
+                  <Link key={tile.key} href={tile.href}>
+                    <Stat label={t(tile.labelKey)} value={tile.value} sub={tile.sub ? t(tile.sub.key, tile.sub.params) : undefined} accent={tile.value > 0 && tile.key === 'inbox'} />
                   </Link>
                 ))}
               </div>
@@ -222,7 +228,7 @@ export default function HubPage() {
                               <td className="py-1.5 text-ink">{h.centre_name}</td>
                               <td className="py-1.5 text-ink">{h.new_n}</td>
                               <td className="py-1.5 text-ink-muted">{t('cockpit.days', { n: h.oldest_unhandled_days })}</td>
-                              <td className="py-1.5 text-ink-faint truncate max-w-[90px]">{h.owners_label}</td>
+                              <td className="py-1.5 text-ink-faint truncate max-w-[90px]">{h.owners_label ?? t('common.unassigned')}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -268,17 +274,25 @@ export default function HubPage() {
                 <p className="text-sm text-ink-muted">{t('cockpit.tasks.empty')}</p>
               ) : (
                 <ul className="divide-y divide-border">
-                  {data.myTasks.map((t) => (
-                    <li key={`${t.kind}-${t.id}`}>
-                      <Link href={t.href} className="block py-2.5 hover:bg-accent/5 -mx-2 px-2 rounded-lg transition">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm text-ink truncate">{t.label}</span>
-                          <span className="shrink-0 pill-gold inline-block px-2 py-0.5 rounded-full text-[10px]">{t.chip}</span>
-                        </div>
-                        <p className="text-[12px] text-ink-faint truncate">{t.sub}</p>
-                      </Link>
-                    </li>
-                  ))}
+                  {data.myTasks.map((task) => {
+                    // care tasks compose name·category client-side so the anonymous
+                    // fallback localizes; other kinds carry a raw data label.
+                    const label =
+                      task.kind === 'care'
+                        ? `${task.careName ?? t('home.task.anonVisitor')}${task.careCategory ? ` · ${task.careCategory}` : ''}`
+                        : task.label;
+                    return (
+                      <li key={`${task.kind}-${task.id}`}>
+                        <Link href={task.href} className="block py-2.5 hover:bg-accent/5 -mx-2 px-2 rounded-lg transition">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm text-ink truncate">{label}</span>
+                            <span className="shrink-0 pill-gold inline-block px-2 py-0.5 rounded-full text-[10px]">{t(task.chipKey)}</span>
+                          </div>
+                          <p className="text-[12px] text-ink-faint truncate">{t(task.sub.key, task.sub.params)}</p>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </Card>
@@ -305,7 +319,7 @@ export default function HubPage() {
                     {data.recentMembers.map((m) => (
                       <li key={m.id}>
                         <Link href={`/dashboard/members/${m.id}`} className="flex items-center justify-between gap-2 py-2 hover:bg-accent/5 -mx-2 px-2 rounded-lg transition">
-                          <span className="font-medium text-ink truncate">{m.name}</span>
+                          <span className="font-medium text-ink truncate">{m.name ?? t('home.member.unnamed')}</span>
                           <span className="shrink-0 text-xs text-ink-faint">{relTime(m.updatedAt, t)}</span>
                         </Link>
                       </li>
@@ -323,7 +337,9 @@ export default function HubPage() {
                   <ul className="space-y-1.5">
                     {data.recentAudit.map((a) => (
                       <li key={a.id} className="flex items-center justify-between gap-3 text-[13px]">
-                        <span className="text-ink truncate">{a.line}</span>
+                        <span className="text-ink truncate">
+                          {`${a.actor ?? t('home.audit.system')} ${a.actionKey ? t(a.actionKey) : a.actionRaw}${a.ref}`}
+                        </span>
                         <span className="shrink-0 text-[11px] text-ink-faint">{relTime(a.at, t)}</span>
                       </li>
                     ))}
