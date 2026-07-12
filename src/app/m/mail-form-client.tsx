@@ -9,10 +9,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useT } from '@/lib/i18n-react';
 
 type Centre = { code: string; name_cn: string };
 
 export function MailFormClient({ notice }: { notice: string | null }) {
+  const t = useT();
   const [centres, setCentres] = useState<Centre[]>([]);
   const [centreCode, setCentreCode] = useState('HQ');
   const [name, setName] = useState('');
@@ -37,7 +39,7 @@ export function MailFormClient({ notice }: { notice: string | null }) {
   const submit = async () => {
     setErr(null);
     if (!name.trim() || !phone.trim() || !subject.trim() || !body.trim()) {
-      setErr('请填写姓名、电话、主题与内容');
+      setErr(t('mailForm.validationRequired'));
       return;
     }
     setState('loading');
@@ -49,14 +51,14 @@ export function MailFormClient({ notice }: { notice: string | null }) {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setErr(j.error ?? '提交失败，请稍后再试');
+        setErr(j.error ?? t('mailForm.submitFailed'));
         setState('idle');
         return;
       }
       setAutoReply(j.auto_reply_text ?? null);
       setState('done');
     } catch {
-      setErr('网络错误，请稍后再试');
+      setErr(t('mailForm.networkError'));
       setState('idle');
     }
   };
@@ -65,12 +67,12 @@ export function MailFormClient({ notice }: { notice: string | null }) {
     return (
       <div className="bg-surface border border-border rounded-2xl p-6 text-center">
         <p className="text-4xl mb-2">🪷</p>
-        <p className="font-serif font-semibold text-ink text-lg">已收到，感恩您的来信 🙏</p>
-        <p className="mt-1 text-sm text-ink-muted">Your message has been received</p>
+        <p className="font-serif font-semibold text-ink text-lg">{t('mailForm.successTitle')}</p>
+        <p className="mt-1 text-sm text-ink-muted">{t('mailForm.successSub')}</p>
         {autoReply && (
           <p className="mt-4 text-sm text-ink leading-relaxed bg-accent/10 rounded-xl px-4 py-3 text-left whitespace-pre-wrap">{autoReply}</p>
         )}
-        <p className="mt-4 text-xs text-ink-muted leading-relaxed">涉及危机的来信，系统会即刻转给全国关怀组跟进。</p>
+        <p className="mt-4 text-xs text-ink-muted leading-relaxed">{t('mailForm.crisisNote')}</p>
       </div>
     );
   }
@@ -89,9 +91,9 @@ export function MailFormClient({ notice }: { notice: string | null }) {
         {err && <p className="text-sm text-red-600">{err}</p>}
 
         <div>
-          <label className="block text-sm font-medium text-ink mb-1">共修会</label>
+          <label className="block text-sm font-medium text-ink mb-1">{t('mailForm.centreLabel')}</label>
           <select value={centreCode} onChange={(e) => setCentreCode(e.target.value)} className={inputCls}>
-            <option value="HQ">总会</option>
+            <option value="HQ">{t('mailForm.centreHQ')}</option>
             {centres.filter((c) => c.code !== 'HQ').map((c) => (
               <option key={c.code} value={c.code}>{c.name_cn}</option>
             ))}
@@ -99,27 +101,27 @@ export function MailFormClient({ notice }: { notice: string | null }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-ink mb-1">姓名 <span className="text-red-600">*</span></label>
+          <label className="block text-sm font-medium text-ink mb-1">{t('mailForm.nameLabel')} <span className="text-red-600">*</span></label>
           <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-ink mb-1">电话 <span className="text-red-600">*</span></label>
+          <label className="block text-sm font-medium text-ink mb-1">{t('mailForm.phoneLabel')} <span className="text-red-600">*</span></label>
           <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="012-345 6789" className={inputCls} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-ink mb-1">邮箱 <span className="text-ink-faint">(选填)</span></label>
+          <label className="block text-sm font-medium text-ink mb-1">{t('mailForm.emailLabel')} <span className="text-ink-faint">{t('mailForm.optional')}</span></label>
           <input value={email} onChange={(e) => setEmail(e.target.value)} inputMode="email" className={inputCls} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-ink mb-1">主题 <span className="text-red-600">*</span></label>
+          <label className="block text-sm font-medium text-ink mb-1">{t('mailForm.subjectLabel')} <span className="text-red-600">*</span></label>
           <input value={subject} onChange={(e) => setSubject(e.target.value)} className={inputCls} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-ink mb-1">内容 <span className="text-red-600">*</span></label>
+          <label className="block text-sm font-medium text-ink mb-1">{t('mailForm.bodyLabel')} <span className="text-red-600">*</span></label>
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} className={inputCls} />
         </div>
 
@@ -131,9 +133,9 @@ export function MailFormClient({ notice }: { notice: string | null }) {
         />
 
         <button disabled={state === 'loading'} onClick={submit} className="w-full mt-1 py-2.5 text-sm btn-primary disabled:opacity-50">
-          {state === 'loading' ? '提交中…' : '提交来信'}
+          {state === 'loading' ? t('mailForm.submitting') : t('mailForm.submitButton')}
         </button>
-        <p className="text-[10.5px] text-ink-faint text-center leading-relaxed">涉及危机的来信，系统会即刻转给全国关怀组跟进。</p>
+        <p className="text-[10.5px] text-ink-faint text-center leading-relaxed">{t('mailForm.crisisNote')}</p>
       </div>
     </div>
   );

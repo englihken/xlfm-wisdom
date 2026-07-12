@@ -9,9 +9,10 @@ import type { ReactNode } from 'react';
 import { getServerT } from '@/lib/i18n-server';
 import { LocalePill } from '@/components/locale-pill';
 
-export const metadata = {
-  title: '活动报名 · 心灵法门马来西亚',
-};
+export async function generateMetadata() {
+  const t = await getServerT();
+  return { title: t('reg.pageTitle') };
+}
 
 export default async function PublicRegLayout({ children }: { children: ReactNode }) {
   const t = await getServerT();

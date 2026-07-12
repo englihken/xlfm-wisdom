@@ -15,6 +15,7 @@
 
 import Link from 'next/link';
 import { visibleModules, type Grants, type ModuleDoor } from '@/lib/access';
+import { useT } from '@/lib/i18n-react';
 
 type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee' | 'centre_head';
 // The nav keys are the module doors (from visibleModules) plus the hub 'home'.
@@ -241,7 +242,10 @@ function ChatIcon({ className }: IconProps) {
   );
 }
 
-type Door = { label: string; href: string; Icon: (props: IconProps) => React.ReactElement };
+// labelKey routes each door name through the i18n dictionary (nav.*) so the rail
+// switches with the active locale; the zh values are byte-identical to the previous
+// hardcoded labels.
+type Door = { labelKey: string; href: string; Icon: (props: IconProps) => React.ReactElement };
 
 // Destination for every nav key. Which keys actually render is decided ONLY by
 // visibleModules (+ the hub, for multi-door accounts) — never here.
@@ -249,16 +253,16 @@ type Door = { label: string; href: string; Icon: (props: IconProps) => React.Rea
 // 'inbox', route /dashboard unchanged); the freed name 收件箱 is the NEW centre-mail module
 // (door 'mail' → /dashboard/inbox, envelope icon).
 const DOORS: Record<NavKey, Door> = {
-  home: { label: '主页', href: '/dashboard/home', Icon: HomeIcon },
-  mail: { label: '收件箱', href: '/dashboard/inbox', Icon: InboxIcon },
-  inbox: { label: '智慧问答', href: '/dashboard', Icon: ChatIcon },
-  outreach: { label: '渡人', href: '/dashboard/outreach', Icon: LotusIcon },
-  members: { label: '会员', href: '/dashboard/members', Icon: PeopleIcon },
-  events: { label: '活动', href: '/dashboard/events', Icon: CalendarIcon },
-  inventory: { label: '库存', href: '/dashboard/inventory', Icon: BoxIcon },
-  finance: { label: '财务', href: '/dashboard/finance', Icon: CoinsIcon },
-  reports: { label: '报表', href: '/dashboard/reports', Icon: ChartIcon },
-  settings: { label: '设置', href: '/dashboard/settings', Icon: GearIcon },
+  home: { labelKey: 'nav.home', href: '/dashboard/home', Icon: HomeIcon },
+  mail: { labelKey: 'nav.mail', href: '/dashboard/inbox', Icon: InboxIcon },
+  inbox: { labelKey: 'nav.inbox', href: '/dashboard', Icon: ChatIcon },
+  outreach: { labelKey: 'nav.outreach', href: '/dashboard/outreach', Icon: LotusIcon },
+  members: { labelKey: 'nav.members', href: '/dashboard/members', Icon: PeopleIcon },
+  events: { labelKey: 'nav.events', href: '/dashboard/events', Icon: CalendarIcon },
+  inventory: { labelKey: 'nav.inventory', href: '/dashboard/inventory', Icon: BoxIcon },
+  finance: { labelKey: 'nav.finance', href: '/dashboard/finance', Icon: CoinsIcon },
+  reports: { labelKey: 'nav.reports', href: '/dashboard/reports', Icon: ChartIcon },
+  settings: { labelKey: 'nav.settings', href: '/dashboard/settings', Icon: GearIcon },
 };
 
 export function DashboardNav({
@@ -272,6 +276,7 @@ export function DashboardNav({
   active: NavKey | 'account';
   grants?: Grants;
 }) {
+  const t = useT();
   // Single source of truth for door visibility. Multi-door accounts also get the
   // hub link (rendered first); single-door users never see it.
   const mods = visibleModules({ role, grants });
@@ -279,7 +284,7 @@ export function DashboardNav({
 
   return (
     <nav
-      aria-label="主导航"
+      aria-label={t('nav.ariaLabel')}
       className="z-20 shrink-0 flex flex-row md:flex-col items-stretch bg-surface border-b md:border-b-0 md:border-r border-border md:fixed md:left-0 md:top-0 md:bottom-0 md:w-[72px]"
     >
       {/* Gold lotus at the TOP of the rail (shell refactor) — the existing
@@ -298,7 +303,8 @@ export function DashboardNav({
           scroll (设置 moved to the user menu); mobile row unchanged. */}
       <ul className="flex flex-row md:flex-col flex-1 md:flex-none items-stretch justify-around md:justify-start gap-1 md:gap-1.5 px-2 py-2 md:pt-2">
         {keys.map((key) => {
-          const { label, href, Icon } = DOORS[key];
+          const { labelKey, href, Icon } = DOORS[key];
+          const label = t(labelKey);
           const isActive = key === active;
           return (
             <li key={key} className="flex-1 md:flex-none">

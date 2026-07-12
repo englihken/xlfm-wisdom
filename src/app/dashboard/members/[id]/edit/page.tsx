@@ -9,6 +9,7 @@ import { useParams } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { MemberForm, EMPTY_MEMBER, type MemberFormValues } from '@/components/member-form';
 import { grantAllows } from '@/lib/access';
+import { useT } from '@/lib/i18n-react';
 
 const str = (v: unknown): string => (v == null ? '' : String(v));
 const triFrom = (v: unknown): MemberFormValues['disciple'] => (v === true ? 'yes' : v === false ? 'no' : 'unknown');
@@ -49,14 +50,16 @@ function toForm(m: Record<string, unknown>): MemberFormValues {
 
 export default function EditMemberPage() {
   const { id } = useParams<{ id: string }>();
+  const t = useT();
   return (
-    <ErpGate active="members" titleSuffix="编辑">
+    <ErpGate active="members" titleSuffix={t('erp.suffix.edit')}>
       {(me) => <EditBody me={me} id={id} />}
     </ErpGate>
   );
 }
 
 function EditBody({ me, id }: { me: ErpMe; id: string }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'members', 'edit');
   const [initial, setInitial] = useState<MemberFormValues | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,9 +80,9 @@ function EditBody({ me, id }: { me: ErpMe; id: string }) {
     };
   }, [id]);
 
-  if (!canEdit) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">您没有编辑会员的权限。</p>;
-  if (loading) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">加载中…</p>;
-  if (!initial) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">无法加载该会员。</p>;
+  if (!canEdit) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">{t('members.noPermEdit')}</p>;
+  if (loading) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">{t('common.loading')}</p>;
+  if (!initial) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">{t('members.loadFailed')}</p>;
 
   return <MemberForm mode="edit" memberId={id} initial={initial} />;
 }

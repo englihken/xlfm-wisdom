@@ -15,9 +15,10 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
-import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPE_OPTIONS, MOVEMENT_TYPE_STYLES, itemLabel } from '@/lib/inventory-display';
+import { MOVEMENT_TYPE_OPTIONS, MOVEMENT_TYPE_STYLES, itemLabel } from '@/lib/inventory-display';
 import { InventoryTabs, InventorySearchRow, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
+import { useT } from '@/lib/i18n-react';
 
 type Lite = { id: string; name_cn: string; kind?: string } | null;
 type MovementRow = {
@@ -50,10 +51,11 @@ function within24h(iso: string): boolean {
 }
 
 export default function MovementsPage() {
+  const t = useT();
   return (
-    <ErpGate active="inventory" module="inventory" titleSuffix="变动记录">
+    <ErpGate active="inventory" module="inventory" titleSuffix={t('inv.suffix.ledger')}>
       {(me) => (
-        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">加载中…</p>}>
+        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>}>
           <MovementsList me={me} />
         </Suspense>
       )}
@@ -62,6 +64,7 @@ export default function MovementsPage() {
 }
 
 function MovementsList({ me }: { me: ErpMe }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'inventory', 'edit');
   const isAdmin = grantAllows(me.grants, 'inventory', 'admin');
   const sp = useSearchParams();
@@ -136,7 +139,7 @@ function MovementsList({ me }: { me: ErpMe }) {
     try {
       const res = await fetch(`/api/dashboard/inventory/movements/${r.id}/reverse`, { method: 'POST' });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setRowErr({ id: r.id, msg: j.error ?? '撤销失败' });
+      if (!res.ok) setRowErr({ id: r.id, msg: j.error ?? t('inv.reverseFailed') });
       else load();
     } finally {
       setBusyId('');
@@ -146,7 +149,7 @@ function MovementsList({ me }: { me: ErpMe }) {
   return (
     <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex items-baseline gap-2">
-        <h2 className="text-xl font-bold font-serif text-ink">📦 变动记录</h2>
+        <h2 className="text-xl font-bold font-serif text-ink">{t('inv.mv.title')}</h2>
         <span className="text-sm text-ink-faint">Movements · {total.toLocaleString()}</span>
       </div>
 
@@ -156,20 +159,20 @@ function MovementsList({ me }: { me: ErpMe }) {
       {/* filters */}
       <div className="flex flex-wrap items-center gap-2">
         <Sel value={type} onChange={(v) => { setPage(1); setType(v); }}
-          options={[['', '全部类型'], ...MOVEMENT_TYPE_OPTIONS, ['opening', '期初结存']]} />
+          options={[['', t('inv.mv.allTypes')], ...MOVEMENT_TYPE_OPTIONS.map(([v]) => [v, t(`inv.mv.opt.${v}`)] as [string, string]), ['opening', t('inv.mv.type.opening')]]} />
         <Sel value={location} onChange={(v) => { setPage(1); setLocation(v); }}
-          options={[['', '全部仓/中心'], ...meta.locations.map((l) => [l.id, l.kind === 'hq_warehouse' ? `🏛️ ${l.name_cn}` : l.name_cn] as [string, string])]} />
+          options={[['', t('inv.mv.allLocations')], ...meta.locations.map((l) => [l.id, l.kind === 'hq_warehouse' ? `🏛️ ${l.name_cn}` : l.name_cn] as [string, string])]} />
         <Sel value={eventId} onChange={(v) => { setPage(1); setEventId(v); }}
-          options={[['', '全部活动'], ...meta.events.map((e) => [e.id, `${e.code} ${e.title}`] as [string, string])]} />
+          options={[['', t('inv.mv.allEvents')], ...meta.events.map((e) => [e.id, `${e.code} ${e.title}`] as [string, string])]} />
         {currentItem && (
-          <button onClick={() => { setPage(1); setItemId(''); }} className="pill-gold inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px]" title="点击清除品项筛选">
-            {itemLabel(currentItem)} ✕
+          <button onClick={() => { setPage(1); setItemId(''); }} className="pill-gold inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px]" title={t('inv.mv.clearItemFilter')}>
+            {itemLabel(currentItem, t)} ✕
           </button>
         )}
         {canEdit && (
           <>
             <span className="flex-1" />
-            <Link href="/dashboard/inventory/movements/new" className="px-4 py-1.5 text-sm btn-primary">＋记录变动</Link>
+            <Link href="/dashboard/inventory/movements/new" className="px-4 py-1.5 text-sm btn-primary">{t('inv.recordMovement')}</Link>
           </>
         )}
       </div>
@@ -177,8 +180,8 @@ function MovementsList({ me }: { me: ErpMe }) {
       {/* event picking summary */}
       {eventId && summary.length > 0 && (
         <div className="bg-surface border border-accent rounded-2xl p-4">
-          <p className="text-sm font-semibold text-ink">🧾 拣货·发放汇总 — {currentEvent ? `${currentEvent.code} ${currentEvent.title}` : ''}</p>
-          <p className="mt-0.5 text-[11px] text-ink-faint">该活动名下所有变动的净数量（退回已扣除），供拣货/核对使用。</p>
+          <p className="text-sm font-semibold text-ink">{t('inv.mv.summaryTitle', { event: currentEvent ? `${currentEvent.code} ${currentEvent.title}` : '' })}</p>
+          <p className="mt-0.5 text-[11px] text-ink-faint">{t('inv.mv.summaryHint')}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {summary.map((s) => (
               <span key={s.item_id} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-soft border border-border text-xs text-ink">
@@ -194,17 +197,17 @@ function MovementsList({ me }: { me: ErpMe }) {
       {/* table */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {loading ? (
-          <p className="p-6 text-sm text-ink-muted">加载中…</p>
+          <p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>
         ) : rows.length === 0 ? (
-          <div className="p-10 text-center"><p className="text-2xl mb-1">🪷</p><p className="text-sm text-ink">没有匹配的变动记录。</p></div>
+          <div className="p-10 text-center"><p className="text-2xl mb-1">🪷</p><p className="text-sm text-ink">{t('inv.mv.noRows')}</p></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                  <Th>日期</Th><Th>类型</Th><Th>品项 Item</Th>
-                  <th className="px-4 py-2.5 font-normal text-right">数量</th>
-                  <Th>从 → 到</Th><Th>活动</Th><Th>备注 / 经手</Th>{canEdit && <Th></Th>}
+                  <Th>{t('inv.field.date')}</Th><Th>{t('inv.mv.thType')}</Th><Th>{t('inv.mv.thItem')}</Th>
+                  <th className="px-4 py-2.5 font-normal text-right">{t('inv.mv.thQty')}</th>
+                  <Th>{t('inv.mv.thFromTo')}</Th><Th>{t('inv.mv.thEvent')}</Th><Th>{t('inv.mv.thNoteBy')}</Th>{canEdit && <Th></Th>}
                 </tr>
               </thead>
               <tbody>
@@ -223,7 +226,7 @@ function MovementsList({ me }: { me: ErpMe }) {
                       <td className="px-4 py-2.5 text-xs text-ink-muted whitespace-nowrap">{r.moved_at}</td>
                       <td className="px-4 py-2.5">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] whitespace-nowrap ${isReversal ? 'bg-surface-soft text-ink-faint border border-border' : MOVEMENT_TYPE_STYLES[r.movement_type] ?? ''}`}>
-                          {isReversal ? '更正撤销' : MOVEMENT_TYPE_LABELS[r.movement_type] ?? r.movement_type}
+                          {isReversal ? t('inv.mv.reversal') : t(`inv.mv.type.${r.movement_type}`)}
                         </span>
                       </td>
                       <td className="px-4 py-2.5">
@@ -236,7 +239,7 @@ function MovementsList({ me }: { me: ErpMe }) {
                       <td className="px-4 py-2.5 text-xs text-ink-muted max-w-[220px]">
                         <div className="flex items-center gap-1">
                           {r.photo_path && (
-                            <button onClick={() => openPhoto(r.photo_path!)} title="查看存证照片" className="text-accent-deep">📷</button>
+                            <button onClick={() => openPhoto(r.photo_path!)} title={t('inv.mv.viewEvidence')} className="text-accent-deep">📷</button>
                           )}
                           {r.note && <span className="truncate" title={r.note}>{r.note}</span>}
                         </div>
@@ -246,10 +249,10 @@ function MovementsList({ me }: { me: ErpMe }) {
                         <td className="px-4 py-2.5 text-right whitespace-nowrap">
                           {eligible ? (
                             <button disabled={busyId === r.id} onClick={() => reverse(r)} className="text-xs text-accent-deep hover:underline">
-                              {busyId === r.id ? '…' : '↩ 撤销'}
+                              {busyId === r.id ? '…' : t('inv.mv.reverse')}
                             </button>
                           ) : alreadyReversed ? (
-                            <span className="text-[11px] text-ink-faint">已撤销</span>
+                            <span className="text-[11px] text-ink-faint">{t('inv.mv.reversed')}</span>
                           ) : null}
                           {rowErr?.id === r.id && <p className="text-[11px] text-[#B4402E] mt-1 max-w-[160px] whitespace-normal">{rowErr.msg}</p>}
                         </td>
@@ -266,9 +269,9 @@ function MovementsList({ me }: { me: ErpMe }) {
       {/* pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-3 text-sm">
-          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1.5 border border-border-strong rounded-lg bg-surface text-ink disabled:opacity-40">上一页</button>
+          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1.5 border border-border-strong rounded-lg bg-surface text-ink disabled:opacity-40">{t('inv.prevPage')}</button>
           <span className="text-ink-muted">{page} / {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 border border-border-strong rounded-lg bg-surface text-ink disabled:opacity-40">下一页</button>
+          <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 border border-border-strong rounded-lg bg-surface text-ink disabled:opacity-40">{t('inv.nextPage')}</button>
         </div>
       )}
 

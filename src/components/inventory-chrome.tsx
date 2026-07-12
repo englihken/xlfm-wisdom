@@ -8,32 +8,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { itemLabel } from '@/lib/inventory-display';
+import { useT } from '@/lib/i18n-react';
 
 export type InvTabKey = 'dash' | 'stock' | 'requests' | 'ledger' | 'catalog' | 'stocktake';
 
-const TABS: { key: InvTabKey; label: string; href: string }[] = [
-  { key: 'dash', label: '📊 仪表板', href: '/dashboard/inventory' },
-  { key: 'stock', label: '库存明细', href: '/dashboard/inventory/stock' },
-  { key: 'requests', label: '分会申请', href: '/dashboard/inventory/requests' },
-  { key: 'stocktake', label: '📋 盘点', href: '/dashboard/inventory/stocktake' },
-  { key: 'ledger', label: '变动记录', href: '/dashboard/inventory/movements' },
-  { key: 'catalog', label: '品项管理', href: '/dashboard/inventory/catalog' },
+const TABS: { key: InvTabKey; labelKey: string; href: string }[] = [
+  { key: 'dash', labelKey: 'inv.tab.dash', href: '/dashboard/inventory' },
+  { key: 'stock', labelKey: 'inv.tab.stock', href: '/dashboard/inventory/stock' },
+  { key: 'requests', labelKey: 'inv.tab.requests', href: '/dashboard/inventory/requests' },
+  { key: 'stocktake', labelKey: 'inv.tab.stocktake', href: '/dashboard/inventory/stocktake' },
+  { key: 'ledger', labelKey: 'inv.tab.ledger', href: '/dashboard/inventory/movements' },
+  { key: 'catalog', labelKey: 'inv.tab.catalog', href: '/dashboard/inventory/catalog' },
 ];
 
 export function InventoryTabs({ active }: { active: InvTabKey }) {
+  const t = useT();
   return (
     <div className="flex flex-wrap gap-1.5">
-      {TABS.map((t) => (
+      {TABS.map((tab) => (
         <Link
-          key={t.key}
-          href={t.href}
+          key={tab.key}
+          href={tab.href}
           className={`px-3.5 py-2 rounded-lg text-sm border transition ${
-            t.key === active
+            tab.key === active
               ? 'bg-accent text-white border-accent'
               : 'bg-surface text-ink border-border-strong hover:border-accent'
           }`}
         >
-          {t.label}
+          {t(tab.labelKey)}
         </Link>
       ))}
     </div>
@@ -69,11 +71,12 @@ function resolveScan(raw: string, items: SearchItem[]): string | null {
 type Detector = { detect: (v: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
 
 export function ScanButton({ items, onPick }: { items: SearchItem[]; onPick: (id: string) => void }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   return (
     <>
       <button onClick={() => setOpen(true)} className="px-4 py-2.5 text-sm border border-border-strong rounded-xl bg-surface text-ink hover:border-accent transition whitespace-nowrap">
-        📷 扫码
+        {t('inv.scan.button')}
       </button>
       {open && <ScanModal items={items} onClose={() => setOpen(false)} onPick={(id) => { setOpen(false); onPick(id); }} />}
     </>
@@ -81,13 +84,14 @@ export function ScanButton({ items, onPick }: { items: SearchItem[]; onPick: (id
 }
 
 function ScanModal({ items, onClose, onPick }: { items: SearchItem[]; onClose: () => void; onPick: (id: string) => void }) {
+  const t = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const itemsRef = useRef(items);
   const pickRef = useRef(onPick);
   itemsRef.current = items;
   pickRef.current = onPick;
   const [err, setErr] = useState('');
-  const [status, setStatus] = useState('正在开启相机…');
+  const [status, setStatus] = useState(() => t('inv.scan.opening'));
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -135,7 +139,7 @@ function ScanModal({ items, onClose, onPick }: { items: SearchItem[]; onClose: (
               pickRef.current(id);
               return;
             }
-            setStatus('扫到了内容，但不是本系统的品项码 — 请对准品项标签上的二维码');
+            setStatus(t('inv.scan.notOurs'));
           }
         } catch {
           /* transient decode error — keep scanning */
@@ -172,26 +176,26 @@ function ScanModal({ items, onClose, onPick }: { items: SearchItem[]; onClose: (
           }
         }
         if (!detector && !jsQR) {
-          setErr('此浏览器不支持扫码，请改用上方搜索框查找品项。');
+          setErr(t('inv.scan.unsupported'));
           cleanup();
           return;
         }
-        setStatus('把品项标签上的二维码对准取景框…');
+        setStatus(t('inv.scan.aim'));
         raf = requestAnimationFrame(tick);
       } catch {
-        setErr('无法使用相机（未授权或没有摄像头）。请改用上方搜索框查找品项。');
+        setErr(t('inv.scan.noCamera'));
       }
     })();
 
     return () => cleanup();
-  }, []);
+  }, [t]);
 
   return (
     <div className="fixed inset-0 z-[70] bg-ink/60 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-surface rounded-2xl max-w-sm w-full p-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-base font-semibold text-ink">📷 手机扫码</h3>
-          <button onClick={onClose} className="text-ink-faint hover:text-ink text-lg" aria-label="关闭">✕</button>
+          <h3 className="text-base font-semibold text-ink">{t('inv.scan.title')}</h3>
+          <button onClick={onClose} className="text-ink-faint hover:text-ink text-lg" aria-label={t('inv.close')}>✕</button>
         </div>
         {err ? (
           <p className="text-sm text-ink-muted bg-surface-soft rounded-lg px-3 py-4 text-center leading-relaxed">{err}</p>
@@ -215,6 +219,7 @@ export type PickItem = { id: string; stock_id: string | null; name_cn: string };
 // event some browsers/automation don't fire on a plain click. Search filters the list; a
 // row click selects (persisting even if a later search hides it); the 已选 line confirms it.
 export function ItemPicker({ items, value, onChange }: { items: PickItem[]; value: string; onChange: (id: string) => void }) {
+  const t = useT();
   const [q, setQ] = useState('');
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -229,12 +234,12 @@ export function ItemPicker({ items, value, onChange }: { items: PickItem[]; valu
         type="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="输入名称 / 编号筛选…"
+        placeholder={t('inv.picker.filterPlaceholder')}
         className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
       />
       <div role="listbox" className="mt-1.5 max-h-48 overflow-auto border border-border-strong rounded-lg bg-surface divide-y divide-border">
         {filtered.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-ink-faint">没有匹配的品项</p>
+          <p className="px-3 py-3 text-xs text-ink-faint">{t('inv.picker.noMatch')}</p>
         ) : (
           filtered.map((i) => {
             const isSel = i.id === value;
@@ -250,7 +255,7 @@ export function ItemPicker({ items, value, onChange }: { items: PickItem[]; valu
                 }`}
               >
                 <span className={`w-3.5 shrink-0 ${isSel ? 'text-accent-deep' : 'text-transparent'}`}>✓</span>
-                <span className="truncate">{itemLabel(i)}</span>
+                <span className="truncate">{itemLabel(i, t)}</span>
               </button>
             );
           })
@@ -258,14 +263,15 @@ export function ItemPicker({ items, value, onChange }: { items: PickItem[]; valu
       </div>
       <p className="mt-1 text-[11.5px] min-h-[16px]">
         {selected
-          ? <span className="text-accent-deep">已选：{itemLabel(selected)}</span>
-          : <span className="text-ink-faint">在上方列表点选一个品项（共 {filtered.length} 项）</span>}
+          ? <span className="text-accent-deep">{t('inv.picker.selected', { label: itemLabel(selected, t) })}</span>
+          : <span className="text-ink-faint">{t('inv.picker.hint', { n: filtered.length })}</span>}
       </p>
     </div>
   );
 }
 
 export function GlobalItemSearch({ items, onPick }: { items: SearchItem[]; onPick: (id: string) => void }) {
+  const t = useT();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
 
@@ -294,13 +300,13 @@ export function GlobalItemSearch({ items, onPick }: { items: SearchItem[]; onPic
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder={`搜索任何品项 — 名称 / 编号 / 分类…（${items.length} 项）`}
+        placeholder={t('inv.search.placeholder', { n: items.length })}
         className="w-full text-sm pl-9 pr-3 py-2.5 border-[1.5px] border-border-strong rounded-xl bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
       />
       {open && q.trim() && (
         <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-30 bg-surface border border-border-strong rounded-xl shadow-lg max-h-72 overflow-auto">
           {hits.length === 0 ? (
-            <div className="px-4 py-3 text-sm text-ink-faint">没找到 — 试试别的关键字，或到「品项管理」＋新品项</div>
+            <div className="px-4 py-3 text-sm text-ink-faint">{t('inv.search.noHits')}</div>
           ) : (
             hits.map((i) => (
               <button
@@ -313,7 +319,7 @@ export function GlobalItemSearch({ items, onPick }: { items: SearchItem[]; onPic
                 }}
                 className="w-full text-left px-4 py-2.5 flex items-center justify-between gap-2 border-b border-border last:border-b-0 hover:bg-accent/5"
               >
-                <span className="text-sm text-ink truncate">{itemLabel(i)}</span>
+                <span className="text-sm text-ink truncate">{itemLabel(i, t)}</span>
                 {i.category_cn && <span className="text-[11px] text-ink-faint whitespace-nowrap">{i.category_cn}</span>}
               </button>
             ))

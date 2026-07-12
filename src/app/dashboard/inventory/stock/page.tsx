@@ -17,6 +17,7 @@ import { grantAllows } from '@/lib/access';
 import { InventoryTabs, InventorySearchRow } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
 import { categoryPillClass } from '@/lib/inventory-display';
+import { useT } from '@/lib/i18n-react';
 
 type Location = { id: string; kind: string; centre_id: string | null; name_cn: string };
 type MetaItem = { id: string; stock_id: string | null; name_cn: string; category_cn: string | null; low_stock_line: number | null };
@@ -46,10 +47,11 @@ function downloadCsv(filename: string, headers: string[], rows: (string | number
 }
 
 export default function StockPage() {
+  const t = useT();
   return (
-    <ErpGate active="inventory" module="inventory" titleSuffix="库存明细">
+    <ErpGate active="inventory" module="inventory" titleSuffix={t('inv.suffix.stock')}>
       {(me) => (
-        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">加载中…</p>}>
+        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>}>
           <StockTable me={me} />
         </Suspense>
       )}
@@ -58,6 +60,7 @@ export default function StockPage() {
 }
 
 function StockTable({ me }: { me: ErpMe }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'inventory', 'edit');
   const sp = useSearchParams();
 
@@ -147,8 +150,8 @@ function StockTable({ me }: { me: ErpMe }) {
 
   const exportCsv = () => {
     downloadCsv(
-      `库存明细_${locName || '仓库'}.csv`,
-      ['编号', '品项', '分类', '每包', '库存', '低库存线'],
+      t('inv.csv.stockFile', { loc: locName || t('inv.csv.warehouse') }),
+      [t('inv.csv.h.code'), t('inv.csv.h.item'), t('inv.csv.h.category'), t('inv.csv.h.packQty'), t('inv.csv.h.qty'), t('inv.csv.h.lowLine')],
       filtered.map((r) => [r.stock_id ?? '', r.item_name, r.category_cn ?? '', r.pack_qty ?? '', r.qty, r.low_stock_line ?? ''])
     );
   };
@@ -156,7 +159,7 @@ function StockTable({ me }: { me: ErpMe }) {
   return (
     <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex items-baseline gap-2">
-        <h2 className="text-xl font-bold font-serif text-ink">📦 库存明细</h2>
+        <h2 className="text-xl font-bold font-serif text-ink">{t('inv.stock.title')}</h2>
         <span className="text-sm text-ink-faint">Inventory · {locName}</span>
       </div>
 
@@ -168,43 +171,43 @@ function StockTable({ me }: { me: ErpMe }) {
         <Sel value={location} onChange={setLocation}
           options={locations.map((l) => [l.id, l.kind === 'hq_warehouse' ? `🏛️ ${l.name_cn}` : l.name_cn] as [string, string])} />
         <Sel value={category} onChange={setCategory}
-          options={[['', '全部分类'], [LOW_STOCK, '⚠️ 低库存'], ...categoriesCn.map((c) => [c, c] as [string, string])]} />
+          options={[['', t('inv.stock.allCategories')], [LOW_STOCK, t('inv.stock.lowStockOpt')], ...categoriesCn.map((c) => [c, c] as [string, string])]} />
         <input
           type="search" value={search} onChange={(e) => setSearch(e.target.value)}
-          placeholder="在结果内筛选…"
+          placeholder={t('inv.stock.filterInResults')}
           className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent w-44"
         />
         <label className="flex items-center gap-1.5 text-sm text-ink-muted select-none">
           <input type="checkbox" checked={nonzeroOnly} onChange={(e) => setNonzeroOnly(e.target.checked)} className="accent-[#B8860B]" />
-          只看有库存
+          {t('inv.stock.nonzeroOnly')}
         </label>
         <span className="flex-1" />
         <button onClick={exportCsv} className="px-3 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">
-          ⬇ 导出 CSV
+          {t('inv.stock.exportCsv')}
         </button>
       </div>
 
       {/* table */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex justify-between items-baseline gap-2 flex-wrap">
-          <h3 className="text-sm font-semibold text-ink">{category === LOW_STOCK ? '低库存品项' : category || '全部品项'}</h3>
-          <span className="text-xs text-ink-faint">显示 {Math.min(visible, filtered.length)} / 共 {filtered.length} 项</span>
+          <h3 className="text-sm font-semibold text-ink">{category === LOW_STOCK ? t('inv.stock.lowStockItems') : category || t('inv.stock.allItems')}</h3>
+          <span className="text-xs text-ink-faint">{t('inv.stock.showing', { shown: Math.min(visible, filtered.length), total: filtered.length })}</span>
         </div>
         {loading ? (
-          <p className="p-6 text-sm text-ink-muted">加载中…</p>
+          <p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center">
             <p className="text-2xl mb-1">🪷</p>
-            <p className="text-sm text-ink">{balances.length === 0 ? '此仓还没有库存记录。' : '未找到匹配的品项'}</p>
+            <p className="text-sm text-ink">{balances.length === 0 ? t('inv.stock.noBalances') : t('inv.stock.noMatch')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                  <Th>编号 StockID</Th><Th>品项 Item</Th><Th>分类</Th>
-                  <th className="px-4 py-2.5 font-normal text-right">库存 Qty</th>
-                  <th className="px-4 py-2.5 font-normal text-right">低库存线</th>
+                  <Th>{t('inv.stock.thStockId')}</Th><Th>{t('inv.stock.thItem')}</Th><Th>{t('inv.th.category')}</Th>
+                  <th className="px-4 py-2.5 font-normal text-right">{t('inv.stock.thQty')}</th>
+                  <th className="px-4 py-2.5 font-normal text-right">{t('inv.th.lowLine')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -215,7 +218,7 @@ function StockTable({ me }: { me: ErpMe }) {
                       <td className="px-4 py-2.5">
                         {r.stock_id
                           ? <span className="font-mono text-xs text-ink">{r.stock_id}</span>
-                          : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">未编号</span>}
+                          : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">{t('inv.unnumbered')}</span>}
                       </td>
                       <td className="px-4 py-2.5 font-medium text-ink">{r.item_name}</td>
                       <td className="px-4 py-2.5">
@@ -235,7 +238,7 @@ function StockTable({ me }: { me: ErpMe }) {
             {visible < filtered.length && (
               <div className="px-4 py-3 border-t border-border text-center">
                 <button onClick={() => setVisible((v) => v + PAGE)} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">
-                  加载更多（还有 {filtered.length - visible} 项）
+                  {t('inv.stock.loadMore', { n: filtered.length - visible })}
                 </button>
               </div>
             )}
@@ -245,7 +248,7 @@ function StockTable({ me }: { me: ErpMe }) {
 
       {canEdit && (
         <div>
-          <Link href="/dashboard/inventory/movements/new" className="px-4 py-1.5 text-sm btn-primary inline-block">＋记录变动</Link>
+          <Link href="/dashboard/inventory/movements/new" className="px-4 py-1.5 text-sm btn-primary inline-block">{t('inv.recordMovement')}</Link>
         </div>
       )}
 

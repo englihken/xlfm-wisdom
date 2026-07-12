@@ -9,7 +9,8 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { FEE_ROWS, BILLING_LABELS, MEAL_BILLING_OPTIONS, MEAL_COLS, EVENT_TYPE_OPTIONS, weekdayCn } from '@/lib/events-display';
+import { useT } from '@/lib/i18n-react';
+import { FEE_ROWS, MEAL_COLS, weekdayCn, feeLabel, billingLabel, mealBillingOptions, eventTypeOptions, mealColLabel } from '@/lib/events-display';
 import { datesInRange, mealSlotKey } from '@/lib/events';
 
 export type EventFormValues = {
@@ -99,6 +100,7 @@ export function EventForm({
   eventId?: string;
   initial?: EventFormValues;
 }) {
+  const t = useT();
   const router = useRouter();
   const [v, setV] = useState<EventFormValues>(initial ?? EMPTY_EVENT);
   const [centres, setCentres] = useState<Centre[]>([]);
@@ -129,9 +131,9 @@ export function EventForm({
 
   const submit = async () => {
     if (saving) return;
-    if (!v.title.trim()) return setError('请填写活动名称');
-    if (!v.organizing_centre_id) return setError('请选择主办中心');
-    if (!v.starts_on) return setError('请选择开始日期');
+    if (!v.title.trim()) return setError(t('events.form.errTitle'));
+    if (!v.organizing_centre_id) return setError(t('events.form.errCentre'));
+    if (!v.starts_on) return setError(t('events.form.errStart'));
     setSaving(true);
     setError(null);
     try {
@@ -143,18 +145,18 @@ export function EventForm({
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(json?.error ?? '保存失败，请重试');
+        setError(json?.error ?? t('events.form.errSaveRetry'));
         return;
       }
       if (mode === 'create') {
         const ev = json.event;
-        setToast(`活动已创建：${ev.code}`);
+        setToast(t('events.form.createdToast', { code: ev.code }));
         setTimeout(() => router.push(`/dashboard/events/${ev.id}`), 1100);
       } else {
         router.push(`/dashboard/events/${eventId}`);
       }
     } catch {
-      setError('保存失败，请重试');
+      setError(t('events.form.errSaveRetry'));
     } finally {
       if (mode !== 'create') setSaving(false);
     }
@@ -171,39 +173,39 @@ export function EventForm({
       )}
 
       {/* 基本资料 */}
-      <Section title="基本资料" en="Basic">
+      <Section title={t('events.form.sectionBasic')} en="Basic">
         <Grid>
-          <Text label="活动名称 *" value={v.title} onChange={(x) => set('title', x)} />
-          <Sel label="类型 / Type" value={v.event_type} onChange={(x) => set('event_type', x)} options={EVENT_TYPE_OPTIONS} />
-          <Sel label="主办中心 *" value={v.organizing_centre_id} onChange={(x) => set('organizing_centre_id', x)}
-            options={[['', '请选择'], ...centres.map((c) => [c.id, `${c.name_cn} ${c.code}`] as [string, string])]} />
-          <Text label="地点 / Location" value={v.location} onChange={(x) => set('location', x)} />
-          <Text label="开始日期 *" type="date" value={v.starts_on} onChange={(x) => set('starts_on', x)} />
-          <Text label="结束日期（可选）" type="date" value={v.ends_on} onChange={(x) => set('ends_on', x)} />
-          <Text label="总名额（空=不限）" value={v.capacity} onChange={(x) => set('capacity', x)} placeholder="不限" />
-          <Text label="报名截止（可选）" type="date" value={v.reg_deadline} onChange={(x) => set('reg_deadline', x)} />
-          <Sel label="报名需审核" value={v.requires_approval} onChange={(x) => set('requires_approval', x as 'yes' | 'no')}
-            options={[['yes', '是（需批准）'], ['no', '否（自动批准）']]} />
-          <Text label="选项修改截止（开始前 N 天）" type="number" min="0" value={v.reg_edit_cutoff_days}
+          <Text label={t('events.form.fldTitle')} value={v.title} onChange={(x) => set('title', x)} />
+          <Sel label={t('events.form.fldType')} value={v.event_type} onChange={(x) => set('event_type', x)} options={eventTypeOptions(t)} />
+          <Sel label={t('events.form.fldCentre')} value={v.organizing_centre_id} onChange={(x) => set('organizing_centre_id', x)}
+            options={[['', t('events.form.selectPlease')], ...centres.map((c) => [c.id, `${c.name_cn} ${c.code}`] as [string, string])]} />
+          <Text label={t('events.form.fldLocation')} value={v.location} onChange={(x) => set('location', x)} />
+          <Text label={t('events.form.fldStart')} type="date" value={v.starts_on} onChange={(x) => set('starts_on', x)} />
+          <Text label={t('events.form.fldEnd')} type="date" value={v.ends_on} onChange={(x) => set('ends_on', x)} />
+          <Text label={t('events.form.fldCapacity')} value={v.capacity} onChange={(x) => set('capacity', x)} placeholder={t('events.form.capacityPlaceholder')} />
+          <Text label={t('events.form.fldDeadline')} type="date" value={v.reg_deadline} onChange={(x) => set('reg_deadline', x)} />
+          <Sel label={t('events.form.fldApproval')} value={v.requires_approval} onChange={(x) => set('requires_approval', x as 'yes' | 'no')}
+            options={[['yes', t('events.form.approvalYes')], ['no', t('events.form.approvalNo')]]} />
+          <Text label={t('events.form.fldCutoff')} type="number" min="0" value={v.reg_edit_cutoff_days}
             onChange={(x) => set('reg_edit_cutoff_days', x)} placeholder="3" />
         </Grid>
         <label className="block mt-4">
-          <span className="block u-label mb-1">说明 / Description</span>
+          <span className="block u-label mb-1">{t('events.form.fldDescription')}</span>
           <textarea value={v.description} onChange={(e) => set('description', e.target.value)} rows={2}
             className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink resize-y focus:outline-none focus:border-accent" />
         </label>
       </Section>
 
       {/* 费率设置 */}
-      <Section title="费率设置" en="Fees">
+      <Section title={t('events.form.sectionFees')} en="Fees">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                <th className="px-2 py-2 font-medium">启用</th>
-                <th className="px-2 py-2 font-medium">项目</th>
-                <th className="px-2 py-2 font-medium">金额 (RM)</th>
-                <th className="px-2 py-2 font-medium">计费方式</th>
+                <th className="px-2 py-2 font-medium">{t('events.form.feeEnable')}</th>
+                <th className="px-2 py-2 font-medium">{t('events.form.feeItem')}</th>
+                <th className="px-2 py-2 font-medium">{t('events.form.feeAmount')}</th>
+                <th className="px-2 py-2 font-medium">{t('events.form.feeBilling')}</th>
               </tr>
             </thead>
             <tbody>
@@ -214,7 +216,7 @@ export function EventForm({
                     <td className="px-2 py-2">
                       <input type="checkbox" checked={f.enabled} onChange={(e) => setFee(r.item, { enabled: e.target.checked })} />
                     </td>
-                    <td className={`px-2 py-2 ${f.enabled ? 'text-ink' : 'text-ink-faint'}`}>{r.label}</td>
+                    <td className={`px-2 py-2 ${f.enabled ? 'text-ink' : 'text-ink-faint'}`}>{feeLabel(r.item, t)}</td>
                     <td className="px-2 py-2">
                       <input
                         type="number"
@@ -235,12 +237,12 @@ export function EventForm({
                           onChange={(e) => setFee('meal', { billing: e.target.value })}
                           className="text-sm p-1.5 border border-border-strong rounded bg-surface text-ink disabled:bg-surface-soft disabled:text-ink-faint focus:outline-none focus:border-accent"
                         >
-                          {MEAL_BILLING_OPTIONS.map(([val, lbl]) => (
+                          {mealBillingOptions(t).map(([val, lbl]) => (
                             <option key={val} value={val}>{lbl}</option>
                           ))}
                         </select>
                       ) : (
-                        BILLING_LABELS[r.billing]
+                        billingLabel(r.billing, t)
                       )}
                     </td>
                   </tr>
@@ -253,8 +255,8 @@ export function EventForm({
 
       {/* 餐点供应 — kitchen's per-day-per-meal offering grid (per_item meal events only) */}
       {mealGridOn(v) && (
-        <Section title="餐点供应" en="Meals offered">
-          <p className="text-xs text-ink-muted mb-3">点选取消供应的餐次（灰色虚线＝不供应）。报名者只能勾选供应的餐次。</p>
+        <Section title={t('events.form.sectionMeals')} en="Meals offered">
+          <p className="text-xs text-ink-muted mb-3">{t('events.form.mealsHint')}</p>
           <MealOfferGrid
             startsOn={v.starts_on}
             endsOn={v.ends_on}
@@ -265,7 +267,7 @@ export function EventForm({
       )}
 
       {/* 义工团队需求 */}
-      <Section title="义工团队需求" en="Team needs">
+      <Section title={t('events.form.sectionTeams')} en="Team needs">
         <div className="space-y-2">
           {v.needs.map((n, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -274,10 +276,10 @@ export function EventForm({
                 onChange={(e) => setV((p) => ({ ...p, needs: p.needs.map((x, j) => (j === i ? { ...x, team_id: e.target.value } : x)) }))}
                 className="flex-1 text-sm p-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
               >
-                <option value="">请选择组别</option>
-                {teams.map((t) => (
-                  <option key={t.id} value={t.id} disabled={t.id !== n.team_id && v.needs.some((x) => x.team_id === t.id)}>
-                    {t.name_cn}
+                <option value="">{t('events.form.teamSelect')}</option>
+                {teams.map((tm) => (
+                  <option key={tm.id} value={tm.id} disabled={tm.id !== n.team_id && v.needs.some((x) => x.team_id === tm.id)}>
+                    {tm.name_cn}
                   </option>
                 ))}
               </select>
@@ -286,11 +288,11 @@ export function EventForm({
                 min="1"
                 value={n.needed}
                 onChange={(e) => setV((p) => ({ ...p, needs: p.needs.map((x, j) => (j === i ? { ...x, needed: e.target.value } : x)) }))}
-                placeholder="人数"
+                placeholder={t('events.form.teamCount')}
                 className="w-24 text-sm p-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
               />
               <button onClick={() => setV((p) => ({ ...p, needs: p.needs.filter((_, j) => j !== i) }))}
-                className="px-3 py-2 text-xs text-red-700 border border-[#FCA5A5] rounded-lg hover:bg-[#FEF2F2]">移除</button>
+                className="px-3 py-2 text-xs text-red-700 border border-[#FCA5A5] rounded-lg hover:bg-[#FEF2F2]">{t('events.form.remove')}</button>
             </div>
           ))}
           {availableTeams.length > 0 && (
@@ -298,7 +300,7 @@ export function EventForm({
               onClick={() => setV((p) => ({ ...p, needs: [...p.needs, { team_id: '', needed: '1' }] }))}
               className="px-3 py-1.5 text-xs btn-secondary"
             >
-              ＋添加组别需求
+              {t('events.form.addTeam')}
             </button>
           )}
         </div>
@@ -309,11 +311,11 @@ export function EventForm({
       <div className="flex items-center gap-3">
         <button onClick={submit} disabled={saving}
           className="px-5 py-2 text-sm btn-primary">
-          {saving ? '保存中…' : mode === 'create' ? '创建活动' : '保存修改'}
+          {saving ? t('events.saving') : mode === 'create' ? t('events.form.create') : t('events.form.saveEdit')}
         </button>
         <button onClick={() => router.back()} disabled={saving}
           className="px-5 py-2 text-sm btn-secondary">
-          取消
+          {t('events.cancel')}
         </button>
       </div>
     </div>
@@ -326,6 +328,7 @@ export function EventForm({
 function MealOfferGrid({
   startsOn, endsOn, closed, onChange,
 }: { startsOn: string; endsOn: string; closed: string[]; onChange: (closed: string[]) => void }) {
+  const t = useT();
   const dates = useMemo(() => datesInRange(startsOn, endsOn || null), [startsOn, endsOn]);
   const inRangeKeys = useMemo(() => {
     const s = new Set<string>();
@@ -353,22 +356,22 @@ function MealOfferGrid({
   const offerAll = () => setClosed(new Set(outOfRange()));
   const closeAll = () => setClosed(new Set([...outOfRange(), ...inRangeKeys]));
 
-  if (dates.length === 0) return <p className="text-sm text-ink-muted">请先选择开始日期。</p>;
+  if (dates.length === 0) return <p className="text-sm text-ink-muted">{t('events.form.startFirst')}</p>;
 
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <button type="button" onClick={offerAll} className="px-3 py-1 text-xs btn-secondary">全选</button>
-        <button type="button" onClick={closeAll} className="px-3 py-1 text-xs btn-secondary">清空</button>
-        <span className="text-[11px] text-ink-faint">{offCount > 0 ? `已关闭 ${offCount} 餐次` : '全部供应'}</span>
+        <button type="button" onClick={offerAll} className="px-3 py-1 text-xs btn-secondary">{t('events.selectAll')}</button>
+        <button type="button" onClick={closeAll} className="px-3 py-1 text-xs btn-secondary">{t('events.clearAll')}</button>
+        <span className="text-[11px] text-ink-faint">{offCount > 0 ? t('events.form.offClosed', { n: offCount }) : t('events.form.allOffered')}</span>
       </div>
       <div className="overflow-x-auto">
         <table className="text-sm border-collapse">
           <thead>
             <tr className="text-[11px] text-ink-faint">
-              <th className="px-2 py-1.5 text-left font-medium">日期</th>
-              {MEAL_COLS.map((c) => <th key={c.meal} className="px-2 py-1.5 font-medium w-16">{c.label}</th>)}
-              <th className="px-2 py-1.5 font-medium w-14">整天</th>
+              <th className="px-2 py-1.5 text-left font-medium">{t('events.col.date')}</th>
+              {MEAL_COLS.map((c) => <th key={c.meal} className="px-2 py-1.5 font-medium w-16">{mealColLabel(c.meal, t)}</th>)}
+              <th className="px-2 py-1.5 font-medium w-14">{t('events.mealPick.wholeDay')}</th>
             </tr>
           </thead>
           <tbody>
@@ -391,14 +394,14 @@ function MealOfferGrid({
                             : 'bg-surface-soft text-ink-faint border border-dashed border-border hover:bg-surface'
                         }`}
                       >
-                        {offered ? c.label : '—'}
+                        {offered ? mealColLabel(c.meal, t) : '—'}
                       </button>
                     </td>
                   );
                 })}
                 <td className="px-1 py-1 text-center">
                   <button type="button" onClick={() => toggleRow(d)}
-                    className="px-2 py-1 text-[11px] text-ink-muted border border-border rounded-md hover:bg-accent/5">切换</button>
+                    className="px-2 py-1 text-[11px] text-ink-muted border border-border rounded-md hover:bg-accent/5">{t('events.form.toggle')}</button>
                 </td>
               </tr>
             ))}

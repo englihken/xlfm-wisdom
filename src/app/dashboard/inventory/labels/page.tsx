@@ -12,14 +12,16 @@ import { useSearchParams } from 'next/navigation';
 import { ErpGate } from '@/components/erp-gate';
 import { QrSvg } from '@/components/qr-svg';
 import { categoryPillClass } from '@/lib/inventory-display';
+import { useT } from '@/lib/i18n-react';
 
 type Item = { id: string; stock_id: string | null; name_cn: string; category_cn: string | null };
 
 export default function LabelsPage() {
+  const t = useT();
   return (
-    <ErpGate active="inventory" module="inventory" titleSuffix="打印标签">
+    <ErpGate active="inventory" module="inventory" titleSuffix={t('inv.suffix.labels')}>
       {() => (
-        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">加载中…</p>}>
+        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>}>
           <Labels />
         </Suspense>
       )}
@@ -28,6 +30,7 @@ export default function LabelsPage() {
 }
 
 function Labels() {
+  const t = useT();
   const sp = useSearchParams();
   const ids = useMemo(() => (sp.get('ids') ?? '').split(',').map((s) => s.trim()).filter(Boolean), [sp]);
   const [items, setItems] = useState<Item[]>([]);
@@ -53,16 +56,16 @@ function Labels() {
 
       <div className="flex items-center justify-between gap-2 mb-4 print:hidden">
         <div>
-          <h2 className="text-xl font-bold font-serif text-ink">🏷️ 打印标签</h2>
-          <p className="text-sm text-ink-faint">{items.length} 张 · 用普通 A4 打印机印出，贴在大件/整箱上；手机扫 QR 直达品项。</p>
+          <h2 className="text-xl font-bold font-serif text-ink">{t('inv.labels.title')}</h2>
+          <p className="text-sm text-ink-faint">{t('inv.labels.subtitle', { n: items.length })}</p>
         </div>
-        <button onClick={() => window.print()} disabled={items.length === 0} className="px-4 py-2 text-sm btn-primary">🖨️ 打印 (Ctrl+P)</button>
+        <button onClick={() => window.print()} disabled={items.length === 0} className="px-4 py-2 text-sm btn-primary">{t('inv.labels.printBtn')}</button>
       </div>
 
       {loading ? (
-        <p className="text-sm text-ink-muted">加载中…</p>
+        <p className="text-sm text-ink-muted">{t('inv.loading')}</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-ink-muted">没有可打印的品项。请从「品项管理」勾选后再打印。</p>
+        <p className="text-sm text-ink-muted">{t('inv.labels.empty')}</p>
       ) : (
         <div id="label-sheet" className="grid grid-cols-2 gap-4">
           {items.map((it) => (
@@ -70,7 +73,7 @@ function Labels() {
               <QrSvg text={`${origin}/dashboard/inventory?item=${it.id}`} px={110} />
               <div className="min-w-0">
                 <div className="text-xl font-bold text-ink leading-tight break-words">{it.name_cn}</div>
-                <div className="mt-1 font-mono text-xs text-ink-muted">{it.stock_id ?? '未编号'}</div>
+                <div className="mt-1 font-mono text-xs text-ink-muted">{it.stock_id ?? t('inv.unnumbered')}</div>
                 {it.category_cn && <span className={`mt-1.5 inline-block px-2 py-0.5 rounded-full text-[11px] ${categoryPillClass(it.category_cn)}`}>{it.category_cn}</span>}
               </div>
             </div>

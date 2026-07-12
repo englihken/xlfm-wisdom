@@ -66,8 +66,9 @@ const fmtTime = (iso: string) => {
 };
 
 function StatusChip({ status }: { status: string }) {
+  const tr = useT();
   const meta = STATUS_META[status as ThreadStatus];
-  return <span className={`inline-block px-2 py-0.5 rounded-full text-[10.5px] ${meta?.chip ?? 'pill-muted'}`}>{statusLabel(status)}</span>;
+  return <span className={`inline-block px-2 py-0.5 rounded-full text-[10.5px] ${meta?.chip ?? 'pill-muted'}`}>{statusLabel(status, tr)}</span>;
 }
 
 export default function InboxPage() {
@@ -400,7 +401,7 @@ export default function InboxPage() {
                         <p className="text-[11.5px] text-ink-faint truncate">{t.snippet}</p>
                         <div className="mt-1 flex items-center gap-1 flex-wrap">
                           <StatusChip status={t.status} />
-                          <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[10px]">{kindLabel(t.kind)}</span>
+                          <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[10px]">{kindLabel(t.kind, tr)}</span>
                           {t.crisis_flag && <span className="inline-block px-2 py-0.5 rounded-full text-[10px] bg-[#FCEBEA] text-[#B4402E]">{tr('inboxui.crisisTag')}</span>}
                           {t.linked_label && <span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[10px]">{t.linked_label}</span>}
                           {t.overdue && <span className="text-[10px] text-[#B4402E]">{tr('inboxui.daysUnhandled', { n: t.age_days })}</span>}
@@ -486,7 +487,7 @@ function ReadingPane({
           {t.broke_glass && <span className="inline-block px-2 py-0.5 rounded-full text-[10px] bg-[#FEF2F2] text-[#B4402E]">{tr('inboxui.breakGlassView')}</span>}
         </div>
         <p className="mt-1 text-xs text-ink-muted">
-          {t.kind === 'internal' ? tr('inboxui.fromCentre', { name: t.from_centre_name ?? tr('inboxui.internalFallback') }) : `${t.sender_name ?? tr('inboxui.anonymous')}${t.sender_phone ? ` · ${t.sender_phone}` : ''}`} · {kindLabel(t.kind)} · {t.mailbox_centre_name} · {tr('inboxui.ageDays', { n: t.age_days })}
+          {t.kind === 'internal' ? tr('inboxui.fromCentre', { name: t.from_centre_name ?? tr('inboxui.internalFallback') }) : `${t.sender_name ?? tr('inboxui.anonymous')}${t.sender_phone ? ` · ${t.sender_phone}` : ''}`} · {kindLabel(t.kind, tr)} · {t.mailbox_centre_name} · {tr('inboxui.ageDays', { n: t.age_days })}
           {t.linked_href && t.linked_label && (
             <> · <Link href={t.linked_href} className="pill-gold inline-block px-2 py-0.5 rounded-full text-[10px]">{tr('inboxui.openLinked', { label: t.linked_label })}</Link></>
           )}

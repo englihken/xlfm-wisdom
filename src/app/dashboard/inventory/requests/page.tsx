@@ -17,7 +17,8 @@ import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { InventoryTabs, InventorySearchRow, ItemPicker, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
-import { REQUEST_STATUS_LABELS, REQUEST_STATUS_STYLES } from '@/lib/inventory-display';
+import { REQUEST_STATUS_STYLES } from '@/lib/inventory-display';
+import { useT } from '@/lib/i18n-react';
 
 type Lite<T> = T | T[] | null;
 type Centre = { id: string; code: string; name_cn: string };
@@ -43,8 +44,9 @@ function one<T>(v: T | T[] | null): T | null {
 }
 
 export default function RequestsPage() {
+  const t = useT();
   return (
-    <ErpGate active="inventory" module="inventory" titleSuffix="分会申请">
+    <ErpGate active="inventory" module="inventory" titleSuffix={t('inv.suffix.requests')}>
       {(me) => <RequestsPipeline me={me} />}
     </ErpGate>
   );
@@ -57,6 +59,7 @@ type Modal =
   | null;
 
 function RequestsPipeline({ me }: { me: ErpMe }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'inventory', 'edit');
   const canApprove = grantAllows(me.grants, 'inventory', 'admin');
 
@@ -129,11 +132,11 @@ function RequestsPipeline({ me }: { me: ErpMe }) {
     <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold font-serif text-ink">📦 分会申请</h2>
+          <h2 className="text-xl font-bold font-serif text-ink">{t('inv.req.title')}</h2>
           <span className="text-sm text-ink-faint">Requests · {rows.length}</span>
         </div>
         {canEdit && (
-          <button onClick={() => setShowCreate(true)} className="px-4 py-1.5 text-sm btn-primary">＋ 代分会录入申请</button>
+          <button onClick={() => setShowCreate(true)} className="px-4 py-1.5 text-sm btn-primary">{t('inv.req.createBtn')}</button>
         )}
       </div>
 
@@ -141,32 +144,32 @@ function RequestsPipeline({ me }: { me: ErpMe }) {
       <InventoryTabs active="requests" />
 
       {loading ? (
-        <p className="p-6 text-sm text-ink-muted">加载中…</p>
+        <p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>
       ) : (
         <>
           <div className="grid md:grid-cols-3 gap-3.5 items-start">
-            <Column title="① 待审批" count={cols.pending.length}>
+            <Column title={t('inv.req.col1')} count={cols.pending.length}>
               {cols.pending.map((r) => (
                 <Card key={r.id} r={r} onItem={setDrawerId}>
                   {canApprove ? (
                     <>
-                      <button onClick={() => setModal({ kind: 'approve', req: r })} className="px-2.5 py-1 text-xs btn-primary">✓ 审批</button>
-                      <button onClick={() => setModal({ kind: 'reject', req: r })} className="px-2.5 py-1 text-xs border border-[#E5C4BF] text-[#B4402E] rounded-lg bg-surface hover:border-[#B4402E] transition">婉拒</button>
+                      <button onClick={() => setModal({ kind: 'approve', req: r })} className="px-2.5 py-1 text-xs btn-primary">{t('inv.req.approveBtn')}</button>
+                      <button onClick={() => setModal({ kind: 'reject', req: r })} className="px-2.5 py-1 text-xs border border-[#E5C4BF] text-[#B4402E] rounded-lg bg-surface hover:border-[#B4402E] transition">{t('inv.req.rejectBtn')}</button>
                     </>
                   ) : (
-                    <span className="text-[11px] text-ink-faint">待管理员审批</span>
+                    <span className="text-[11px] text-ink-faint">{t('inv.req.waitAdmin')}</span>
                   )}
                 </Card>
               ))}
               {cols.pending.length === 0 && <Empty />}
             </Column>
 
-            <Column title="② 已批准 · 备货中" count={cols.prep.length}>
+            <Column title={t('inv.req.col2')} count={cols.prep.length}>
               {cols.prep.map((r) => (
                 <Card key={r.id} r={r} onItem={setDrawerId} showApproved>
                   {canEdit && (
                     <>
-                      <button onClick={() => setModal({ kind: 'release', req: r })} className="px-2.5 py-1 text-xs btn-primary">📷 发放</button>
+                      <button onClick={() => setModal({ kind: 'release', req: r })} className="px-2.5 py-1 text-xs btn-primary">{t('inv.req.releaseBtn')}</button>
                       <CancelBtn req={r} onDone={load} />
                     </>
                   )}
@@ -175,7 +178,7 @@ function RequestsPipeline({ me }: { me: ErpMe }) {
               {cols.prep.length === 0 && <Empty />}
             </Column>
 
-            <Column title="③ 已发放" count={cols.done.length}>
+            <Column title={t('inv.req.col3')} count={cols.done.length}>
               {cols.done.map((r) => (
                 <Card key={r.id} r={r} onItem={setDrawerId} showApproved>
                   <Releases req={r} canEdit={canEdit} onReversed={load} />
@@ -187,18 +190,18 @@ function RequestsPipeline({ me }: { me: ErpMe }) {
 
           {cols.closed.length > 0 && (
             <div className="bg-surface border border-border rounded-2xl p-4">
-              <h3 className="text-sm font-semibold text-ink mb-2">已结案（未批准 / 已取消）</h3>
+              <h3 className="text-sm font-semibold text-ink mb-2">{t('inv.req.closedTitle')}</h3>
               <div className="space-y-1.5">
                 {cols.closed.map((r) => {
                   const centre = one(r.centre);
                   const item = one(r.item);
                   return (
                     <div key={r.id} className="flex flex-wrap items-center gap-2 text-xs text-ink-muted border-b border-dashed border-border pb-1.5 last:border-b-0">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${REQUEST_STATUS_STYLES[r.status] ?? ''}`}>{REQUEST_STATUS_LABELS[r.status]}</span>
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${REQUEST_STATUS_STYLES[r.status] ?? ''}`}>{t(`inv.reqStatus.${r.status}`)}</span>
                       <span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[11px]">{centre?.name_cn ?? '–'}</span>
                       <span className="text-ink">{item?.name_cn}</span>
-                      <span>申请 {r.qty_requested}</span>
-                      {r.rejected_reason && <span className="text-[#B4402E]">· 原因：{r.rejected_reason}</span>}
+                      <span>{t('inv.req.requested', { n: r.qty_requested })}</span>
+                      {r.rejected_reason && <span className="text-[#B4402E]">{t('inv.req.reasonInline', { reason: r.rejected_reason })}</span>}
                     </div>
                   );
                 })}
@@ -243,10 +246,12 @@ function Column({ title, count, children }: { title: string; count: number; chil
 }
 
 function Empty() {
-  return <p className="text-xs text-ink-faint px-1 py-2">暂无</p>;
+  const t = useT();
+  return <p className="text-xs text-ink-faint px-1 py-2">{t('inv.req.empty')}</p>;
 }
 
 function Card({ r, children, onItem, showApproved }: { r: RequestRow; children?: React.ReactNode; onItem: (id: string) => void; showApproved?: boolean }) {
+  const t = useT();
   const centre = one(r.centre);
   const item = one(r.item);
   const ev = one(r.event);
@@ -255,19 +260,21 @@ function Card({ r, children, onItem, showApproved }: { r: RequestRow; children?:
     <div className="bg-surface border border-border rounded-xl p-3 mb-2.5">
       <div className="flex justify-between gap-1.5">
         <span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[11px]">{centre?.name_cn ?? '–'}</span>
-        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${REQUEST_STATUS_STYLES[r.status] ?? ''}`}>{REQUEST_STATUS_LABELS[r.status]}</span>
+        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${REQUEST_STATUS_STYLES[r.status] ?? ''}`}>{t(`inv.reqStatus.${r.status}`)}</span>
       </div>
       <button onClick={() => item && onItem(item.id)} className="block text-left font-semibold text-ink mt-1.5 hover:text-accent-deep">
         {item?.name_cn ?? '–'}
       </button>
       <div className="text-[11.5px] text-ink-muted mt-1 leading-relaxed">
         {showApproved ? (
-          <>批准 <b className="text-ink">{(r.qty_approved ?? 0).toLocaleString()}</b> · 已发 {r.qty_fulfilled.toLocaleString()}{remainder > 0 && <> · 还欠 <b className="text-accent-deep">{remainder.toLocaleString()}</b></>}</>
+          remainder > 0
+            ? t('inv.req.approvedFulfilledOwing', { approved: (r.qty_approved ?? 0).toLocaleString(), fulfilled: r.qty_fulfilled.toLocaleString(), owing: remainder.toLocaleString() })
+            : t('inv.req.approvedFulfilled', { approved: (r.qty_approved ?? 0).toLocaleString(), fulfilled: r.qty_fulfilled.toLocaleString() })
         ) : (
-          <>申请 <b className="text-ink">{r.qty_requested.toLocaleString()}</b> 件</>
+          t('inv.req.requestedPieces', { n: r.qty_requested.toLocaleString() })
         )}
         {ev && <div className="font-mono text-[10px] text-ink-faint mt-0.5">{ev.code}</div>}
-        {r.approve_reason && <div className="text-[10.5px] text-ink-faint mt-0.5">批注：{r.approve_reason}</div>}
+        {r.approve_reason && <div className="text-[10.5px] text-ink-faint mt-0.5">{t('inv.req.annotation', { reason: r.approve_reason })}</div>}
         {r.note && <div className="text-ink-faint mt-0.5">{r.note}</div>}
       </div>
       <div className="flex gap-1.5 mt-2.5 flex-wrap">{children}</div>
@@ -276,6 +283,7 @@ function Card({ r, children, onItem, showApproved }: { r: RequestRow; children?:
 }
 
 function CancelBtn({ req, onDone }: { req: RequestRow; onDone: () => void }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const cancel = async () => {
     setBusy(true);
@@ -292,7 +300,7 @@ function CancelBtn({ req, onDone }: { req: RequestRow; onDone: () => void }) {
   };
   return (
     <button disabled={busy} onClick={cancel} className="px-2 py-1 text-xs border border-border-strong rounded-lg bg-surface text-ink-muted hover:border-accent transition">
-      {busy ? '…' : '取消余量'}
+      {busy ? '…' : t('inv.req.cancelRemainder')}
     </button>
   );
 }
@@ -301,6 +309,7 @@ function CancelBtn({ req, onDone }: { req: RequestRow; onDone: () => void }) {
 type ReleaseMv = { id: string; qty: number; moved_at: string; photo_path: string | null; reversal_of: string | null };
 
 function Releases({ req, canEdit, onReversed }: { req: RequestRow; canEdit: boolean; onReversed: () => void }) {
+  const t = useT();
   const [mvs, setMvs] = useState<ReleaseMv[]>([]);
   const [busyId, setBusyId] = useState('');
   const [err, setErr] = useState('');
@@ -324,7 +333,7 @@ function Releases({ req, canEdit, onReversed }: { req: RequestRow; canEdit: bool
     try {
       const res = await fetch(`/api/dashboard/inventory/movements/${id}/reverse`, { method: 'POST' });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '撤销失败');
+      if (!res.ok) setErr(j.error ?? t('inv.reverseFailed'));
       else {
         load();
         onReversed();
@@ -343,13 +352,13 @@ function Releases({ req, canEdit, onReversed }: { req: RequestRow; canEdit: bool
         return (
           <div key={m.id} className="flex items-center gap-2 text-[11.5px] text-ink-muted py-1">
             {m.photo_path && <MediaThumb path={m.photo_path} />}
-            <span className="tabular-nums">发放 {m.qty.toLocaleString()} · {m.moved_at}</span>
+            <span className="tabular-nums">{t('inv.req.releasedLine', { qty: m.qty.toLocaleString(), date: m.moved_at })}</span>
             {isReversed ? (
-              <span className="text-ink-faint">（已退回）</span>
+              <span className="text-ink-faint">{t('inv.req.returnedTag')}</span>
             ) : (
               canEdit && (
                 <button disabled={busyId === m.id} onClick={() => reverse(m.id)} className="ml-auto text-accent-deep hover:underline">
-                  {busyId === m.id ? '…' : '↩ 退回/撤销'}
+                  {busyId === m.id ? '…' : t('inv.req.reverseRelease')}
                 </button>
               )
             )}
@@ -362,6 +371,7 @@ function Releases({ req, canEdit, onReversed }: { req: RequestRow; canEdit: bool
 }
 
 function MediaThumb({ path }: { path: string }) {
+  const t = useT();
   const [url, setUrl] = useState('');
   useEffect(() => {
     let active = true;
@@ -377,7 +387,7 @@ function MediaThumb({ path }: { path: string }) {
   }, [path]);
   if (!url) return <span className="w-8 h-8 rounded bg-surface-soft border border-border grid place-items-center text-xs">📷</span>;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt="存证" className="w-8 h-8 rounded object-cover border border-border" />;
+  return <img src={url} alt={t('inv.req.evidenceAlt')} className="w-8 h-8 rounded object-cover border border-border" />;
 }
 
 // ---------------- modals ----------------
@@ -397,6 +407,7 @@ function ErrLine({ msg }: { msg: string }) {
 }
 
 function ApproveModal({ req, onClose, onDone }: { req: RequestRow; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const item = one(req.item);
   const [qty, setQty] = useState(String(req.qty_requested));
   const [reason, setReason] = useState('');
@@ -407,8 +418,8 @@ function ApproveModal({ req, onClose, onDone }: { req: RequestRow; onClose: () =
   const submit = async () => {
     setErr('');
     const n = Number(qty);
-    if (!Number.isInteger(n) || n < 1) return setErr('批准数量须为大于 0 的整数');
-    if (n < req.qty_requested && !reason.trim()) return setErr('批准数量少于申请数量时，请填写原因');
+    if (!Number.isInteger(n) || n < 1) return setErr(t('inv.req.errApproveQty'));
+    if (n < req.qty_requested && !reason.trim()) return setErr(t('inv.req.errReasonRequired'));
     setBusy(true);
     try {
       const res = await fetch(`/api/dashboard/inventory/requests/${req.id}/approve`, {
@@ -417,7 +428,7 @@ function ApproveModal({ req, onClose, onDone }: { req: RequestRow; onClose: () =
         body: JSON.stringify({ qty_approved: n, reason: reason.trim() || undefined }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '批准失败');
+      if (!res.ok) setErr(j.error ?? t('inv.req.approveFailed'));
       else onDone();
     } finally {
       setBusy(false);
@@ -425,35 +436,36 @@ function ApproveModal({ req, onClose, onDone }: { req: RequestRow; onClose: () =
   };
 
   return (
-    <ModalShell title={`审批 · ${item?.name_cn ?? ''}`} onClose={onClose}>
+    <ModalShell title={t('inv.req.approveModalTitle', { name: item?.name_cn ?? '' })} onClose={onClose}>
       <ErrLine msg={err} />
-      <p className="text-xs text-ink-muted mb-2">申请数量 {req.qty_requested.toLocaleString()}。批准即授权后续发放，但不会移动库存。</p>
-      <label className="block text-xs text-ink-muted mb-1">批准数量</label>
+      <p className="text-xs text-ink-muted mb-2">{t('inv.req.approveHint', { n: req.qty_requested.toLocaleString() })}</p>
+      <label className="block text-xs text-ink-muted mb-1">{t('inv.req.approveQtyLabel')}</label>
       <input type="number" min={1} max={req.qty_requested} value={qty} onChange={(e) => setQty(e.target.value)}
         className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent tabular-nums mb-2" />
       {reduced && (
         <>
-          <label className="block text-xs text-ink-muted mb-1">原因（批少必填）</label>
+          <label className="block text-xs text-ink-muted mb-1">{t('inv.req.reasonReducedLabel')}</label>
           <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
             className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent mb-2" />
         </>
       )}
       <div className="flex gap-2 justify-end mt-2">
-        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '提交中…' : '确认批准'}</button>
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('inv.cancel')}</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('inv.submitting') : t('inv.req.confirmApprove')}</button>
       </div>
     </ModalShell>
   );
 }
 
 function RejectModal({ req, onClose, onDone }: { req: RequestRow; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const item = one(req.item);
   const [reason, setReason] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     setErr('');
-    if (!reason.trim()) return setErr('请填写婉拒原因');
+    if (!reason.trim()) return setErr(t('inv.req.errRejectReason'));
     setBusy(true);
     try {
       const res = await fetch(`/api/dashboard/inventory/requests/${req.id}/reject`, {
@@ -462,27 +474,28 @@ function RejectModal({ req, onClose, onDone }: { req: RequestRow; onClose: () =>
         body: JSON.stringify({ reason: reason.trim() }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '操作失败');
+      if (!res.ok) setErr(j.error ?? t('inv.opFailed'));
       else onDone();
     } finally {
       setBusy(false);
     }
   };
   return (
-    <ModalShell title={`婉拒 · ${item?.name_cn ?? ''}`} onClose={onClose}>
+    <ModalShell title={t('inv.req.rejectModalTitle', { name: item?.name_cn ?? '' })} onClose={onClose}>
       <ErrLine msg={err} />
-      <label className="block text-xs text-ink-muted mb-1">原因（必填，分会可见）</label>
+      <label className="block text-xs text-ink-muted mb-1">{t('inv.req.rejectReasonLabel')}</label>
       <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3}
         className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent mb-2" />
       <div className="flex gap-2 justify-end mt-2">
-        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm border border-[#E5C4BF] text-[#B4402E] rounded-lg bg-surface hover:border-[#B4402E]">{busy ? '提交中…' : '确认婉拒'}</button>
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('inv.cancel')}</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm border border-[#E5C4BF] text-[#B4402E] rounded-lg bg-surface hover:border-[#B4402E]">{busy ? t('inv.submitting') : t('inv.req.confirmReject')}</button>
       </div>
     </ModalShell>
   );
 }
 
 function ReleaseModal({ req, onClose, onDone }: { req: RequestRow; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const item = one(req.item);
   const remainder = (req.qty_approved ?? 0) - req.qty_fulfilled;
   const [qty, setQty] = useState(String(remainder));
@@ -493,9 +506,9 @@ function ReleaseModal({ req, onClose, onDone }: { req: RequestRow; onClose: () =
   const submit = async () => {
     setErr('');
     const n = Number(qty);
-    if (!Number.isInteger(n) || n < 1) return setErr('发放数量须为大于 0 的整数');
-    if (n > remainder) return setErr(`发放数量超过已批准余量（剩余 ${remainder} 件）`);
-    if (!file) return setErr('请拍摄/选择发放存证照片');
+    if (!Number.isInteger(n) || n < 1) return setErr(t('inv.req.errReleaseQty'));
+    if (n > remainder) return setErr(t('inv.req.errReleaseExceed', { n: remainder }));
+    if (!file) return setErr(t('inv.req.errPhotoRequired'));
     setBusy(true);
     try {
       // 1) upload the photo → path
@@ -504,7 +517,7 @@ function ReleaseModal({ req, onClose, onDone }: { req: RequestRow; onClose: () =
       const up = await fetch('/api/dashboard/inventory/upload?kind=photo', { method: 'POST', body: fd });
       const uj = await up.json().catch(() => ({}));
       if (!up.ok || !uj.path) {
-        setErr(uj.error ?? '照片上传失败');
+        setErr(uj.error ?? t('inv.photoUploadFailed'));
         setBusy(false);
         return;
       }
@@ -515,7 +528,7 @@ function ReleaseModal({ req, onClose, onDone }: { req: RequestRow; onClose: () =
         body: JSON.stringify({ qty: n, photo_path: uj.path }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '发放失败');
+      if (!res.ok) setErr(j.error ?? t('inv.req.releaseFailed'));
       else onDone();
     } finally {
       setBusy(false);
@@ -523,18 +536,18 @@ function ReleaseModal({ req, onClose, onDone }: { req: RequestRow; onClose: () =
   };
 
   return (
-    <ModalShell title={`发放 · ${item?.name_cn ?? ''}`} onClose={onClose}>
+    <ModalShell title={t('inv.req.releaseModalTitle', { name: item?.name_cn ?? '' })} onClose={onClose}>
       <ErrLine msg={err} />
-      <p className="text-xs text-ink-muted mb-2">已批准余量 {remainder.toLocaleString()} 件。发放会从总会仓库调拨到分会，并扣减库存。</p>
-      <label className="block text-xs text-ink-muted mb-1">发放数量</label>
+      <p className="text-xs text-ink-muted mb-2">{t('inv.req.releaseHint', { n: remainder.toLocaleString() })}</p>
+      <label className="block text-xs text-ink-muted mb-1">{t('inv.req.releaseQtyLabel')}</label>
       <input type="number" min={1} max={remainder} value={qty} onChange={(e) => setQty(e.target.value)}
         className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent tabular-nums mb-2" />
-      <label className="block text-xs text-ink-muted mb-1">存证照片（必传）</label>
+      <label className="block text-xs text-ink-muted mb-1">{t('inv.req.evidenceLabel')}</label>
       <input type="file" accept="image/*" capture="environment" onChange={(e) => setFile(e.target.files?.[0] ?? null)}
         className="w-full text-xs text-ink-muted mb-2 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-border-strong file:bg-surface file:text-ink" />
       <div className="flex gap-2 justify-end mt-2">
-        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '发放中…' : '确认发放'}</button>
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('inv.cancel')}</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('inv.req.releasing') : t('inv.req.confirmRelease')}</button>
       </div>
     </ModalShell>
   );
@@ -553,6 +566,7 @@ function CreateRequestModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const t = useT();
   const [centre, setCentre] = useState('');
   const [itemId, setItemId] = useState('');
   const [qty, setQty] = useState('');
@@ -563,10 +577,10 @@ function CreateRequestModal({
 
   const submit = async () => {
     setErr('');
-    if (!centre) return setErr('请选择分会/中心');
-    if (!itemId) return setErr('请选择品项');
+    if (!centre) return setErr(t('inv.req.errCentre'));
+    if (!itemId) return setErr(t('inv.errPickItem'));
     const n = Number(qty);
-    if (!Number.isInteger(n) || n <= 0) return setErr('申请数量须为大于 0 的整数');
+    if (!Number.isInteger(n) || n <= 0) return setErr(t('inv.req.errRequestQty'));
     setBusy(true);
     try {
       const res = await fetch('/api/dashboard/inventory/requests', {
@@ -575,7 +589,7 @@ function CreateRequestModal({
         body: JSON.stringify({ centre_id: centre, item_id: itemId, qty_requested: n, event_id: eventId || null, note }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '创建失败，请重试');
+      if (!res.ok) setErr(j.error ?? t('inv.req.createFailed'));
       else onDone();
     } finally {
       setBusy(false);
@@ -583,43 +597,43 @@ function CreateRequestModal({
   };
 
   return (
-    <ModalShell title="代分会录入申请" onClose={onClose}>
+    <ModalShell title={t('inv.req.createTitle')} onClose={onClose}>
       <ErrLine msg={err} />
-      <label className="block text-xs text-ink-muted mb-1">分会/中心</label>
+      <label className="block text-xs text-ink-muted mb-1">{t('inv.req.centreLabel')}</label>
       <select value={centre} onChange={(e) => setCentre(e.target.value)}
         className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent mb-2">
-        <option value="">请选择…</option>
+        <option value="">{t('inv.selectPlaceholder')}</option>
         {centres.map((c) => <option key={c.id} value={c.id}>{c.name_cn}</option>)}
       </select>
 
-      <label className="block text-xs text-ink-muted mb-1">品项</label>
+      <label className="block text-xs text-ink-muted mb-1">{t('inv.field.item')}</label>
       <div className="mb-2">
         <ItemPicker items={items} value={itemId} onChange={setItemId} />
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="block text-xs text-ink-muted mb-1">申请数量</label>
+          <label className="block text-xs text-ink-muted mb-1">{t('inv.req.requestQtyLabel')}</label>
           <input type="number" min={1} step={1} value={qty} onChange={(e) => setQty(e.target.value)}
             className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent tabular-nums" />
         </div>
         <div>
-          <label className="block text-xs text-ink-muted mb-1">关联活动（可选）</label>
+          <label className="block text-xs text-ink-muted mb-1">{t('inv.field.eventOptional')}</label>
           <select value={eventId} onChange={(e) => setEventId(e.target.value)}
             className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent">
-            <option value="">（无）</option>
+            <option value="">{t('inv.none')}</option>
             {events.map((e) => <option key={e.id} value={e.id}>{e.code} {e.title}</option>)}
           </select>
         </div>
       </div>
 
-      <label className="block text-xs text-ink-muted mb-1 mt-2">备注（可选）</label>
+      <label className="block text-xs text-ink-muted mb-1 mt-2">{t('inv.field.remarkOptional')}</label>
       <input type="text" value={note} onChange={(e) => setNote(e.target.value)}
         className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent mb-2" />
 
       <div className="flex gap-2 justify-end mt-2">
-        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '提交中…' : '提交申请'}</button>
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('inv.cancel')}</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('inv.submitting') : t('inv.req.submitRequest')}</button>
       </div>
     </ModalShell>
   );

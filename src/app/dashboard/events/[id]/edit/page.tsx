@@ -9,6 +9,7 @@ import { useParams } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { EventForm, EMPTY_EVENT, type EventFormValues } from '@/components/event-form';
 import { grantAllows } from '@/lib/access';
+import { useT } from '@/lib/i18n-react';
 import { FEE_ROWS } from '@/lib/events-display';
 
 type MealSlot = { slot_date: string; meal: string; offered: boolean };
@@ -45,14 +46,16 @@ function toForm(
 
 export default function EditEventPage() {
   const { id } = useParams<{ id: string }>();
+  const t = useT();
   return (
-    <ErpGate active="events" module="events" titleSuffix="编辑">
+    <ErpGate active="events" module="events" titleSuffix={t('events.suffix.edit')}>
       {(me) => <EditBody me={me} id={id} />}
     </ErpGate>
   );
 }
 
 function EditBody({ me, id }: { me: ErpMe; id: string }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'events', 'edit');
   const [initial, setInitial] = useState<EventFormValues | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,9 +76,9 @@ function EditBody({ me, id }: { me: ErpMe; id: string }) {
     };
   }, [id]);
 
-  if (!canEdit) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">您没有编辑活动的权限。</p>;
-  if (loading) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">加载中…</p>;
-  if (!initial) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">无法加载该活动。</p>;
+  if (!canEdit) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">{t('events.noEditPerm')}</p>;
+  if (loading) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">{t('events.loading')}</p>;
+  if (!initial) return <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">{t('events.loadFailed')}</p>;
 
   return <EventForm mode="edit" eventId={id} initial={initial} />;
 }

@@ -14,14 +14,16 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
+import { useT } from '@/lib/i18n-react';
+import type { TFunc } from '@/lib/i18n';
 import { BringToOutreachButton } from '@/components/bring-to-outreach-button';
 import { computeFees, type FeeItem, type Selections } from '@/lib/event-fees';
 import { addDays, mealSlotKey } from '@/lib/events';
 import { qrModules } from '@/lib/qr';
 import {
-  EVENT_TYPE_LABELS, STATUS_LABELS, STATUS_STYLES, REG_STATUS_LABELS, REG_STATUS_STYLES,
-  PAYMENT_STATUS_LABELS, PAYMENT_STATUS_STYLES,
-  FEE_LABEL, MEAL_COLS, feeBillingLabel, weekdayCn, moneyRM,
+  eventTypeLabel, eventStatusLabel, STATUS_STYLES, regStatusLabel, REG_STATUS_STYLES,
+  paymentStatusLabel, PAYMENT_STATUS_STYLES,
+  feeLabel, MEAL_COLS, feeBillingLabel, mealColLabel, weekdayCn, moneyRM,
 } from '@/lib/events-display';
 
 type FeeRow = { item: string; label_cn: string | null; amount: number; billing: string; sort?: number };
@@ -57,15 +59,15 @@ type RegRow = {
 type Team = { id: string; name_cn: string; slug: string };
 
 // Compact selections summary chips: 🍚N餐/N天 🏨N晚 🚐 👕size×qty 🎁×N
-function selectionsSummary(sel: Record<string, unknown> | undefined): string {
+function selectionsSummary(t: TFunc, sel: Record<string, unknown> | undefined): string {
   if (!sel) return '';
   const parts: string[] = [];
   const meals = Array.isArray(sel.meals) ? (sel.meals as unknown[]).filter((x) => typeof x === 'string').length : 0;
   const md = Number(sel.meal_days) || 0;
   const ni = Number(sel.nights) || 0;
-  if (meals) parts.push(`🍚${meals}餐`);
-  else if (md) parts.push(`🍚${md}天`);
-  if (ni) parts.push(`🏨${ni}晚`);
+  if (meals) parts.push(t('events.sel.meals', { n: meals }));
+  else if (md) parts.push(t('events.sel.mealDays', { n: md }));
+  if (ni) parts.push(t('events.sel.nights', { n: ni }));
   if (sel.transfer === true) parts.push('🚐');
   const u = sel.uniform as { size?: string; qty?: number } | undefined;
   if (u?.qty) parts.push(`👕${u.size ?? ''}×${u.qty}`);
@@ -80,11 +82,11 @@ function todayMYT(): string {
 }
 
 // The status-transition labels (matches the server matrix in src/lib/events.ts).
-function transitionLabel(from: string, to: string): string {
-  if (to === 'open') return from === 'draft' ? '发布' : '重新开放';
-  if (to === 'closed') return '关闭报名';
-  if (to === 'full') return '标记满额';
-  if (to === 'completed') return '标记结束';
+function transitionLabel(t: TFunc, from: string, to: string): string {
+  if (to === 'open') return from === 'draft' ? t('events.transition.publish') : t('events.transition.reopen');
+  if (to === 'closed') return t('events.transition.close');
+  if (to === 'full') return t('events.transition.markFull');
+  if (to === 'completed') return t('events.transition.markCompleted');
   return to;
 }
 const STATUS_NEXT: Record<string, string[]> = {
@@ -93,14 +95,16 @@ const STATUS_NEXT: Record<string, string[]> = {
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const t = useT();
   return (
-    <ErpGate active="events" module="events" titleSuffix="详情">
+    <ErpGate active="events" module="events" titleSuffix={t('events.suffix.detail')}>
       {(me) => <Detail me={me} id={id} />}
     </ErpGate>
   );
 }
 
 function Detail({ me, id }: { me: ErpMe; id: string }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'events', 'edit');
   const canOutreach = grantAllows(me.grants, 'outreach', 'edit');
   const [data, setData] = useState<Detail | null>(null);
@@ -166,13 +170,13 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => null);
-        flashToast(j?.error ?? '操作失败');
+        flashToast(j?.error ?? t('events.toast.actionFailed'));
         return;
       }
       await Promise.all([loadRegs(), loadEvent()]); // reload event to catch capacity→full
       if (decision === 'approve') {
         // The decision response doesn't include event status, so we refetched; detect full.
-        flashToast('已批准');
+        flashToast(t('events.toast.approved'));
       }
     } finally {
       setBusy(null);
@@ -181,12 +185,12 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
 
   const changeStatus = async (to: string) => {
     if (!data) return;
-    if (!window.confirm(`确定将活动状态变更为「${STATUS_LABELS[to]}」？`)) return;
+    if (!window.confirm(t('events.confirm.changeStatus', { status: eventStatusLabel(to, t) }))) return;
     const res = await fetch(`/api/dashboard/events/${id}/status`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: to }),
     });
-    if (res.ok) { flashToast(`状态已更新为「${STATUS_LABELS[to]}」`); loadEvent(); }
-    else { const j = await res.json().catch(() => null); flashToast(j?.error ?? '操作失败'); }
+    if (res.ok) { flashToast(t('events.toast.statusUpdated', { status: eventStatusLabel(to, t) })); loadEvent(); }
+    else { const j = await res.json().catch(() => null); flashToast(j?.error ?? t('events.toast.actionFailed')); }
   };
 
   const togglePublicReg = async (enabled: boolean) => {
@@ -194,12 +198,12 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ public_registration_enabled: enabled }),
     });
-    if (res.ok) { flashToast(enabled ? '公开报名已开启' : '公开报名已关闭'); loadEvent(); }
-    else { const j = await res.json().catch(() => null); flashToast(j?.error ?? '操作失败'); }
+    if (res.ok) { flashToast(enabled ? t('events.toast.publicOn') : t('events.toast.publicOff')); loadEvent(); }
+    else { const j = await res.json().catch(() => null); flashToast(j?.error ?? t('events.toast.actionFailed')); }
   };
 
-  if (loading) return <p className="max-w-4xl mx-auto px-4 py-10 text-sm text-ink-muted">加载中…</p>;
-  if (!data) return <p className="max-w-4xl mx-auto px-4 py-10 text-sm text-ink-muted">无法加载该活动。</p>;
+  if (loading) return <p className="max-w-4xl mx-auto px-4 py-10 text-sm text-ink-muted">{t('events.loading')}</p>;
+  if (!data) return <p className="max-w-4xl mx-auto px-4 py-10 text-sm text-ink-muted">{t('events.loadFailed')}</p>;
 
   const e = data.event;
   const approved = data.regStats.counts.approved;
@@ -224,8 +228,8 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-2xl font-bold font-serif text-ink">{e.title}</h2>
-            <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS_STYLES[e.status] ?? ''}`}>{STATUS_LABELS[e.status] ?? e.status}</span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full pill-gold">{EVENT_TYPE_LABELS[e.event_type] ?? e.event_type}</span>
+            <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS_STYLES[e.status] ?? ''}`}>{eventStatusLabel(e.status, t)}</span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full pill-gold">{eventTypeLabel(e.event_type, t)}</span>
           </div>
           <p className="mt-1 text-sm text-ink-muted">
             <span className="font-mono">{e.code}</span>
@@ -236,12 +240,12 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canEdit && (e.status === 'draft' || e.status === 'open') && (
-            <Link href={`/dashboard/events/${id}/edit`} className="px-4 py-1.5 text-sm btn-secondary">编辑</Link>
+            <Link href={`/dashboard/events/${id}/edit`} className="px-4 py-1.5 text-sm btn-secondary">{t('events.detail.edit')}</Link>
           )}
           {canEdit && nextStatuses.map((to) => (
             <button key={to} onClick={() => changeStatus(to)}
               className="px-4 py-1.5 text-sm btn-primary">
-              {transitionLabel(e.status, to)}
+              {transitionLabel(t, e.status, to)}
             </button>
           ))}
         </div>
@@ -250,38 +254,38 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
       {/* capacity bar */}
       <div className="bg-surface border border-border rounded-2xl p-4">
         <div className="flex items-center justify-between text-xs text-ink-muted mb-1">
-          <span>报名 {approved}{e.capacity ? ` / ${e.capacity}` : ' / 不限'}</span>
+          <span>{t('events.card.signupsLabel')} {approved}{e.capacity ? ` / ${e.capacity}` : ` / ${t('events.unlimited')}`}</span>
           {e.capacity ? <span>{pct}%</span> : null}
         </div>
         <div className="h-3 rounded-full bg-accent/10 overflow-hidden">
           <div className="h-full rounded-full bg-accent" style={{ width: e.capacity ? `${pct}%` : '0%' }} />
         </div>
-        <div className="mt-2 text-xs text-ink-muted">已批费用合计：<span className="font-semibold text-ink">{moneyRM(data.regStats.approvedFeeSum)}</span></div>
+        <div className="mt-2 text-xs text-ink-muted">{t('events.detail.approvedFeeSum')}<span className="font-semibold text-ink">{moneyRM(data.regStats.approvedFeeSum)}</span></div>
         {data.regStats.payment && (
           <div className="mt-1 text-xs text-ink-muted">
-            已收款 <span className="font-semibold text-[#3F6B2E]">{moneyRM(data.regStats.payment.paidSum)}</span>
-            <span className="text-ink-faint"> · 已核实 {data.regStats.payment.verifiedCount}{data.regStats.payment.waivedCount ? ` · 已豁免 ${data.regStats.payment.waivedCount}` : ''}{data.regStats.payment.proofCount ? ` · 待核实 ${data.regStats.payment.proofCount}` : ''}</span>
-            <span className="text-ink-faint"> · 随喜发心，不设指标</span>
+            {t('events.detail.received')} <span className="font-semibold text-[#3F6B2E]">{moneyRM(data.regStats.payment.paidSum)}</span>
+            <span className="text-ink-faint"> · {t('events.detail.verified', { n: data.regStats.payment.verifiedCount })}{data.regStats.payment.waivedCount ? ` · ${t('events.detail.waived', { n: data.regStats.payment.waivedCount })}` : ''}{data.regStats.payment.proofCount ? ` · ${t('events.detail.pendingVerify', { n: data.regStats.payment.proofCount })}` : ''}</span>
+            <span className="text-ink-faint"> · {t('events.detail.noTarget')}</span>
           </div>
         )}
       </div>
 
       {/* fees + team needs */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card title="💰 费率 Fees">
-          {data.fees.length === 0 ? <p className="text-sm text-ink-muted">未设置收费</p> : (
+        <Card title={t('events.detail.feesTitle')}>
+          {data.fees.length === 0 ? <p className="text-sm text-ink-muted">{t('events.detail.noFees')}</p> : (
             <ul className="space-y-1 text-sm">
               {data.fees.map((f) => (
                 <li key={f.item} className="flex items-center justify-between">
-                  <span className="text-ink">{f.label_cn || FEE_LABEL[f.item] || f.item} <span className="text-[11px] text-ink-faint">{feeBillingLabel(f.item, f.billing)}</span></span>
+                  <span className="text-ink">{f.label_cn || feeLabel(f.item, t)} <span className="text-[11px] text-ink-faint">{feeBillingLabel(f.item, f.billing, t)}</span></span>
                   <span className="font-medium text-ink">{moneyRM(f.amount)}</span>
                 </li>
               ))}
             </ul>
           )}
         </Card>
-        <Card title="👥 团队需求 Team needs">
-          {data.teamNeeds.length === 0 ? <p className="text-sm text-ink-muted">无</p> : (
+        <Card title={t('events.detail.teamNeedsTitle')}>
+          {data.teamNeeds.length === 0 ? <p className="text-sm text-ink-muted">{t('events.detail.none')}</p> : (
             <div className="flex flex-wrap gap-1.5">
               {data.teamNeeds.map((t) => {
                 const short = t.approved < t.needed;
@@ -306,28 +310,28 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1">
-            {tabs.map(([t, n]) => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`px-3 py-1 rounded-full text-xs border transition ${tab === t ? 'bg-accent/10 text-ink border-border' : 'text-ink-muted border-transparent hover:bg-accent/5'}`}>
-                {t === 'all' ? '全部' : REG_STATUS_LABELS[t]}{n != null ? ` ${n}` : ''}
+            {tabs.map(([tv, n]) => (
+              <button key={tv} onClick={() => setTab(tv)}
+                className={`px-3 py-1 rounded-full text-xs border transition ${tab === tv ? 'bg-accent/10 text-ink border-border' : 'text-ink-muted border-transparent hover:bg-accent/5'}`}>
+                {tv === 'all' ? t('events.tab.all') : regStatusLabel(tv, t)}{n != null ? ` ${n}` : ''}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => exportCsv(e.code, tab, regs, teamName)}
-              className="px-3 py-1 text-xs btn-secondary">导出 CSV</button>
+            <button onClick={() => exportCsv(t, e.code, tab, regs, teamName)}
+              className="px-3 py-1 text-xs btn-secondary">{t('events.exportCsv')}</button>
             {canEdit && e.status === 'open' && (
-              <button onClick={() => setAddOpen(true)} className="px-3 py-1 text-xs btn-primary">＋代报名</button>
+              <button onClick={() => setAddOpen(true)} className="px-3 py-1 text-xs btn-primary">{t('events.addReg')}</button>
             )}
           </div>
         </div>
 
         {regs.length === 0 ? (
-          <p className="p-6 text-sm text-ink-muted">🪷 暂无报名，静候有缘人。</p>
+          <p className="p-6 text-sm text-ink-muted">{t('events.queue.empty')}</p>
         ) : (
           <ul>
             {regs.map((r) => {
-              const sel = selectionsSummary(r.selections);
+              const sel = selectionsSummary(t, r.selections);
               const isOpen = expanded.has(r.id);
               return (
               <li id={`reg-${r.reg_no}`} key={r.id} className="px-4 py-3 border-b border-border last:border-b-0">
@@ -340,44 +344,44 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
                         <span className="font-medium text-ink">{r.name}</span>
                       )}
                       {r.centreCode && <span className="text-[11px] px-2 py-0.5 rounded-full pill-gold">{r.centreCode}</span>}
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${REG_STATUS_STYLES[r.status] ?? ''}`}>{REG_STATUS_LABELS[r.status] ?? r.status}</span>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${REG_STATUS_STYLES[r.status] ?? ''}`}>{regStatusLabel(r.status, t)}</span>
                       {/* payment badge — independent of approval (separate tracks) */}
                       <span className={`text-[11px] px-2 py-0.5 rounded-full ${PAYMENT_STATUS_STYLES[r.payment_status] ?? PAYMENT_STATUS_STYLES.unpaid}`}>
-                        {PAYMENT_STATUS_LABELS[r.payment_status] ?? '未付款'}{r.payment_status === 'verified' && r.paid_amount != null ? ` ${moneyRM(r.paid_amount)}` : ''}
+                        {paymentStatusLabel(r.payment_status, t)}{r.payment_status === 'verified' && r.paid_amount != null ? ` ${moneyRM(r.paid_amount)}` : ''}
                       </span>
                       {sel && <span className="text-xs text-ink-muted">{sel}</span>}
                     </div>
                     <div className="mt-0.5 text-xs text-ink-muted">
                       <span className="font-mono">{r.reg_no}</span>
-                      {r.volunteer_team_id ? ` · 组：${teamName.get(r.volunteer_team_id) ?? '—'}` : ''}
+                      {r.volunteer_team_id ? ` · ${t('events.row.team')}${teamName.get(r.volunteer_team_id) ?? '—'}` : ''}
                       {r.decidedByName ? ` · ${r.decidedByName}` : ''}
                       {r.decided_at ? ` ${r.decided_at.slice(0, 10)}` : ''}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => toggleExpand(r.id)} className="font-semibold text-ink hover:text-accent-deep" title="展开费用明细">
+                    <button onClick={() => toggleExpand(r.id)} className="font-semibold text-ink hover:text-accent-deep" title={t('events.row.expandFees')}>
                       {moneyRM(r.fee_total)} {isOpen ? '▴' : '▾'}
                     </button>
                     {canEdit && r.status !== 'cancelled' && (
-                      <button onClick={() => setPayFor(r)} className="px-3 py-1 text-xs btn-secondary">付款</button>
+                      <button onClick={() => setPayFor(r)} className="px-3 py-1 text-xs btn-secondary">{t('events.pay')}</button>
                     )}
                     {canOutreach && r.status !== 'cancelled' && (
                       <BringToOutreachButton eventId={id} name={r.name} phone={r.phone} />
                     )}
                     {canEdit && r.status === 'pending' && (
                       <>
-                        <button disabled={busy === r.id} onClick={() => decide(r, 'approve')} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">✓批准</button>
-                        <button disabled={busy === r.id} onClick={() => setRejectFor(r)} className="px-3 py-1 text-xs text-red-700 border border-[#FCA5A5] rounded-full hover:bg-[#FEF2F2] disabled:opacity-40">✗拒绝</button>
+                        <button disabled={busy === r.id} onClick={() => decide(r, 'approve')} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">{t('events.approve')}</button>
+                        <button disabled={busy === r.id} onClick={() => setRejectFor(r)} className="px-3 py-1 text-xs text-red-700 border border-[#FCA5A5] rounded-full hover:bg-[#FEF2F2] disabled:opacity-40">{t('events.reject')}</button>
                       </>
                     )}
                     {canEdit && (r.status === 'pending' || r.status === 'approved') && selectionsEditable && (
-                      <button disabled={busy === r.id} onClick={() => setEditReg(r)} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">修改选项</button>
+                      <button disabled={busy === r.id} onClick={() => setEditReg(r)} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">{t('events.editSelections')}</button>
                     )}
                     {canEdit && (r.status === 'pending' || r.status === 'approved') && !selectionsEditable && (
-                      <span className="text-[11px] text-ink-faint" title={`活动开始前 ${cutoffDays} 天截止修改`}>🔒选项已锁定</span>
+                      <span className="text-[11px] text-ink-faint" title={t('events.row.lockTitle', { n: cutoffDays })}>{t('events.row.locked')}</span>
                     )}
                     {canEdit && (r.status === 'pending' || r.status === 'approved') && (
-                      <button disabled={busy === r.id} onClick={() => { if (window.confirm('确定取消此报名？')) decide(r, 'cancel'); }} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">取消</button>
+                      <button disabled={busy === r.id} onClick={() => { if (window.confirm(t('events.confirm.cancelReg'))) decide(r, 'cancel'); }} className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">{t('events.cancel')}</button>
                     )}
                   </div>
                 </div>
@@ -404,13 +408,13 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
       {addOpen && (
         <AddRegDialog eventId={id} fees={data.fees} teams={teams} mealSlots={data.mealSlots} mealPerItem={mealPerItem}
           onClose={() => setAddOpen(false)}
-          onDone={() => { setAddOpen(false); loadRegs(); loadEvent(); flashToast('已代报名'); }} />
+          onDone={() => { setAddOpen(false); loadRegs(); loadEvent(); flashToast(t('events.toast.regDone')); }} />
       )}
       {editReg && (
         <AddRegDialog eventId={id} fees={data.fees} teams={teams} mealSlots={data.mealSlots} mealPerItem={mealPerItem}
           edit={{ regId: editReg.id, name: editReg.name, teamId: editReg.volunteer_team_id ?? '', selections: editReg.selections }}
           onClose={() => setEditReg(null)}
-          onDone={() => { setEditReg(null); loadRegs(); loadEvent(); flashToast('选项已更新'); }} />
+          onDone={() => { setEditReg(null); loadRegs(); loadEvent(); flashToast(t('events.toast.selectionsUpdated')); }} />
       )}
       {payFor && (
         <PaymentPanel reg={payFor} onClose={() => setPayFor(null)}
@@ -422,22 +426,23 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
 
 // ── 每餐人数统计 card — approved-registration counts per (date, meal) + totals ──────
 function MealStatsCard({ slots, counts }: { slots: MealSlot[]; counts: NonNullable<MealCounts> }) {
+  const t = useT();
   const dates = [...new Set(slots.map((s) => s.slot_date))].sort();
   const offered = new Set(slots.filter((s) => s.offered).map((s) => mealSlotKey(s.slot_date, s.meal)));
   const colTotal = (meal: string) => dates.reduce((sum, d) => sum + (counts.perCell[mealSlotKey(d, meal)] ?? 0), 0);
   return (
     <div className="bg-surface border border-border rounded-2xl p-4">
-      <h3 className="text-sm font-semibold font-serif text-ink mb-2">🍚 每餐人数统计 <span className="text-[11px] font-normal text-ink-faint">Meal counts · 已批准</span></h3>
+      <h3 className="text-sm font-semibold font-serif text-ink mb-2">{t('events.mealStats.title')} <span className="text-[11px] font-normal text-ink-faint">{t('events.mealStats.sub')}</span></h3>
       {dates.length === 0 ? (
-        <p className="text-sm text-ink-muted">尚未设置餐点供应。</p>
+        <p className="text-sm text-ink-muted">{t('events.mealStats.noMeals')}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="text-sm border-collapse">
             <thead>
               <tr className="text-[11px] text-ink-faint">
-                <th className="px-3 py-1.5 text-left font-medium">日期</th>
-                {MEAL_COLS.map((c) => <th key={c.meal} className="px-3 py-1.5 font-medium w-14">{c.label}</th>)}
-                <th className="px-3 py-1.5 font-medium w-16">当日合计</th>
+                <th className="px-3 py-1.5 text-left font-medium">{t('events.col.date')}</th>
+                {MEAL_COLS.map((c) => <th key={c.meal} className="px-3 py-1.5 font-medium w-14">{mealColLabel(c.meal, t)}</th>)}
+                <th className="px-3 py-1.5 font-medium w-16">{t('events.mealStats.dayTotal')}</th>
               </tr>
             </thead>
             <tbody>
@@ -456,7 +461,7 @@ function MealStatsCard({ slots, counts }: { slots: MealSlot[]; counts: NonNullab
                 </tr>
               ))}
               <tr className="border-t-2 border-border bg-surface-soft">
-                <td className="px-3 py-1.5 font-semibold text-ink">总计</td>
+                <td className="px-3 py-1.5 font-semibold text-ink">{t('events.mealStats.total')}</td>
                 {MEAL_COLS.map((c) => <td key={c.meal} className="px-3 py-1.5 text-center font-semibold text-[#8A5A1E]">{colTotal(c.meal)}</td>)}
                 <td className="px-3 py-1.5 text-center font-bold text-ink">{counts.total}</td>
               </tr>
@@ -470,19 +475,20 @@ function MealStatsCard({ slots, counts }: { slots: MealSlot[]; counts: NonNullab
 
 // ── reject modal (reason required) ───────────────────────────────────────────
 function RejectDialog({ reg, onClose, onReject }: { reg: RegRow; onClose: () => void; onReject: (reason: string) => void }) {
+  const t = useT();
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
       <div className="bg-surface rounded-2xl w-full max-w-sm p-5" onClick={(ev) => ev.stopPropagation()}>
-        <h3 className="text-base font-semibold font-serif text-ink mb-1">拒绝报名</h3>
+        <h3 className="text-base font-semibold font-serif text-ink mb-1">{t('events.reject.title')}</h3>
         <p className="text-xs text-ink-muted mb-3 font-mono">{reg.reg_no} · {reg.name}</p>
-        <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="拒绝原因（必填）"
+        <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder={t('events.reject.placeholder')}
           className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink resize-y focus:outline-none focus:border-accent" />
         <div className="mt-3 flex items-center gap-2">
           <button disabled={saving || !reason.trim()} onClick={() => { setSaving(true); onReject(reason.trim()); }}
-            className="px-4 py-1.5 text-sm text-white bg-red-600 rounded-full hover:bg-red-700 disabled:opacity-50">确认拒绝</button>
-          <button onClick={onClose} className="px-4 py-1.5 text-sm btn-secondary">取消</button>
+            className="px-4 py-1.5 text-sm text-white bg-red-600 rounded-full hover:bg-red-700 disabled:opacity-50">{t('events.reject.confirm')}</button>
+          <button onClick={onClose} className="px-4 py-1.5 text-sm btn-secondary">{t('events.cancel')}</button>
         </div>
       </div>
     </div>
@@ -497,6 +503,7 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
   edit?: { regId: string; name: string; teamId: string; selections: Record<string, unknown> };
   onClose: () => void; onDone: () => void;
 }) {
+  const t = useT();
   const isEdit = !!edit;
   const enabled = new Set(fees.map((f) => f.item));
   const feeItems: FeeItem[] = fees.map((f) => ({ item: f.item as FeeItem['item'], label_cn: f.label_cn, amount: Number(f.amount), billing: f.billing as FeeItem['billing'] }));
@@ -523,16 +530,16 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
     if (isEdit) return;
     const q = search.trim();
     if (!q) { setResults([]); return; }
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       fetch(`/api/dashboard/members?search=${encodeURIComponent(q)}&status=active&limit=8`)
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => {
-          if (j) setResults((j.members ?? []).map((m: { id: string; name_cn: string | null; name_en: string | null; centre: { code: string } | null }) => ({ id: m.id, name: m.name_cn || m.name_en || '（无名）', centreCode: m.centre?.code ?? null })));
+          if (j) setResults((j.members ?? []).map((m: { id: string; name_cn: string | null; name_en: string | null; centre: { code: string } | null }) => ({ id: m.id, name: m.name_cn || m.name_en || t('events.reg.noName'), centreCode: m.centre?.code ?? null })));
         })
         .catch(() => {});
     }, 300);
-    return () => clearTimeout(t);
-  }, [search, isEdit]);
+    return () => clearTimeout(timer);
+  }, [search, isEdit, t]);
 
   const selections: Selections = {
     meal_days: !mealPerItem && mealDays ? Number(mealDays) : undefined,
@@ -560,11 +567,11 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
             body: JSON.stringify({ member_id: selected.id, volunteer_team_id: teamId || null, selections }),
           });
       const j = await res.json().catch(() => null);
-      if (res.status === 409) { setDupe(j?.existing?.reg_no ?? null); setError('该会员已报名此活动'); return; }
-      if (!res.ok) { setError(j?.error ?? (isEdit ? '保存失败' : '登记失败')); return; }
+      if (res.status === 409) { setDupe(j?.existing?.reg_no ?? null); setError(t('events.reg.dupe')); return; }
+      if (!res.ok) { setError(j?.error ?? (isEdit ? t('events.reg.saveFailed') : t('events.reg.regFailed'))); return; }
       onDone();
     } catch {
-      setError(isEdit ? '保存失败，请重试' : '登记失败，请重试');
+      setError(isEdit ? t('events.reg.saveFailedRetry') : t('events.reg.regFailedRetry'));
     } finally {
       setSaving(false);
     }
@@ -573,14 +580,14 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
       <div className="bg-surface rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5" onClick={(ev) => ev.stopPropagation()}>
-        <h3 className="text-base font-semibold font-serif text-ink mb-3">{isEdit ? '修改选项' : '代报名'}</h3>
+        <h3 className="text-base font-semibold font-serif text-ink mb-3">{isEdit ? t('events.editSelections') : t('events.addRegTitle')}</h3>
 
         {/* member — search (create) or preset name (edit) */}
         {isEdit ? (
-          <div className="text-sm text-ink">会员：<span className="font-medium">{edit!.name}</span></div>
+          <div className="text-sm text-ink">{t('events.reg.member')}<span className="font-medium">{edit!.name}</span></div>
         ) : !selected ? (
           <div>
-            <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索会员 名字 / 电话…"
+            <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('events.reg.searchPlaceholder')}
               className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent" />
             {results.length > 0 && (
               <ul className="mt-1 border border-border rounded-lg divide-y divide-border max-h-48 overflow-y-auto">
@@ -597,8 +604,8 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
           </div>
         ) : (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-ink">会员：<span className="font-medium">{selected.name}</span></span>
-            <button onClick={() => setSelected(null)} className="text-xs text-accent-deep hover:underline">更换</button>
+            <span className="text-ink">{t('events.reg.member')}<span className="font-medium">{selected.name}</span></span>
+            <button onClick={() => setSelected(null)} className="text-xs text-accent-deep hover:underline">{t('events.reg.change')}</button>
           </div>
         )}
 
@@ -606,11 +613,11 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
           <div className="mt-4 space-y-3">
             {!isEdit && (
               <label className="block">
-                <span className="block u-label mb-1">义工组（可选）</span>
+                <span className="block u-label mb-1">{t('events.reg.teamOptional')}</span>
                 <select value={teamId} onChange={(e) => setTeamId(e.target.value)}
                   className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent">
-                  <option value="">信众参加（无组）</option>
-                  {teams.map((t) => <option key={t.id} value={t.id}>{t.name_cn}</option>)}
+                  <option value="">{t('events.reg.noTeam')}</option>
+                  {teams.map((tm) => <option key={tm.id} value={tm.id}>{tm.name_cn}</option>)}
                 </select>
               </label>
             )}
@@ -619,7 +626,7 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
             {enabled.has('meal') && mealPerItem && (
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="u-label">用餐 🍚 <span className="text-ink-faint">（已选 {meals.size} 餐）</span></span>
+                  <span className="u-label">{t('events.reg.mealLabel')} <span className="text-ink-faint">{t('events.reg.mealsSelected', { n: meals.size })}</span></span>
                 </div>
                 <MealPickGrid slots={mealSlots} selected={meals} onChange={setMeals} />
               </div>
@@ -627,29 +634,29 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
 
             {/* selection inputs — ONLY for items enabled on this event */}
             <div className="grid grid-cols-2 gap-3">
-              {enabled.has('meal') && !mealPerItem && <Num label="用餐天数 🍚" value={mealDays} onChange={setMealDays} />}
-              {enabled.has('accommodation') && <Num label="住宿晚数 🏨" value={nights} onChange={setNights} />}
+              {enabled.has('meal') && !mealPerItem && <Num label={t('events.reg.mealDays')} value={mealDays} onChange={setMealDays} />}
+              {enabled.has('accommodation') && <Num label={t('events.reg.nights')} value={nights} onChange={setNights} />}
               {enabled.has('transfer') && (
                 <label className="flex items-center gap-2 text-sm text-ink col-span-2">
-                  <input type="checkbox" checked={transfer} onChange={(e) => setTransfer(e.target.checked)} /> 机场接送 🚐
+                  <input type="checkbox" checked={transfer} onChange={(e) => setTransfer(e.target.checked)} /> {t('events.reg.transfer')}
                 </label>
               )}
               {enabled.has('uniform') && (
                 <>
                   <label className="block">
-                    <span className="block u-label mb-1">制服尺码 👕</span>
+                    <span className="block u-label mb-1">{t('events.reg.uniformSize')}</span>
                     <input value={uniformSize} onChange={(e) => setUniformSize(e.target.value)} placeholder="M"
                       className="w-full text-sm p-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent" />
                   </label>
-                  <Num label="制服数量" value={uniformQty} onChange={setUniformQty} />
+                  <Num label={t('events.reg.uniformQty')} value={uniformQty} onChange={setUniformQty} />
                 </>
               )}
-              {enabled.has('other') && <Num label="结缘品数量" value={otherQty} onChange={setOtherQty} />}
+              {enabled.has('other') && <Num label={t('events.reg.otherQty')} value={otherQty} onChange={setOtherQty} />}
             </div>
 
             {/* live fee preview */}
             <div className="rounded-lg bg-accent/10 p-3 text-sm">
-              {preview.breakdown.length === 0 ? <p className="text-ink-muted">暂无费用</p> : (
+              {preview.breakdown.length === 0 ? <p className="text-ink-muted">{t('events.reg.noFee')}</p> : (
                 <ul className="space-y-0.5">
                   {preview.breakdown.map((b) => (
                     <li key={b.item} className="flex justify-between text-ink-muted">
@@ -659,22 +666,22 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
                 </ul>
               )}
               <div className="mt-1 pt-1 border-t border-gold-border flex justify-between font-semibold text-ink">
-                <span>合计</span><span>{moneyRM(preview.total)}</span>
+                <span>{t('events.total')}</span><span>{moneyRM(preview.total)}</span>
               </div>
             </div>
 
             {error && (
               <p className="text-sm text-red-600">
                 {error}
-                {dupe && <> · <Link href={`#reg-${dupe}`} className="underline text-accent-deep" onClick={onClose}>已有报名 {dupe}</Link></>}
+                {dupe && <> · <Link href={`#reg-${dupe}`} className="underline text-accent-deep" onClick={onClose}>{t('events.reg.existing', { no: dupe })}</Link></>}
               </p>
             )}
 
             <div className="flex items-center gap-2">
               <button disabled={saving} onClick={submit} className="px-5 py-2 text-sm btn-primary">
-                {saving ? '保存中…' : isEdit ? '保存选项' : '提交报名'}
+                {saving ? t('events.saving') : isEdit ? t('events.reg.saveSelections') : t('events.reg.submit')}
               </button>
-              <button onClick={onClose} className="px-5 py-2 text-sm btn-secondary">取消</button>
+              <button onClick={onClose} className="px-5 py-2 text-sm btn-secondary">{t('events.cancel')}</button>
             </div>
           </div>
         )}
@@ -686,6 +693,7 @@ function AddRegDialog({ eventId, fees, teams, mealSlots, mealPerItem, edit, onCl
 // Meal picker — dates × 早/午/晚; only OFFERED cells are clickable. 整天 toggles a row's
 // offered cells; 全选/清空 select/clear every offered cell. Zero selected is valid.
 function MealPickGrid({ slots, selected, onChange }: { slots: MealSlot[]; selected: Set<string>; onChange: (s: Set<string>) => void }) {
+  const t = useT();
   const dates = [...new Set(slots.map((s) => s.slot_date))].sort();
   const offered = new Set(slots.filter((s) => s.offered).map((s) => mealSlotKey(s.slot_date, s.meal)));
   const allOffered = [...offered];
@@ -705,21 +713,21 @@ function MealPickGrid({ slots, selected, onChange }: { slots: MealSlot[]; select
     onChange(next);
   };
 
-  if (dates.length === 0) return <p className="text-xs text-ink-muted">本活动未设置餐点供应。</p>;
+  if (dates.length === 0) return <p className="text-xs text-ink-muted">{t('events.mealPick.noMeals')}</p>;
 
   return (
     <div>
       <div className="flex items-center gap-2 mb-1.5">
-        <button type="button" onClick={() => onChange(new Set(allOffered))} className="px-2.5 py-0.5 text-[11px] btn-secondary">全选</button>
-        <button type="button" onClick={() => onChange(new Set())} className="px-2.5 py-0.5 text-[11px] btn-secondary">清空</button>
+        <button type="button" onClick={() => onChange(new Set(allOffered))} className="px-2.5 py-0.5 text-[11px] btn-secondary">{t('events.selectAll')}</button>
+        <button type="button" onClick={() => onChange(new Set())} className="px-2.5 py-0.5 text-[11px] btn-secondary">{t('events.clearAll')}</button>
       </div>
       <div className="overflow-x-auto">
         <table className="text-sm border-collapse w-full">
           <thead>
             <tr className="text-[11px] text-ink-faint">
-              <th className="px-2 py-1 text-left font-medium">日期</th>
-              {MEAL_COLS.map((c) => <th key={c.meal} className="px-1 py-1 font-medium">{c.label}</th>)}
-              <th className="px-1 py-1 font-medium w-12">整天</th>
+              <th className="px-2 py-1 text-left font-medium">{t('events.col.date')}</th>
+              {MEAL_COLS.map((c) => <th key={c.meal} className="px-1 py-1 font-medium">{mealColLabel(c.meal, t)}</th>)}
+              <th className="px-1 py-1 font-medium w-12">{t('events.mealPick.wholeDay')}</th>
             </tr>
           </thead>
           <tbody>
@@ -735,7 +743,7 @@ function MealPickGrid({ slots, selected, onChange }: { slots: MealSlot[]; select
                       {isOffered ? (
                         <button type="button" onClick={() => toggle(key)}
                           className={`w-9 py-1 rounded-md text-xs transition ${isSel ? 'bg-accent text-white' : 'bg-accent/10 text-accent-deep border border-border hover:bg-accent/20'}`}>
-                          {isSel ? '✓' : c.label}
+                          {isSel ? '✓' : mealColLabel(c.meal, t)}
                         </button>
                       ) : (
                         <span className="inline-block w-9 py-1 rounded-md text-xs text-[#C9B892] border border-dashed border-[#DCCDA2]">—</span>
@@ -744,7 +752,7 @@ function MealPickGrid({ slots, selected, onChange }: { slots: MealSlot[]; select
                   );
                 })}
                 <td className="px-1 py-1 text-center">
-                  <button type="button" onClick={() => toggleRow(d)} className="px-2 py-0.5 text-[11px] text-ink-muted border border-border rounded-md hover:bg-accent/5">全天</button>
+                  <button type="button" onClick={() => toggleRow(d)} className="px-2 py-0.5 text-[11px] text-ink-muted border border-border rounded-md hover:bg-accent/5">{t('events.mealPick.allDay')}</button>
                 </td>
               </tr>
             ))}
@@ -777,6 +785,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 // 付款 panel — view the receipt (short-lived signed URL) + 核实/豁免/撤销. Payment is a
 // track SEPARATE from approval and never coercive: no overdue styling, 已豁免 is first-class.
 function PaymentPanel({ reg, onClose, onDone }: { reg: RegRow; onClose: () => void; onDone: (msg: string) => void }) {
+  const t = useT();
   const [proof, setProof] = useState<{ url: string; isPdf: boolean } | null>(null);
   const [proofState, setProofState] = useState<'idle' | 'loading' | 'none' | 'error'>(reg.has_proof ? 'loading' : 'none');
   const [amount, setAmount] = useState<string>(reg.paid_amount != null ? String(reg.paid_amount) : String(reg.fee_total));
@@ -806,8 +815,8 @@ function PaymentPanel({ reg, onClose, onDone }: { reg: RegRow; onClose: () => vo
       const res = await fetch(`/api/dashboard/registrations/${reg.id}/payment`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
-      if (res.ok) onDone(action === 'verify' ? '已核实付款' : action === 'waive' ? '已标记豁免' : '已撤销');
-      else { const j = await res.json().catch(() => null); onDone(j?.error ?? '操作失败'); }
+      if (res.ok) onDone(action === 'verify' ? t('events.pay.verifiedMsg') : action === 'waive' ? t('events.pay.waivedMsg') : t('events.pay.revokedMsg'));
+      else { const j = await res.json().catch(() => null); onDone(j?.error ?? t('events.toast.actionFailed')); }
     } finally { setBusy(false); }
   };
 
@@ -815,48 +824,48 @@ function PaymentPanel({ reg, onClose, onDone }: { reg: RegRow; onClose: () => vo
     <div className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold font-serif text-ink">付款 · <span className="font-mono text-sm">{reg.reg_no}</span></h3>
-          <button onClick={onClose} className="text-ink-muted text-sm">关闭</button>
+          <h3 className="font-semibold font-serif text-ink">{t('events.pay')} · <span className="font-mono text-sm">{reg.reg_no}</span></h3>
+          <button onClick={onClose} className="text-ink-muted text-sm">{t('events.close')}</button>
         </div>
         <p className="text-xs text-ink-muted mb-3">
-          当前：<span className={`px-2 py-0.5 rounded-full ${PAYMENT_STATUS_STYLES[reg.payment_status] ?? PAYMENT_STATUS_STYLES.unpaid}`}>{PAYMENT_STATUS_LABELS[reg.payment_status] ?? '未付款'}</span>
-          <span className="ml-2">费用 {moneyRM(reg.fee_total)}</span>
+          {t('events.pay.current')}<span className={`px-2 py-0.5 rounded-full ${PAYMENT_STATUS_STYLES[reg.payment_status] ?? PAYMENT_STATUS_STYLES.unpaid}`}>{paymentStatusLabel(reg.payment_status, t)}</span>
+          <span className="ml-2">{t('events.feeWord')} {moneyRM(reg.fee_total)}</span>
         </p>
 
         {/* receipt viewer */}
         {reg.has_proof && (
           <div className="mb-3">
-            {proofState === 'loading' && <p className="text-xs text-ink-muted">加载凭证…</p>}
-            {proofState === 'error' && <p className="text-xs text-[#B4402E]">凭证加载失败。</p>}
+            {proofState === 'loading' && <p className="text-xs text-ink-muted">{t('events.pay.loadingProof')}</p>}
+            {proofState === 'error' && <p className="text-xs text-[#B4402E]">{t('events.pay.proofFailed')}</p>}
             {proof && !proof.isPdf && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={proof.url} alt="付款凭证" className="w-full rounded-xl border border-border" />
+              <img src={proof.url} alt={t('events.pay.proofAlt')} className="w-full rounded-xl border border-border" />
             )}
             {proof && proof.isPdf && (
-              <a href={proof.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline">打开 PDF 凭证 ↗（60 秒内有效）</a>
+              <a href={proof.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline">{t('events.pay.openPdf')}</a>
             )}
           </div>
         )}
-        {!reg.has_proof && <p className="text-xs text-ink-faint mb-3">尚无付款凭证（可现场核对，无需凭证即可核实）。</p>}
+        {!reg.has_proof && <p className="text-xs text-ink-faint mb-3">{t('events.pay.noProof')}</p>}
 
         {/* actions */}
         <div className="space-y-3">
           <div>
-            <label className="block text-xs text-ink-muted mb-1">核实金额（可修改，默认为费用）</label>
+            <label className="block text-xs text-ink-muted mb-1">{t('events.pay.verifyAmount')}</label>
             <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal"
               className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent" />
           </div>
           <div>
-            <label className="block text-xs text-ink-muted mb-1">备注（收据号 / 豁免原因，可选）</label>
-            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="例如：HQ 决定豁免 / 收据 #1234"
+            <label className="block text-xs text-ink-muted mb-1">{t('events.pay.noteLabel')}</label>
+            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('events.pay.notePlaceholder')}
               className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent" />
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
-            <button disabled={busy} onClick={() => act('verify')} className="flex-1 rounded-xl bg-[#3F6B2E] text-white py-2 text-sm font-medium disabled:opacity-50">核实付款</button>
-            <button disabled={busy} onClick={() => act('waive')} className="flex-1 rounded-xl bg-[#6B5B8A] text-white py-2 text-sm font-medium disabled:opacity-50">标记豁免</button>
+            <button disabled={busy} onClick={() => act('verify')} className="flex-1 rounded-xl bg-[#3F6B2E] text-white py-2 text-sm font-medium disabled:opacity-50">{t('events.pay.verify')}</button>
+            <button disabled={busy} onClick={() => act('waive')} className="flex-1 rounded-xl bg-[#6B5B8A] text-white py-2 text-sm font-medium disabled:opacity-50">{t('events.pay.waive')}</button>
           </div>
           {(reg.payment_status === 'verified' || reg.payment_status === 'waived') && (
-            <button disabled={busy} onClick={() => act('revoke')} className="w-full rounded-xl border border-border text-ink-muted py-2 text-sm disabled:opacity-50">撤销（回到未付款）</button>
+            <button disabled={busy} onClick={() => act('revoke')} className="w-full rounded-xl border border-border text-ink-muted py-2 text-sm disabled:opacity-50">{t('events.pay.revoke')}</button>
           )}
         </div>
       </div>
@@ -865,11 +874,11 @@ function PaymentPanel({ reg, onClose, onDone }: { reg: RegRow; onClose: () => vo
 }
 
 // CSV of the current rows (BOM for Excel).
-function exportCsv(code: string, tab: string, regs: RegRow[], teamName: Map<string, string>) {
-  const header = ['报名编号', '姓名', '中心', '组', '选项', '费用', '状态', '处理人', '处理日期'];
+function exportCsv(t: TFunc, code: string, tab: string, regs: RegRow[], teamName: Map<string, string>) {
+  const header = [t('events.csv.regNo'), t('events.csv.name'), t('events.csv.centre'), t('events.csv.team'), t('events.csv.selections'), t('events.csv.fee'), t('events.csv.status'), t('events.csv.decider'), t('events.csv.decideDate')];
   const rows = regs.map((r) => [
     r.reg_no, r.name, r.centreCode ?? '', r.volunteer_team_id ? teamName.get(r.volunteer_team_id) ?? '' : '',
-    selectionsSummary(r.selections), String(r.fee_total), REG_STATUS_LABELS[r.status] ?? r.status,
+    selectionsSummary(t, r.selections), String(r.fee_total), regStatusLabel(r.status, t),
     r.decidedByName ?? '', r.decided_at ? r.decided_at.slice(0, 10) : '',
   ]);
   const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
@@ -878,20 +887,21 @@ function exportCsv(code: string, tab: string, regs: RegRow[], teamName: Map<stri
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${code}-报名-${tab}-${new Date().toLocaleDateString('en-CA')}.csv`;
+  a.download = `${code}-${t('events.csv.filenameTag')}-${tab}-${new Date().toLocaleDateString('en-CA')}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
 // A crisp inline-SVG QR of `text` (dep-free renderer, src/lib/qr.ts). 4-module quiet zone.
 function QrSvg({ text, px = 176 }: { text: string; px?: number }) {
+  const t = useT();
   const mods = useMemo(() => { try { return qrModules(text, 'M'); } catch { return null; } }, [text]);
   if (!mods) return null;
   const n = mods.length, quiet = 4, dim = n + quiet * 2;
   let d = '';
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (mods[y][x]) d += `M${x + quiet} ${y + quiet}h1v1h-1z`;
   return (
-    <svg width={px} height={px} viewBox={`0 0 ${dim} ${dim}`} shapeRendering="crispEdges" role="img" aria-label="报名二维码">
+    <svg width={px} height={px} viewBox={`0 0 ${dim} ${dim}`} shapeRendering="crispEdges" role="img" aria-label={t('events.public.qrAlt')}>
       <rect width={dim} height={dim} fill="#FFFFFF" />
       <path d={d} fill="#2B2314" />
     </svg>
@@ -903,22 +913,23 @@ function QrSvg({ text, px = 176 }: { text: string; px?: number }) {
 function PublicRegCard({
   enabled, token, onToggle, onToast,
 }: { enabled: boolean; token: string | null; onToggle: (v: boolean) => void; onToast: (m: string) => void }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const url = token ? `${origin}/r/${token}` : '';
 
   const toggle = async (v: boolean) => { setBusy(true); try { await onToggle(v); } finally { setBusy(false); } };
   const copy = async () => {
-    try { await navigator.clipboard.writeText(url); onToast('链接已复制'); }
-    catch { onToast('复制失败，请手动复制'); }
+    try { await navigator.clipboard.writeText(url); onToast(t('events.public.copied')); }
+    catch { onToast(t('events.public.copyFailed')); }
   };
 
   return (
     <section className="bg-surface border border-border rounded-2xl p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold font-serif text-ink">🔗 公开报名 Public form</h3>
-          <p className="text-xs text-ink-muted mt-0.5">开启后，任何人可凭链接 / 二维码免登录报名，提交进入审核队列。</p>
+          <h3 className="text-sm font-semibold font-serif text-ink">{t('events.public.title')}</h3>
+          <p className="text-xs text-ink-muted mt-0.5">{t('events.public.desc')}</p>
         </div>
         <button role="switch" aria-checked={enabled} disabled={busy} onClick={() => toggle(!enabled)}
           className={`shrink-0 w-12 h-7 rounded-full transition relative ${enabled ? 'bg-accent' : 'bg-border-strong'} disabled:opacity-50`}>
@@ -932,9 +943,9 @@ function PublicRegCard({
             <div className="flex items-center gap-2">
               <input readOnly value={url} onFocus={(e) => e.target.select()}
                 className="flex-1 min-w-0 rounded-lg border border-border-strong bg-accent/10 px-3 py-2 text-xs font-mono text-ink outline-none" />
-              <button onClick={copy} className="shrink-0 px-3 py-2 text-xs text-white bg-accent rounded-lg hover:bg-accent-strong">复制链接</button>
+              <button onClick={copy} className="shrink-0 px-3 py-2 text-xs text-white bg-accent rounded-lg hover:bg-accent-strong">{t('events.public.copyLink')}</button>
             </div>
-            <a href={url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs text-accent hover:underline">在新分页打开表单 ↗</a>
+            <a href={url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs text-accent hover:underline">{t('events.public.openInNewTab')}</a>
           </div>
           <div className="justify-self-center rounded-xl border border-border p-2 bg-surface">
             <QrSvg text={url} />
@@ -942,7 +953,7 @@ function PublicRegCard({
         </div>
       )}
       {enabled && !url && (
-        <p className="mt-3 text-xs text-[#B4402E]">链接尚未生成，请稍候刷新。</p>
+        <p className="mt-3 text-xs text-[#B4402E]">{t('events.public.notReady')}</p>
       )}
     </section>
   );

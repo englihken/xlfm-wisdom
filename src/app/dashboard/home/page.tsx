@@ -17,6 +17,7 @@ import { DashboardNav } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
 import { visibleModules, grantAllows, type Grants } from '@/lib/access';
 import { useT } from '@/lib/i18n-react';
+import type { TFunc } from '@/lib/i18n';
 
 type Me = {
   email: string;
@@ -48,14 +49,14 @@ function todayMYT(): string {
     weekday: 'long',
   });
 }
-function relTime(iso: string): string {
+function relTime(iso: string, t: TFunc): string {
   const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (m < 1) return '刚刚';
-  if (m < 60) return `${m}分钟前`;
+  if (m < 1) return t('home.rel.justNow');
+  if (m < 60) return t('home.rel.minutesAgo', { m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}小时前`;
+  if (h < 24) return t('home.rel.hoursAgo', { h });
   const d = Math.floor(h / 24);
-  if (d < 30) return `${d}天前`;
+  if (d < 30) return t('home.rel.daysAgo', { d });
   return new Date(iso).toLocaleDateString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur', month: '2-digit', day: '2-digit' });
 }
 
@@ -305,7 +306,7 @@ export default function HubPage() {
                       <li key={m.id}>
                         <Link href={`/dashboard/members/${m.id}`} className="flex items-center justify-between gap-2 py-2 hover:bg-accent/5 -mx-2 px-2 rounded-lg transition">
                           <span className="font-medium text-ink truncate">{m.name}</span>
-                          <span className="shrink-0 text-xs text-ink-faint">{relTime(m.updatedAt)}</span>
+                          <span className="shrink-0 text-xs text-ink-faint">{relTime(m.updatedAt, t)}</span>
                         </Link>
                       </li>
                     ))}
@@ -323,7 +324,7 @@ export default function HubPage() {
                     {data.recentAudit.map((a) => (
                       <li key={a.id} className="flex items-center justify-between gap-3 text-[13px]">
                         <span className="text-ink truncate">{a.line}</span>
-                        <span className="shrink-0 text-[11px] text-ink-faint">{relTime(a.at)}</span>
+                        <span className="shrink-0 text-[11px] text-ink-faint">{relTime(a.at, t)}</span>
                       </li>
                     ))}
                   </ul>

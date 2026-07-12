@@ -10,10 +10,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  MOVEMENT_TYPE_LABELS,
   MOVEMENT_TYPE_STYLES,
   categoryPillClass,
 } from '@/lib/inventory-display';
+import { useT } from '@/lib/i18n-react';
 
 type Item = {
   id: string;
@@ -54,6 +54,7 @@ export function InventoryItemDrawer({
   canEdit: boolean;
   onEdit?: (item: Item) => void;
 }) {
+  const t = useT();
   const [item, setItem] = useState<Item | null>(null);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
@@ -99,14 +100,14 @@ export function InventoryItemDrawer({
     <div className="fixed inset-0 z-[60]">
       <div className="absolute inset-0 bg-ink/40" onClick={onClose} />
       <div className="absolute right-0 top-0 bottom-0 w-[min(460px,94vw)] bg-surface border-l border-border overflow-y-auto p-5">
-        <button onClick={onClose} className="float-right text-lg text-ink-faint hover:text-ink" aria-label="关闭">
+        <button onClick={onClose} className="float-right text-lg text-ink-faint hover:text-ink" aria-label={t('inv.close')}>
           ✕
         </button>
 
         {loading && !item ? (
-          <p className="text-sm text-ink-muted">加载中…</p>
+          <p className="text-sm text-ink-muted">{t('inv.loading')}</p>
         ) : !item ? (
-          <p className="text-sm text-ink-muted">无法加载此品项。</p>
+          <p className="text-sm text-ink-muted">{t('inv.drawer.loadFail')}</p>
         ) : (
           <>
             <div className="flex gap-3 items-start">
@@ -121,7 +122,7 @@ export function InventoryItemDrawer({
               <div className="min-w-0">
                 <h3 className="text-lg font-bold text-ink">{item.name_cn}</h3>
                 <p className="text-xs text-ink-faint mt-0.5">
-                  {item.stock_id ? <span className="font-mono">{item.stock_id}</span> : '未编号'}
+                  {item.stock_id ? <span className="font-mono">{item.stock_id}</span> : t('inv.unnumbered')}
                   {item.category_cn && (
                     <span className={`ml-1.5 inline-block px-2 py-0.5 rounded-full text-[11px] ${categoryPillClass(item.category_cn)}`}>
                       {item.category_cn}
@@ -129,8 +130,8 @@ export function InventoryItemDrawer({
                   )}
                 </p>
                 <p className="text-xs text-ink-faint mt-1">
-                  {item.pack_qty ? `每包 ${item.pack_qty}` : '每包 –'} · 低库存线 {item.low_stock_line ?? '–'}
-                  {!item.is_active && <span className="ml-1.5 pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">已停用</span>}
+                  {item.pack_qty ? t('inv.drawer.packQty', { n: item.pack_qty }) : t('inv.drawer.packQtyNone')} · {t('inv.drawer.lowLineLabel')} {item.low_stock_line ?? '–'}
+                  {!item.is_active && <span className="ml-1.5 pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">{t('inv.drawer.inactive')}</span>}
                 </p>
               </div>
             </div>
@@ -140,27 +141,27 @@ export function InventoryItemDrawer({
             <div className="flex flex-wrap gap-1.5 my-3">
               {canEdit && (
                 <Link href={`/dashboard/inventory/movements/new?item=${item.id}`} className="px-3 py-1.5 text-xs border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">
-                  ＋记录变动
+                  {t('inv.recordMovement')}
                 </Link>
               )}
               <Link href={`/dashboard/inventory/movements?item=${item.id}`} className="px-3 py-1.5 text-xs border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">
-                变动记录
+                {t('inv.tab.ledger')}
               </Link>
               {canEdit &&
                 (onEdit ? (
                   <button onClick={() => onEdit(item)} className="px-3 py-1.5 text-xs border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">
-                    ✏️ 编辑
+                    {t('inv.drawer.edit')}
                   </button>
                 ) : (
                   <Link href="/dashboard/inventory/catalog" className="px-3 py-1.5 text-xs border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">
-                    ✏️ 编辑
+                    {t('inv.drawer.edit')}
                   </Link>
                 ))}
             </div>
 
-            <h4 className="text-sm font-semibold text-ink mt-4 mb-1">📍 各仓分布</h4>
+            <h4 className="text-sm font-semibold text-ink mt-4 mb-1">{t('inv.drawer.distribution')}</h4>
             {balances.length === 0 ? (
-              <p className="text-xs text-ink-faint py-1.5">各仓皆无库存。</p>
+              <p className="text-xs text-ink-faint py-1.5">{t('inv.drawer.noBalances')}</p>
             ) : (
               balances.map((b) => (
                 <div key={b.location_id} className="flex justify-between text-[13px] py-1.5 border-b border-dashed border-border">
@@ -170,9 +171,9 @@ export function InventoryItemDrawer({
               ))
             )}
 
-            <h4 className="text-sm font-semibold text-ink mt-4 mb-1">🕘 最近变动</h4>
+            <h4 className="text-sm font-semibold text-ink mt-4 mb-1">{t('inv.drawer.recentMovements')}</h4>
             {movements.length === 0 ? (
-              <p className="text-xs text-ink-faint py-1.5">还没有变动记录。</p>
+              <p className="text-xs text-ink-faint py-1.5">{t('inv.drawer.noMovements')}</p>
             ) : (
               movements.map((m) => {
                 const fromL = one(m.from_location);
@@ -182,9 +183,9 @@ export function InventoryItemDrawer({
                   <div key={m.id} className="flex justify-between items-start gap-2 text-[12px] py-1.5 border-b border-dashed border-border">
                     <span className="text-ink-muted">
                       <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] mr-1 ${isReversal ? 'bg-surface-soft text-ink-faint border border-border' : MOVEMENT_TYPE_STYLES[m.movement_type] ?? ''}`}>
-                        {isReversal ? '更正撤销' : MOVEMENT_TYPE_LABELS[m.movement_type] ?? m.movement_type}
+                        {isReversal ? t('inv.mv.reversal') : t(`inv.mv.type.${m.movement_type}`)}
                       </span>
-                      {m.photo_path && <span title="有存证照片">📷 </span>}
+                      {m.photo_path && <span title={t('inv.drawer.hasPhoto')}>📷 </span>}
                       <span className="text-ink-faint">{m.moved_at}</span>
                       <span className="block text-ink-faint mt-0.5">{fromL?.name_cn ?? '—'} → {toL?.name_cn ?? '—'}</span>
                     </span>

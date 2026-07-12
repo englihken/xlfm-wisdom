@@ -8,7 +8,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { moneyRM, REG_STATUS_LABELS, REG_STATUS_STYLES, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_STYLES } from '@/lib/events-display';
+import { useT } from '@/lib/i18n-react';
+import type { TFunc } from '@/lib/i18n';
+import { moneyRM, regStatusLabel, REG_STATUS_STYLES, paymentStatusLabel, PAYMENT_STATUS_STYLES } from '@/lib/events-display';
 import { ProofUploader } from '../page';
 
 type LookupResult = {
@@ -18,18 +20,19 @@ type LookupResult = {
   selections: Record<string, unknown>;
 };
 
-function selSummary(sel: Record<string, unknown>): string {
+function selSummary(t: TFunc, sel: Record<string, unknown>): string {
   const p: string[] = [];
-  if (Number(sel.meals) > 0) p.push(`🍚${sel.meals}餐`);
-  if (Number(sel.meal_days) > 0) p.push(`🍚${sel.meal_days}天`);
-  if (Number(sel.nights) > 0) p.push(`🏨${sel.nights}晚`);
-  if (sel.transfer === true) p.push('🚐 接送');
+  if (Number(sel.meals) > 0) p.push(t('reg.sel.meals', { n: Number(sel.meals) }));
+  if (Number(sel.meal_days) > 0) p.push(t('reg.sel.mealDays', { n: Number(sel.meal_days) }));
+  if (Number(sel.nights) > 0) p.push(t('reg.sel.nights', { n: Number(sel.nights) }));
+  if (sel.transfer === true) p.push(t('reg.sel.transfer'));
   const u = sel.uniform as { size?: string; qty?: number } | undefined;
   if (u?.qty) p.push(`👕${u.size ?? ''}×${u.qty}`);
   return p.join(' ');
 }
 
 export default function StatusLookupPage() {
+  const t = useT();
   const { token } = useParams<{ token: string }>();
   const [regNo, setRegNo] = useState('');
   const [phone, setPhone] = useState('');
@@ -58,22 +61,22 @@ export default function StatusLookupPage() {
   return (
     <div className="space-y-4">
       <div className="bg-surface border border-border rounded-2xl p-4">
-        <h1 className="font-serif font-semibold text-ink mb-1">查询我的报名</h1>
-        <p className="text-xs text-ink-muted mb-3">输入报名编号与手机号查询状态。</p>
+        <h1 className="font-serif font-semibold text-ink mb-1">{t('reg.lookupCta')}</h1>
+        <p className="text-xs text-ink-muted mb-3">{t('reg.lookup.sub')}</p>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-ink mb-1">报名编号 Reg. No.</label>
+            <label className="block text-sm font-medium text-ink mb-1">{t('reg.regNoLabel')}</label>
             <input value={regNo} onChange={(e) => setRegNo(e.target.value)} placeholder="XLFM-2608-0001"
               className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 font-mono text-ink placeholder:text-ink-faint outline-none focus:border-accent" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-ink mb-1">手机号 Phone</label>
+            <label className="block text-sm font-medium text-ink mb-1">{t('reg.phoneLabel')}</label>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="0123456789"
               className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint outline-none focus:border-accent" />
           </div>
           <button onClick={lookup} disabled={busy || !regNo.trim() || !phone.trim()}
             className="w-full btn-primary py-2.5 font-medium">
-            {busy ? '查询中…' : '查询'}
+            {busy ? t('reg.searching') : t('reg.lookupBtn')}
           </button>
         </div>
       </div>
@@ -81,7 +84,7 @@ export default function StatusLookupPage() {
       {state === 'notfound' && (
         <div className="bg-surface border border-border rounded-2xl p-4 text-center">
           <div className="text-3xl mb-2">🙏</div>
-          <p className="text-sm text-ink">找不到，请确认编号与手机号</p>
+          <p className="text-sm text-ink">{t('reg.lookup.notFound')}</p>
         </div>
       )}
 
@@ -90,7 +93,7 @@ export default function StatusLookupPage() {
           <div className="flex items-center justify-between">
             <span className="font-mono text-ink">{result.reg_no}</span>
             <span className={`text-xs px-3 py-1 rounded-full ${REG_STATUS_STYLES[result.status] ?? 'pill-muted'}`}>
-              {REG_STATUS_LABELS[result.status] ?? result.status}
+              {regStatusLabel(result.status, t)}
             </span>
           </div>
           {result.event && (
@@ -98,12 +101,12 @@ export default function StatusLookupPage() {
               <span className="text-xs text-ink-muted"> · {result.event.starts_on}{result.event.ends_on && result.event.ends_on !== result.event.starts_on ? ` — ${result.event.ends_on}` : ''}</span>
             </p>
           )}
-          {selSummary(result.selections) && <p className="text-sm text-ink-muted">{selSummary(result.selections)}</p>}
+          {selSummary(t, result.selections) && <p className="text-sm text-ink-muted">{selSummary(t, result.selections)}</p>}
           <div className="flex items-center justify-between pt-2 border-t border-border text-sm">
-            <span className="text-ink-muted">费用合计</span>
+            <span className="text-ink-muted">{t('reg.feeTotal')}</span>
             <div className="flex items-center gap-2">
               <span className={`text-[11px] px-2 py-0.5 rounded-full ${PAYMENT_STATUS_STYLES[result.payment_status] ?? PAYMENT_STATUS_STYLES.unpaid}`}>
-                {PAYMENT_STATUS_LABELS[result.payment_status] ?? '未付款'}
+                {paymentStatusLabel(result.payment_status, t)}
               </span>
               <span className="font-semibold text-ink">{moneyRM(result.fee_total)}</span>
             </div>
@@ -116,12 +119,12 @@ export default function StatusLookupPage() {
             </div>
           )}
 
-          <p className="text-xs text-ink-faint pt-1">如需修改用餐或其他选项，请联系活动负责人。</p>
+          <p className="text-xs text-ink-faint pt-1">{t('reg.lookup.editContact')}</p>
         </div>
       )}
 
       <div className="text-center">
-        <Link href={`/r/${token}`} className="text-sm text-ink-muted">← 返回报名</Link>
+        <Link href={`/r/${token}`} className="text-sm text-ink-muted">{t('reg.backToReg')}</Link>
       </div>
     </div>
   );

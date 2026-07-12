@@ -14,6 +14,7 @@ import { grantAllows } from '@/lib/access';
 import { InventoryTabs, InventorySearchRow, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
 import { categoryPillClass } from '@/lib/inventory-display';
+import { useT } from '@/lib/i18n-react';
 
 type Item = {
   id: string;
@@ -28,14 +29,16 @@ type Item = {
 };
 
 export default function CatalogPage() {
+  const t = useT();
   return (
-    <ErpGate active="inventory" module="inventory" titleSuffix="品项管理">
+    <ErpGate active="inventory" module="inventory" titleSuffix={t('inv.suffix.catalog')}>
       {(me) => <Catalog me={me} />}
     </ErpGate>
   );
 }
 
 function Catalog({ me }: { me: ErpMe }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'inventory', 'edit');
 
   const [items, setItems] = useState<Item[]>([]);
@@ -112,7 +115,7 @@ function Catalog({ me }: { me: ErpMe }) {
   return (
     <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex items-baseline gap-2">
-        <h2 className="text-xl font-bold font-serif text-ink">📦 品项管理</h2>
+        <h2 className="text-xl font-bold font-serif text-ink">{t('inv.catalog.title')}</h2>
         <span className="text-sm text-ink-faint">Catalog · {items.length}</span>
       </div>
 
@@ -121,48 +124,48 @@ function Catalog({ me }: { me: ErpMe }) {
 
       {/* category chips + search + add */}
       <div className="flex flex-wrap items-center gap-2">
-        <Chip label="全部" active={category === ''} onClick={() => setCategory('')} />
+        <Chip label={t('inv.all')} active={category === ''} onClick={() => setCategory('')} />
         {categoriesCn.map((c) => (
           <Chip key={c} label={c} active={category === c} onClick={() => setCategory(c)} />
         ))}
         <span className="flex-1" />
-        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索名称 / 编号…"
+        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('inv.searchNameCode')}
           className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent w-44" />
         <button onClick={printLabels} disabled={selected.size === 0} className="px-3 py-2 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition disabled:opacity-45">
-          🏷️ 打印标签{selected.size > 0 ? `（${selected.size}）` : ''}
+          {selected.size > 0 ? t('inv.catalog.printLabelsN', { n: selected.size }) : t('inv.catalog.printLabels')}
         </button>
         {canEdit && (
           <>
-            <button onClick={() => setShowImport(true)} className="px-3 py-2 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">⬆ CSV 导入</button>
-            <button onClick={() => setEditing('new')} className="px-4 py-2 text-sm btn-primary">＋ 新品项</button>
+            <button onClick={() => setShowImport(true)} className="px-3 py-2 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">{t('inv.catalog.csvImport')}</button>
+            <button onClick={() => setEditing('new')} className="px-4 py-2 text-sm btn-primary">{t('inv.catalog.newItem')}</button>
           </>
         )}
       </div>
 
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {loading ? (
-          <p className="p-6 text-sm text-ink-muted">加载中…</p>
+          <p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>
         ) : filtered.length === 0 ? (
-          <div className="p-10 text-center"><p className="text-2xl mb-1">🪷</p><p className="text-sm text-ink">未找到匹配的品项</p></div>
+          <div className="p-10 text-center"><p className="text-2xl mb-1">🪷</p><p className="text-sm text-ink">{t('inv.catalog.noMatch')}</p></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-ink-faint border-b border-border">
                   <th className="pl-4 pr-1 py-2.5 font-normal w-8"></th>
-                  <Th>编号</Th><Th>品项</Th><Th>分类</Th>
-                  <th className="px-4 py-2.5 font-normal text-right">低库存线</th>
-                  <Th>状态</Th>{canEdit && <Th>操作</Th>}
+                  <Th>{t('inv.th.code')}</Th><Th>{t('inv.th.item')}</Th><Th>{t('inv.th.category')}</Th>
+                  <th className="px-4 py-2.5 font-normal text-right">{t('inv.th.lowLine')}</th>
+                  <Th>{t('inv.th.status')}</Th>{canEdit && <Th>{t('inv.th.actions')}</Th>}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((it) => (
                   <tr key={it.id} className="border-b border-border last:border-b-0 hover:bg-accent/5">
                     <td className="pl-4 pr-1 py-2.5">
-                      <input type="checkbox" checked={selected.has(it.id)} onChange={() => toggleSel(it.id)} className="accent-[#B8860B]" aria-label="选择以打印标签" />
+                      <input type="checkbox" checked={selected.has(it.id)} onChange={() => toggleSel(it.id)} className="accent-[#B8860B]" aria-label={t('inv.catalog.selectForLabels')} />
                     </td>
                     <td className="px-4 py-2.5 cursor-pointer" onClick={() => setDrawerId(it.id)}>
-                      {it.stock_id ? <span className="font-mono text-xs text-ink">{it.stock_id}</span> : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">未编号</span>}
+                      {it.stock_id ? <span className="font-mono text-xs text-ink">{it.stock_id}</span> : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">{t('inv.unnumbered')}</span>}
                     </td>
                     <td className="px-4 py-2.5 font-medium text-ink cursor-pointer" onClick={() => setDrawerId(it.id)}>{it.name_cn}</td>
                     <td className="px-4 py-2.5">
@@ -171,14 +174,14 @@ function Catalog({ me }: { me: ErpMe }) {
                     <td className="px-4 py-2.5 text-right tabular-nums text-ink-faint">{it.low_stock_line ?? '–'}</td>
                     <td className="px-4 py-2.5">
                       {it.is_active
-                        ? <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#E7F0E0] text-[#3F6B2E]">在用</span>
-                        : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">停用</span>}
+                        ? <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#E7F0E0] text-[#3F6B2E]">{t('inv.catalog.active')}</span>
+                        : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[11px]">{t('inv.catalog.inactive')}</span>}
                     </td>
                     {canEdit && (
                       <td className="px-4 py-2.5">
                         <div className="flex gap-1.5">
-                          <button onClick={() => setEditing(it)} className="px-2 py-1 text-xs border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">编辑</button>
-                          <button onClick={() => toggleActive(it)} className="px-2 py-1 text-xs border border-border-strong rounded-lg bg-surface text-ink-muted hover:border-accent transition">{it.is_active ? '停用' : '启用'}</button>
+                          <button onClick={() => setEditing(it)} className="px-2 py-1 text-xs border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">{t('inv.edit')}</button>
+                          <button onClick={() => toggleActive(it)} className="px-2 py-1 text-xs border border-border-strong rounded-lg bg-surface text-ink-muted hover:border-accent transition">{it.is_active ? t('inv.deactivate') : t('inv.activate')}</button>
                         </div>
                       </td>
                     )}
@@ -240,17 +243,19 @@ function parseCsv(text: string): string[][] {
   return rows.filter((r) => r.some((c) => c.trim() !== ''));
 }
 
+// Returns an i18n key for the first validation failure, or null when the row is valid.
 function validateRow(r: ImportRow): string | null {
-  if (!r.name_cn.trim()) return '缺少品项名称';
-  if (!r.category_cn.trim()) return '缺少分类';
+  if (!r.name_cn.trim()) return 'inv.import.errNoName';
+  if (!r.category_cn.trim()) return 'inv.import.errNoCategory';
   for (const k of ['pack_qty', 'low_stock_line'] as const) {
     const v = r[k].trim();
-    if (v && (!/^\d+$/.test(v) || Number(v) <= 0)) return `${k === 'pack_qty' ? '每包' : '低库存线'}须为正整数`;
+    if (v && (!/^\d+$/.test(v) || Number(v) <= 0)) return k === 'pack_qty' ? 'inv.import.errPackQtyInt' : 'inv.import.errLowLineInt';
   }
   return null;
 }
 
 function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [results, setResults] = useState<{ row: number; ok: boolean; name_cn: string; error?: string }[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -262,7 +267,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = '品项导入模板.csv';
+    a.download = t('inv.import.templateFile');
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -273,7 +278,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     const text = await file.text();
     const grid = parseCsv(text);
     if (grid.length < 2) {
-      setParseErr('CSV 至少要有表头行 + 一行数据。');
+      setParseErr(t('inv.import.errMinRows'));
       setRows([]);
       return;
     }
@@ -281,7 +286,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     const idx: Record<string, number> = {};
     for (const col of IMPORT_COLS) idx[col] = header.indexOf(col);
     if (idx.name_cn < 0 || idx.category_cn < 0) {
-      setParseErr('表头必须包含 name_cn 和 category_cn 列。');
+      setParseErr(t('inv.import.errHeader'));
       setRows([]);
       return;
     }
@@ -305,7 +310,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setParseErr(j.error ?? '导入失败');
+        setParseErr(j.error ?? t('inv.import.failed'));
       } else {
         setResults(j.results ?? []);
         onDone();
@@ -318,10 +323,10 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   return (
     <div className="fixed inset-0 z-[70] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-surface rounded-2xl max-w-2xl w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-ink mb-1">⬆ CSV 批量导入品项</h3>
+        <h3 className="text-base font-semibold text-ink mb-1">{t('inv.import.title')}</h3>
         <p className="text-xs text-ink-muted mb-3">
-          列：name_cn*, category_cn*, stock_id, pack_qty, low_stock_line, remark（*必填）。
-          <button onClick={downloadTemplate} className="ml-1 text-accent-deep hover:underline">下载模板</button>
+          {t('inv.import.colsHint')}
+          <button onClick={downloadTemplate} className="ml-1 text-accent-deep hover:underline">{t('inv.import.downloadTemplate')}</button>
         </p>
 
         {parseErr && <p className="text-sm text-[#B4402E] bg-[#FCEBEA] border border-[#B4402E]/20 rounded-lg px-3 py-2 mb-2">{parseErr}</p>}
@@ -333,11 +338,11 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
         {!results && rows.length > 0 && (
           <>
-            <p className="text-xs text-ink-muted mb-1">预览 {rows.length} 行，其中 {validCount} 行有效：</p>
+            <p className="text-xs text-ink-muted mb-1">{t('inv.import.preview', { n: rows.length, valid: validCount })}</p>
             <div className="border border-border rounded-lg overflow-auto max-h-64 mb-3">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-surface-soft">
-                  <tr className="text-left text-ink-faint"><th className="px-2 py-1.5">#</th><th className="px-2 py-1.5">名称</th><th className="px-2 py-1.5">分类</th><th className="px-2 py-1.5">编号</th><th className="px-2 py-1.5">校验</th></tr>
+                  <tr className="text-left text-ink-faint"><th className="px-2 py-1.5">#</th><th className="px-2 py-1.5">{t('inv.import.thName')}</th><th className="px-2 py-1.5">{t('inv.th.category')}</th><th className="px-2 py-1.5">{t('inv.th.code')}</th><th className="px-2 py-1.5">{t('inv.import.thValidate')}</th></tr>
                 </thead>
                 <tbody>
                   {rows.map((r, i) => {
@@ -348,7 +353,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
                         <td className="px-2 py-1 text-ink">{r.name_cn}</td>
                         <td className="px-2 py-1 text-ink-muted">{r.category_cn}</td>
                         <td className="px-2 py-1 font-mono text-ink-muted">{r.stock_id || '—'}</td>
-                        <td className={`px-2 py-1 ${err ? 'text-[#B4402E]' : 'text-[#3F6B2E]'}`}>{err ?? '✓'}</td>
+                        <td className={`px-2 py-1 ${err ? 'text-[#B4402E]' : 'text-[#3F6B2E]'}`}>{err ? t(err) : '✓'}</td>
                       </tr>
                     );
                   })}
@@ -361,13 +366,13 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         {results && (
           <div className="border border-border rounded-lg overflow-auto max-h-72 mb-3">
             <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-surface-soft"><tr className="text-left text-ink-faint"><th className="px-2 py-1.5">#</th><th className="px-2 py-1.5">名称</th><th className="px-2 py-1.5">结果</th></tr></thead>
+              <thead className="sticky top-0 bg-surface-soft"><tr className="text-left text-ink-faint"><th className="px-2 py-1.5">#</th><th className="px-2 py-1.5">{t('inv.import.thName')}</th><th className="px-2 py-1.5">{t('inv.import.thResult')}</th></tr></thead>
               <tbody>
                 {results.map((r) => (
                   <tr key={r.row} className="border-t border-border">
                     <td className="px-2 py-1 text-ink-faint">{r.row}</td>
                     <td className="px-2 py-1 text-ink">{r.name_cn}</td>
-                    <td className={`px-2 py-1 ${r.ok ? 'text-[#3F6B2E]' : 'text-[#B4402E]'}`}>{r.ok ? '✓ 已导入' : r.error}</td>
+                    <td className={`px-2 py-1 ${r.ok ? 'text-[#3F6B2E]' : 'text-[#B4402E]'}`}>{r.ok ? t('inv.import.imported') : r.error}</td>
                   </tr>
                 ))}
               </tbody>
@@ -376,10 +381,10 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         )}
 
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{results ? '完成' : '取消'}</button>
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{results ? t('inv.done') : t('inv.cancel')}</button>
           {!results && (
             <button disabled={busy || validCount === 0} onClick={doImport} className="px-5 py-1.5 text-sm btn-primary">
-              {busy ? '导入中…' : `导入 ${validCount} 行`}
+              {busy ? t('inv.import.importing') : t('inv.import.importN', { n: validCount })}
             </button>
           )}
         </div>
@@ -397,6 +402,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
 }
 
 function ItemFormModal({ item, categories, onClose, onDone }: { item: Item | null; categories: string[]; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const [nameCn, setNameCn] = useState(item?.name_cn ?? '');
   const [categoryCn, setCategoryCn] = useState(item?.category_cn ?? '');
   const [stockId, setStockId] = useState(item?.stock_id ?? '');
@@ -409,8 +415,8 @@ function ItemFormModal({ item, categories, onClose, onDone }: { item: Item | nul
 
   const submit = async () => {
     setErr('');
-    if (!nameCn.trim()) return setErr('请填写品项名称');
-    if (!categoryCn.trim()) return setErr('请选择/填写分类');
+    if (!nameCn.trim()) return setErr(t('inv.form.errName'));
+    if (!categoryCn.trim()) return setErr(t('inv.form.errCategory'));
     setBusy(true);
     try {
       let photoPath: string | undefined;
@@ -420,7 +426,7 @@ function ItemFormModal({ item, categories, onClose, onDone }: { item: Item | nul
         const up = await fetch('/api/dashboard/inventory/upload?kind=photo', { method: 'POST', body: fd });
         const uj = await up.json().catch(() => ({}));
         if (!up.ok || !uj.path) {
-          setErr(uj.error ?? '照片上传失败');
+          setErr(uj.error ?? t('inv.photoUploadFailed'));
           setBusy(false);
           return;
         }
@@ -440,7 +446,7 @@ function ItemFormModal({ item, categories, onClose, onDone }: { item: Item | nul
         ? await fetch(`/api/dashboard/inventory/items/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         : await fetch('/api/dashboard/inventory/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '保存失败');
+      if (!res.ok) setErr(j.error ?? t('inv.saveFailed'));
       else onDone();
     } finally {
       setBusy(false);
@@ -450,27 +456,27 @@ function ItemFormModal({ item, categories, onClose, onDone }: { item: Item | nul
   return (
     <div className="fixed inset-0 z-[70] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-surface rounded-2xl max-w-md w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-ink mb-3">{item ? '编辑品项' : '新品项'}</h3>
+        <h3 className="text-base font-semibold text-ink mb-3">{item ? t('inv.form.editTitle') : t('inv.form.newTitle')}</h3>
         {err && <p className="text-sm text-[#B4402E] bg-[#FCEBEA] border border-[#B4402E]/20 rounded-lg px-3 py-2 mb-2">{err}</p>}
 
-        <Field label="品项名称（必填）"><input value={nameCn} onChange={(e) => setNameCn(e.target.value)} className={inputCls} /></Field>
-        <Field label="分类（必填）">
-          <input list="cat-list" value={categoryCn} onChange={(e) => setCategoryCn(e.target.value)} className={inputCls} placeholder="选择或输入…" />
+        <Field label={t('inv.form.nameLabel')}><input value={nameCn} onChange={(e) => setNameCn(e.target.value)} className={inputCls} /></Field>
+        <Field label={t('inv.form.categoryLabel')}>
+          <input list="cat-list" value={categoryCn} onChange={(e) => setCategoryCn(e.target.value)} className={inputCls} placeholder={t('inv.form.categoryPlaceholder')} />
           <datalist id="cat-list">{categories.map((c) => <option key={c} value={c} />)}</datalist>
         </Field>
         <div className="grid grid-cols-2 gap-2">
-          <Field label="编号 StockID（可选）"><input value={stockId} onChange={(e) => setStockId(e.target.value)} className={inputCls} /></Field>
-          <Field label="每包（可选）"><input type="number" min={1} value={packQty} onChange={(e) => setPackQty(e.target.value)} className={inputCls} /></Field>
+          <Field label={t('inv.form.stockIdLabel')}><input value={stockId} onChange={(e) => setStockId(e.target.value)} className={inputCls} /></Field>
+          <Field label={t('inv.form.packQtyLabel')}><input type="number" min={1} value={packQty} onChange={(e) => setPackQty(e.target.value)} className={inputCls} /></Field>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Field label="低库存线（可选）"><input type="number" min={1} value={lowLine} onChange={(e) => setLowLine(e.target.value)} className={inputCls} /></Field>
-          <Field label="照片（可选）"><input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="w-full text-xs text-ink-muted file:mr-2 file:px-2 file:py-1 file:rounded file:border file:border-border-strong file:bg-surface file:text-ink" /></Field>
+          <Field label={t('inv.form.lowLineLabel')}><input type="number" min={1} value={lowLine} onChange={(e) => setLowLine(e.target.value)} className={inputCls} /></Field>
+          <Field label={t('inv.form.photoLabel')}><input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="w-full text-xs text-ink-muted file:mr-2 file:px-2 file:py-1 file:rounded file:border file:border-border-strong file:bg-surface file:text-ink" /></Field>
         </div>
-        <Field label="备注（可选）"><input value={remark} onChange={(e) => setRemark(e.target.value)} className={inputCls} /></Field>
+        <Field label={t('inv.form.remarkLabel')}><input value={remark} onChange={(e) => setRemark(e.target.value)} className={inputCls} /></Field>
 
         <div className="flex gap-2 justify-end mt-2">
-          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-          <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : '保存'}</button>
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('inv.cancel')}</button>
+          <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('inv.saving') : t('inv.save')}</button>
         </div>
       </div>
     </div>

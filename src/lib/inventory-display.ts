@@ -2,6 +2,8 @@
 // Client-safe display constants for the 库存 module UI (movement-type labels + badge
 // styles, request-status labels). No server imports — mirrors events-display.ts.
 
+import type { TFunc } from './i18n';
+
 // Ledger movement types (mirrors the CHECK constraint in migrations/022). 'opening'
 // exists only as seeded history — the UI never creates one, but must label it.
 export const MOVEMENT_TYPE_LABELS: Record<string, string> = {
@@ -68,9 +70,11 @@ export const REQUEST_STATUS_STYLES: Record<string, string> = {
   cancelled: 'bg-surface-soft text-ink-faint border border-border',
 };
 
-// Item label helper: "S001B0101 一命二运三风水" / "（未编号）念佛机".
-export function itemLabel(i: { stock_id: string | null; name_cn: string }): string {
-  return i.stock_id ? `${i.stock_id} ${i.name_cn}` : `（未编号）${i.name_cn}`;
+// Item label helper: "S001B0101 一命二运三风水" / "（未编号）念佛机". Pass a translator
+// to localize the "unnumbered" prefix; the item name is DATA and never translated.
+export function itemLabel(i: { stock_id: string | null; name_cn: string }, t?: TFunc): string {
+  if (i.stock_id) return `${i.stock_id} ${i.name_cn}`;
+  return t ? t('inv.itemUnnumbered', { name: i.name_cn }) : `（未编号）${i.name_cn}`;
 }
 
 // Category (category_cn) pill tone: 佛具/法器/菩萨 实物 read lavender (like the mockup's

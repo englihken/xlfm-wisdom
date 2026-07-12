@@ -46,13 +46,13 @@ type Volunteer = {
 
 type MetaCentre = { id: string; code: string; name_cn: string; name_en: string };
 
-// Role display labels (bilingual-ish, care + ERP wings).
-const ROLE_LABELS: Record<string, string> = {
-  admin: '管理员',
-  volunteer: '关怀义工',
-  erp_admin: 'ERP 管理员',
-  committee: '理事会',
-  centre_head: '分会负责人',
+// Role display labels — i18n keys resolved at render (core shell.role.* vocab).
+const ROLE_LABEL_KEYS: Record<string, string> = {
+  admin: 'shell.role.admin',
+  volunteer: 'shell.role.volunteer',
+  erp_admin: 'shell.role.erpAdmin',
+  committee: 'shell.role.committee',
+  centre_head: 'shell.role.centreHead',
 };
 
 function formatDate(iso: string): string {
@@ -232,12 +232,12 @@ export default function SettingsPage() {
       }
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        setActionError(json?.error ?? '操作失败，请重试');
+        setActionError(json?.error ?? t('settings.vol.actionFailed'));
         return;
       }
       await reloadVolunteers();
     } catch {
-      setActionError('操作失败，请重试');
+      setActionError(t('settings.vol.actionFailed'));
     } finally {
       setActingId(null);
     }
@@ -250,7 +250,7 @@ export default function SettingsPage() {
     setAddError(null);
     setAddSuccess(false);
     if (formRole === 'centre_head' && !formCentreId) {
-      setAddError('分会负责人必须指定共修会');
+      setAddError(t('settings.vol.centreHeadRequired'));
       return;
     }
     try {
@@ -271,7 +271,7 @@ export default function SettingsPage() {
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
-        setAddError(json?.error ?? '添加失败，请重试');
+        setAddError(json?.error ?? t('settings.vol.addFailed'));
         return;
       }
       setFormName('');
@@ -286,7 +286,7 @@ export default function SettingsPage() {
       await reloadVolunteers();
       setTimeout(() => setAddSuccess(false), 2000);
     } catch {
-      setAddError('添加失败，请重试');
+      setAddError(t('settings.vol.addFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -312,7 +312,7 @@ export default function SettingsPage() {
       }
       const json = await res.json().catch(() => null);
       if (!res.ok) {
-        return json?.error ?? '保存失败，请重试';
+        return json?.error ?? t('common.saveFailed');
       }
       setVolunteers((prev) => prev.map((v) => (v.id === id ? json.volunteer : v)));
       setEditingId(null);
@@ -320,7 +320,7 @@ export default function SettingsPage() {
       setTimeout(() => setSavedId((s) => (s === id ? null : s)), 2000);
       return null;
     } catch {
-      return '保存失败，请重试';
+      return t('common.saveFailed');
     }
   };
 
@@ -331,7 +331,7 @@ export default function SettingsPage() {
   if (checking || gate === 'checking') {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
-        <p className="text-sm text-ink-muted">加载中…</p>
+        <p className="text-sm text-ink-muted">{t('common.loading')}</p>
       </div>
     );
   }
@@ -347,13 +347,13 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-lg font-semibold text-ink">此页面仅限管理员</p>
-          <p className="mt-2 text-sm text-ink-muted">如需帮助，请联系系统管理员。</p>
+          <p className="text-lg font-semibold text-ink">{t('settings.adminOnly')}</p>
+          <p className="mt-2 text-sm text-ink-muted">{t('common.deniedHint')}</p>
           <Link
             href="/dashboard"
             className="btn-secondary inline-block mt-5 px-4 py-2 text-sm"
           >
-            返回智慧问答
+            {t('settings.backToCare')}
           </Link>
         </div>
       </div>
@@ -362,7 +362,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-bg md:ml-[72px]">
-      <TopBar moduleTitle="设置 · Settings" userLabel={me?.displayName || me?.email || undefined} onLogout={forceSignOut} />
+      <TopBar moduleTitle={t('settings.moduleTitle')} userLabel={me?.displayName || me?.email || undefined} onLogout={forceSignOut} />
 
       <DashboardNav role={me?.role ?? 'volunteer'} active="settings" grants={me?.grants} />
 
@@ -400,9 +400,9 @@ export default function SettingsPage() {
             <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
               {/* ADD VOLUNTEER */}
               <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
-                <h2 className="font-serif text-base font-semibold text-ink">添加义工</h2>
+                <h2 className="font-serif text-base font-semibold text-ink">{t('settings.vol.addTitle')}</h2>
                 <p className="mt-1 text-sm text-ink-muted">
-                  新账号创建后即可使用邮箱和密码登录。
+                  {t('settings.vol.addHint')}
                 </p>
                 {/* autoComplete=off (+ non-suggestive field names & new-password on
                     the password) so Chrome doesn't autofill the admin's own
@@ -410,7 +410,7 @@ export default function SettingsPage() {
                 <form onSubmit={handleAdd} autoComplete="off" className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div>
                     <label htmlFor="name" className="u-label block mb-1">
-                      显示名称
+                      {t('settings.vol.displayName')}
                     </label>
                     <input
                       id="name"
@@ -418,13 +418,13 @@ export default function SettingsPage() {
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
                       disabled={submitting}
-                      placeholder="如：李师兄"
+                      placeholder={t('settings.vol.namePlaceholder')}
                       className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
                     />
                   </div>
                   <div>
                     <label htmlFor="add-email" className="u-label block mb-1">
-                      邮箱
+                      {t('settings.vol.email')}
                     </label>
                     <input
                       id="add-email"
@@ -444,11 +444,11 @@ export default function SettingsPage() {
                   {(formRole === 'volunteer' || formRole === 'centre_head') && (
                     <>
                       {formRole === 'centre_head' && (
-                        <p className="text-xs text-ink-muted">分会负责人只看只管自己共修会（信箱、会员、活动、库存、渡人）。</p>
+                        <p className="text-xs text-ink-muted">{t('settings.vol.centreHeadNote')}</p>
                       )}
                       <div>
                         <label htmlFor="add-center" className="u-label block mb-1">
-                          所属中心 · 文本（可选）
+                          {t('settings.vol.centerTextLabel')}
                         </label>
                         <CenterSelect
                           id="add-center"
@@ -459,7 +459,7 @@ export default function SettingsPage() {
                       </div>
                       <div>
                         <label htmlFor="add-centre-id" className="u-label block mb-1">
-                          中心 · 结构化（可选）
+                          {t('settings.vol.centreStructuredLabel')}
                         </label>
                         <select
                           id="add-centre-id"
@@ -468,7 +468,7 @@ export default function SettingsPage() {
                           disabled={submitting}
                           className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent disabled:opacity-50"
                         >
-                          <option value="">未指定</option>
+                          <option value="">{t('settings.vol.unspecified')}</option>
                           {metaCentres.map((c) => (
                             <option key={c.id} value={c.id}>
                               {c.name_cn} {c.code}
@@ -480,7 +480,7 @@ export default function SettingsPage() {
                   )}
                   <div>
                     <label htmlFor="add-occupation" className="u-label block mb-1">
-                      职业（可选）
+                      {t('settings.vol.occupationOptional')}
                     </label>
                     <input
                       id="add-occupation"
@@ -488,13 +488,13 @@ export default function SettingsPage() {
                       value={formOccupation}
                       onChange={(e) => setFormOccupation(e.target.value)}
                       disabled={submitting}
-                      placeholder="如：教师"
+                      placeholder={t('settings.vol.occupationPlaceholder')}
                       className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
                     />
                   </div>
                   <div>
                     <label htmlFor="add-password" className="u-label block mb-1">
-                      初始密码
+                      {t('settings.vol.initialPassword')}
                     </label>
                     <input
                       id="add-password"
@@ -506,13 +506,13 @@ export default function SettingsPage() {
                       value={formPassword}
                       onChange={(e) => setFormPassword(e.target.value)}
                       disabled={submitting}
-                      placeholder="至少 8 位"
+                      placeholder={t('settings.vol.passwordPlaceholder')}
                       className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
                     />
                   </div>
                   <div>
                     <label htmlFor="add-role" className="u-label block mb-1">
-                      角色
+                      {t('settings.vol.role')}
                     </label>
                     <select
                       id="add-role"
@@ -521,21 +521,21 @@ export default function SettingsPage() {
                       disabled={submitting}
                       className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent disabled:opacity-50"
                     >
-                      <option value="volunteer">关怀义工</option>
-                      <option value="centre_head">分会负责人</option>
-                      <option value="admin">管理员</option>
-                      <option value="erp_admin">ERP 管理员</option>
-                      <option value="committee">理事会</option>
+                      <option value="volunteer">{t('shell.role.volunteer')}</option>
+                      <option value="centre_head">{t('shell.role.centreHead')}</option>
+                      <option value="admin">{t('shell.role.admin')}</option>
+                      <option value="erp_admin">{t('shell.role.erpAdmin')}</option>
+                      <option value="committee">{t('shell.role.committee')}</option>
                     </select>
                     {formRole === 'erp_admin' && (
                       <p className="mt-1 text-xs text-ink-muted">
-                        ERP 管理员：可管理会员/活动/财务等模块，无法读取关怀对话。
+                        {t('settings.vol.erpAdminNote')}
                       </p>
                     )}
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="add-skills" className="u-label block mb-1">
-                      专长／技能（可选）
+                      {t('settings.vol.skillsOptional')}
                     </label>
                     <textarea
                       id="add-skills"
@@ -543,7 +543,7 @@ export default function SettingsPage() {
                       onChange={(e) => setFormSkills(e.target.value)}
                       disabled={submitting}
                       rows={2}
-                      placeholder="如：辅导、翻译、设计、医护…"
+                      placeholder={t('settings.vol.skillsPlaceholder')}
                       className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint leading-relaxed resize-y focus:outline-none focus:border-accent disabled:opacity-50"
                     />
                   </div>
@@ -553,9 +553,9 @@ export default function SettingsPage() {
                       disabled={submitting || !formEmail.trim() || formPassword.length < 8}
                       className="btn-primary px-5 py-2 text-sm disabled:cursor-not-allowed"
                     >
-                      {submitting ? '添加中…' : '添加'}
+                      {submitting ? t('settings.vol.adding') : t('settings.vol.add')}
                     </button>
-                    {addSuccess && <span className="text-sm text-accent-deep">已添加 ✓</span>}
+                    {addSuccess && <span className="text-sm text-accent-deep">{t('settings.vol.added')}</span>}
                     {addError && <span className="text-sm text-red-600">{addError}</span>}
                   </div>
                 </form>
@@ -569,8 +569,8 @@ export default function SettingsPage() {
               <section className="bg-surface border border-border rounded-2xl overflow-hidden">
                 <div className="px-5 py-4 border-b border-border flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <h2 className="font-serif text-base font-semibold text-ink">义工团队</h2>
-                    <span className="text-xs text-ink-faint">{volunteers.length} 人</span>
+                    <h2 className="font-serif text-base font-semibold text-ink">{t('settings.vol.teamTitle')}</h2>
+                    <span className="text-xs text-ink-faint">{t('settings.vol.peopleCount', { count: volunteers.length })}</span>
                   </div>
                   <div className="flex items-center gap-1 text-xs">
                     {(['active', 'all'] as const).map((f) => (
@@ -583,7 +583,7 @@ export default function SettingsPage() {
                             : 'text-ink-muted hover:bg-accent/5'
                         }`}
                       >
-                        {f === 'active' ? '仅启用' : '全部'}
+                        {f === 'active' ? t('settings.vol.filterActive') : t('settings.vol.filterAll')}
                       </button>
                     ))}
                   </div>
@@ -596,10 +596,10 @@ export default function SettingsPage() {
                 )}
 
                 {listLoading ? (
-                  <p className="p-6 text-sm text-ink-muted">加载中…</p>
+                  <p className="p-6 text-sm text-ink-muted">{t('common.loading')}</p>
                 ) : visibleVolunteers.length === 0 ? (
                   <p className="p-6 text-sm text-ink-muted">
-                    {filter === 'active' ? '暂无启用的义工' : '暂无义工'}
+                    {filter === 'active' ? t('settings.vol.emptyActive') : t('settings.vol.emptyAll')}
                   </p>
                 ) : (
                   <ul>
@@ -637,19 +637,19 @@ export default function SettingsPage() {
                               }`}
                             >
                               {v.display_name || v.email}
-                              {isSelf && <span className="ml-1 text-xs text-ink-faint">（你）</span>}
+                              {isSelf && <span className="ml-1 text-xs text-ink-faint">{t('settings.vol.you')}</span>}
                             </p>
                             <p className="text-xs text-ink-muted truncate">{v.email}</p>
                             {v.center && (
-                              <p className="text-xs text-ink-faint truncate">所属中心：{v.center}</p>
+                              <p className="text-xs text-ink-faint truncate">{t('settings.vol.centerLine', { center: v.center })}</p>
                             )}
                             {v.occupation && (
-                              <p className="text-xs text-ink-faint truncate">职业：{v.occupation}</p>
+                              <p className="text-xs text-ink-faint truncate">{t('settings.vol.occupationLine', { occupation: v.occupation })}</p>
                             )}
                             {v.skills && (
-                              <p className="text-xs text-ink-faint truncate">专长：{v.skills}</p>
+                              <p className="text-xs text-ink-faint truncate">{t('settings.vol.skillsLine', { skills: v.skills })}</p>
                             )}
-                            <p className="mt-0.5 text-xs text-ink-faint">加入于 {formatDate(v.created_at)}</p>
+                            <p className="mt-0.5 text-xs text-ink-faint">{t('settings.vol.joinedOn', { date: formatDate(v.created_at) })}</p>
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -657,7 +657,7 @@ export default function SettingsPage() {
                             <ScopeBadge scope={v.scope} />
                             <StatusBadge active={v.active} />
                             {savedId === v.id && (
-                              <span className="text-xs text-accent-deep">已保存 ✓</span>
+                              <span className="text-xs text-accent-deep">{t('common.saved')}</span>
                             )}
 
                             <button
@@ -665,7 +665,7 @@ export default function SettingsPage() {
                               disabled={busy}
                               className="btn-secondary px-3 py-1 text-xs disabled:cursor-not-allowed"
                             >
-                              编辑
+                              {t('settings.vol.edit')}
                             </button>
 
                             <button
@@ -677,7 +677,7 @@ export default function SettingsPage() {
                               disabled={isSelf || busy}
                               className="btn-secondary px-3 py-1 text-xs disabled:cursor-not-allowed"
                             >
-                              {v.role === 'admin' ? '设为义工' : '设为管理员'}
+                              {v.role === 'admin' ? t('settings.vol.demote') : t('settings.vol.promote')}
                             </button>
 
                             <button
@@ -689,7 +689,7 @@ export default function SettingsPage() {
                                   : 'text-accent-deep border-border hover:bg-accent/5'
                               }`}
                             >
-                              {v.active ? '停用' : '启用'}
+                              {v.active ? t('settings.vol.disable') : t('settings.vol.enable')}
                             </button>
                           </div>
                         </li>
@@ -736,6 +736,7 @@ function VolunteerEditForm({
   }) => Promise<string | null>;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(volunteer.display_name ?? '');
   const [email, setEmail] = useState(volunteer.email);
   // Only preselect the center if it's a known value; legacy free-text values show
@@ -767,7 +768,7 @@ function VolunteerEditForm({
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
           <label htmlFor="edit-name" className="u-label block mb-1">
-            显示名称
+            {t('settings.vol.displayName')}
           </label>
           <input
             id="edit-name"
@@ -775,13 +776,13 @@ function VolunteerEditForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={saving}
-            placeholder="如：李师兄"
+            placeholder={t('settings.vol.namePlaceholder')}
             className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
           />
         </div>
         <div>
           <label htmlFor="edit-email" className="u-label block mb-1">
-            邮箱
+            {t('settings.vol.email')}
           </label>
           <input
             id="edit-email"
@@ -797,13 +798,13 @@ function VolunteerEditForm({
         </div>
         <div>
           <label htmlFor="edit-center" className="u-label block mb-1">
-            所属中心
+            {t('settings.vol.centerLabel')}
           </label>
           <CenterSelect id="edit-center" value={center} onChange={setCenter} disabled={saving} />
         </div>
         <div>
           <label htmlFor="edit-role" className="u-label block mb-1">
-            角色
+            {t('settings.vol.role')}
           </label>
           <select
             id="edit-role"
@@ -812,19 +813,19 @@ function VolunteerEditForm({
             disabled={saving || isSelf}
             className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent disabled:opacity-50"
           >
-            <option value="admin">管理员</option>
-            <option value="volunteer">关怀义工</option>
-            <option value="centre_head">分会负责人</option>
-            <option value="erp_admin">ERP 管理员</option>
-            <option value="committee">理事会</option>
+            <option value="admin">{t('shell.role.admin')}</option>
+            <option value="volunteer">{t('shell.role.volunteer')}</option>
+            <option value="centre_head">{t('shell.role.centreHead')}</option>
+            <option value="erp_admin">{t('shell.role.erpAdmin')}</option>
+            <option value="committee">{t('shell.role.committee')}</option>
           </select>
-          {isSelf && <p className="mt-1 text-[11px] text-ink-faint">不能修改自己的角色</p>}
+          {isSelf && <p className="mt-1 text-[11px] text-ink-faint">{t('settings.vol.cannotEditOwnRole')}</p>}
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="edit-occupation" className="u-label block mb-1">
-            职业
+            {t('settings.vol.occupation')}
           </label>
           <input
             id="edit-occupation"
@@ -832,13 +833,13 @@ function VolunteerEditForm({
             value={occupation}
             onChange={(e) => setOccupation(e.target.value)}
             disabled={saving}
-            placeholder="如：教师"
+            placeholder={t('settings.vol.occupationPlaceholder')}
             className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent disabled:opacity-50"
           />
         </div>
         <div>
           <label htmlFor="edit-skills" className="u-label block mb-1">
-            专长／技能
+            {t('settings.vol.skills')}
           </label>
           <textarea
             id="edit-skills"
@@ -846,7 +847,7 @@ function VolunteerEditForm({
             onChange={(e) => setSkills(e.target.value)}
             disabled={saving}
             rows={2}
-            placeholder="如：辅导、翻译、设计、医护…"
+            placeholder={t('settings.vol.skillsPlaceholder')}
             className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint leading-relaxed resize-y focus:outline-none focus:border-accent disabled:opacity-50"
           />
         </div>
@@ -857,14 +858,14 @@ function VolunteerEditForm({
           disabled={saving || !email.trim()}
           className="btn-primary px-4 py-1.5 text-xs disabled:cursor-not-allowed"
         >
-          {saving ? '保存中…' : '保存'}
+          {saving ? t('settings.vol.saving') : t('common.save')}
         </button>
         <button
           onClick={onCancel}
           disabled={saving}
           className="btn-secondary px-4 py-1.5 text-xs"
         >
-          取消
+          {t('settings.vol.cancel')}
         </button>
         {error && <span className="text-xs text-red-600">{error}</span>}
       </div>
@@ -886,6 +887,7 @@ function CenterSelect({
   onChange: (value: string) => void;
   disabled?: boolean;
 }) {
+  const t = useT();
   return (
     <select
       id={id}
@@ -894,7 +896,7 @@ function CenterSelect({
       disabled={disabled}
       className="w-full text-sm p-2.5 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent disabled:opacity-50"
     >
-      <option value="">未指定</option>
+      <option value="">{t('settings.vol.unspecified')}</option>
       {XLFM_CENTERS.map((g) => (
         <optgroup key={g.state} label={g.state}>
           {g.centers.map((c) => (
@@ -909,7 +911,8 @@ function CenterSelect({
 }
 
 function RoleBadge({ role }: { role: Role }) {
-  const label = ROLE_LABELS[role] ?? role;
+  const t = useT();
+  const label = ROLE_LABEL_KEYS[role] ? t(ROLE_LABEL_KEYS[role]) : role;
   // Admin-tier roles get the filled gold chip; care volunteer stays the plain chip.
   const filled = role === 'admin' || role === 'erp_admin';
   return (
@@ -924,25 +927,27 @@ function RoleBadge({ role }: { role: Role }) {
 }
 
 function ScopeBadge({ scope }: { scope: 'all_centers' | 'own_center' | null }) {
+  const t = useT();
   return scope === 'all_centers' ? (
     <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#F5E1B0] text-[#8A5A1E]">
-      全部中心
+      {t('settings.vol.scopeAll')}
     </span>
   ) : (
     <span className="inline-block px-2 py-0.5 rounded-full text-[11px] pill-muted">
-      本中心
+      {t('settings.vol.scopeOwn')}
     </span>
   );
 }
 
 function StatusBadge({ active }: { active: boolean }) {
+  const t = useT();
   return active ? (
     <span className="inline-block px-2 py-0.5 rounded-full text-[11px] pill-muted">
-      启用
+      {t('settings.vol.statusActive')}
     </span>
   ) : (
     <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-[#FEF2F2] text-red-700">
-      已停用
+      {t('settings.vol.statusDisabled')}
     </span>
   );
 }
@@ -963,6 +968,7 @@ function useToast() {
 }
 
 function InboxConfigSection() {
+  const t = useT();
   const [mailboxes, setMailboxes] = useState<MailboxCfg[]>([]);
   const [vols, setVols] = useState<VolLite[]>([]);
   const [remind, setRemind] = useState(7);
@@ -990,7 +996,7 @@ function InboxConfigSection() {
   };
   const saveEscalation = async () => {
     await fetch('/api/inbox/config', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ escalation: { remind_centre_days: remind, surface_hq_days: surface } }) });
-    flash('已保存升级天数');
+    flash(t('settings.inboxCfg.escalationSaved'));
   };
   const saveKeywords = async (list: string[]) => {
     setKeywords(list);
@@ -1000,16 +1006,16 @@ function InboxConfigSection() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
       <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
-        <h2 className="font-serif text-base font-semibold text-ink">收件箱配置</h2>
-        <p className="mt-1 text-sm text-ink-muted">每个共修会一个信箱。启用后才会出现在公开来信表单里。</p>
+        <h2 className="font-serif text-base font-semibold text-ink">{t('settings.section.inbox')}</h2>
+        <p className="mt-1 text-sm text-ink-muted">{t('settings.inboxCfg.hint')}</p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                <th className="px-2 py-2 font-normal">共修会</th>
-                <th className="px-2 py-2 font-normal">负责人</th>
-                <th className="px-2 py-2 font-normal">自动回复</th>
-                <th className="px-2 py-2 font-normal">状态</th>
+                <th className="px-2 py-2 font-normal">{t('settings.inboxCfg.colCentre')}</th>
+                <th className="px-2 py-2 font-normal">{t('settings.inboxCfg.colOwner')}</th>
+                <th className="px-2 py-2 font-normal">{t('settings.inboxCfg.colAutoReply')}</th>
+                <th className="px-2 py-2 font-normal">{t('settings.inboxCfg.colStatus')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1017,19 +1023,19 @@ function InboxConfigSection() {
                 <tr key={m.id} className="border-b border-border last:border-b-0 align-top">
                   <td className="px-2 py-2 text-ink">{m.centre_name} <span className="text-ink-faint text-[11px]">{m.centre_code}</span></td>
                   <td className="px-2 py-2">
-                    <div className="text-[12px] text-ink-muted">{m.owners.length ? m.owners.map((o) => o.name).join('、') : <span className="text-[#B4402E]">未指派</span>}</div>
-                    <button onClick={() => setOwnerEdit(m)} className="text-[11px] text-accent-deep hover:underline">编辑</button>
+                    <div className="text-[12px] text-ink-muted">{m.owners.length ? m.owners.map((o) => o.name).join('、') : <span className="text-[#B4402E]">{t('settings.inboxCfg.unassigned')}</span>}</div>
+                    <button onClick={() => setOwnerEdit(m)} className="text-[11px] text-accent-deep hover:underline">{t('settings.inboxCfg.edit')}</button>
                   </td>
                   <td className="px-2 py-2">
                     <label className="flex items-center gap-1 text-[12px]">
-                      <input type="checkbox" checked={m.auto_reply_enabled} onChange={(e) => patchMailbox(m.id, { auto_reply_enabled: e.target.checked })} /> 开
+                      <input type="checkbox" checked={m.auto_reply_enabled} onChange={(e) => patchMailbox(m.id, { auto_reply_enabled: e.target.checked })} /> {t('settings.inboxCfg.on')}
                     </label>
                     {m.auto_reply_enabled && (
                       <textarea
                         defaultValue={m.auto_reply_text ?? ''}
                         onBlur={(e) => { if (e.target.value !== (m.auto_reply_text ?? '')) patchMailbox(m.id, { auto_reply_text: e.target.value }); }}
                         rows={2}
-                        placeholder="自动回复文字（显示在提交成功页）"
+                        placeholder={t('settings.inboxCfg.autoReplyPlaceholder')}
                         className="mt-1 w-44 text-[12px] px-2 py-1 border border-border-strong rounded bg-surface-soft"
                       />
                     )}
@@ -1039,7 +1045,7 @@ function InboxConfigSection() {
                       onClick={() => patchMailbox(m.id, { is_enabled: !m.is_enabled })}
                       className={`px-2.5 py-1 text-xs rounded-full border ${m.is_enabled ? 'bg-[#E7F0E0] text-[#3F6B2E] border-[#CFE3C0]' : 'pill-muted'}`}
                     >
-                      {m.is_enabled ? '启用' : '停用'}
+                      {m.is_enabled ? t('settings.inboxCfg.enabled') : t('settings.inboxCfg.disabled')}
                     </button>
                   </td>
                 </tr>
@@ -1050,14 +1056,14 @@ function InboxConfigSection() {
       </section>
 
       <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
-        <h2 className="font-serif text-base font-semibold text-ink">升级与危机</h2>
+        <h2 className="font-serif text-base font-semibold text-ink">{t('settings.inboxCfg.escalationTitle')}</h2>
         <div className="mt-3 flex flex-wrap items-end gap-3">
-          <label className="text-sm">提醒共修会（天）<input type="number" min={1} value={remind} onChange={(e) => setRemind(Number(e.target.value))} className="ml-2 w-16 px-2 py-1 border border-border-strong rounded bg-surface" /></label>
-          <label className="text-sm">上报总部（天）<input type="number" min={1} value={surface} onChange={(e) => setSurface(Number(e.target.value))} className="ml-2 w-16 px-2 py-1 border border-border-strong rounded bg-surface" /></label>
-          <button onClick={saveEscalation} className="btn-secondary px-3 py-1.5 text-xs">保存天数</button>
+          <label className="text-sm">{t('settings.inboxCfg.remindCentreDays')}<input type="number" min={1} value={remind} onChange={(e) => setRemind(Number(e.target.value))} className="ml-2 w-16 px-2 py-1 border border-border-strong rounded bg-surface" /></label>
+          <label className="text-sm">{t('settings.inboxCfg.surfaceHqDays')}<input type="number" min={1} value={surface} onChange={(e) => setSurface(Number(e.target.value))} className="ml-2 w-16 px-2 py-1 border border-border-strong rounded bg-surface" /></label>
+          <button onClick={saveEscalation} className="btn-secondary px-3 py-1.5 text-xs">{t('settings.inboxCfg.saveDays')}</button>
         </div>
         <div className="mt-4">
-          <p className="text-sm text-ink mb-1">危机关键词（命中即刻转全国关怀组）</p>
+          <p className="text-sm text-ink mb-1">{t('settings.inboxCfg.crisisKeywords')}</p>
           <div className="flex flex-wrap gap-1.5">
             {keywords.map((k) => (
               <span key={k} className="pill-gold inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]">
@@ -1066,14 +1072,14 @@ function InboxConfigSection() {
             ))}
           </div>
           <div className="mt-2 flex gap-2">
-            <input value={newKw} onChange={(e) => setNewKw(e.target.value)} placeholder="新增关键词" className="text-sm px-2 py-1 border border-border-strong rounded bg-surface" />
-            <button onClick={() => { const k = newKw.trim(); if (k && !keywords.includes(k)) saveKeywords([...keywords, k]); setNewKw(''); }} className="btn-secondary px-3 py-1 text-xs">加入</button>
+            <input value={newKw} onChange={(e) => setNewKw(e.target.value)} placeholder={t('settings.inboxCfg.newKeyword')} className="text-sm px-2 py-1 border border-border-strong rounded bg-surface" />
+            <button onClick={() => { const k = newKw.trim(); if (k && !keywords.includes(k)) saveKeywords([...keywords, k]); setNewKw(''); }} className="btn-secondary px-3 py-1 text-xs">{t('common.add')}</button>
           </div>
         </div>
       </section>
 
       {ownerEdit && (
-        <OwnerEditModal mailbox={ownerEdit} vols={vols} onClose={() => setOwnerEdit(null)} onSaved={() => { setOwnerEdit(null); flash('已更新负责人'); load(); }} />
+        <OwnerEditModal mailbox={ownerEdit} vols={vols} onClose={() => setOwnerEdit(null)} onSaved={() => { setOwnerEdit(null); flash(t('settings.inboxCfg.ownersUpdated')); load(); }} />
       )}
       {node}
     </div>
@@ -1081,6 +1087,7 @@ function InboxConfigSection() {
 }
 
 function OwnerEditModal({ mailbox, vols, onClose, onSaved }: { mailbox: MailboxCfg; vols: VolLite[]; onClose: () => void; onSaved: () => void }) {
+  const t = useT();
   const [sel, setSel] = useState<Set<string>>(new Set(mailbox.owners.map((o) => o.id)));
   const [busy, setBusy] = useState(false);
   const toggle = (id: string) => setSel((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -1093,7 +1100,7 @@ function OwnerEditModal({ mailbox, vols, onClose, onSaved }: { mailbox: MailboxC
   return (
     <div className="fixed inset-0 z-[80] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-surface rounded-2xl max-w-md w-full p-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-ink mb-3">{mailbox.centre_name} · 负责人</h3>
+        <h3 className="text-base font-semibold text-ink mb-3">{t('settings.inboxCfg.ownerModalTitle', { centre: mailbox.centre_name })}</h3>
         <ul className="space-y-1 mb-4">
           {vols.map((v) => (
             <li key={v.id}>
@@ -1105,8 +1112,8 @@ function OwnerEditModal({ mailbox, vols, onClose, onSaved }: { mailbox: MailboxC
           ))}
         </ul>
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-          <button disabled={busy} onClick={save} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : '保存'}</button>
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('settings.inboxCfg.cancel')}</button>
+          <button disabled={busy} onClick={save} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('settings.inboxCfg.saving') : t('common.save')}</button>
         </div>
       </div>
     </div>
@@ -1117,6 +1124,7 @@ function OwnerEditModal({ mailbox, vols, onClose, onSaved }: { mailbox: MailboxC
 type CentreRow = { id: string; code: string; name_cn: string; name_en: string; state: string; aliases: string[]; is_active: boolean; sort: number };
 
 function CentresSection() {
+  const t = useT();
   const [centres, setCentres] = useState<CentreRow[]>([]);
   const [editing, setEditing] = useState<CentreRow | 'new' | null>(null);
   const { flash, node } = useToast();
@@ -1135,15 +1143,15 @@ function CentresSection() {
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
       <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-serif text-base font-semibold text-ink">共修会管理</h2>
-          <button onClick={() => setEditing('new')} className="btn-primary px-4 py-1.5 text-sm">＋ 新增共修会</button>
+          <h2 className="font-serif text-base font-semibold text-ink">{t('settings.section.centres')}</h2>
+          <button onClick={() => setEditing('new')} className="btn-primary px-4 py-1.5 text-sm">{t('settings.centres.addBtn')}</button>
         </div>
-        <p className="mt-1 text-sm text-ink-muted">新增共修会后，系统会自动创建对应的事务信箱（默认停用）。</p>
+        <p className="mt-1 text-sm text-ink-muted">{t('settings.centres.hint')}</p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                <th className="px-2 py-2 font-normal">代码</th><th className="px-2 py-2 font-normal">中文</th><th className="px-2 py-2 font-normal">English</th><th className="px-2 py-2 font-normal">州属</th><th className="px-2 py-2 font-normal">排序</th><th className="px-2 py-2 font-normal">状态</th><th className="px-2 py-2 font-normal"></th>
+                <th className="px-2 py-2 font-normal">{t('settings.centres.colCode')}</th><th className="px-2 py-2 font-normal">{t('settings.centres.colCn')}</th><th className="px-2 py-2 font-normal">{t('settings.centres.colEn')}</th><th className="px-2 py-2 font-normal">{t('settings.centres.colState')}</th><th className="px-2 py-2 font-normal">{t('settings.centres.colSort')}</th><th className="px-2 py-2 font-normal">{t('settings.centres.colStatus')}</th><th className="px-2 py-2 font-normal"></th>
               </tr>
             </thead>
             <tbody>
@@ -1154,10 +1162,10 @@ function CentresSection() {
                   <td className="px-2 py-2 text-ink-muted">{c.name_en}</td>
                   <td className="px-2 py-2 text-ink-muted">{c.state}</td>
                   <td className="px-2 py-2 text-ink-muted">{c.sort}</td>
-                  <td className="px-2 py-2">{c.is_active ? <span className="inline-block px-2 py-0.5 rounded-full text-[10px] bg-[#E7F0E0] text-[#3F6B2E]">在用</span> : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[10px]">停用</span>}</td>
+                  <td className="px-2 py-2">{c.is_active ? <span className="inline-block px-2 py-0.5 rounded-full text-[10px] bg-[#E7F0E0] text-[#3F6B2E]">{t('settings.centres.active')}</span> : <span className="pill-muted inline-block px-2 py-0.5 rounded-full text-[10px]">{t('settings.centres.inactive')}</span>}</td>
                   <td className="px-2 py-2 text-right whitespace-nowrap">
-                    <button onClick={() => setEditing(c)} className="text-[11px] text-accent-deep hover:underline mr-2">编辑</button>
-                    <button onClick={() => toggleActive(c)} className="text-[11px] text-ink-muted hover:underline">{c.is_active ? '停用' : '启用'}</button>
+                    <button onClick={() => setEditing(c)} className="text-[11px] text-accent-deep hover:underline mr-2">{t('settings.centres.edit')}</button>
+                    <button onClick={() => toggleActive(c)} className="text-[11px] text-ink-muted hover:underline">{c.is_active ? t('settings.centres.disable') : t('settings.centres.enable')}</button>
                   </td>
                 </tr>
               ))}
@@ -1169,7 +1177,7 @@ function CentresSection() {
         <CentreModal
           centre={editing === 'new' ? null : editing}
           onClose={() => setEditing(null)}
-          onSaved={(created) => { setEditing(null); flash(created ? '共修会已创建，事务信箱已自动出现' : '已保存'); load(); }}
+          onSaved={(created) => { setEditing(null); flash(created ? t('settings.centres.created') : t('common.saved')); load(); }}
         />
       )}
       {node}
@@ -1178,6 +1186,7 @@ function CentresSection() {
 }
 
 function CentreModal({ centre, onClose, onSaved }: { centre: CentreRow | null; onClose: () => void; onSaved: (created: boolean) => void }) {
+  const t = useT();
   const [code, setCode] = useState(centre?.code ?? '');
   const [nameCn, setNameCn] = useState(centre?.name_cn ?? '');
   const [nameEn, setNameEn] = useState(centre?.name_en ?? '');
@@ -1196,28 +1205,28 @@ function CentreModal({ centre, onClose, onSaved }: { centre: CentreRow | null; o
       ? await fetch(`/api/dashboard/centres/${centre.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       : await fetch('/api/dashboard/centres', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     setBusy(false);
-    if (res.ok) onSaved(!centre); else { const j = await res.json().catch(() => ({})); setErr(j.error ?? '保存失败'); }
+    if (res.ok) onSaved(!centre); else { const j = await res.json().catch(() => ({})); setErr(j.error ?? t('settings.centres.saveFailed')); }
   };
   return (
     <div className="fixed inset-0 z-[80] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-surface rounded-2xl max-w-md w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-ink mb-3">{centre ? '编辑共修会' : '新增共修会'}</h3>
+        <h3 className="text-base font-semibold text-ink mb-3">{centre ? t('settings.centres.editTitle') : t('settings.centres.newTitle')}</h3>
         {err && <p className="text-sm text-[#B4402E] bg-[#FCEBEA] border border-[#B4402E]/20 rounded-lg px-3 py-2 mb-2">{err}</p>}
-        <label className="block text-xs text-label mb-1">代码（大写，创建后不可改）</label>
+        <label className="block text-xs text-label mb-1">{t('settings.centres.codeLabel')}</label>
         <input value={code} disabled={!!centre} onChange={(e) => setCode(e.target.value.toUpperCase())} className={`${inputCls} ${centre ? 'opacity-60' : ''}`} />
-        <label className="block text-xs text-label mb-1">中文名称</label>
+        <label className="block text-xs text-label mb-1">{t('settings.centres.nameCnLabel')}</label>
         <input value={nameCn} onChange={(e) => setNameCn(e.target.value)} className={inputCls} />
-        <label className="block text-xs text-label mb-1">English name</label>
+        <label className="block text-xs text-label mb-1">{t('settings.centres.nameEnLabel')}</label>
         <input value={nameEn} onChange={(e) => setNameEn(e.target.value)} className={inputCls} />
-        <label className="block text-xs text-label mb-1">州属</label>
+        <label className="block text-xs text-label mb-1">{t('settings.centres.stateLabel')}</label>
         <input value={state} onChange={(e) => setState(e.target.value)} className={inputCls} />
-        <label className="block text-xs text-label mb-1">排序</label>
+        <label className="block text-xs text-label mb-1">{t('settings.centres.sortLabel')}</label>
         <input type="number" value={sort} onChange={(e) => setSort(Number(e.target.value))} className={inputCls} />
-        <label className="block text-xs text-label mb-1">别名（逗号分隔，legacy Excel 代码）</label>
+        <label className="block text-xs text-label mb-1">{t('settings.centres.aliasesLabel')}</label>
         <input value={aliases} onChange={(e) => setAliases(e.target.value)} className={inputCls} />
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-          <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : '保存'}</button>
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('settings.centres.cancel')}</button>
+          <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('settings.centres.saving') : t('common.save')}</button>
         </div>
       </div>
     </div>
@@ -1229,56 +1238,57 @@ type TemplateRow = { id: string; title: string; body: string; is_active: boolean
 type NotifyRow = { id: string; display_name: string; phone: string | null; centre_name: string | null; opted_at: string | null; note: string | null };
 
 function NotifyTemplatesSection() {
+  const t = useT();
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [notify, setNotify] = useState<NotifyRow[]>([]);
   const [editing, setEditing] = useState<TemplateRow | 'new' | null>(null);
   const { flash, node } = useToast();
   const load = useCallback(async () => {
-    const [t, n] = await Promise.all([
+    const [tplRes, n] = await Promise.all([
       fetch('/api/inbox/templates?all=1').then((r) => (r.ok ? r.json() : { templates: [] })),
       fetch('/api/inbox/notify').then((r) => (r.ok ? r.json() : { contacts: [] })),
     ]);
-    setTemplates(t.templates ?? []);
+    setTemplates(tplRes.templates ?? []);
     setNotify(n.contacts ?? []);
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const toggleTpl = async (t: TemplateRow) => { await fetch(`/api/inbox/templates/${t.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !t.is_active }) }); load(); };
-  const delTpl = async (t: TemplateRow) => { await fetch(`/api/inbox/templates/${t.id}`, { method: 'DELETE' }); load(); };
-  const toggleNotify = async (c: NotifyRow) => { await fetch(`/api/inbox/notify/${c.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notify_opt_in: false }) }); flash('已移出通知名单'); load(); };
+  const toggleTpl = async (tpl: TemplateRow) => { await fetch(`/api/inbox/templates/${tpl.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !tpl.is_active }) }); load(); };
+  const delTpl = async (tpl: TemplateRow) => { await fetch(`/api/inbox/templates/${tpl.id}`, { method: 'DELETE' }); load(); };
+  const toggleNotify = async (c: NotifyRow) => { await fetch(`/api/inbox/notify/${c.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notify_opt_in: false }) }); flash(t('settings.notify.removedFromList')); load(); };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
       <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-serif text-base font-semibold text-ink">回复模板</h2>
-          <button onClick={() => setEditing('new')} className="btn-primary px-4 py-1.5 text-sm">＋ 新模板</button>
+          <h2 className="font-serif text-base font-semibold text-ink">{t('settings.notify.templatesTitle')}</h2>
+          <button onClick={() => setEditing('new')} className="btn-primary px-4 py-1.5 text-sm">{t('settings.notify.newTemplate')}</button>
         </div>
         <ul className="mt-4 space-y-2">
-          {templates.map((t) => (
-            <li key={t.id} className="border border-border rounded-xl p-3">
+          {templates.map((tpl) => (
+            <li key={tpl.id} className="border border-border rounded-xl p-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-ink">{t.title}</span>
+                <span className="text-sm font-medium text-ink">{tpl.title}</span>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => toggleTpl(t)} className={`text-[11px] px-2 py-0.5 rounded-full border ${t.is_active ? 'bg-[#E7F0E0] text-[#3F6B2E] border-[#CFE3C0]' : 'pill-muted'}`}>{t.is_active ? '启用' : '停用'}</button>
-                  <button onClick={() => setEditing(t)} className="text-[11px] text-accent-deep hover:underline">编辑</button>
-                  <button onClick={() => delTpl(t)} className="text-[11px] text-[#B4402E] hover:underline">删除</button>
+                  <button onClick={() => toggleTpl(tpl)} className={`text-[11px] px-2 py-0.5 rounded-full border ${tpl.is_active ? 'bg-[#E7F0E0] text-[#3F6B2E] border-[#CFE3C0]' : 'pill-muted'}`}>{tpl.is_active ? t('settings.notify.tplEnabled') : t('settings.notify.tplDisabled')}</button>
+                  <button onClick={() => setEditing(tpl)} className="text-[11px] text-accent-deep hover:underline">{t('settings.notify.edit')}</button>
+                  <button onClick={() => delTpl(tpl)} className="text-[11px] text-[#B4402E] hover:underline">{t('settings.notify.delete')}</button>
                 </div>
               </div>
-              <p className="mt-1 text-[12px] text-ink-muted whitespace-pre-wrap">{t.body}</p>
+              <p className="mt-1 text-[12px] text-ink-muted whitespace-pre-wrap">{tpl.body}</p>
             </li>
           ))}
         </ul>
       </section>
 
       <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
-        <h2 className="font-serif text-base font-semibold text-ink">通知名单（选择性通知）</h2>
-        <p className="mt-1 text-sm text-ink-muted">只联系明确同意的人 — 不群发、不催促。</p>
+        <h2 className="font-serif text-base font-semibold text-ink">{t('settings.notify.listTitle')}</h2>
+        <p className="mt-1 text-sm text-ink-muted">{t('settings.notify.listHint')}</p>
         {notify.length === 0 ? (
-          <p className="mt-3 text-sm text-ink-faint">暂无同意通知的联系人。</p>
+          <p className="mt-3 text-sm text-ink-faint">{t('settings.notify.emptyList')}</p>
         ) : (
           <table className="w-full text-sm mt-3">
-            <thead><tr className="text-left text-[11px] text-ink-faint border-b border-border"><th className="px-2 py-2 font-normal">姓名</th><th className="px-2 py-2 font-normal">电话</th><th className="px-2 py-2 font-normal">共修会</th><th className="px-2 py-2 font-normal">备注</th><th className="px-2 py-2 font-normal"></th></tr></thead>
+            <thead><tr className="text-left text-[11px] text-ink-faint border-b border-border"><th className="px-2 py-2 font-normal">{t('settings.notify.colName')}</th><th className="px-2 py-2 font-normal">{t('settings.notify.colPhone')}</th><th className="px-2 py-2 font-normal">{t('settings.notify.colCentre')}</th><th className="px-2 py-2 font-normal">{t('settings.notify.colNote')}</th><th className="px-2 py-2 font-normal"></th></tr></thead>
             <tbody>
               {notify.map((c) => (
                 <tr key={c.id} className="border-b border-border last:border-b-0">
@@ -1286,7 +1296,7 @@ function NotifyTemplatesSection() {
                   <td className="px-2 py-2 text-ink-muted">{c.phone ?? '—'}</td>
                   <td className="px-2 py-2 text-ink-muted">{c.centre_name ?? '—'}</td>
                   <td className="px-2 py-2 text-ink-muted">{c.note ?? '—'}</td>
-                  <td className="px-2 py-2 text-right"><button onClick={() => toggleNotify(c)} className="text-[11px] text-[#B4402E] hover:underline">移出</button></td>
+                  <td className="px-2 py-2 text-right"><button onClick={() => toggleNotify(c)} className="text-[11px] text-[#B4402E] hover:underline">{t('settings.notify.removeBtn')}</button></td>
                 </tr>
               ))}
             </tbody>
@@ -1294,7 +1304,7 @@ function NotifyTemplatesSection() {
         )}
       </section>
       {editing && (
-        <TemplateModal template={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); flash('已保存'); load(); }} />
+        <TemplateModal template={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); flash(t('common.saved')); load(); }} />
       )}
       {node}
     </div>
@@ -1302,29 +1312,30 @@ function NotifyTemplatesSection() {
 }
 
 function TemplateModal({ template, onClose, onSaved }: { template: TemplateRow | null; onClose: () => void; onSaved: () => void }) {
+  const t = useT();
   const [title, setTitle] = useState(template?.title ?? '');
   const [body, setBody] = useState(template?.body ?? '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const submit = async () => {
-    if (!title.trim() || !body.trim()) { setErr('请填写标题与内容'); return; }
+    if (!title.trim() || !body.trim()) { setErr(t('settings.notify.titleBodyRequired')); return; }
     setBusy(true);
     const res = template
       ? await fetch(`/api/inbox/templates/${template.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, body }) })
       : await fetch('/api/inbox/templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, body }) });
     setBusy(false);
-    if (res.ok) onSaved(); else { const j = await res.json().catch(() => ({})); setErr(j.error ?? '保存失败'); }
+    if (res.ok) onSaved(); else { const j = await res.json().catch(() => ({})); setErr(j.error ?? t('settings.notify.saveFailed')); }
   };
   return (
     <div className="fixed inset-0 z-[80] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-surface rounded-2xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-ink mb-3">{template ? '编辑模板' : '新模板'}</h3>
+        <h3 className="text-base font-semibold text-ink mb-3">{template ? t('settings.notify.editTitle') : t('settings.notify.newTitle')}</h3>
         {err && <p className="text-sm text-[#B4402E] bg-[#FCEBEA] border border-[#B4402E]/20 rounded-lg px-3 py-2 mb-2">{err}</p>}
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="标题" className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink mb-3" />
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} placeholder="内容" className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface-soft text-ink mb-3" />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('settings.notify.titlePlaceholder')} className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink mb-3" />
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} placeholder={t('settings.notify.bodyPlaceholder')} className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface-soft text-ink mb-3" />
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-          <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : '保存'}</button>
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('settings.notify.cancel')}</button>
+          <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('settings.notify.saving') : t('common.save')}</button>
         </div>
       </div>
     </div>

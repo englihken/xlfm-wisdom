@@ -14,6 +14,7 @@ import { PasswordChangeGate } from '@/components/password-change-gate';
 import { DashboardNav, type NavKey } from '@/components/dashboard-nav';
 import { TopBar } from '@/components/top-bar';
 import { grantAllows, type Grants } from '@/lib/access';
+import { useT } from '@/lib/i18n-react';
 
 export type ErpMe = {
   email: string;
@@ -21,15 +22,6 @@ export type ErpMe = {
   role: 'admin' | 'volunteer' | 'erp_admin' | 'committee';
   grants: Grants;
 };
-
-// The ERP modules this shell serves, with their header titles + denied notice.
-const MODULE_META = {
-  members: { cn: '会员', en: 'Members' },
-  events: { cn: '活动', en: 'Events' },
-  inventory: { cn: '库存', en: 'Inventory' },
-  finance: { cn: '财务', en: 'Finance' },
-  outreach: { cn: '渡人', en: 'Outreach' },
-} as const;
 
 export function ErpGate({
   active,
@@ -45,7 +37,7 @@ export function ErpGate({
   titleSuffix?: string;
   children: (me: ErpMe) => ReactNode;
 }) {
-  const mod = MODULE_META[module];
+  const t = useT();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<ErpMe | null>(null);
@@ -107,7 +99,7 @@ export function ErpGate({
   if (checking || gate === 'checking') {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
-        <p className="text-sm text-ink-muted">加载中…</p>
+        <p className="text-sm text-ink-muted">{t('common.loading')}</p>
       </div>
     );
   }
@@ -120,8 +112,8 @@ export function ErpGate({
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-lg font-semibold text-ink">此页面需要{mod.cn}模块权限</p>
-          <p className="mt-2 text-sm text-ink-muted">如需帮助，请联系系统管理员。</p>
+          <p className="text-lg font-semibold text-ink">{t('erp.denied', { module: t(`nav.${module}`) })}</p>
+          <p className="mt-2 text-sm text-ink-muted">{t('common.deniedHint')}</p>
         </div>
       </div>
     );
@@ -130,7 +122,7 @@ export function ErpGate({
   return (
     <div className="min-h-screen flex flex-col bg-bg md:ml-[72px]">
       <TopBar
-        moduleTitle={`${mod.cn} · ${mod.en}${titleSuffix ? ` · ${titleSuffix}` : ''}`}
+        moduleTitle={`${t(`erp.title.${module}`)}${titleSuffix ? ` · ${titleSuffix}` : ''}`}
         userLabel={me?.displayName || me?.email || undefined}
         onLogout={handleLogout}
       />

@@ -1,0 +1,141 @@
+// i18n part: PUBLIC forms — /m (公开来信) · /f (月费查询) + shared closed copy
+const zh = {
+  // ── /m mail form (mailForm.*) ────────────────────────────────────────────────
+  'mailForm.centreLabel': '共修会',
+  'mailForm.centreHQ': '总会',
+  'mailForm.nameLabel': '姓名',
+  'mailForm.phoneLabel': '电话',
+  'mailForm.emailLabel': '邮箱',
+  'mailForm.optional': '(选填)',
+  'mailForm.subjectLabel': '主题',
+  'mailForm.bodyLabel': '内容',
+  'mailForm.submitButton': '提交来信',
+  'mailForm.submitting': '提交中…',
+  'mailForm.validationRequired': '请填写姓名、电话、主题与内容',
+  'mailForm.submitFailed': '提交失败，请稍后再试',
+  'mailForm.networkError': '网络错误，请稍后再试',
+  'mailForm.successTitle': '已收到，感恩您的来信 🙏',
+  'mailForm.successSub': 'Your message has been received',
+  'mailForm.crisisNote': '涉及危机的来信，系统会即刻转给全国关怀组跟进。',
+
+  // ── /f fee lookup (feeLookup.*) ──────────────────────────────────────────────
+  'feeLookup.phoneLabel': '手机号',
+  'feeLookup.lookupButton': '查询',
+  'feeLookup.lookingUp': '查询中…',
+  'feeLookup.privacyNote': '只显示与此手机号绑定的记录 · 姓名打码显示',
+  'feeLookup.lookupAnother': '← 查询其他号码',
+  'feeLookup.notFound': '查无记录',
+  'feeLookup.notFoundSub': '此号码暂无月费记录。如有疑问，请联系所属中心财政。',
+  'feeLookup.memberGreeting': '{name} 师兄 🙏',
+  'feeLookup.centrePledge': '{centre} · 认捐 {pledge}',
+  'feeLookup.paidThroughLabel': '已付至',
+  'feeLookup.waived': '豁免中',
+  'feeLookup.waivedNote': '已豁免月费 · 感恩护持 🙏',
+  'feeLookup.paidNote': '感恩护持 · 功德无量 🙏',
+  'feeLookup.noPayments': '暂无缴费记录',
+  'feeLookup.thanks': '感恩护持 🙏',
+  'feeLookup.paymentsTitle': '缴付记录',
+  'feeLookup.thisCentre': '本中心',
+  'feeLookup.transparency': '🏮 {centre} 本月：已收 {collected} · 支出 {expenses} · 结余 {surplus}。',
+  'feeLookup.monthFull': '本月已满，感恩 🙏 本月无需再缴。',
+
+  // ── shared closed page (publicClosed.*) ──────────────────────────────────────
+  'publicClosed.closed': '本服务暂停中，请稍后再来 🙏',
+  'publicClosed.closedSub': 'This service is temporarily paused. Please come back later.',
+};
+
+export const publicFormsPart: {
+  zh: typeof zh;
+  en: Record<keyof typeof zh, string>;
+  id: Record<keyof typeof zh, string>;
+} = {
+  zh,
+  en: {
+    // ── /m mail form (mailForm.*) ──────────────────────────────────────────────
+    'mailForm.centreLabel': 'Practice Centre',
+    'mailForm.centreHQ': 'Head Office',
+    'mailForm.nameLabel': 'Name',
+    'mailForm.phoneLabel': 'Phone',
+    'mailForm.emailLabel': 'Email',
+    'mailForm.optional': '(optional)',
+    'mailForm.subjectLabel': 'Subject',
+    'mailForm.bodyLabel': 'Message',
+    'mailForm.submitButton': 'Send message',
+    'mailForm.submitting': 'Sending…',
+    'mailForm.validationRequired': 'Please fill in your name, phone, subject and message',
+    'mailForm.submitFailed': 'Could not submit, please try again shortly',
+    'mailForm.networkError': 'Network error, please try again shortly',
+    'mailForm.successTitle': 'Received — thank you for writing to us 🙏',
+    'mailForm.successSub': 'Your message has been received',
+    'mailForm.crisisNote': 'Messages involving a crisis are forwarded to the national care team right away.',
+
+    // ── /f fee lookup (feeLookup.*) ────────────────────────────────────────────
+    'feeLookup.phoneLabel': 'Phone number',
+    'feeLookup.lookupButton': 'Look up',
+    'feeLookup.lookingUp': 'Looking up…',
+    'feeLookup.privacyNote': 'Only records linked to this number are shown · names are masked',
+    'feeLookup.lookupAnother': '← Look up another number',
+    'feeLookup.notFound': 'No records found',
+    'feeLookup.notFoundSub': 'No monthly fee records for this number yet. If you have questions, please contact your centre’s finance team.',
+    'feeLookup.memberGreeting': 'Dear {name} 🙏',
+    'feeLookup.centrePledge': '{centre} · Pledged {pledge}',
+    'feeLookup.paidThroughLabel': 'Paid through',
+    'feeLookup.waived': 'Waived',
+    'feeLookup.waivedNote': 'Monthly fee waived · thank you for your support 🙏',
+    'feeLookup.paidNote': 'Thank you for your support · boundless merit 🙏',
+    'feeLookup.noPayments': 'No payment records yet',
+    'feeLookup.thanks': 'Thank you for your support 🙏',
+    'feeLookup.paymentsTitle': 'Payment records',
+    'feeLookup.thisCentre': 'this centre',
+    'feeLookup.transparency': '🏮 {centre} this month: collected {collected} · spent {expenses} · balance {surplus}.',
+    'feeLookup.monthFull': 'This month is fully met, thank you 🙏 No further payment needed this month.',
+
+    // ── shared closed page (publicClosed.*) ────────────────────────────────────
+    'publicClosed.closed': 'This service is temporarily paused. Please come back later 🙏',
+    'publicClosed.closedSub': 'This service is temporarily paused. Please come back later.',
+  },
+  id: {
+    // ── /m mail form (mailForm.*) ──────────────────────────────────────────────
+    'mailForm.centreLabel': 'Pusat Praktik',
+    'mailForm.centreHQ': 'Kantor Pusat',
+    'mailForm.nameLabel': 'Nama',
+    'mailForm.phoneLabel': 'Telepon',
+    'mailForm.emailLabel': 'Email',
+    'mailForm.optional': '(opsional)',
+    'mailForm.subjectLabel': 'Subjek',
+    'mailForm.bodyLabel': 'Pesan',
+    'mailForm.submitButton': 'Kirim pesan',
+    'mailForm.submitting': 'Mengirim…',
+    'mailForm.validationRequired': 'Mohon isi nama, telepon, subjek, dan pesan',
+    'mailForm.submitFailed': 'Gagal mengirim, silakan coba lagi sebentar',
+    'mailForm.networkError': 'Kesalahan jaringan, silakan coba lagi sebentar',
+    'mailForm.successTitle': 'Diterima — terima kasih atas pesan Anda 🙏',
+    'mailForm.successSub': 'Pesan Anda telah kami terima',
+    'mailForm.crisisNote': 'Pesan yang menyangkut krisis akan segera diteruskan ke tim perawatan nasional.',
+
+    // ── /f fee lookup (feeLookup.*) ────────────────────────────────────────────
+    'feeLookup.phoneLabel': 'Nomor telepon',
+    'feeLookup.lookupButton': 'Cari',
+    'feeLookup.lookingUp': 'Mencari…',
+    'feeLookup.privacyNote': 'Hanya catatan yang tertaut dengan nomor ini yang ditampilkan · nama disamarkan',
+    'feeLookup.lookupAnother': '← Cari nomor lain',
+    'feeLookup.notFound': 'Tidak ada catatan',
+    'feeLookup.notFoundSub': 'Belum ada catatan iuran bulanan untuk nomor ini. Jika ada pertanyaan, silakan hubungi bagian keuangan pusat Anda.',
+    'feeLookup.memberGreeting': 'Salam {name} 🙏',
+    'feeLookup.centrePledge': '{centre} · Donasi {pledge}',
+    'feeLookup.paidThroughLabel': 'Terbayar hingga',
+    'feeLookup.waived': 'Dibebaskan',
+    'feeLookup.waivedNote': 'Iuran bulanan dibebaskan · terima kasih atas dukungan Anda 🙏',
+    'feeLookup.paidNote': 'Terima kasih atas dukungan Anda · jasa tak terhingga 🙏',
+    'feeLookup.noPayments': 'Belum ada catatan pembayaran',
+    'feeLookup.thanks': 'Terima kasih atas dukungan Anda 🙏',
+    'feeLookup.paymentsTitle': 'Catatan pembayaran',
+    'feeLookup.thisCentre': 'pusat ini',
+    'feeLookup.transparency': '🏮 {centre} bulan ini: terkumpul {collected} · pengeluaran {expenses} · saldo {surplus}.',
+    'feeLookup.monthFull': 'Bulan ini sudah tercukupi, terima kasih 🙏 Tidak perlu membayar lagi bulan ini.',
+
+    // ── shared closed page (publicClosed.*) ────────────────────────────────────
+    'publicClosed.closed': 'Layanan ini dijeda sementara. Silakan kembali lagi nanti 🙏',
+    'publicClosed.closedSub': 'This service is temporarily paused. Please come back later.',
+  },
+};

@@ -14,7 +14,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { FinanceTabs } from '@/components/finance-chrome';
-import { CHANNEL_LABELS, CHANNEL_OPTIONS, pledgeLabel, moneyRM } from '@/lib/finance-display';
+import { channelLabel, channelOptions, pledgeLabel, moneyRM } from '@/lib/finance-display';
+import { useT } from '@/lib/i18n-react';
 
 type Lite<T> = T | T[] | null;
 function one<T>(v: T | T[] | null): T | null {
@@ -51,14 +52,16 @@ function downloadCsv(filename: string, headers: string[], rows: (string | number
 }
 
 export default function FinancePage() {
+  const t = useT();
   return (
-    <ErpGate active="finance" module="finance" titleSuffix="月费台账">
+    <ErpGate active="finance" module="finance" titleSuffix={t('finance.tab.ledger')}>
       {(me) => <Ledger me={me} />}
     </ErpGate>
   );
 }
 
 function Ledger({ me }: { me: ErpMe }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'finance', 'edit');
   // Preselect from the overview click-through (?centre=<id>&year=<YYYY>) when present.
   const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -165,18 +168,18 @@ function Ledger({ me }: { me: ErpMe }) {
 
   const exportCsv = () => {
     downloadCsv(
-      `月费台账_${centre?.name_cn ?? ''}_${year}.csv`,
-      ['赞助者', '电话', '认捐', '付至', ...MONTHS.map((m) => `${m}月`)],
+      `${t('ledger.csv.filename')}_${centre?.name_cn ?? ''}_${year}.csv`,
+      [t('ledger.col.sponsor'), t('ledger.csv.phone'), t('ledger.col.pledge'), t('ledger.col.paidThrough'), ...MONTHS.map((m) => t('ledger.monthCol', { m }))],
       filtered.map((mem) => {
-        const pl = pledgeLabel(mem);
+        const pl = pledgeLabel(mem, t);
         return [
           mem.name_cn,
           mem.phone ?? '',
           pl.text,
-          mem.fee_waived_from ? '豁免中' : paidThrough(mem) ?? '',
+          mem.fee_waived_from ? t('ledger.waiving') : paidThrough(mem) ?? '',
           ...MONTHS.map((m) => {
             const s = cellState(mem, m).kind;
-            return s === 'paid' ? '√' : s === 'waived' ? '豁免' : '';
+            return s === 'paid' ? '√' : s === 'waived' ? t('ledger.waived') : '';
           }),
         ];
       })
@@ -186,8 +189,8 @@ function Ledger({ me }: { me: ErpMe }) {
   return (
     <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex items-baseline gap-2">
-        <h2 className="text-xl font-bold font-serif text-ink">💰 月费台账</h2>
-        <span className="text-sm text-ink-faint">Fee Ledger</span>
+        <h2 className="text-xl font-bold font-serif text-ink">{t('ledger.title')}</h2>
+        {t('ledger.subtitle') && <span className="text-sm text-ink-faint">{t('ledger.subtitle')}</span>}
       </div>
       <FinanceTabs active="ledger" />
 
@@ -202,37 +205,37 @@ function Ledger({ me }: { me: ErpMe }) {
         <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent">
           {[year + 1, year, year - 1, year - 2].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => b - a).map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
-        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索姓名 / 电话…"
+        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('ledger.searchPlaceholder')}
           className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent w-48" />
         {centre && <PauseChip centre={centre} canEdit={canEdit} onClick={() => canEdit && setShowPause(true)} />}
         <span className="flex-1" />
-        {canEdit && <button onClick={() => setShowRecord(true)} className="px-4 py-1.5 text-sm btn-primary">＋ 记录收款</button>}
-        <button onClick={exportCsv} className="px-3 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">导出 CSV</button>
+        {canEdit && <button onClick={() => setShowRecord(true)} className="px-4 py-1.5 text-sm btn-primary">{t('ledger.recordPayment')}</button>}
+        <button onClick={exportCsv} className="px-3 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">{t('ledger.exportCsv')}</button>
       </div>
 
-      {centre?.receiptBookAt && <p className="text-xs text-ink-faint">收据簿至 № {centre.receiptBookAt}</p>}
+      {centre?.receiptBookAt && <p className="text-xs text-ink-faint">{t('ledger.receiptBookAt', { no: centre.receiptBookAt })}</p>}
 
       {/* grid */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {loading ? (
-          <p className="p-6 text-sm text-ink-muted">加载中…</p>
+          <p className="p-6 text-sm text-ink-muted">{t('ledger.loading')}</p>
         ) : filtered.length === 0 ? (
-          <div className="p-10 text-center"><p className="text-2xl mb-1">🪷</p><p className="text-sm text-ink">此中心暂无会员记录。</p></div>
+          <div className="p-10 text-center"><p className="text-2xl mb-1">🪷</p><p className="text-sm text-ink">{t('ledger.emptyCentre')}</p></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="text-sm" style={{ minWidth: 980 }}>
               <thead>
                 <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                  <th className="px-3 py-2.5 font-normal sticky left-0 bg-surface" style={{ minWidth: 130 }}>赞助者</th>
-                  <th className="px-3 py-2.5 font-normal">认捐</th>
-                  <th className="px-3 py-2.5 font-normal">付至</th>
-                  {MONTHS.map((m) => <th key={m} className="px-1.5 py-2.5 font-normal text-center">{m}月</th>)}
+                  <th className="px-3 py-2.5 font-normal sticky left-0 bg-surface" style={{ minWidth: 130 }}>{t('ledger.col.sponsor')}</th>
+                  <th className="px-3 py-2.5 font-normal">{t('ledger.col.pledge')}</th>
+                  <th className="px-3 py-2.5 font-normal">{t('ledger.col.paidThrough')}</th>
+                  {MONTHS.map((m) => <th key={m} className="px-1.5 py-2.5 font-normal text-center">{t('ledger.monthCol', { m })}</th>)}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((mem) => {
-                  const pl = pledgeLabel(mem);
-                  const through = mem.fee_waived_from ? '豁免中' : paidThrough(mem);
+                  const pl = pledgeLabel(mem, t);
+                  const through = mem.fee_waived_from ? t('ledger.waiving') : paidThrough(mem);
                   return (
                     <tr key={mem.id} className="border-b border-border last:border-b-0 hover:bg-accent/5">
                       <td className="px-3 py-2 sticky left-0 bg-surface">
@@ -241,7 +244,7 @@ function Ledger({ me }: { me: ErpMe }) {
                       </td>
                       <td className="px-3 py-2"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${pillTone(pl.tone)}`}>{pl.text}</span></td>
                       <td className="px-3 py-2">
-                        {mem.fee_waived_from ? <span className="text-[#6B5B8A] text-xs">豁免中</span> : through ? <b className="text-[#3F6B2E] text-xs">{through}</b> : <span className="text-ink-faint">—</span>}
+                        {mem.fee_waived_from ? <span className="text-[#6B5B8A] text-xs">{t('ledger.waiving')}</span> : through ? <b className="text-[#3F6B2E] text-xs">{through}</b> : <span className="text-ink-faint">—</span>}
                       </td>
                       {MONTHS.map((m) => {
                         const st = cellState(mem, m);
@@ -253,7 +256,7 @@ function Ledger({ me }: { me: ErpMe }) {
                         return (
                           <td key={m} className="px-1 py-1.5 text-center">
                             <span title={st.title} className={`block text-[10px] border rounded px-0 py-0.5 ${cls}`}>
-                              {st.kind === 'paid' ? '√' : st.kind === 'waived' ? '豁' : '·'}
+                              {st.kind === 'paid' ? '√' : st.kind === 'waived' ? t('ledger.mark.waived') : '·'}
                             </span>
                           </td>
                         );
@@ -268,7 +271,7 @@ function Ledger({ me }: { me: ErpMe }) {
       </div>
 
       <p className="text-xs text-ink-faint">
-        单元格 hover → 收据号 / 日期 / 金额 / 录入人 · 空白格 = 未付（<b>不是</b>逾期——只陈述“付至”，不催缴）
+        {t('ledger.footer')}
       </p>
 
       {showRecord && centre && (
@@ -293,6 +296,7 @@ function Ledger({ me }: { me: ErpMe }) {
 }
 
 function PauseChip({ centre, canEdit, onClick }: { centre: Centre; canEdit: boolean; onClick: () => void }) {
+  const t = useT();
   return (
     <button
       onClick={onClick}
@@ -300,7 +304,7 @@ function PauseChip({ centre, canEdit, onClick }: { centre: Centre; canEdit: bool
       title={centre.pausedNote ?? undefined}
       className={`text-xs px-3 py-1.5 rounded-full border ${centre.paused ? 'bg-surface-soft text-accent-deep border-gold-border' : 'bg-[#E7F0E0] text-[#3F6B2E] border-[#3F6B2E]/20'} ${canEdit ? 'hover:border-accent' : 'cursor-default'}`}
     >
-      {centre.paused ? '本月已足 · 已暂停' : '收款中'}
+      {centre.paused ? t('ledger.pause.chipPaused') : t('ledger.pause.chipCollecting')}
     </button>
   );
 }
@@ -317,6 +321,7 @@ const inputCls = 'w-full text-sm px-3 py-2 border border-border-strong rounded-l
 
 // Clickable-row member picker (search name / phone) — the ItemPicker pattern applied to members.
 function MemberPicker({ members, value, onChange }: { members: Member[]; value: string; onChange: (id: string) => void }) {
+  const t = useT();
   const [q, setQ] = useState('');
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -326,10 +331,10 @@ function MemberPicker({ members, value, onChange }: { members: Member[]; value: 
   const sel = members.find((m) => m.id === value) ?? null;
   return (
     <div>
-      <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索姓名 / 电话…" className={inputCls} />
+      <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('ledger.searchPlaceholder')} className={inputCls} />
       <div role="listbox" className="mt-1.5 max-h-40 overflow-auto border border-border-strong rounded-lg bg-surface divide-y divide-border">
         {filtered.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-ink-faint">没有匹配的赞助者</p>
+          <p className="px-3 py-3 text-xs text-ink-faint">{t('ledger.picker.noMatch')}</p>
         ) : (
           filtered.map((m) => {
             const isSel = m.id === value;
@@ -343,7 +348,7 @@ function MemberPicker({ members, value, onChange }: { members: Member[]; value: 
         )}
       </div>
       <p className="mt-1 text-[11.5px] min-h-[16px]">
-        {sel ? <span className="text-accent-deep">已选：{sel.name_cn}{sel.phone ? ` · ${sel.phone}` : ''}</span> : <span className="text-ink-faint">在上方点选一位赞助者</span>}
+        {sel ? <span className="text-accent-deep">{t('ledger.picker.selected', { who: `${sel.name_cn}${sel.phone ? ` · ${sel.phone}` : ''}` })}</span> : <span className="text-ink-faint">{t('ledger.picker.hint')}</span>}
       </p>
     </div>
   );
@@ -364,6 +369,7 @@ function ErrLine({ msg }: { msg: string }) {
 }
 
 function RecordPaymentModal({ centre, members, onClose, onDone }: { centre: Centre; members: Member[]; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const [memberId, setMemberId] = useState('');
   const [receiptNo, setReceiptNo] = useState('');
   const [paidAt, setPaidAt] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' }));
@@ -386,10 +392,10 @@ function RecordPaymentModal({ centre, members, onClose, onDone }: { centre: Cent
 
   const submit = async () => {
     setErr('');
-    if (!memberId) return setErr('请选择赞助者');
-    if (!receiptNo.trim()) return setErr('请填写收据号');
-    if (!(Number(amount) > 0)) return setErr('金额须大于 0');
-    if (!from || !to) return setErr('请填写覆盖月份');
+    if (!memberId) return setErr(t('ledger.err.selectSponsor'));
+    if (!receiptNo.trim()) return setErr(t('ledger.err.receiptNo'));
+    if (!(Number(amount) > 0)) return setErr(t('ledger.err.amountPositive'));
+    if (!from || !to) return setErr(t('ledger.err.coverMonths'));
     setBusy(true);
     try {
       const res = await fetch('/api/dashboard/finance/payments', {
@@ -398,7 +404,7 @@ function RecordPaymentModal({ centre, members, onClose, onDone }: { centre: Cent
         body: JSON.stringify({ centre_id: centre.id, member_id: memberId, receipt_no: receiptNo.trim(), paid_at: paidAt, amount: Number(amount), channel, months_from: from, months_to: to, note }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '保存失败');
+      if (!res.ok) setErr(j.error ?? t('ledger.err.saveFailed'));
       else onDone();
     } finally {
       setBusy(false);
@@ -406,37 +412,38 @@ function RecordPaymentModal({ centre, members, onClose, onDone }: { centre: Cent
   };
 
   return (
-    <ModalShell title={`记录收款 · ${centre.name_cn}`} onClose={onClose} wide>
+    <ModalShell title={t('ledger.modal.recordTitle', { centre: centre.name_cn })} onClose={onClose} wide>
       <ErrLine msg={err} />
       <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2"><Field label="赞助者"><MemberPicker members={members} value={memberId} onChange={setMemberId} /></Field></div>
-        <Field label="收据号 №">
+        <div className="col-span-2"><Field label={t('ledger.field.sponsor')}><MemberPicker members={members} value={memberId} onChange={setMemberId} /></Field></div>
+        <Field label={t('ledger.field.receiptNo')}>
           <input value={receiptNo} onChange={(e) => setReceiptNo(e.target.value)} className="w-full text-sm px-3 py-2 border border-gold-border rounded-lg bg-[#FEFBF3] text-accent-deep font-bold focus:outline-none focus:border-accent" />
-          <p className="text-[10.5px] text-ink-faint mt-1">自动接续本中心号簿，可改</p>
+          <p className="text-[10.5px] text-ink-faint mt-1">{t('ledger.receiptHint')}</p>
         </Field>
-        <Field label="收款日期"><input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className={inputCls} /></Field>
-        <Field label="金额 RM"><input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputCls} /></Field>
-        <Field label="渠道">
+        <Field label={t('ledger.field.paidDate')}><input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className={inputCls} /></Field>
+        <Field label={t('ledger.field.amount')}><input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputCls} /></Field>
+        <Field label={t('ledger.field.channel')}>
           <select value={channel} onChange={(e) => setChannel(e.target.value)} className={inputCls}>
-            {CHANNEL_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {channelOptions(t).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </Field>
-        <Field label="覆盖月份 从"><input type="month" value={from} onChange={(e) => setFrom(e.target.value)} className={inputCls} /></Field>
-        <Field label="至"><input type="month" value={to} onChange={(e) => setTo(e.target.value)} className={inputCls} /></Field>
-        <div className="col-span-2"><Field label="备注（可选）"><input value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} /></Field></div>
+        <Field label={t('ledger.field.coverFrom')}><input type="month" value={from} onChange={(e) => setFrom(e.target.value)} className={inputCls} /></Field>
+        <Field label={t('ledger.field.coverTo')}><input type="month" value={to} onChange={(e) => setTo(e.target.value)} className={inputCls} /></Field>
+        <div className="col-span-2"><Field label={t('ledger.field.noteOptional')}><input value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} /></Field></div>
       </div>
       <div className="mt-3 text-xs text-[#4A3A14] bg-[#FBF3DE] border border-gold-border rounded-lg px-3 py-2.5 leading-relaxed">
-        💡 金额与月份<b>互相独立</b>：系统不会用金额÷认捐推月份。RM100 覆盖两个月是财政与赞助者的共识，如实记录即可。
+        {t('ledger.recordHelp')}
       </div>
       <div className="flex gap-2 justify-end mt-3">
-        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : '保存收款'}</button>
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('ledger.cancel')}</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('ledger.saving') : t('ledger.savePayment')}</button>
       </div>
     </ModalShell>
   );
 }
 
 function PauseModal({ centre, onClose, onDone }: { centre: Centre; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const [note, setNote] = useState(centre.pausedNote ?? '');
   const [busy, setBusy] = useState(false);
   const target = !centre.paused;
@@ -454,16 +461,16 @@ function PauseModal({ centre, onClose, onDone }: { centre: Centre; onClose: () =
     }
   };
   return (
-    <ModalShell title={target ? '暂停本月收款' : '恢复本月收款'} onClose={onClose}>
+    <ModalShell title={target ? t('ledger.pause.titlePause') : t('ledger.pause.titleResume')} onClose={onClose}>
       <p className="text-sm text-ink-muted mb-3 leading-relaxed">
-        {target ? '本月中心需求已足，暂停收款。会员自查页会显示「本月已满，感恩 🙏」。这是透明化的手动开关，不是自动上限。' : '恢复本月收款。'}
+        {target ? t('ledger.pause.bodyPause') : t('ledger.pause.bodyResume')}
       </p>
       {target && (
-        <div className="mb-3"><Field label="说明（可选，透明化）"><input value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} placeholder="如：本月已足额" /></Field></div>
+        <div className="mb-3"><Field label={t('ledger.pause.noteLabel')}><input value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} placeholder={t('ledger.pause.notePlaceholder')} /></Field></div>
       )}
       <div className="flex gap-2 justify-end">
-        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : target ? '暂停收款' : '恢复收款'}</button>
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('ledger.cancel')}</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('ledger.saving') : target ? t('ledger.pause.doPause') : t('ledger.pause.doResume')}</button>
       </div>
     </ModalShell>
   );
@@ -473,26 +480,27 @@ function MemberPanel({ member, payments, voidedPayments, canEdit, onClose, onCha
   member: Member; payments: Payment[]; voidedPayments: Payment[]; canEdit: boolean; onClose: () => void; onChanged: () => void;
   onMemberUpdated: (m: Partial<Member> & { id: string }) => void;
 }) {
+  const t = useT();
   const [voidTarget, setVoidTarget] = useState<Payment | null>(null);
   const [showPledge, setShowPledge] = useState(false);
-  const pl = pledgeLabel(member);
+  const pl = pledgeLabel(member, t);
   return (
     <div className="fixed inset-0 z-[60]">
       <div className="absolute inset-0 bg-ink/40" onClick={onClose} />
       <div className="absolute right-0 top-0 bottom-0 w-[min(460px,94vw)] bg-surface border-l border-border overflow-y-auto p-5">
-        <button onClick={onClose} className="float-right text-lg text-ink-faint hover:text-ink" aria-label="关闭">✕</button>
+        <button onClick={onClose} className="float-right text-lg text-ink-faint hover:text-ink" aria-label={t('ledger.close')}>✕</button>
         <h3 className="text-lg font-bold font-serif text-ink">{member.name_cn}</h3>
-        <p className="text-xs text-ink-faint mt-0.5">{member.phone ?? '（无电话）'}</p>
+        <p className="text-xs text-ink-faint mt-0.5">{member.phone ?? t('ledger.noPhone')}</p>
         <div className="flex items-center gap-2 mt-2">
           <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${pillTone(pl.tone)}`}>{pl.text}</span>
-          {member.fee_waived_from && <span className="text-[11px] text-[#6B5B8A]">豁免起 {member.fee_waived_from}</span>}
-          {canEdit && <button onClick={() => setShowPledge(true)} className="ml-auto text-xs text-accent-deep hover:underline">认捐 / 豁免 ✏️</button>}
+          {member.fee_waived_from && <span className="text-[11px] text-[#6B5B8A]">{t('ledger.waivedFrom', { date: member.fee_waived_from })}</span>}
+          {canEdit && <button onClick={() => setShowPledge(true)} className="ml-auto text-xs text-accent-deep hover:underline">{t('ledger.editPledge')}</button>}
         </div>
         {member.fee_waiver_note && <p className="mt-1 text-[11px] text-ink-muted">{member.fee_waiver_note}</p>}
 
-        <h4 className="text-sm font-semibold text-ink mt-4 mb-1">缴付记录（{payments.length}）</h4>
+        <h4 className="text-sm font-semibold text-ink mt-4 mb-1">{t('ledger.paymentsHeading', { n: payments.length })}</h4>
         {payments.length === 0 ? (
-          <p className="text-xs text-ink-faint py-2">本年暂无缴付记录。</p>
+          <p className="text-xs text-ink-faint py-2">{t('ledger.noPayments')}</p>
         ) : (
           <div className="space-y-1.5">
             {payments.slice().sort((a, b) => (a.paid_at < b.paid_at ? 1 : -1)).map((p) => {
@@ -503,10 +511,10 @@ function MemberPanel({ member, payments, voidedPayments, canEdit, onClose, onCha
                     <span className="font-mono text-ink-muted">№{p.receipt_no}</span>
                     <span className="font-semibold text-ink">{moneyRM(p.amount)}</span>
                   </div>
-                  <div className="text-ink-muted mt-0.5">{p.paid_at} · {CHANNEL_LABELS[p.channel] ?? p.channel} · 覆盖 {p.months_from.slice(0, 7)} → {p.months_to.slice(0, 7)}</div>
+                  <div className="text-ink-muted mt-0.5">{p.paid_at} · {channelLabel(p.channel, t)} · {t('ledger.coverRange', { from: p.months_from.slice(0, 7), to: p.months_to.slice(0, 7) })}</div>
                   <div className="flex justify-between items-center mt-1">
                     <span className="text-ink-faint">{by?.display_name || by?.email || ''}</span>
-                    {canEdit && <button onClick={() => setVoidTarget(p)} className="text-[#B4402E] hover:underline">作废</button>}
+                    {canEdit && <button onClick={() => setVoidTarget(p)} className="text-[#B4402E] hover:underline">{t('ledger.void')}</button>}
                   </div>
                 </div>
               );
@@ -516,12 +524,12 @@ function MemberPanel({ member, payments, voidedPayments, canEdit, onClose, onCha
 
         {voidedPayments.length > 0 && (
           <>
-            <h4 className="text-sm font-semibold text-ink-muted mt-4 mb-1">已作废（保留号簿）</h4>
+            <h4 className="text-sm font-semibold text-ink-muted mt-4 mb-1">{t('ledger.voidedHeading')}</h4>
             <div className="space-y-1">
               {voidedPayments.slice().sort((a, b) => (a.paid_at < b.paid_at ? 1 : -1)).map((p) => (
                 <div key={p.id} className="text-[11.5px] text-ink-faint line-through">
                   №{p.receipt_no} · {p.paid_at} · {moneyRM(p.amount)}
-                  <span className="no-underline text-[#B4402E]"> （已作废：{p.void_reason}）</span>
+                  <span className="no-underline text-[#B4402E]"> {t('ledger.voidedTag', { reason: p.void_reason ?? '' })}</span>
                 </div>
               ))}
             </div>
@@ -531,7 +539,7 @@ function MemberPanel({ member, payments, voidedPayments, canEdit, onClose, onCha
 
       {voidTarget && (
         <VoidModal
-          title={`作废收款 №${voidTarget.receipt_no}`}
+          title={t('ledger.voidTitle', { no: voidTarget.receipt_no })}
           url={`/api/dashboard/finance/payments/${voidTarget.id}/void`}
           onClose={() => setVoidTarget(null)}
           onDone={() => { setVoidTarget(null); onChanged(); }}
@@ -545,6 +553,7 @@ function MemberPanel({ member, payments, voidedPayments, canEdit, onClose, onCha
 }
 
 function PledgeModal({ member, onClose, onDone }: { member: Member; onClose: () => void; onDone: (m: Partial<Member> & { id: string }) => void }) {
+  const t = useT();
   const [amount, setAmount] = useState(member.fee_pledge_amount != null ? String(member.fee_pledge_amount) : '');
   const [period, setPeriod] = useState(member.fee_pledge_period ?? 'month');
   const [waivedFrom, setWaivedFrom] = useState(member.fee_waived_from ?? '');
@@ -554,7 +563,7 @@ function PledgeModal({ member, onClose, onDone }: { member: Member; onClose: () 
 
   const submit = async () => {
     setErr('');
-    if (amount.trim() && !(Number(amount) > 0)) return setErr('认捐金额须大于 0，或留空表示未认捐');
+    if (amount.trim() && !(Number(amount) > 0)) return setErr(t('ledger.err.pledgeAmount'));
     setBusy(true);
     try {
       const res = await fetch(`/api/dashboard/finance/members/${member.id}/pledge`, {
@@ -568,7 +577,7 @@ function PledgeModal({ member, onClose, onDone }: { member: Member; onClose: () 
         }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '保存失败');
+      if (!res.ok) setErr(j.error ?? t('ledger.err.saveFailed'));
       else onDone({ id: member.id, fee_pledge_amount: amount.trim() ? Number(amount) : null, fee_pledge_period: amount.trim() ? period : null, fee_waived_from: waivedFrom || null, fee_waiver_note: waivedFrom ? waiverNote.trim() || null : null });
     } finally {
       setBusy(false);
@@ -576,35 +585,36 @@ function PledgeModal({ member, onClose, onDone }: { member: Member; onClose: () 
   };
 
   return (
-    <ModalShell title={`认捐 / 豁免 · ${member.name_cn}`} onClose={onClose}>
+    <ModalShell title={t('ledger.pledge.title', { name: member.name_cn })} onClose={onClose}>
       <ErrLine msg={err} />
-      <div className="text-xs text-ink-muted bg-surface-soft rounded-lg px-3 py-2 mb-3 leading-relaxed">认捐与豁免<b>互相独立</b>：豁免的会员也可保留历史认捐额。留空认捐金额 = 未认捐。</div>
+      <div className="text-xs text-ink-muted bg-surface-soft rounded-lg px-3 py-2 mb-3 leading-relaxed">{t('ledger.pledge.help')}</div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="认捐金额 RM（留空=未认捐）"><input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputCls} /></Field>
-        <Field label="周期"><select value={period} onChange={(e) => setPeriod(e.target.value)} className={inputCls}><option value="month">每月</option><option value="year">每年</option></select></Field>
-        <Field label="豁免起始（留空=不豁免）"><input type="date" value={waivedFrom} onChange={(e) => setWaivedFrom(e.target.value)} className={inputCls} /></Field>
-        <Field label="豁免说明"><input value={waiverNote} onChange={(e) => setWaiverNote(e.target.value)} className={inputCls} placeholder="如：理事会决议" /></Field>
+        <Field label={t('ledger.pledge.amountLabel')}><input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputCls} /></Field>
+        <Field label={t('ledger.pledge.periodLabel')}><select value={period} onChange={(e) => setPeriod(e.target.value)} className={inputCls}><option value="month">{t('ledger.pledge.monthly')}</option><option value="year">{t('ledger.pledge.yearly')}</option></select></Field>
+        <Field label={t('ledger.pledge.waivedFromLabel')}><input type="date" value={waivedFrom} onChange={(e) => setWaivedFrom(e.target.value)} className={inputCls} /></Field>
+        <Field label={t('ledger.pledge.waiverNoteLabel')}><input value={waiverNote} onChange={(e) => setWaiverNote(e.target.value)} className={inputCls} placeholder={t('ledger.pledge.waiverNotePlaceholder')} /></Field>
       </div>
       <div className="flex gap-2 justify-end mt-3">
-        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : '保存'}</button>
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('ledger.cancel')}</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('ledger.saving') : t('ledger.save')}</button>
       </div>
     </ModalShell>
   );
 }
 
 function VoidModal({ title, url, onClose, onDone }: { title: string; url: string; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const [reason, setReason] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     setErr('');
-    if (!reason.trim()) return setErr('请填写作废原因');
+    if (!reason.trim()) return setErr(t('ledger.err.voidReason'));
     setBusy(true);
     try {
       const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: reason.trim() }) });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '作废失败');
+      if (!res.ok) setErr(j.error ?? t('ledger.err.voidFailed'));
       else onDone();
     } finally {
       setBusy(false);
@@ -613,11 +623,11 @@ function VoidModal({ title, url, onClose, onDone }: { title: string; url: string
   return (
     <ModalShell title={title} onClose={onClose}>
       <ErrLine msg={err} />
-      <p className="text-xs text-ink-muted mb-2">作废保留审计痕迹（不删除）。请说明原因。</p>
+      <p className="text-xs text-ink-muted mb-2">{t('ledger.voidBody')}</p>
       <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} className={inputCls} />
       <div className="flex gap-2 justify-end mt-3">
-        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm border border-[#E5C4BF] text-[#B4402E] rounded-lg bg-surface hover:border-[#B4402E]">{busy ? '处理中…' : '确认作废'}</button>
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('ledger.cancel')}</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm border border-[#E5C4BF] text-[#B4402E] rounded-lg bg-surface hover:border-[#B4402E]">{busy ? t('ledger.processing') : t('ledger.confirmVoid')}</button>
       </div>
     </ModalShell>
   );

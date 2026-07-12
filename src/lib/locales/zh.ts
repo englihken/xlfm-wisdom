@@ -135,6 +135,9 @@ export const zh = {
   'settings.section.careCfg': '智慧问答设定',
   'settings.section.stages': '渡人阶段',
   'settings.section.publicPages': '公开页面',
+  'settings.moduleTitle': '设置 · Settings',
+  'settings.adminOnly': '此页面仅限管理员',
+  'settings.backToCare': '返回智慧问答',
 
   'matrix.hint': '只读 · 读取 role_grants 实时数据 — 永不过时。',
   'matrix.footNote': '调整权限由架构师经连接器执行并记录审计（界面不提供编辑，防误锁）。',
@@ -332,4 +335,28 @@ export const zh = {
   'home.task.careUnread': '有新讯息 · 我接手的对话',
   'home.task.careHandling': '处理中 · 我接手的对话',
   'home.task.awaitingApproval': '待批核申请',
+
+  // ── ERP shell (erp-gate: module title + access-denied notice) ───────────────
+  'erp.denied': '此页面需要{module}模块权限',
+  'erp.title.members': '会员 · Members',
+  'erp.title.events': '活动 · Events',
+  'erp.title.inventory': '库存 · Inventory',
+  'erp.title.finance': '财务 · Finance',
+  'erp.title.outreach': '渡人 · Outreach',
+  'erp.suffix.profile': '资料',
+  'erp.suffix.new': '新增',
+  'erp.suffix.edit': '编辑',
+
+  // ── nav rail (left sidebar door labels) ─────────────────────────────────────
+  'nav.ariaLabel': '主导航',
+  'nav.home': '主页',
+  'nav.mail': '收件箱',
+  'nav.inbox': '智慧问答',
+  'nav.outreach': '渡人',
+  'nav.members': '会员',
+  'nav.events': '活动',
+  'nav.inventory': '库存',
+  'nav.finance': '财务',
+  'nav.reports': '报表',
+  'nav.settings': '设置',
 } satisfies Record<string, string>;

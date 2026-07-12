@@ -6,15 +6,17 @@
 import { ErpGate } from '@/components/erp-gate';
 import { EventForm } from '@/components/event-form';
 import { grantAllows } from '@/lib/access';
+import { useT } from '@/lib/i18n-react';
 
 export default function NewEventPage() {
+  const t = useT();
   return (
-    <ErpGate active="events" module="events" titleSuffix="新建">
+    <ErpGate active="events" module="events" titleSuffix={t('events.suffix.new')}>
       {(me) =>
         grantAllows(me.grants, 'events', 'edit') ? (
           <EventForm mode="create" />
         ) : (
-          <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">您没有创建活动的权限。</p>
+          <p className="max-w-3xl mx-auto px-4 py-10 text-sm text-ink-muted">{t('events.noCreatePerm')}</p>
         )
       }
     </ErpGate>

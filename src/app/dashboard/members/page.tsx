@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
+import { useT } from '@/lib/i18n-react';
 
 type Row = {
   id: string;
@@ -34,6 +35,7 @@ export default function MembersPage() {
 }
 
 function MembersList({ me }: { me: ErpMe }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'members', 'edit');
 
   const [searchInput, setSearchInput] = useState('');
@@ -53,11 +55,11 @@ function MembersList({ me }: { me: ErpMe }) {
 
   // Debounce the search box into `search` (and reset to page 1).
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setSearch(searchInput.trim());
       setPage(1);
     }, 300);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [searchInput]);
 
   // Load dropdown reference data once.
@@ -110,15 +112,15 @@ function MembersList({ me }: { me: ErpMe }) {
       {/* header row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold font-serif text-ink">👥 会员</h2>
-          <span className="text-sm text-ink-faint">Members · {total}</span>
+          <h2 className="text-xl font-bold font-serif text-ink">{t('members.title')}</h2>
+          <span className="text-sm text-ink-faint">{t('members.subtitle', { n: total })}</span>
         </div>
         {canEdit && (
           <Link
             href="/dashboard/members/new"
             className="btn-primary px-4 py-1.5 text-sm transition"
           >
-            + 新增会员
+            {t('members.addMember')}
           </Link>
         )}
       </div>
@@ -129,31 +131,31 @@ function MembersList({ me }: { me: ErpMe }) {
           type="search"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="搜索 名字 / 电话…"
+          placeholder={t('members.searchPlaceholder')}
           className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent w-56"
         />
         <FilterSel value={centre} onChange={(x) => onFilter(() => setCentre(x))}
-          options={[['', '全部中心'], ...meta.centres.map((c) => [c.id, c.name_cn] as [string, string])]} />
+          options={[['', t('members.filter.allCentres')], ...meta.centres.map((c) => [c.id, c.name_cn] as [string, string])]} />
         <FilterSel value={team} onChange={(x) => onFilter(() => setTeam(x))}
-          options={[['', '全部组别'], ...meta.teams.map((t) => [t.id, t.name_cn] as [string, string])]} />
+          options={[['', t('members.filter.allTeams')], ...meta.teams.map((tm) => [tm.id, tm.name_cn] as [string, string])]} />
         <FilterSel value={disciple} onChange={(x) => onFilter(() => setDisciple(x))}
-          options={[['', '弟子(全部)'], ['true', '弟子:是'], ['false', '弟子:否']]} />
+          options={[['', t('members.filter.discipleAll')], ['true', t('members.filter.discipleYes')], ['false', t('members.filter.discipleNo')]]} />
         <FilterSel value={fullVeg} onChange={(x) => onFilter(() => setFullVeg(x))}
-          options={[['', '全素(全部)'], ['true', '全素:是'], ['false', '全素:否']]} />
+          options={[['', t('members.filter.vegAll')], ['true', t('members.filter.vegYes')], ['false', t('members.filter.vegNo')]]} />
         <FilterSel value={status} onChange={(x) => onFilter(() => setStatus(x))}
-          options={[['active', '在册'], ['inactive', '已停用'], ['all', '全部状态']]} />
+          options={[['active', t('members.statusActive')], ['inactive', t('members.statusInactive')], ['all', t('members.filter.statusAll')]]} />
       </div>
 
       {/* table */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {loading ? (
-          <p className="p-6 text-sm text-ink-muted">加载中…</p>
+          <p className="p-6 text-sm text-ink-muted">{t('common.loading')}</p>
         ) : rows.length === 0 ? (
           <div className="p-10 text-center">
             <p className="text-2xl mb-1">🪷</p>
-            <p className="text-sm text-ink">还没有会员，先添一位善缘。</p>
+            <p className="text-sm text-ink">{t('members.empty.title')}</p>
             <p className="mt-1 text-xs text-ink-muted">
-              数据将通过导入（A5）批量导入，或点击「+ 新增会员」手动添加。
+              {t('members.empty.hint')}
             </p>
           </div>
         ) : (
@@ -161,7 +163,7 @@ function MembersList({ me }: { me: ErpMe }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                  <Th>姓名 Name</Th><Th>中心 Centre</Th><Th>组别 Teams</Th><Th>弟子/全素</Th><Th>电话 Phone</Th><Th>状态</Th>
+                  <Th>{t('members.col.name')}</Th><Th>{t('members.col.centre')}</Th><Th>{t('members.col.teams')}</Th><Th>{t('members.col.discipleVeg')}</Th><Th>{t('members.col.phone')}</Th><Th>{t('members.col.status')}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -169,7 +171,7 @@ function MembersList({ me }: { me: ErpMe }) {
                   <tr key={r.id} className="border-b border-border last:border-b-0 hover:bg-accent/5">
                     <td className="px-4 py-2.5">
                       <Link href={`/dashboard/members/${r.id}`} className="font-medium text-ink hover:text-accent-deep">
-                        {r.name_cn || r.name_en || '（无名）'}
+                        {r.name_cn || r.name_en || t('members.noName')}
                       </Link>
                       {r.name_cn && r.name_en && <div className="text-xs text-ink-muted">{r.name_en}</div>}
                     </td>
@@ -182,26 +184,26 @@ function MembersList({ me }: { me: ErpMe }) {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap gap-1">
-                        {r.teams.map((t, i) => (
+                        {r.teams.map((tm, i) => (
                           <span key={i} className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${
-                            t.role === 'lead' ? 'pill-gold font-medium' : 'pill-muted'
+                            tm.role === 'lead' ? 'pill-gold font-medium' : 'pill-muted'
                           }`}>
-                            {t.name_cn}{t.role === 'lead' ? ' · 组长' : ''}
+                            {tm.name_cn}{tm.role === 'lead' ? t('members.leadSuffix') : ''}
                           </span>
                         ))}
                       </div>
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex gap-1">
-                        {r.disciple === true && <Badge>弟子</Badge>}
-                        {r.full_veg === true && <Badge>全素</Badge>}
+                        {r.disciple === true && <Badge>{t('members.disciple')}</Badge>}
+                        {r.full_veg === true && <Badge>{t('members.fullVeg')}</Badge>}
                       </div>
                     </td>
                     <td className="px-4 py-2.5 font-mono text-xs text-ink">{r.phone || '–'}</td>
                     <td className="px-4 py-2.5">
                       {r.status === 'active'
-                        ? <span className="text-[11px] text-ink-muted">在册</span>
-                        : <span className="text-[11px] text-red-700">已停用</span>}
+                        ? <span className="text-[11px] text-ink-muted">{t('members.statusActive')}</span>
+                        : <span className="text-[11px] text-red-700">{t('members.statusInactive')}</span>}
                     </td>
                   </tr>
                 ))}
@@ -219,7 +221,7 @@ function MembersList({ me }: { me: ErpMe }) {
             disabled={page <= 1}
             className="px-3 py-1 rounded-full border border-border hover:bg-accent/5 disabled:opacity-40"
           >‹</button>
-          <span>第 {page} / {totalPages} 页 · 共 {total}</span>
+          <span>{t('members.pageInfo', { page, totalPages, total })}</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}

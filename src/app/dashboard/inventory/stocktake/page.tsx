@@ -14,6 +14,7 @@ import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { InventoryTabs, InventorySearchRow, ScanButton, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
+import { useT } from '@/lib/i18n-react';
 
 type Loc = { id: string; name_cn: string; kind: string };
 type SessionMeta = {
@@ -35,14 +36,16 @@ function one<T>(v: T | T[] | null): T | null {
 const locName = (l: Loc | null) => (l ? (l.kind === 'hq_warehouse' ? `🏛️ ${l.name_cn}` : l.name_cn) : '—');
 
 export default function StocktakePage() {
+  const t = useT();
   return (
-    <ErpGate active="inventory" module="inventory" titleSuffix="盘点模式">
+    <ErpGate active="inventory" module="inventory" titleSuffix={t('inv.suffix.stocktake')}>
       {(me) => <Stocktake me={me} />}
     </ErpGate>
   );
 }
 
 function Stocktake({ me }: { me: ErpMe }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'inventory', 'edit');
   const [selected, setSelected] = useState<string | null>(null);
   const [items, setItems] = useState<SearchItem[]>([]);
@@ -61,7 +64,7 @@ function Stocktake({ me }: { me: ErpMe }) {
   return (
     <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex items-baseline gap-2">
-        <h2 className="text-xl font-bold font-serif text-ink">📋 盘点模式</h2>
+        <h2 className="text-xl font-bold font-serif text-ink">{t('inv.st.title')}</h2>
         <span className="text-sm text-ink-faint">Stock-take</span>
       </div>
 
@@ -83,6 +86,7 @@ function Stocktake({ me }: { me: ErpMe }) {
 
 // ---------------- session list + new ----------------
 function SessionList({ canEdit, onOpen }: { canEdit: boolean; onOpen: (id: string) => void }) {
+  const t = useT();
   const [sessions, setSessions] = useState<SessionMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
@@ -104,21 +108,21 @@ function SessionList({ canEdit, onOpen }: { canEdit: boolean; onOpen: (id: strin
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-ink-muted">法会前全仓盘点用这个，不用一项一项改。</p>
-        {canEdit && <button onClick={() => setShowNew(true)} className="px-4 py-1.5 text-sm btn-primary">＋ 新盘点</button>}
+        <p className="text-sm text-ink-muted">{t('inv.st.intro')}</p>
+        {canEdit && <button onClick={() => setShowNew(true)} className="px-4 py-1.5 text-sm btn-primary">{t('inv.st.newBtn')}</button>}
       </div>
 
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {loading ? (
-          <p className="p-6 text-sm text-ink-muted">加载中…</p>
+          <p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>
         ) : sessions.length === 0 ? (
-          <div className="p-10 text-center"><p className="text-2xl mb-1">🪷</p><p className="text-sm text-ink">还没有盘点记录。</p></div>
+          <div className="p-10 text-center"><p className="text-2xl mb-1">🪷</p><p className="text-sm text-ink">{t('inv.st.noSessions')}</p></div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                <th className="px-4 py-2.5 font-normal">地点 / 范围</th><th className="px-4 py-2.5 font-normal">进度</th>
-                <th className="px-4 py-2.5 font-normal">状态</th><th className="px-4 py-2.5 font-normal">时间</th>
+                <th className="px-4 py-2.5 font-normal">{t('inv.st.thLocScope')}</th><th className="px-4 py-2.5 font-normal">{t('inv.st.thProgress')}</th>
+                <th className="px-4 py-2.5 font-normal">{t('inv.th.status')}</th><th className="px-4 py-2.5 font-normal">{t('inv.st.thTime')}</th>
               </tr>
             </thead>
             <tbody>
@@ -128,9 +132,9 @@ function SessionList({ canEdit, onOpen }: { canEdit: boolean; onOpen: (id: strin
                   <tr key={s.id} onClick={() => onOpen(s.id)} className="border-b border-border last:border-b-0 hover:bg-accent/5 cursor-pointer">
                     <td className="px-4 py-2.5">
                       <span className="font-medium text-ink">{locName(l)}</span>
-                      <span className="ml-1.5 text-xs text-ink-muted">{s.category_cn ?? '全仓'}</span>
+                      <span className="ml-1.5 text-xs text-ink-muted">{s.category_cn ?? t('inv.st.wholeWarehouse')}</span>
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-ink-muted tabular-nums">已点 {s.countedCount} / {s.lineCount}</td>
+                    <td className="px-4 py-2.5 text-xs text-ink-muted tabular-nums">{t('inv.st.countedProgress', { c: s.countedCount, n: s.lineCount })}</td>
                     <td className="px-4 py-2.5"><StatusPill status={s.status} /></td>
                     <td className="px-4 py-2.5 text-xs text-ink-faint">{(s.confirmed_at ?? s.created_at)?.slice(0, 10)}</td>
                   </tr>
@@ -147,16 +151,24 @@ function SessionList({ canEdit, onOpen }: { canEdit: boolean; onOpen: (id: strin
 }
 
 function StatusPill({ status }: { status: string }) {
-  const map: Record<string, [string, string]> = {
-    draft: ['进行中', 'bg-white border border-gold-border text-accent-deep'],
-    confirmed: ['已确认', 'bg-[#E7F0E0] text-[#3F6B2E]'],
-    cancelled: ['已取消', 'bg-surface-soft text-ink-faint border border-border'],
+  const t = useT();
+  const styleMap: Record<string, string> = {
+    draft: 'bg-white border border-gold-border text-accent-deep',
+    confirmed: 'bg-[#E7F0E0] text-[#3F6B2E]',
+    cancelled: 'bg-surface-soft text-ink-faint border border-border',
   };
-  const [label, cls] = map[status] ?? [status, ''];
+  const labelMap: Record<string, string> = {
+    draft: 'inv.st.statusDraft',
+    confirmed: 'inv.st.statusConfirmed',
+    cancelled: 'inv.st.statusCancelled',
+  };
+  const cls = styleMap[status] ?? '';
+  const label = labelMap[status] ? t(labelMap[status]) : status;
   return <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${cls}`}>{label}</span>;
 }
 
 function NewSessionModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+  const t = useT();
   const [locations, setLocations] = useState<Loc[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [location, setLocation] = useState('');
@@ -179,7 +191,7 @@ function NewSessionModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
   const create = async () => {
     setErr('');
-    if (!location) return setErr('请选择盘点地点');
+    if (!location) return setErr(t('inv.st.errLocation'));
     setBusy(true);
     try {
       const res = await fetch('/api/dashboard/inventory/stocktakes', {
@@ -188,7 +200,7 @@ function NewSessionModal({ onClose, onCreated }: { onClose: () => void; onCreate
         body: JSON.stringify({ location_id: location, category_cn: scope || null }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '创建失败');
+      if (!res.ok) setErr(j.error ?? t('inv.createFailed'));
       else onCreated(j.stocktake.id);
     } finally {
       setBusy(false);
@@ -198,20 +210,20 @@ function NewSessionModal({ onClose, onCreated }: { onClose: () => void; onCreate
   return (
     <div className="fixed inset-0 z-[70] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-surface rounded-2xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-ink mb-3">新盘点</h3>
+        <h3 className="text-base font-semibold text-ink mb-3">{t('inv.st.newTitle')}</h3>
         {err && <p className="text-sm text-[#B4402E] bg-[#FCEBEA] border border-[#B4402E]/20 rounded-lg px-3 py-2 mb-2">{err}</p>}
-        <label className="block text-xs text-ink-muted mb-1">盘点地点</label>
+        <label className="block text-xs text-ink-muted mb-1">{t('inv.st.locationLabel')}</label>
         <select value={location} onChange={(e) => setLocation(e.target.value)} className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent mb-2">
           {locations.map((l) => <option key={l.id} value={l.id}>{locName(l)}</option>)}
         </select>
-        <label className="block text-xs text-ink-muted mb-1">范围</label>
+        <label className="block text-xs text-ink-muted mb-1">{t('inv.st.scopeLabel')}</label>
         <select value={scope} onChange={(e) => setScope(e.target.value)} className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent mb-3">
-          <option value="">全仓（所有分类）</option>
+          <option value="">{t('inv.st.scopeAll')}</option>
           {categories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-          <button disabled={busy} onClick={create} className="px-5 py-1.5 text-sm btn-primary">{busy ? '创建中…' : '开始盘点'}</button>
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('inv.cancel')}</button>
+          <button disabled={busy} onClick={create} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('inv.creating') : t('inv.st.startBtn')}</button>
         </div>
       </div>
     </div>
@@ -220,6 +232,7 @@ function NewSessionModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
 // ---------------- session view ----------------
 function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: boolean; onBack: () => void; onFlash: (m: string) => void }) {
+  const t = useT();
   const [session, setSession] = useState<SessionMeta | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [adjustments, setAdjustments] = useState<{ movement_type: string; qty: number; item: { stock_id: string | null; name_cn: string } | { stock_id: string | null; name_cn: string }[] | null }[]>([]);
@@ -275,7 +288,7 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ counts: countsPayload }),
       });
-      if (res.ok && !silent) onFlash('已存草稿。');
+      if (res.ok && !silent) onFlash(t('inv.st.draftSaved'));
       return res.ok;
     } finally {
       setSaving(false);
@@ -289,17 +302,21 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
       if (!saved) {
         setConfirming(false);
         setShowConfirm(false);
-        onFlash('保存失败，请重试。');
+        onFlash(t('inv.st.saveRetry'));
         return;
       }
       const res = await fetch(`/api/dashboard/inventory/stocktakes/${id}/confirm`, { method: 'POST' });
       const j = await res.json().catch(() => ({}));
       setShowConfirm(false);
       if (!res.ok) {
-        onFlash(j.error ?? '确认失败。');
+        onFlash(j.error ?? t('inv.st.confirmFailed'));
       } else {
         const drift = (j.driftWarnings ?? []).length;
-        onFlash(`✅ 盘点已确认 — ${j.adjustments} 笔调整已入账，${j.skipped} 项未点跳过${drift ? `，${drift} 项在盘点中有变动（以实点为准）` : ''}。`);
+        onFlash(
+          drift
+            ? t('inv.st.confirmedFlashDrift', { adjustments: j.adjustments, skipped: j.skipped, drift })
+            : t('inv.st.confirmedFlash', { adjustments: j.adjustments, skipped: j.skipped })
+        );
         onBack();
       }
     } finally {
@@ -310,7 +327,7 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
   const jumpTo = (itemId: string) => {
     const line = lines.find((l) => l.item_id === itemId);
     if (!line) {
-      onFlash('扫到的品项不在本次盘点范围内。');
+      onFlash(t('inv.st.scanOutOfScope'));
       return;
     }
     setHighlight(itemId);
@@ -326,12 +343,12 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
     const rows = lines
       .map((ln) => {
         const it = one(ln.item);
-        return `<tr><td>${it?.stock_id ?? '未编号'}</td><td>${escapeHtml(it?.name_cn ?? '')}</td><td class="sys">${ln.system_qty}</td><td class="blank"></td></tr>`;
+        return `<tr><td>${it?.stock_id ?? t('inv.unnumbered')}</td><td>${escapeHtml(it?.name_cn ?? '')}</td><td class="sys">${ln.system_qty}</td><td class="blank"></td></tr>`;
       })
       .join('');
     const w = window.open('', '_blank');
     if (!w) return;
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>盘点清单</title>
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(t('inv.st.printTitle'))}</title>
       <style>
         body{font-family:'Noto Sans SC',sans-serif;color:#2B2620;padding:16px}
         h1{font-size:18px;margin:0 0 4px} .meta{font-size:12px;color:#6B6154;margin-bottom:12px}
@@ -340,17 +357,17 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
         th{background:#F5F1E9;font-weight:600} td.sys{text-align:right;width:70px}
         td.blank{width:90px} @media print{@page{margin:12mm}}
       </style></head><body>
-      <h1>📋 盘点清单 — ${escapeHtml(l ? l.name_cn : '')}</h1>
-      <div class="meta">范围：${escapeHtml(session?.category_cn ?? '全仓')} · 共 ${lines.length} 项 · 拿笔逐项点，回来输入系统</div>
-      <table><thead><tr><th>编号</th><th>品项</th><th>系统数</th><th>实点数</th></tr></thead><tbody>${rows}</tbody></table>
+      <h1>${escapeHtml(t('inv.st.printHeader', { loc: l ? l.name_cn : '' }))}</h1>
+      <div class="meta">${escapeHtml(t('inv.st.printMeta', { scope: session?.category_cn ?? t('inv.st.wholeWarehouse'), n: lines.length }))}</div>
+      <table><thead><tr><th>${escapeHtml(t('inv.th.code'))}</th><th>${escapeHtml(t('inv.th.item'))}</th><th>${escapeHtml(t('inv.st.thSystemQty'))}</th><th>${escapeHtml(t('inv.st.thCountedQty'))}</th></tr></thead><tbody>${rows}</tbody></table>
       </body></html>`);
     w.document.close();
     w.focus();
     w.print();
   };
 
-  if (loading) return <p className="p-6 text-sm text-ink-muted">加载中…</p>;
-  if (!session) return <p className="p-6 text-sm text-ink-muted">盘点不存在。</p>;
+  if (loading) return <p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>;
+  if (!session) return <p className="p-6 text-sm text-ink-muted">{t('inv.st.notFound')}</p>;
 
   const loc = one(session.location);
   const scanItems: SearchItem[] = lines.map((l) => {
@@ -362,20 +379,20 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <button onClick={onBack} className="text-sm text-accent-deep hover:underline">← 返回列表</button>
+          <button onClick={onBack} className="text-sm text-accent-deep hover:underline">{t('inv.st.backList')}</button>
           <p className="text-sm text-ink mt-1">
-            <b>{locName(loc)}</b> · {session.category_cn ?? '全仓'} · <StatusPill status={session.status} />
+            <b>{locName(loc)}</b> · {session.category_cn ?? t('inv.st.wholeWarehouse')} · <StatusPill status={session.status} />
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={printSheet} className="px-3 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">🖨️ 打印盘点清单</button>
+          <button onClick={printSheet} className="px-3 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">{t('inv.st.printBtn')}</button>
           {isDraft && canEdit && <ScanButton items={scanItems} onPick={jumpTo} />}
         </div>
       </div>
 
       {isDraft && (
         <div className="flex items-center gap-2 text-sm text-ink-muted">
-          <span className="tabular-nums">已点 {countedN} / {lines.length}</span>
+          <span className="tabular-nums">{t('inv.st.countedProgress', { c: countedN, n: lines.length })}</span>
           <span className="h-1.5 flex-1 max-w-xs bg-surface-soft rounded-full overflow-hidden">
             <span className="block h-full bg-accent" style={{ width: `${lines.length ? (countedN / lines.length) * 100 : 0}%` }} />
           </span>
@@ -387,10 +404,10 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                <th className="px-4 py-2.5 font-normal">品项</th>
-                <th className="px-4 py-2.5 font-normal text-right">系统数</th>
-                <th className="px-4 py-2.5 font-normal text-right">实点数</th>
-                <th className="px-4 py-2.5 font-normal text-right">差异</th>
+                <th className="px-4 py-2.5 font-normal">{t('inv.th.item')}</th>
+                <th className="px-4 py-2.5 font-normal text-right">{t('inv.st.thSystemQty')}</th>
+                <th className="px-4 py-2.5 font-normal text-right">{t('inv.st.thCountedQty')}</th>
+                <th className="px-4 py-2.5 font-normal text-right">{t('inv.st.thDiff')}</th>
               </tr>
             </thead>
             <tbody>
@@ -424,7 +441,7 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
                               else e.currentTarget.blur();
                             }
                           }}
-                          placeholder="待点"
+                          placeholder={t('inv.st.pendingCount')}
                           className="w-20 text-sm px-2 py-1 border border-border-strong rounded-lg bg-surface text-ink text-right focus:outline-none focus:border-accent tabular-nums"
                         />
                       ) : (
@@ -444,15 +461,15 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
 
       {isDraft && canEdit && (
         <div className="flex flex-wrap gap-2">
-          <button disabled={confirming || countedN === 0} onClick={() => setShowConfirm(true)} className="px-5 py-2 text-sm btn-primary">确认盘点</button>
-          <button disabled={saving} onClick={() => saveDraft()} className="px-4 py-2 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">{saving ? '保存中…' : '存草稿'}</button>
+          <button disabled={confirming || countedN === 0} onClick={() => setShowConfirm(true)} className="px-5 py-2 text-sm btn-primary">{t('inv.st.confirmTitle')}</button>
+          <button disabled={saving} onClick={() => saveDraft()} className="px-4 py-2 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">{saving ? t('inv.saving') : t('inv.st.saveDraft')}</button>
           <CancelDraft id={id} onDone={onBack} />
         </div>
       )}
 
       {session.status === 'confirmed' && adjustments.length > 0 && (
         <div className="bg-surface border border-border rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-ink mb-2">本次盘点产生的调整（{adjustments.length}）</h3>
+          <h3 className="text-sm font-semibold text-ink mb-2">{t('inv.st.adjustmentsTitle', { n: adjustments.length })}</h3>
           <div className="space-y-1">
             {adjustments.map((a, i) => {
               const it = one(a.item);
@@ -470,13 +487,13 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
       {showConfirm && (
         <div className="fixed inset-0 z-[70] bg-ink/45 flex items-center justify-center p-4" onClick={() => setShowConfirm(false)}>
           <div className="bg-surface rounded-2xl max-w-sm w-full p-5" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-ink mb-2">确认盘点</h3>
+            <h3 className="text-base font-semibold text-ink mb-2">{t('inv.st.confirmTitle')}</h3>
             <p className="text-sm text-ink-muted mb-3 leading-relaxed">
-              有 <b className="text-ink">{diffN}</b> 笔差异，<b className="text-ink">{lines.length - countedN}</b> 项未点（未点的会跳过，不改动）。确认后为每笔差异生成盘点调增/调减，系统数对齐实点数。差异不追究。
+              {t('inv.st.confirmBody', { diff: diffN, uncounted: lines.length - countedN })}
             </p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowConfirm(false)} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">再想想</button>
-              <button disabled={confirming} onClick={confirm} className="px-5 py-1.5 text-sm btn-primary">{confirming ? '确认中…' : '确认入账'}</button>
+              <button onClick={() => setShowConfirm(false)} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('inv.st.reconsider')}</button>
+              <button disabled={confirming} onClick={confirm} className="px-5 py-1.5 text-sm btn-primary">{confirming ? t('inv.st.confirming') : t('inv.st.confirmPost')}</button>
             </div>
           </div>
         </div>
@@ -486,6 +503,7 @@ function SessionView({ id, canEdit, onBack, onFlash }: { id: string; canEdit: bo
 }
 
 function CancelDraft({ id, onDone }: { id: string; onDone: () => void }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const cancel = async () => {
     setBusy(true);
@@ -502,7 +520,7 @@ function CancelDraft({ id, onDone }: { id: string; onDone: () => void }) {
   };
   return (
     <button disabled={busy} onClick={cancel} className="px-4 py-2 text-sm border border-border-strong rounded-lg bg-surface text-ink-muted hover:border-[#B4402E] transition">
-      {busy ? '…' : '取消盘点'}
+      {busy ? '…' : t('inv.st.cancelDraft')}
     </button>
   );
 }

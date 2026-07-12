@@ -139,6 +139,9 @@ export const id: Record<keyof typeof zh, string> = {
   'settings.section.careCfg': 'Tanya Jawab Dharma',
   'settings.section.stages': 'Tahap membimbing umat',
   'settings.section.publicPages': 'Halaman publik',
+  'settings.moduleTitle': 'Pengaturan',
+  'settings.adminOnly': 'Halaman ini hanya untuk admin',
+  'settings.backToCare': 'Kembali ke Tanya Jawab Dharma',
 
   'matrix.hint': 'Hanya-baca · langsung dari role_grants — selalu terkini.',
   'matrix.footNote': 'Perubahan izin dilakukan oleh arsitek melalui konektor dan tercatat di audit (tidak ada penyuntingan di aplikasi, untuk mencegah terkunci tanpa sengaja).',
@@ -334,4 +337,28 @@ export const id: Record<keyof typeof zh, string> = {
   'home.task.careUnread': 'Pesan baru · percakapan yang saya tangani',
   'home.task.careHandling': 'Sedang berjalan · percakapan yang saya tangani',
   'home.task.awaitingApproval': 'Permohonan menunggu persetujuan',
+
+  // ── ERP shell (erp-gate: judul modul + pemberitahuan akses ditolak) ──
+  'erp.denied': 'Halaman ini memerlukan akses modul {module}',
+  'erp.title.members': 'Anggota',
+  'erp.title.events': 'Kegiatan',
+  'erp.title.inventory': 'Inventaris',
+  'erp.title.finance': 'Keuangan',
+  'erp.title.outreach': 'Membimbing umat',
+  'erp.suffix.profile': 'Profil',
+  'erp.suffix.new': 'Baru',
+  'erp.suffix.edit': 'Ubah',
+
+  // ── nav rail (label pintu sidebar kiri) ──
+  'nav.ariaLabel': 'Navigasi utama',
+  'nav.home': 'Beranda',
+  'nav.mail': 'Kotak Masuk',
+  'nav.inbox': 'Tanya Jawab Dharma',
+  'nav.outreach': 'Membimbing umat',
+  'nav.members': 'Anggota',
+  'nav.events': 'Kegiatan',
+  'nav.inventory': 'Inventaris',
+  'nav.finance': 'Keuangan',
+  'nav.reports': 'Laporan',
+  'nav.settings': 'Pengaturan',
 };

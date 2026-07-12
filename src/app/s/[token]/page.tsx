@@ -8,10 +8,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useT } from '@/lib/i18n-react';
 
 type Row = { name_cn: string; stock_id: string | null; category_cn: string | null; qty: number };
 
 export default function SharePage() {
+  const t = useT();
   const { token } = useParams<{ token: string }>();
   const [rows, setRows] = useState<Row[]>([]);
   const [label, setLabel] = useState<string | null>(null);
@@ -48,13 +50,13 @@ export default function SharePage() {
     );
   }, [rows, q, cat]);
 
-  if (state === 'loading') return <p className="text-sm text-ink-muted text-center py-10">加载中…</p>;
+  if (state === 'loading') return <p className="text-sm text-ink-muted text-center py-10">{t('share.loading')}</p>;
   if (state === 'invalid') {
     return (
       <div className="bg-surface border border-border rounded-2xl p-8 text-center">
         <p className="text-3xl mb-2">🪷</p>
-        <p className="text-base font-semibold text-ink">链接已失效</p>
-        <p className="mt-1 text-sm text-ink-muted">此分享链接不存在或已被停用。请向总会索取新的链接。</p>
+        <p className="text-base font-semibold text-ink">{t('share.invalidTitle')}</p>
+        <p className="mt-1 text-sm text-ink-muted">{t('share.invalidBody')}</p>
       </div>
     );
   }
@@ -62,21 +64,21 @@ export default function SharePage() {
   return (
     <div className="space-y-3">
       <div>
-        <h1 className="text-lg font-bold font-serif text-ink">结缘品库存（总会）</h1>
+        <h1 className="text-lg font-bold font-serif text-ink">{t('share.title')}</h1>
         {label && <p className="text-xs text-ink-faint">{label}</p>}
       </div>
 
-      <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="搜索名称 / 编号…"
+      <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder={t('share.searchPlaceholder')}
         className="w-full text-sm px-3 py-2.5 border border-border-strong rounded-xl bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent" />
 
       <div className="flex flex-wrap gap-1.5">
-        <Chip label="全部" active={cat === ''} onClick={() => setCat('')} />
+        <Chip label={t('share.all')} active={cat === ''} onClick={() => setCat('')} />
         {categories.map((c) => <Chip key={c} label={c} active={cat === c} onClick={() => setCat(c)} />)}
       </div>
 
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {filtered.length === 0 ? (
-          <p className="p-8 text-center text-sm text-ink-muted">没有匹配的品项。</p>
+          <p className="p-8 text-center text-sm text-ink-muted">{t('share.noMatch')}</p>
         ) : (
           <ul className="divide-y divide-border">
             {filtered.map((r, i) => (
@@ -84,7 +86,7 @@ export default function SharePage() {
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-ink truncate">{r.name_cn}</div>
                   <div className="text-[11px] text-ink-faint">
-                    {r.stock_id ? <span className="font-mono">{r.stock_id}</span> : '未编号'}
+                    {r.stock_id ? <span className="font-mono">{r.stock_id}</span> : t('share.unnumbered')}
                     {r.category_cn && <span> · {r.category_cn}</span>}
                   </div>
                 </div>
@@ -94,7 +96,7 @@ export default function SharePage() {
           </ul>
         )}
       </div>
-      <p className="text-[11px] text-ink-faint text-center">共 {filtered.length} 项 · 实时数据</p>
+      <p className="text-[11px] text-ink-faint text-center">{t('share.footer', { n: filtered.length })}</p>
     </div>
   );
 }

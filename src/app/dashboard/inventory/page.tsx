@@ -14,6 +14,7 @@ import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { InventoryTabs, InventorySearchRow, type SearchItem } from '@/components/inventory-chrome';
 import { InventoryItemDrawer } from '@/components/inventory-item-drawer';
+import { useT } from '@/lib/i18n-react';
 
 type Stats = {
   kpis: { totalUnits: number; itemCount: number; pendingRequests: number; lowStockCount: number; monthOut: number; monthReturns: number };
@@ -36,10 +37,11 @@ function downloadCsv(filename: string, headers: string[], rows: (string | number
 }
 
 export default function InventoryDashboardPage() {
+  const t = useT();
   return (
     <ErpGate active="inventory" module="inventory">
       {(me) => (
-        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">加载中…</p>}>
+        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>}>
           <Dashboard me={me} />
         </Suspense>
       )}
@@ -48,6 +50,7 @@ export default function InventoryDashboardPage() {
 }
 
 function Dashboard({ me }: { me: ErpMe }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'inventory', 'edit');
   const canAdmin = grantAllows(me.grants, 'inventory', 'admin');
   const router = useRouter();
@@ -87,8 +90,8 @@ function Dashboard({ me }: { me: ErpMe }) {
   const exportPurchase = () => {
     if (!stats) return;
     downloadCsv(
-      '采购清单.csv',
-      ['编号', '品项', '分类', '现有(总会)', '低库存线', '近90天月均发放', '约可用(月)'],
+      t('inv.csv.purchaseFile'),
+      [t('inv.csv.h.code'), t('inv.csv.h.item'), t('inv.csv.h.category'), t('inv.csv.h.onHandHq'), t('inv.csv.h.lowLine'), t('inv.csv.h.avgMonthly90'), t('inv.csv.h.monthsLeft')],
       stats.lowStock.map((r) => [
         r.stock_id ?? '', r.name_cn, r.category_cn ?? '', r.qty, r.low_stock_line ?? '',
         r.avgMonthly, r.monthsLeft == null ? '' : r.monthsLeft.toFixed(1),
@@ -100,12 +103,12 @@ function Dashboard({ me }: { me: ErpMe }) {
     <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold font-serif text-ink">📊 库存仪表板</h2>
+          <h2 className="text-xl font-bold font-serif text-ink">{t('inv.dash.title')}</h2>
           <span className="text-sm text-ink-faint">Inventory</span>
         </div>
         {canAdmin && (
           <button onClick={() => setShowShare(true)} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">
-            🔗 分享库存表
+            {t('inv.dash.shareBtn')}
           </button>
         )}
       </div>
@@ -114,36 +117,36 @@ function Dashboard({ me }: { me: ErpMe }) {
       <InventoryTabs active="dash" />
 
       {loading ? (
-        <p className="p-6 text-sm text-ink-muted">加载中…</p>
+        <p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>
       ) : !stats ? (
-        <p className="p-6 text-sm text-ink-muted">无法加载统计数据。</p>
+        <p className="p-6 text-sm text-ink-muted">{t('inv.dash.statsFail')}</p>
       ) : (
         <>
           {/* KPIs */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <Kpi label="🧮 全库总件数" value={stats.kpis.totalUnits} sub="查看明细 →" onClick={() => goStock()} />
-            <Kpi label="🗂️ 品项" value={stats.kpis.itemCount} sub={`${stats.categoryTotals.length} 大分类 →`} onClick={() => goStock()} />
-            <Kpi label="🔔 待审批申请" value={stats.kpis.pendingRequests} sub="去处理 →" hot={stats.kpis.pendingRequests > 0} onClick={() => router.push('/dashboard/inventory/requests')} />
-            <Kpi label="⚠️ 低库存" value={stats.kpis.lowStockCount} sub="查看全部 →" alert={stats.kpis.lowStockCount > 0} onClick={() => goStock('低库存')} />
-            <Kpi label="📤 本月发放" value={stats.kpis.monthOut} sub={`↩ 退回 ${stats.kpis.monthReturns.toLocaleString()}`} />
+            <Kpi label={t('inv.dash.kpiTotalUnits')} value={stats.kpis.totalUnits} sub={t('inv.dash.viewDetail')} onClick={() => goStock()} />
+            <Kpi label={t('inv.dash.kpiItems')} value={stats.kpis.itemCount} sub={t('inv.dash.catCount', { n: stats.categoryTotals.length })} onClick={() => goStock()} />
+            <Kpi label={t('inv.dash.kpiPending')} value={stats.kpis.pendingRequests} sub={t('inv.dash.goHandle')} hot={stats.kpis.pendingRequests > 0} onClick={() => router.push('/dashboard/inventory/requests')} />
+            <Kpi label={t('inv.dash.kpiLowStock')} value={stats.kpis.lowStockCount} sub={t('inv.dash.viewAll')} alert={stats.kpis.lowStockCount > 0} onClick={() => goStock('低库存')} />
+            <Kpi label={t('inv.dash.kpiMonthOut')} value={stats.kpis.monthOut} sub={t('inv.dash.returnsSub', { n: stats.kpis.monthReturns.toLocaleString() })} />
           </div>
 
           <div className="grid lg:grid-cols-2 gap-4">
             {/* low stock + purchasing */}
             <div className="bg-surface border border-border rounded-2xl overflow-hidden">
               <div className="px-4 py-3 border-b border-border flex justify-between items-baseline gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold text-ink">⚠️ 低库存 · 采购建议</h3>
-                <button onClick={exportPurchase} className="text-xs text-accent-deep hover:underline">⬇ 导出采购清单 (CSV)</button>
+                <h3 className="text-sm font-semibold text-ink">{t('inv.dash.lowStockTitle')}</h3>
+                <button onClick={exportPurchase} className="text-xs text-accent-deep hover:underline">{t('inv.dash.exportPurchase')}</button>
               </div>
               {stats.lowStock.length === 0 ? (
-                <p className="p-6 text-sm text-ink-muted">目前没有低于低库存线的品项。🪷</p>
+                <p className="p-6 text-sm text-ink-muted">{t('inv.dash.noLowStock')}</p>
               ) : (
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                      <th className="px-4 py-2 font-normal">品项</th>
-                      <th className="px-4 py-2 font-normal text-right">现有</th>
-                      <th className="px-4 py-2 font-normal text-right">约可用</th>
+                      <th className="px-4 py-2 font-normal">{t('inv.dash.thItem')}</th>
+                      <th className="px-4 py-2 font-normal text-right">{t('inv.dash.thOnHand')}</th>
+                      <th className="px-4 py-2 font-normal text-right">{t('inv.dash.thMonthsLeft')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -154,24 +157,24 @@ function Dashboard({ me }: { me: ErpMe }) {
                           {r.stock_id && <span className="ml-1.5 font-mono text-[10px] text-ink-muted">{r.stock_id}</span>}
                         </td>
                         <td className="px-4 py-2 text-right tabular-nums text-[#B4402E] font-semibold">{r.qty.toLocaleString()}</td>
-                        <td className="px-4 py-2 text-right tabular-nums text-ink-muted">{r.monthsLeft == null ? '—' : `${r.monthsLeft.toFixed(1)} 月`}</td>
+                        <td className="px-4 py-2 text-right tabular-nums text-ink-muted">{r.monthsLeft == null ? '—' : t('inv.dash.months', { n: r.monthsLeft.toFixed(1) })}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               )}
-              <p className="px-4 py-2.5 border-t border-border text-[11px] text-ink-faint">「约可用」= 现有 ÷ 近 90 天月均发放</p>
+              <p className="px-4 py-2.5 border-t border-border text-[11px] text-ink-faint">{t('inv.dash.monthsLeftNote')}</p>
             </div>
 
             {/* category totals */}
             <div className="bg-surface border border-border rounded-2xl overflow-hidden">
               <div className="px-4 py-3 border-b border-border flex justify-between items-baseline gap-2">
-                <h3 className="text-sm font-semibold text-ink">🗂️ 各分类库存</h3>
-                <span className="text-xs text-ink-faint">点分类进明细</span>
+                <h3 className="text-sm font-semibold text-ink">{t('inv.dash.catStockTitle')}</h3>
+                <span className="text-xs text-ink-faint">{t('inv.dash.clickCatHint')}</span>
               </div>
               <div className="p-4 space-y-2">
                 {stats.categoryTotals.length === 0 ? (
-                  <p className="text-sm text-ink-muted">暂无数据。</p>
+                  <p className="text-sm text-ink-muted">{t('inv.dash.noData')}</p>
                 ) : (
                   stats.categoryTotals.map((c) => (
                     <button key={c.category_cn} onClick={() => goStock(c.category_cn)} className="w-full flex items-center gap-2.5 text-left">
@@ -189,11 +192,11 @@ function Dashboard({ me }: { me: ErpMe }) {
             {/* top movers */}
             <div className="bg-surface border border-border rounded-2xl overflow-hidden">
               <div className="px-4 py-3 border-b border-border">
-                <h3 className="text-sm font-semibold text-ink">🔥 最常发放（近 30 天）</h3>
+                <h3 className="text-sm font-semibold text-ink">{t('inv.dash.topMoversTitle')}</h3>
               </div>
               <div className="p-4 space-y-2">
                 {stats.topMovers30d.length === 0 ? (
-                  <p className="text-sm text-ink-muted">近 30 天暂无发放记录。</p>
+                  <p className="text-sm text-ink-muted">{t('inv.dash.noMovers')}</p>
                 ) : (
                   stats.topMovers30d.map((m) => (
                     <button key={m.item_id} onClick={() => setDrawerId(m.item_id)} className="w-full flex items-center gap-2.5 text-left">
@@ -211,11 +214,11 @@ function Dashboard({ me }: { me: ErpMe }) {
             {/* holdings */}
             <div className="bg-surface border border-border rounded-2xl overflow-hidden">
               <div className="px-4 py-3 border-b border-border">
-                <h3 className="text-sm font-semibold text-ink">📍 库存在哪里</h3>
+                <h3 className="text-sm font-semibold text-ink">{t('inv.dash.holdingsTitle')}</h3>
               </div>
               <div className="p-4">
                 {stats.holdings.length === 0 ? (
-                  <p className="text-sm text-ink-muted">暂无库存。</p>
+                  <p className="text-sm text-ink-muted">{t('inv.dash.noHoldings')}</p>
                 ) : (
                   stats.holdings.slice(0, 10).map((h) => (
                     <div key={h.location_id} className="flex justify-between text-[13px] py-1.5 border-b border-dashed border-border last:border-b-0">
@@ -229,7 +232,7 @@ function Dashboard({ me }: { me: ErpMe }) {
           </div>
 
           <p className="text-xs text-ink-faint">
-            📌 245 项没人滚着看 — 找东西用上方搜索（认分类选品项），看健康用仪表板（只显示需要行动的），每张卡都能钻进完整明细。
+            {t('inv.dash.footer')}
           </p>
         </>
       )}
@@ -244,6 +247,7 @@ function Dashboard({ me }: { me: ErpMe }) {
 type ShareLink = { id: string; token: string; label: string | null; is_active: boolean; created_at: string };
 
 function ShareModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const [links, setLinks] = useState<ShareLink[]>([]);
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
@@ -291,19 +295,19 @@ function ShareModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[70] bg-ink/45 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-surface rounded-2xl max-w-lg w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-ink mb-1">🔗 分享库存表</h3>
-        <p className="text-xs text-ink-muted mb-3">生成只读链接，分会在 WhatsApp 打开即可看总会仓库实时库存目录 — 只能看，不能改。</p>
+        <h3 className="text-base font-semibold text-ink mb-1">{t('inv.share.title')}</h3>
+        <p className="text-xs text-ink-muted mb-3">{t('inv.share.intro')}</p>
 
         <div className="flex gap-2 mb-3">
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="备注（可选，如：分会共享）"
+          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t('inv.share.labelPlaceholder')}
             className="flex-1 text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent" />
-          <button disabled={busy} onClick={create} className="px-4 py-2 text-sm btn-primary whitespace-nowrap">＋ 新链接</button>
+          <button disabled={busy} onClick={create} className="px-4 py-2 text-sm btn-primary whitespace-nowrap">{t('inv.share.newLink')}</button>
         </div>
 
         {loading ? (
-          <p className="text-sm text-ink-muted">加载中…</p>
+          <p className="text-sm text-ink-muted">{t('inv.loading')}</p>
         ) : links.length === 0 ? (
-          <p className="text-sm text-ink-muted">还没有分享链接。</p>
+          <p className="text-sm text-ink-muted">{t('inv.share.noLinks')}</p>
         ) : (
           <div className="space-y-2">
             {links.map((l) => {
@@ -311,13 +315,13 @@ function ShareModal({ onClose }: { onClose: () => void }) {
               return (
                 <div key={l.id} className="border border-border rounded-lg p-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium text-ink truncate">{l.label || '（无备注）'}</span>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${l.is_active ? 'bg-[#E7F0E0] text-[#3F6B2E]' : 'pill-muted'}`}>{l.is_active ? '有效' : '已停用'}</span>
+                    <span className="text-xs font-medium text-ink truncate">{l.label || t('inv.share.noLabel')}</span>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${l.is_active ? 'bg-[#E7F0E0] text-[#3F6B2E]' : 'pill-muted'}`}>{l.is_active ? t('inv.share.active') : t('inv.share.inactive')}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-1.5">
                     <input readOnly value={url} className="flex-1 text-[11px] font-mono px-2 py-1 border border-border rounded bg-surface-soft text-ink-muted" />
-                    <button onClick={() => navigator.clipboard?.writeText(url)} className="text-xs text-accent-deep hover:underline whitespace-nowrap">复制</button>
-                    <button onClick={() => revoke(l.id, l.is_active)} className="text-xs text-ink-muted hover:text-[#B4402E] whitespace-nowrap">{l.is_active ? '停用' : '启用'}</button>
+                    <button onClick={() => navigator.clipboard?.writeText(url)} className="text-xs text-accent-deep hover:underline whitespace-nowrap">{t('inv.share.copy')}</button>
+                    <button onClick={() => revoke(l.id, l.is_active)} className="text-xs text-ink-muted hover:text-[#B4402E] whitespace-nowrap">{l.is_active ? t('inv.share.disable') : t('inv.share.enable')}</button>
                   </div>
                 </div>
               );
@@ -326,7 +330,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
         )}
 
         <div className="flex justify-end mt-3">
-          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">关闭</button>
+          <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('inv.close')}</button>
         </div>
       </div>
     </div>

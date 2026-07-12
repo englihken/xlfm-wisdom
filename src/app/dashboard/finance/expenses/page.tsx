@@ -12,7 +12,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { FinanceTabs } from '@/components/finance-chrome';
-import { EXPENSE_CATEGORY_LABELS, EXPENSE_CATEGORY_OPTIONS, expenseCategoryPill, moneyRM } from '@/lib/finance-display';
+import { expenseCategoryLabel, expenseCategoryOptions, expenseCategoryPill, moneyRM } from '@/lib/finance-display';
+import { useT } from '@/lib/i18n-react';
 
 type Lite<T> = T | T[] | null;
 function one<T>(v: T | T[] | null): T | null {
@@ -46,14 +47,16 @@ function downloadCsv(filename: string, headers: string[], rows: (string | number
 }
 
 export default function ExpensesPage() {
+  const t = useT();
   return (
-    <ErpGate active="finance" module="finance" titleSuffix="支出记录">
+    <ErpGate active="finance" module="finance" titleSuffix={t('finance.tab.expenses')}>
       {(me) => <Expenses me={me} />}
     </ErpGate>
   );
 }
 
 function Expenses({ me }: { me: ErpMe }) {
+  const t = useT();
   const canEdit = grantAllows(me.grants, 'finance', 'edit');
   const [centres, setCentres] = useState<Centre[]>([]);
   const [locked, setLocked] = useState(false);
@@ -96,11 +99,11 @@ function Expenses({ me }: { me: ErpMe }) {
 
   const exportCsv = () => {
     downloadCsv(
-      `支出_${centre?.name_cn ?? ''}_${month}.csv`,
-      ['日期', '类别', '说明', '金额', '录入', '状态'],
+      `${t('expenses.csv.filename')}_${centre?.name_cn ?? ''}_${month}.csv`,
+      [t('expenses.col.date'), t('expenses.col.category'), t('expenses.col.description'), t('expenses.col.amount'), t('expenses.col.enterer'), t('expenses.csv.col.status')],
       rows.map((r) => {
         const by = one(r.enterer);
-        return [r.spent_at, EXPENSE_CATEGORY_LABELS[r.category] ?? r.category, r.description, Number(r.amount).toFixed(2), by?.display_name || by?.email || '', r.voided_at ? `已作废：${r.void_reason ?? ''}` : ''];
+        return [r.spent_at, expenseCategoryLabel(r.category, t), r.description, Number(r.amount).toFixed(2), by?.display_name || by?.email || '', r.voided_at ? t('expenses.csv.voided', { reason: r.void_reason ?? '' }) : ''];
       })
     );
   };
@@ -108,8 +111,8 @@ function Expenses({ me }: { me: ErpMe }) {
   return (
     <div className={`${PAGE_WIDE} space-y-4`}>
       <div className="flex items-baseline gap-2">
-        <h2 className="text-xl font-bold font-serif text-ink">🧾 支出记录</h2>
-        <span className="text-sm text-ink-faint">Expenses</span>
+        <h2 className="text-xl font-bold font-serif text-ink">{t('expenses.title')}</h2>
+        {t('expenses.subtitle') && <span className="text-sm text-ink-faint">{t('expenses.subtitle')}</span>}
       </div>
       <FinanceTabs active="expenses" />
 
@@ -122,26 +125,26 @@ function Expenses({ me }: { me: ErpMe }) {
         {locked && centre && <span className="text-sm font-medium text-ink px-3 py-2">{centre.name_cn}</span>}
         <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className={`${inputCls} w-auto`} />
         <span className="flex-1" />
-        {canEdit && <button onClick={() => setShowAdd(true)} className="px-4 py-1.5 text-sm btn-primary">＋ 记支出</button>}
-        <button onClick={exportCsv} className="px-3 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">⬇ 导出 CSV</button>
+        {canEdit && <button onClick={() => setShowAdd(true)} className="px-4 py-1.5 text-sm btn-primary">{t('expenses.addExpense')}</button>}
+        <button onClick={exportCsv} className="px-3 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition">{t('expenses.exportCsv')}</button>
       </div>
 
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {loading ? (
-          <p className="p-6 text-sm text-ink-muted">加载中…</p>
+          <p className="p-6 text-sm text-ink-muted">{t('expenses.loading')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                  <th className="px-4 py-2.5 font-normal">日期</th><th className="px-4 py-2.5 font-normal">类别</th>
-                  <th className="px-4 py-2.5 font-normal">说明</th><th className="px-4 py-2.5 font-normal text-right">金额</th>
-                  <th className="px-4 py-2.5 font-normal">录入</th>{canEdit && <th className="px-4 py-2.5 font-normal"></th>}
+                  <th className="px-4 py-2.5 font-normal">{t('expenses.col.date')}</th><th className="px-4 py-2.5 font-normal">{t('expenses.col.category')}</th>
+                  <th className="px-4 py-2.5 font-normal">{t('expenses.col.description')}</th><th className="px-4 py-2.5 font-normal text-right">{t('expenses.col.amount')}</th>
+                  <th className="px-4 py-2.5 font-normal">{t('expenses.col.enterer')}</th>{canEdit && <th className="px-4 py-2.5 font-normal"></th>}
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
-                  <tr><td colSpan={canEdit ? 6 : 5} className="px-4 py-8 text-center text-sm text-ink-muted">本月暂无支出记录。</td></tr>
+                  <tr><td colSpan={canEdit ? 6 : 5} className="px-4 py-8 text-center text-sm text-ink-muted">{t('expenses.empty')}</td></tr>
                 ) : (
                   rows.map((r) => {
                     const by = one(r.enterer);
@@ -149,22 +152,22 @@ function Expenses({ me }: { me: ErpMe }) {
                     return (
                       <tr key={r.id} className={`border-b border-border last:border-b-0 ${voided ? 'opacity-55' : 'hover:bg-accent/5'}`}>
                         <td className={`px-4 py-2 text-ink-muted ${voided ? 'line-through' : ''}`}>{r.spent_at.slice(5)}</td>
-                        <td className="px-4 py-2"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${expenseCategoryPill(r.category)}`}>{EXPENSE_CATEGORY_LABELS[r.category] ?? r.category}</span></td>
+                        <td className="px-4 py-2"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${expenseCategoryPill(r.category)}`}>{expenseCategoryLabel(r.category, t)}</span></td>
                         <td className={`px-4 py-2 text-ink ${voided ? 'line-through' : ''}`}>
-                          {r.receipt_path && <button onClick={() => openReceipt(r.receipt_path!)} title="查看单据照片" className="mr-1 text-accent-deep no-underline">📎</button>}
+                          {r.receipt_path && <button onClick={() => openReceipt(r.receipt_path!)} title={t('expenses.viewReceipt')} className="mr-1 text-accent-deep no-underline">📎</button>}
                           {r.description}
-                          {voided && <span className="ml-1.5 text-[11px] text-[#B4402E] no-underline">（已作废：{r.void_reason}）</span>}
+                          {voided && <span className="ml-1.5 text-[11px] text-[#B4402E] no-underline">{t('expenses.voidedTag', { reason: r.void_reason ?? '' })}</span>}
                         </td>
                         <td className={`px-4 py-2 text-right tabular-nums text-ink ${voided ? 'line-through' : ''}`}>{moneyRM(r.amount)}</td>
                         <td className="px-4 py-2 text-xs text-ink-faint">{by?.display_name || by?.email || ''}</td>
-                        {canEdit && <td className="px-4 py-2 text-right">{!voided && <button onClick={() => setVoidTarget(r)} className="text-xs text-[#B4402E] hover:underline">作废</button>}</td>}
+                        {canEdit && <td className="px-4 py-2 text-right">{!voided && <button onClick={() => setVoidTarget(r)} className="text-xs text-[#B4402E] hover:underline">{t('expenses.void')}</button>}</td>}
                       </tr>
                     );
                   })
                 )}
                 {rows.length > 0 && (
                   <tr className="border-t-2 border-border">
-                    <td colSpan={3} className="px-4 py-2.5 text-right text-ink-muted">本月合计</td>
+                    <td colSpan={3} className="px-4 py-2.5 text-right text-ink-muted">{t('expenses.monthTotal')}</td>
                     <td className="px-4 py-2.5 text-right font-bold tabular-nums text-ink">{moneyRM(total)}</td>
                     <td colSpan={canEdit ? 2 : 1}></td>
                   </tr>
@@ -175,7 +178,7 @@ function Expenses({ me }: { me: ErpMe }) {
         )}
       </div>
 
-      <p className="text-xs text-ink-faint">类别固定枚举（租金 / 水电 / 维护 / 活动 / 杂项）· 单据照片稍后接入（私有 bucket）· 无删除，错录 = 作废</p>
+      <p className="text-xs text-ink-faint">{t('expenses.footer')}</p>
 
       {showAdd && centre && <ExpenseModal centre={centre} onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
       {voidTarget && <VoidModal expense={voidTarget} onClose={() => setVoidTarget(null)} onDone={() => { setVoidTarget(null); load(); }} />}
@@ -198,6 +201,7 @@ function ErrLine({ msg }: { msg: string }) {
 }
 
 function ExpenseModal({ centre, onClose, onDone }: { centre: Centre; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const [spentAt, setSpentAt] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' }));
   const [category, setCategory] = useState('rent');
   const [description, setDescription] = useState('');
@@ -207,8 +211,8 @@ function ExpenseModal({ centre, onClose, onDone }: { centre: Centre; onClose: ()
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     setErr('');
-    if (!description.trim()) return setErr('请填写说明');
-    if (!(Number(amount) > 0)) return setErr('金额须大于 0');
+    if (!description.trim()) return setErr(t('expenses.err.description'));
+    if (!(Number(amount) > 0)) return setErr(t('expenses.err.amountPositive'));
     setBusy(true);
     try {
       let receiptPath: string | undefined;
@@ -218,7 +222,7 @@ function ExpenseModal({ centre, onClose, onDone }: { centre: Centre; onClose: ()
         const up = await fetch('/api/dashboard/finance/upload', { method: 'POST', body: fd });
         const uj = await up.json().catch(() => ({}));
         if (!up.ok || !uj.path) {
-          setErr(uj.error ?? '照片上传失败');
+          setErr(uj.error ?? t('expenses.err.uploadFailed'));
           setBusy(false);
           return;
         }
@@ -230,55 +234,56 @@ function ExpenseModal({ centre, onClose, onDone }: { centre: Centre; onClose: ()
         body: JSON.stringify({ centre_id: centre.id, spent_at: spentAt, category, description: description.trim(), amount: Number(amount), receipt_path: receiptPath ?? null }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '保存失败');
+      if (!res.ok) setErr(j.error ?? t('expenses.err.saveFailed'));
       else onDone();
     } finally {
       setBusy(false);
     }
   };
   return (
-    <ModalShell title={`记支出 · ${centre.name_cn}`} onClose={onClose}>
+    <ModalShell title={t('expenses.modal.title', { centre: centre.name_cn })} onClose={onClose}>
       <ErrLine msg={err} />
       <div className="grid grid-cols-2 gap-3">
-        <div><p className="text-xs text-ink-muted mb-1">日期</p><input type="date" value={spentAt} onChange={(e) => setSpentAt(e.target.value)} className={inputCls} /></div>
-        <div><p className="text-xs text-ink-muted mb-1">类别</p><select value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>{EXPENSE_CATEGORY_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
-        <div className="col-span-2"><p className="text-xs text-ink-muted mb-1">说明</p><input value={description} onChange={(e) => setDescription(e.target.value)} className={inputCls} /></div>
-        <div><p className="text-xs text-ink-muted mb-1">金额 RM</p><input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputCls} /></div>
-        <div><p className="text-xs text-ink-muted mb-1">单据照片（可选）</p><input type="file" accept="image/*" capture="environment" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="w-full text-xs text-ink-muted file:mr-2 file:px-2 file:py-1 file:rounded file:border file:border-border-strong file:bg-surface file:text-ink" /></div>
+        <div><p className="text-xs text-ink-muted mb-1">{t('expenses.field.date')}</p><input type="date" value={spentAt} onChange={(e) => setSpentAt(e.target.value)} className={inputCls} /></div>
+        <div><p className="text-xs text-ink-muted mb-1">{t('expenses.field.category')}</p><select value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>{expenseCategoryOptions(t).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+        <div className="col-span-2"><p className="text-xs text-ink-muted mb-1">{t('expenses.field.description')}</p><input value={description} onChange={(e) => setDescription(e.target.value)} className={inputCls} /></div>
+        <div><p className="text-xs text-ink-muted mb-1">{t('expenses.field.amount')}</p><input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputCls} /></div>
+        <div><p className="text-xs text-ink-muted mb-1">{t('expenses.field.photoOptional')}</p><input type="file" accept="image/*" capture="environment" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="w-full text-xs text-ink-muted file:mr-2 file:px-2 file:py-1 file:rounded file:border file:border-border-strong file:bg-surface file:text-ink" /></div>
       </div>
       <div className="flex gap-2 justify-end mt-3">
-        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? '保存中…' : '保存'}</button>
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('expenses.cancel')}</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm btn-primary">{busy ? t('expenses.saving') : t('expenses.save')}</button>
       </div>
     </ModalShell>
   );
 }
 
 function VoidModal({ expense, onClose, onDone }: { expense: Expense; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const [reason, setReason] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     setErr('');
-    if (!reason.trim()) return setErr('请填写作废原因');
+    if (!reason.trim()) return setErr(t('expenses.err.voidReason'));
     setBusy(true);
     try {
       const res = await fetch(`/api/dashboard/finance/expenses/${expense.id}/void`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: reason.trim() }) });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) setErr(j.error ?? '作废失败');
+      if (!res.ok) setErr(j.error ?? t('expenses.err.voidFailed'));
       else onDone();
     } finally {
       setBusy(false);
     }
   };
   return (
-    <ModalShell title="作废支出" onClose={onClose}>
+    <ModalShell title={t('expenses.voidTitle')} onClose={onClose}>
       <ErrLine msg={err} />
-      <p className="text-xs text-ink-muted mb-2">{EXPENSE_CATEGORY_LABELS[expense.category]} · {expense.description} · {moneyRM(expense.amount)}。作废保留审计痕迹（不删除）。</p>
+      <p className="text-xs text-ink-muted mb-2">{t('expenses.voidBody', { cat: expenseCategoryLabel(expense.category, t), desc: expense.description, money: moneyRM(expense.amount) })}</p>
       <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} className={inputCls} />
       <div className="flex gap-2 justify-end mt-3">
-        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">取消</button>
-        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm border border-[#E5C4BF] text-[#B4402E] rounded-lg bg-surface hover:border-[#B4402E]">{busy ? '处理中…' : '确认作废'}</button>
+        <button onClick={onClose} className="px-4 py-1.5 text-sm border border-border-strong rounded-lg bg-surface text-ink">{t('expenses.cancel')}</button>
+        <button disabled={busy} onClick={submit} className="px-5 py-1.5 text-sm border border-[#E5C4BF] text-[#B4402E] rounded-lg bg-surface hover:border-[#B4402E]">{busy ? t('expenses.processing') : t('expenses.confirmVoid')}</button>
       </div>
     </ModalShell>
   );

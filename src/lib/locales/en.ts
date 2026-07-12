@@ -139,6 +139,9 @@ export const en: Record<keyof typeof zh, string> = {
   'settings.section.careCfg': 'Wisdom Q&A',
   'settings.section.stages': 'Du Ren stages',
   'settings.section.publicPages': 'Public pages',
+  'settings.moduleTitle': 'Settings',
+  'settings.adminOnly': 'This page is for admins only',
+  'settings.backToCare': 'Back to Wisdom Q&A',
 
   'matrix.hint': 'Read-only · live from role_grants — never stale.',
   'matrix.footNote': 'Permission changes are made by the architect via the connector and recorded in the audit log (no in-app editing, to prevent accidental lockout).',
@@ -334,4 +337,28 @@ export const en: Record<keyof typeof zh, string> = {
   'home.task.careUnread': 'New message · a conversation I took over',
   'home.task.careHandling': 'In progress · a conversation I took over',
   'home.task.awaitingApproval': 'Requests awaiting approval',
+
+  // ── ERP shell (erp-gate: module title + access-denied notice) ──
+  'erp.denied': 'This page needs {module} module access',
+  'erp.title.members': 'Members',
+  'erp.title.events': 'Events',
+  'erp.title.inventory': 'Inventory',
+  'erp.title.finance': 'Finance',
+  'erp.title.outreach': 'Du Ren',
+  'erp.suffix.profile': 'Profile',
+  'erp.suffix.new': 'New',
+  'erp.suffix.edit': 'Edit',
+
+  // ── nav rail (left sidebar door labels) ──
+  'nav.ariaLabel': 'Main navigation',
+  'nav.home': 'Home',
+  'nav.mail': 'Inbox',
+  'nav.inbox': 'Wisdom Q&A',
+  'nav.outreach': 'Du Ren',
+  'nav.members': 'Members',
+  'nav.events': 'Events',
+  'nav.inventory': 'Inventory',
+  'nav.finance': 'Finance',
+  'nav.reports': 'Reports',
+  'nav.settings': 'Settings',
 };

@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { LOCALE_COOKIE } from '@/lib/i18n';
 
 export const runtime = 'nodejs';
 
@@ -19,11 +20,16 @@ export async function POST() {
     console.error('[logout] server signOut failed (clearing cookies anyway):', e);
   }
   // Belt-and-braces: expire any remaining Supabase auth cookies (sb-*-auth-token, chunked …).
+  // Also clear the browser-global NEXT_LOCALE cookie so the NEXT user on this shared
+  // browser never inherits this user's UI language (per-user locale isolation): their
+  // dashboard is seeded from their own volunteers.locale, and public pages fall back to
+  // the language switcher default rather than a stale value.
   try {
     const store = await cookies();
     for (const c of store.getAll()) {
       if (c.name.startsWith('sb-')) store.delete(c.name);
     }
+    store.delete(LOCALE_COOKIE);
   } catch (e) {
     console.error('[logout] cookie cleanup failed:', e);
   }

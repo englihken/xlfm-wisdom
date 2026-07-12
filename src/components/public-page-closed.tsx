@@ -12,8 +12,8 @@ export function PublicPageClosed() {
   return (
     <div className="bg-surface border border-border rounded-2xl p-8 text-center">
       <p className="text-4xl mb-3">🪷</p>
-      <p className="font-serif font-semibold text-ink text-lg">{t('public.closed')}</p>
-      <p className="mt-2 text-sm text-ink-muted">{t('public.closedSub')}</p>
+      <p className="font-serif font-semibold text-ink text-lg">{t('publicClosed.closed')}</p>
+      <p className="mt-2 text-sm text-ink-muted">{t('publicClosed.closedSub')}</p>
     </div>
   );
 }

@@ -20,7 +20,8 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { computeFees, type FeeItem, type Selections } from '@/lib/event-fees';
 import { mealSlotKey } from '@/lib/events';
-import { MEAL_COLS, EVENT_TYPE_LABELS, FEE_LABEL, feeBillingLabel, weekdayCn, moneyRM } from '@/lib/events-display';
+import { useT } from '@/lib/i18n-react';
+import { MEAL_COLS, eventTypeLabel, feeBillingLabel, mealColLabel, weekdayCn, moneyRM } from '@/lib/events-display';
 
 type PublicFee = { item: string; label_cn: string | null; amount: number; billing: string; sort: number };
 type PublicEvent = {
@@ -35,6 +36,7 @@ const SHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
 const dateLabel = (d: string) => `${d.slice(5).replace('-', '月')}日 ${weekdayCn(d)}`;
 
 export default function PublicRegPage() {
+  const t = useT();
   const { token } = useParams<{ token: string }>();
   const [event, setEvent] = useState<PublicEvent | null>(null);
   const [load, setLoad] = useState<'loading' | 'ok' | 'invalid'>('loading');
@@ -54,13 +56,13 @@ export default function PublicRegPage() {
     return () => { alive = false; };
   }, [token]);
 
-  if (load === 'loading') return <Card><p className="text-center text-ink-muted py-8">加载中…</p></Card>;
+  if (load === 'loading') return <Card><p className="text-center text-ink-muted py-8">{t('reg.loading')}</p></Card>;
   if (load === 'invalid' || !event) {
     return (
       <Card>
         <div className="text-center py-8">
           <div className="text-4xl mb-3">🙏</div>
-          <p className="font-semibold text-ink">报名已关闭或链接无效</p>
+          <p className="font-semibold text-ink">{t('reg.closed.title')}</p>
           <p className="mt-2 text-sm text-ink-muted">This registration link is closed or invalid.</p>
         </div>
       </Card>
@@ -70,6 +72,7 @@ export default function PublicRegPage() {
 }
 
 function Flow({ token, event }: { token: string; event: PublicEvent }) {
+  const t = useT();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // identify state
@@ -141,11 +144,11 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone }),
       });
       const j = await res.json();
-      if (!res.ok) { setIdErr(j.error ?? '出错了，请重试'); return; }
+      if (!res.ok) { setIdErr(j.error ?? t('reg.errRetry')); return; }
       if (j.matched) { setMasked({ name: j.maskedName, centre: j.maskedCentre }); setIdentifyMode('matched'); }
       else { setMasked(null); setIdentifyMode('newcomer'); }
     } catch {
-      setIdErr('网络错误，请重试');
+      setIdErr(t('reg.errNetwork'));
     } finally {
       setIdBusy(false);
     }
@@ -153,7 +156,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
 
   function identifyNext() {
     // matched → phone is the key, no name needed. newcomer → require 中文姓名.
-    if (identifyMode === 'newcomer' && !nameCn.trim()) { setIdErr('请填写中文姓名'); return; }
+    if (identifyMode === 'newcomer' && !nameCn.trim()) { setIdErr(t('reg.errNameCn')); return; }
     setIdErr(null);
     setStep(2);
   }
@@ -171,12 +174,12 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
       });
       const j = await res.json();
-      if (res.status === 409) { setSubmitErr(`${j.error ?? '您已报名此活动'}${j.existing?.reg_no ? `（编号 ${j.existing.reg_no}）` : ''}`); return; }
-      if (!res.ok) { setSubmitErr(j.error ?? '报名失败，请重试'); return; }
+      if (res.status === 409) { setSubmitErr(`${j.error ?? t('reg.dupeSelf')}${j.existing?.reg_no ? t('reg.dupeNo', { no: j.existing.reg_no }) : ''}`); return; }
+      if (!res.ok) { setSubmitErr(j.error ?? t('reg.submitFailed')); return; }
       setResult({ reg_no: j.reg_no });
       setStep(4);
     } catch {
-      setSubmitErr('网络错误，请重试');
+      setSubmitErr(t('reg.errNetwork'));
     } finally {
       setSubmitBusy(false);
     }
@@ -190,46 +193,46 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
         <Card>
           <EventHeader event={event} />
           <div className="mt-4 space-y-3">
-            <label className="block text-sm font-medium text-ink">手机号 Phone</label>
+            <label className="block text-sm font-medium text-ink">{t('reg.phoneLabel')}</label>
             <input
               value={phone}
               onChange={(e) => { setPhone(e.target.value); setIdentifyMode('unknown'); setMasked(null); }}
-              inputMode="tel" placeholder="例如 0123456789"
+              inputMode="tel" placeholder={t('reg.phonePlaceholder')}
               className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint outline-none focus:border-accent"
             />
 
             {identifyMode === 'unknown' && (
               <button onClick={doIdentify} disabled={idBusy || !phone.trim()}
                 className="w-full btn-primary py-2.5 font-medium">
-                {idBusy ? '查询中…' : '下一步'}
+                {idBusy ? t('reg.searching') : t('reg.next')}
               </button>
             )}
 
             {identifyMode === 'matched' && masked && (
               <div className="rounded-xl border border-[#CBE3BF] bg-[#EAF3E2] p-3">
-                <p className="text-sm text-[#3F6B2E]">✓ 找到您了：<span className="font-semibold">{masked.name}</span>{masked.centre ? ` · ${masked.centre}` : ''}</p>
+                <p className="text-sm text-[#3F6B2E]">{t('reg.matchedFound')}<span className="font-semibold">{masked.name}</span>{masked.centre ? ` · ${masked.centre}` : ''}</p>
                 <div className="mt-2 flex gap-2">
-                  <button onClick={identifyNext} className="flex-1 btn-primary py-2 font-medium">这是我，继续</button>
+                  <button onClick={identifyNext} className="flex-1 btn-primary py-2 font-medium">{t('reg.matchedYes')}</button>
                   <button onClick={() => { setIdentifyMode('newcomer'); setMasked(null); }}
-                    className="px-3 btn-secondary text-sm">不是我？</button>
+                    className="px-3 btn-secondary text-sm">{t('reg.matchedNo')}</button>
                 </div>
               </div>
             )}
 
             {identifyMode === 'newcomer' && (
               <div className="space-y-3">
-                <p className="text-xs text-ink-muted">首次报名？请填写姓名（本会将于审核时为您建档）。</p>
+                <p className="text-xs text-ink-muted">{t('reg.newcomerHint')}</p>
                 <div>
-                  <label className="block text-sm font-medium text-ink mb-1">中文姓名 <span className="text-red-600">*</span></label>
+                  <label className="block text-sm font-medium text-ink mb-1">{t('reg.nameCnLabel')} <span className="text-red-600">*</span></label>
                   <input value={nameCn} onChange={(e) => setNameCn(e.target.value)}
                     className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-ink outline-none focus:border-accent" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-ink mb-1">英文姓名 <span className="text-ink-faint">(选填)</span></label>
+                  <label className="block text-sm font-medium text-ink mb-1">{t('reg.nameEnLabel')} <span className="text-ink-faint">{t('reg.optionalParen')}</span></label>
                   <input value={nameEn} onChange={(e) => setNameEn(e.target.value)}
                     className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-ink outline-none focus:border-accent" />
                 </div>
-                <button onClick={identifyNext} className="w-full btn-primary py-2.5 font-medium">下一步</button>
+                <button onClick={identifyNext} className="w-full btn-primary py-2.5 font-medium">{t('reg.next')}</button>
               </div>
             )}
 
@@ -241,22 +244,22 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
       {step === 2 && (
         <>
           <Card>
-            <h2 className="font-serif font-semibold text-ink mb-1">选择项目</h2>
-            <p className="text-xs text-ink-muted mb-3">请选择您需要的项目；费用会实时更新。</p>
+            <h2 className="font-serif font-semibold text-ink mb-1">{t('reg.step2.title')}</h2>
+            <p className="text-xs text-ink-muted mb-3">{t('reg.step2.sub')}</p>
 
             {/* meal */}
             {has('meal') && (
-              <Section title={`🍚 ${mealFee?.label_cn || '餐费'}`} sub={feeBillingLabel('meal', mealFee?.billing ?? '')}>
+              <Section title={`🍚 ${mealFee?.label_cn || t('reg.mealFeeDefault')}`} sub={feeBillingLabel('meal', mealFee?.billing ?? '', t)}>
                 {mealPerItem ? (
                   mealDates.length === 0 ? (
-                    <p className="text-sm text-ink-muted">本活动暂未开放餐点。</p>
+                    <p className="text-sm text-ink-muted">{t('reg.noMealsYet')}</p>
                   ) : (
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-ink-muted">已选 {meals.size} 餐</span>
+                        <span className="text-xs text-ink-muted">{t('reg.mealsSelected', { n: meals.size })}</span>
                         <div className="flex gap-2 text-xs">
-                          <button onClick={selectAll} className="text-accent">全选</button>
-                          <button onClick={() => setMeals(new Set())} className="text-ink-muted">清空</button>
+                          <button onClick={selectAll} className="text-accent">{t('reg.selectAll')}</button>
+                          <button onClick={() => setMeals(new Set())} className="text-ink-muted">{t('reg.clear')}</button>
                         </div>
                       </div>
                       <div className="space-y-1.5">
@@ -264,7 +267,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
                           <div key={date} className="flex items-center gap-2">
                             <button onClick={() => selectDay(date, offered)} className="w-24 shrink-0 text-left text-xs text-ink-muted hover:text-accent">{dateLabel(date)}</button>
                             <div className="flex gap-1.5 flex-1">
-                              {MEAL_COLS.map(({ meal, label }) => {
+                              {MEAL_COLS.map(({ meal }) => {
                                 const isOffered = offered.has(meal);
                                 const key = mealSlotKey(date, meal);
                                 const on = meals.has(key);
@@ -272,7 +275,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
                                 return (
                                   <button key={meal} onClick={() => toggleMeal(key)}
                                     className={`flex-1 rounded-lg py-1.5 text-sm border transition ${on ? 'bg-accent text-white border-accent' : 'bg-surface text-ink border-border'}`}>
-                                    {label}
+                                    {mealColLabel(meal, t)}
                                   </button>
                                 );
                               })}
@@ -283,54 +286,54 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
                     </div>
                   )
                 ) : (
-                  <NumberRow label="用餐天数" value={mealDays} onChange={setMealDays} />
+                  <NumberRow label={t('reg.mealDaysLabel')} value={mealDays} onChange={setMealDays} />
                 )}
               </Section>
             )}
 
             {has('accommodation') && (
-              <Section title="🏨 住宿" sub={feeBillingLabel('accommodation', event.fees.find((f) => f.item === 'accommodation')!.billing)}>
-                <NumberRow label="住宿晚数" value={nights} onChange={setNights} />
+              <Section title={t('reg.accommodation')} sub={feeBillingLabel('accommodation', event.fees.find((f) => f.item === 'accommodation')!.billing, t)}>
+                <NumberRow label={t('reg.nightsLabel')} value={nights} onChange={setNights} />
               </Section>
             )}
 
             {has('transfer') && (
-              <Section title={`🚐 ${event.fees.find((f) => f.item === 'transfer')!.label_cn || '机场接送'}`} sub="">
+              <Section title={`🚐 ${event.fees.find((f) => f.item === 'transfer')!.label_cn || t('reg.transferDefault')}`} sub="">
                 <label className="flex items-center gap-2 text-sm text-ink">
                   <input type="checkbox" checked={transfer} onChange={(e) => setTransfer(e.target.checked)} className="w-4 h-4 accent-accent" />
-                  需要机场接送
+                  {t('reg.needTransfer')}
                 </label>
               </Section>
             )}
 
             {has('uniform') && (
-              <Section title="👕 制服" sub="每件">
+              <Section title={t('reg.uniform')} sub={t('reg.perItem')}>
                 <div className="flex items-center gap-2">
                   <select value={uniformSize} onChange={(e) => setUniformSize(e.target.value)}
                     className="rounded-xl border border-border-strong bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent">
                     {SHIRT_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <NumberRow label="数量" value={uniformQty} onChange={setUniformQty} />
+                  <NumberRow label={t('reg.qty')} value={uniformQty} onChange={setUniformQty} />
                 </div>
               </Section>
             )}
 
             {has('registration') && (
-              <Section title={`🎟️ ${event.fees.find((f) => f.item === 'registration')!.label_cn || '报名费'}`} sub="每人一次">
-                <p className="text-sm text-ink-muted">报名费将自动计入。</p>
+              <Section title={`🎟️ ${event.fees.find((f) => f.item === 'registration')!.label_cn || t('reg.regFeeDefault')}`} sub={t('reg.perPersonOnce')}>
+                <p className="text-sm text-ink-muted">{t('reg.regFeeAuto')}</p>
               </Section>
             )}
 
             {has('other') && (
-              <Section title={`🎁 ${event.fees.find((f) => f.item === 'other')!.label_cn || '其他'}`} sub="">
-                <NumberRow label="数量" value={otherQty} onChange={setOtherQty} />
+              <Section title={`🎁 ${event.fees.find((f) => f.item === 'other')!.label_cn || t('reg.otherDefault')}`} sub="">
+                <NumberRow label={t('reg.qty')} value={otherQty} onChange={setOtherQty} />
               </Section>
             )}
           </Card>
 
           <StickyBar total={total}>
-            <button onClick={() => setStep(1)} className="px-4 btn-secondary">上一步</button>
-            <button onClick={() => setStep(3)} className="flex-1 btn-primary py-2.5 font-medium">下一步</button>
+            <button onClick={() => setStep(1)} className="px-4 btn-secondary">{t('reg.prev')}</button>
+            <button onClick={() => setStep(3)} className="flex-1 btn-primary py-2.5 font-medium">{t('reg.next')}</button>
           </StickyBar>
         </>
       )}
@@ -338,7 +341,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
       {step === 3 && (
         <>
           <Card>
-            <h2 className="font-serif font-semibold text-ink mb-3">确认报名</h2>
+            <h2 className="font-serif font-semibold text-ink mb-3">{t('reg.step3.title')}</h2>
             <div className="rounded-xl bg-accent/10 p-3 text-sm">
               <p className="text-ink font-medium">{event.title}</p>
               <p className="text-xs text-ink-muted mt-0.5">{identifyMode === 'newcomer' ? `${nameCn}${nameEn ? `（${nameEn}）` : ''}` : masked?.name ?? ''} · {phone}</p>
@@ -346,7 +349,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
 
             <div className="mt-3 space-y-1.5">
               {breakdown.length === 0 ? (
-                <p className="text-sm text-ink-muted">未选择任何收费项目（如活动免费可直接确认）。</p>
+                <p className="text-sm text-ink-muted">{t('reg.noFeeItems')}</p>
               ) : breakdown.map((b) => (
                 <div key={b.item} className="flex items-center justify-between text-sm">
                   <span className="text-ink">{b.label} <span className="text-[11px] text-ink-faint">×{b.qty}</span></span>
@@ -354,7 +357,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
                 </div>
               ))}
               <div className="flex items-center justify-between pt-2 mt-1 border-t border-border font-semibold text-ink">
-                <span>合计 Total</span><span>{moneyRM(total)}</span>
+                <span>{t('reg.totalLabel')}</span><span>{moneyRM(total)}</span>
               </div>
             </div>
           </Card>
@@ -362,9 +365,9 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
           <PaymentCard fee={total} />
 
           <StickyBar total={total}>
-            <button onClick={() => setStep(2)} className="px-4 btn-secondary">上一步</button>
+            <button onClick={() => setStep(2)} className="px-4 btn-secondary">{t('reg.prev')}</button>
             <button onClick={submit} disabled={submitBusy} className="flex-1 btn-primary py-2.5 font-medium">
-              {submitBusy ? '提交中…' : '确认报名'}
+              {submitBusy ? t('reg.submitting') : t('reg.confirmReg')}
             </button>
           </StickyBar>
           {submitErr && <Card><p className="text-sm text-red-600">{submitErr}</p></Card>}
@@ -375,27 +378,27 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
         <Card>
           <div className="text-center py-4">
             <div className="text-4xl mb-2">🪷</div>
-            <p className="font-serif font-semibold text-ink text-lg">报名已提交</p>
+            <p className="font-serif font-semibold text-ink text-lg">{t('reg.done.title')}</p>
             <p className="mt-1 text-sm text-ink-muted">Registration submitted</p>
             <div className="mt-4 inline-block font-mono text-lg tracking-wider bg-accent/10 text-ink px-4 py-2 rounded-xl">{result.reg_no}</div>
             <div className="mt-3">
-              <span className="inline-block text-xs px-3 py-1 rounded-full pill-gold">待审核 Pending</span>
+              <span className="inline-block text-xs px-3 py-1 rounded-full pill-gold">{t('reg.done.pending')}</span>
             </div>
             <p className="mt-4 text-xs text-ink-muted leading-relaxed">
-              凭 <span className="font-mono">编号</span> + 手机号可随时查询状态、补上付款凭证<br />
-              （用餐修改请联系负责人；活动开始前 {event.reg_edit_cutoff_days} 天截止）
+              {t('reg.done.lookupNote')}<br />
+              {t('reg.done.editNote', { n: event.reg_edit_cutoff_days })}
             </p>
           </div>
 
           {/* GENTLE, optional payment — never blocks; already registered. */}
           {total > 0 && (
             <div className="mt-4 pt-4 border-t border-border">
-              <p className="text-sm text-center text-ink">费用 {moneyRM(total)} · <span className="text-ink-muted">随喜发心，可现在付款、日后补上，或到场再说 🙏</span></p>
+              <p className="text-sm text-center text-ink">{t('reg.pay.feeLabel')} {moneyRM(total)} · <span className="text-ink-muted">{t('reg.done.dana')}</span></p>
               {!payNow ? (
                 <div className="mt-3 flex gap-2">
-                  <button onClick={() => setPayNow(true)} className="flex-1 btn-primary py-2.5 text-sm font-medium">我现在付款</button>
+                  <button onClick={() => setPayNow(true)} className="flex-1 btn-primary py-2.5 text-sm font-medium">{t('reg.done.payNow')}</button>
                   <button onClick={() => { /* already registered — nothing to do */ }} disabled
-                    className="flex-1 btn-secondary py-2.5 text-sm">我稍后再说</button>
+                    className="flex-1 btn-secondary py-2.5 text-sm">{t('reg.done.payLater')}</button>
                 </div>
               ) : (
                 <div className="mt-3 space-y-3">
@@ -407,7 +410,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
           )}
 
           <div className="mt-4 text-center">
-            <Link href={`/r/${token}/status`} className="inline-block btn-secondary px-5 py-2 text-sm font-medium">查询我的报名</Link>
+            <Link href={`/r/${token}/status`} className="inline-block btn-secondary px-5 py-2 text-sm font-medium">{t('reg.lookupCta')}</Link>
           </div>
         </Card>
       )}
@@ -431,18 +434,19 @@ function StepDots({ step }: { step: number }) {
 }
 
 function EventHeader({ event }: { event: PublicEvent }) {
+  const t = useT();
   const dates = `${event.starts_on}${event.ends_on && event.ends_on !== event.starts_on ? ` — ${event.ends_on}` : ''}`;
   return (
     <div>
       <div className="flex items-center gap-2 flex-wrap">
         <h1 className="text-xl font-bold font-serif text-ink">{event.title}</h1>
-        <span className="text-[11px] px-2 py-0.5 rounded-full pill-gold">{EVENT_TYPE_LABELS[event.event_type] ?? event.event_type}</span>
+        <span className="text-[11px] px-2 py-0.5 rounded-full pill-gold">{eventTypeLabel(event.event_type, t)}</span>
       </div>
       <p className="mt-1 text-sm text-ink-muted">
         {event.organizing_centre ? `${event.organizing_centre.name_cn} · ` : ''}{dates}
         {event.location ? ` · ${event.location}` : ''}
       </p>
-      {event.reg_deadline && <p className="mt-0.5 text-xs text-[#B4402E]">报名截止 {event.reg_deadline}</p>}
+      {event.reg_deadline && <p className="mt-0.5 text-xs text-[#B4402E]">{t('reg.deadline', { date: event.reg_deadline })}</p>}
     </div>
   );
 }
@@ -473,11 +477,12 @@ function NumberRow({ label, value, onChange }: { label: string; value: number; o
 }
 
 function StickyBar({ total, children }: { total: number; children: React.ReactNode }) {
+  const t = useT();
   return (
     <div className="sticky bottom-0 -mx-4 px-4 pt-3 pb-4 bg-gradient-to-t from-bg via-bg to-transparent">
       <div className="bg-surface border border-border rounded-2xl p-3 shadow-sm">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-ink-muted">合计 Total</span>
+          <span className="text-sm text-ink-muted">{t('reg.totalLabel')}</span>
           <span className="text-lg font-bold text-ink">{moneyRM(total)}</span>
         </div>
         <div className="flex gap-2">{children}</div>
@@ -487,21 +492,22 @@ function StickyBar({ total, children }: { total: number; children: React.ReactNo
 }
 
 function PaymentCard({ fee }: { fee: number }) {
+  const t = useT();
   return (
     <Card>
-      <p className="text-sm text-ink mb-2">费用 {moneyRM(fee)} · <span className="text-ink-muted">随喜发心，可现在付款、日后补上，或到场再说</span></p>
-      <h3 className="font-semibold text-ink mb-2">缴费说明 <span className="text-[11px] text-ink-faint">（PLACEHOLDER · 待理事会提供）</span></h3>
+      <p className="text-sm text-ink mb-2">{t('reg.pay.feeLabel')} {moneyRM(fee)} · <span className="text-ink-muted">{t('reg.pay.danaShort')}</span></p>
+      <h3 className="font-semibold text-ink mb-2">{t('reg.pay.instructions')} <span className="text-[11px] text-ink-faint">{t('reg.pay.placeholder')}</span></h3>
       <div className="rounded-xl bg-accent/10 p-3 text-sm text-ink space-y-1">
-        <p>银行：<span className="text-ink-muted">＿＿＿＿（待提供）</span></p>
-        <p>户名：<span className="text-ink-muted">＿＿＿＿（待提供）</span></p>
-        <p>账号：<span className="font-mono text-ink-muted">＿＿＿＿＿＿（待提供）</span></p>
+        <p>{t('reg.pay.bank')}<span className="text-ink-muted">{t('reg.pay.tbd')}</span></p>
+        <p>{t('reg.pay.accountName')}<span className="text-ink-muted">{t('reg.pay.tbd')}</span></p>
+        <p>{t('reg.pay.accountNo')}<span className="font-mono text-ink-muted">{t('reg.pay.tbdLong')}</span></p>
       </div>
       <div className="mt-3 flex justify-center">
         <div className="w-40 h-40 rounded-xl border-2 border-dashed border-gold-border flex items-center justify-center text-center text-xs text-ink-faint p-2">
-          收款 QR<br />（待理事会提供）
+          {t('reg.pay.qrLabel')}<br />{t('reg.pay.qrTbd')}
         </div>
       </div>
-      <p className="mt-3 text-xs text-ink-muted leading-relaxed">转账后请保留收据，现场核对；线上缴费日后开放。</p>
+      <p className="mt-3 text-xs text-ink-muted leading-relaxed">{t('reg.pay.footer')}</p>
     </Card>
   );
 }
@@ -509,6 +515,7 @@ function PaymentCard({ fee }: { fee: number }) {
 // Optional receipt uploader (image/pdf ≤5MB) → POST /api/public/registrations/proof. Never
 // required; can be added anytime from the status page too.
 export function ProofUploader({ regNo, phone, onUploaded }: { regNo: string; phone: string; onUploaded?: () => void }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -521,10 +528,10 @@ export function ProofUploader({ regNo, phone, onUploaded }: { regNo: string; pho
       fd.append('phone', phone);
       fd.append('file', file);
       const res = await fetch('/api/public/registrations/proof', { method: 'POST', body: fd });
-      if (res.ok) { setMsg({ ok: true, text: '✓ 付款凭证已上传，感恩护持 🙏' }); onUploaded?.(); }
-      else { const j = await res.json().catch(() => null); setMsg({ ok: false, text: j?.error ?? '上传失败，请重试' }); }
+      if (res.ok) { setMsg({ ok: true, text: t('reg.proof.uploaded') }); onUploaded?.(); }
+      else { const j = await res.json().catch(() => null); setMsg({ ok: false, text: j?.error ?? t('reg.proof.uploadFailed') }); }
     } catch {
-      setMsg({ ok: false, text: '网络错误，请重试' });
+      setMsg({ ok: false, text: t('reg.errNetwork') });
     } finally {
       setBusy(false);
     }
@@ -534,13 +541,13 @@ export function ProofUploader({ regNo, phone, onUploaded }: { regNo: string; pho
     <div className="rounded-xl border border-dashed border-gold-border p-3 text-center">
       <label className="cursor-pointer inline-block">
         <span className={`inline-block rounded-xl pill-gold px-4 py-2 text-sm ${busy ? 'opacity-50' : ''}`}>
-          {busy ? '上传中…' : '上传付款证明（可选）'}
+          {busy ? t('reg.proof.uploading') : t('reg.proof.uploadBtn')}
         </span>
         <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" className="hidden"
           disabled={busy}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ''; }} />
       </label>
-      <p className="mt-2 text-[11px] text-ink-faint">图片或 PDF · 上限 5MB · 可日后再上传</p>
+      <p className="mt-2 text-[11px] text-ink-faint">{t('reg.proof.hint')}</p>
       {msg && <p className={`mt-2 text-xs ${msg.ok ? 'text-[#3F6B2E]' : 'text-[#B4402E]'}`}>{msg.text}</p>}
     </div>
   );

@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useT, useLocale } from '@/lib/i18n-react';
 
 type Tri = 'unknown' | 'yes' | 'no';
 
@@ -102,6 +103,7 @@ export function MemberForm({
   initial?: MemberFormValues;
 }) {
   const router = useRouter();
+  const t = useT();
   const [v, setV] = useState<MemberFormValues>(initial ?? EMPTY_MEMBER);
   // Always-latest snapshot of the form values. submit() reads THIS, not the (possibly stale)
   // render closure — and Save's onPointerDown blurs the focused field first, which commits any
@@ -134,7 +136,7 @@ export function MemberForm({
     if (saving) return;
     const cur = vRef.current; // latest values (incl. a composition just committed on pointer-down)
     if (!cur.name_cn.trim() && !cur.name_en.trim()) {
-      setError('请至少填写中文或英文姓名');
+      setError(t('members.form.nameRequired'));
       return;
     }
     setSaving(true);
@@ -150,17 +152,17 @@ export function MemberForm({
       const json = await res.json().catch(() => null);
       if (res.status === 409) {
         setDup(json?.existing ?? null);
-        setError('该电话号码已存在');
+        setError(t('members.form.phoneExists'));
         return;
       }
       if (!res.ok) {
-        setError(json?.error ?? '保存失败，请重试');
+        setError(json?.error ?? t('common.saveFailed'));
         return;
       }
       const id = mode === 'create' ? json.member.id : memberId;
       router.push(`/dashboard/members/${id}`);
     } catch {
-      setError('保存失败，请重试');
+      setError(t('common.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -168,73 +170,73 @@ export function MemberForm({
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-      <Section title="基本资料" en="Basic">
+      <Section title={t('members.section.basic')} en="Basic">
         <Grid>
-          <Text label="中文姓名" value={v.name_cn} onChange={(x) => set('name_cn', x)} />
-          <Text label="英文姓名 / Name (EN)" value={v.name_en} onChange={(x) => set('name_en', x)} />
-          <Sel label="性别 / Gender" value={v.gender} onChange={(x) => set('gender', x as MemberFormValues['gender'])}
-            options={[['', '–'], ['M', '男 M'], ['F', '女 F']]} />
-          <Text label="出生日期 / DOB" type="date" value={v.dob} onChange={(x) => set('dob', x)} />
-          <Text label="电话 / Phone" value={v.phone} onChange={(x) => set('phone', x)} placeholder="60123456789" />
-          <Text label="电邮 / Email" value={v.email} onChange={(x) => set('email', x)} />
+          <Text label={t('members.ff.nameCn')} value={v.name_cn} onChange={(x) => set('name_cn', x)} />
+          <Text label={t('members.ff.nameEn')} value={v.name_en} onChange={(x) => set('name_en', x)} />
+          <Sel label={t('members.ff.gender')} value={v.gender} onChange={(x) => set('gender', x as MemberFormValues['gender'])}
+            options={[['', '–'], ['M', t('members.ff.genderM')], ['F', t('members.ff.genderF')]]} />
+          <Text label={t('members.ff.dob')} type="date" value={v.dob} onChange={(x) => set('dob', x)} />
+          <Text label={t('members.ff.phone')} value={v.phone} onChange={(x) => set('phone', x)} placeholder="60123456789" />
+          <Text label={t('members.ff.email')} value={v.email} onChange={(x) => set('email', x)} />
         </Grid>
       </Section>
 
-      <Section title="归属" en="Belonging">
+      <Section title={t('members.section.belonging')} en="Belonging">
         <Grid>
-          <Sel label="中心 / Centre" value={v.gyt_centre_id} onChange={(x) => set('gyt_centre_id', x)}
-            options={[['', '未指定'], ...centres.map((c) => [c.id, `${c.name_cn} ${c.name_en}`] as [string, string])]} />
-          <Sel label="类型 / Type" value={v.member_type} onChange={(x) => set('member_type', x as MemberFormValues['member_type'])}
-            options={[['member', '信众'], ['volunteer', '义工']]} />
+          <Sel label={t('members.ff.centre')} value={v.gyt_centre_id} onChange={(x) => set('gyt_centre_id', x)}
+            options={[['', t('members.ff.centreUnspecified')], ...centres.map((c) => [c.id, `${c.name_cn} ${c.name_en}`] as [string, string])]} />
+          <Sel label={t('members.ff.type')} value={v.member_type} onChange={(x) => set('member_type', x as MemberFormValues['member_type'])}
+            options={[['member', t('members.typeMember')], ['volunteer', t('members.typeVolunteer')]]} />
         </Grid>
       </Section>
 
-      <Section title="修行" en="Practice">
+      <Section title={t('members.section.practice')} en="Practice">
         <Grid>
-          <TriSel label="弟子 / Disciple" value={v.disciple} onChange={(x) => set('disciple', x)} />
-          <Text label="弟子编号" value={v.disciple_no} onChange={(x) => set('disciple_no', x)} />
-          <Text label="拜师年份" value={v.baishi_year} onChange={(x) => set('baishi_year', x)} />
-          <Text label="拜师地点" value={v.baishi_place} onChange={(x) => set('baishi_place', x)} />
-          <Text label="开始修行年份" value={v.start_practice_year} onChange={(x) => set('start_practice_year', x)} />
-          <TriSel label="全素 / Full veg" value={v.full_veg} onChange={(x) => set('full_veg', x)} />
-          <Text label="吃素年份 / Veg since" value={v.veg_since} onChange={(x) => set('veg_since', x)} />
+          <TriSel label={t('members.ff.disciple')} value={v.disciple} onChange={(x) => set('disciple', x)} />
+          <Text label={t('members.ff.discipleNo')} value={v.disciple_no} onChange={(x) => set('disciple_no', x)} />
+          <Text label={t('members.ff.baishiYear')} value={v.baishi_year} onChange={(x) => set('baishi_year', x)} />
+          <Text label={t('members.ff.baishiPlace')} value={v.baishi_place} onChange={(x) => set('baishi_place', x)} />
+          <Text label={t('members.ff.startPractice')} value={v.start_practice_year} onChange={(x) => set('start_practice_year', x)} />
+          <TriSel label={t('members.ff.fullVeg')} value={v.full_veg} onChange={(x) => set('full_veg', x)} />
+          <Text label={t('members.ff.vegSince')} value={v.veg_since} onChange={(x) => set('veg_since', x)} />
         </Grid>
       </Section>
 
-      <Section title="后勤" en="Logistics">
+      <Section title={t('members.section.logistics')} en="Logistics">
         <Grid>
-          <Sel label="衣服尺码 / Shirt" value={v.shirt_size} onChange={(x) => set('shirt_size', x)}
+          <Sel label={t('members.ff.shirtSize')} value={v.shirt_size} onChange={(x) => set('shirt_size', x)}
             options={[['', '–'], ...SHIRT_SIZES.map((s) => [s, s] as [string, string])]} />
-          <TriSel label="打鼾 / Snoring" value={v.snoring} onChange={(x) => set('snoring', x)} />
-          <Text label="语言（逗号分隔）" value={v.languages} onChange={(x) => set('languages', x)} placeholder="华语, English, BM" />
+          <TriSel label={t('members.ff.snoring')} value={v.snoring} onChange={(x) => set('snoring', x)} />
+          <Text label={t('members.ff.languages')} value={v.languages} onChange={(x) => set('languages', x)} placeholder={t('members.ff.langPlaceholder')} />
         </Grid>
       </Section>
 
-      <Section title="生活" en="Life">
+      <Section title={t('members.section.life')} en="Life">
         <Grid>
-          <Text label="地址 / Address" value={v.address} onChange={(x) => set('address', x)} />
-          <Text label="出生地 / Birthplace" value={v.birthplace} onChange={(x) => set('birthplace', x)} />
-          <Text label="宗教 / Religion" value={v.religion} onChange={(x) => set('religion', x)} />
-          <Text label="婚姻 / Marital" value={v.marital_status} onChange={(x) => set('marital_status', x)} />
-          <Text label="职业 / Occupation" value={v.occupation} onChange={(x) => set('occupation', x)} />
+          <Text label={t('members.ff.address')} value={v.address} onChange={(x) => set('address', x)} />
+          <Text label={t('members.ff.birthplace')} value={v.birthplace} onChange={(x) => set('birthplace', x)} />
+          <Text label={t('members.ff.religion')} value={v.religion} onChange={(x) => set('religion', x)} />
+          <Text label={t('members.ff.marital')} value={v.marital_status} onChange={(x) => set('marital_status', x)} />
+          <Text label={t('members.ff.occupation')} value={v.occupation} onChange={(x) => set('occupation', x)} />
         </Grid>
       </Section>
 
-      <Section title="紧急联系" en="Emergency">
+      <Section title={t('members.section.emergency')} en="Emergency">
         <Grid>
-          <Text label="姓名 / Name" value={v.emergency_contact_name} onChange={(x) => set('emergency_contact_name', x)} />
-          <Text label="电话 / Phone" value={v.emergency_contact_phone} onChange={(x) => set('emergency_contact_phone', x)} />
+          <Text label={t('members.ff.name')} value={v.emergency_contact_name} onChange={(x) => set('emergency_contact_name', x)} />
+          <Text label={t('members.ff.phone')} value={v.emergency_contact_phone} onChange={(x) => set('emergency_contact_phone', x)} />
         </Grid>
       </Section>
 
-      <Section title="推荐人" en="Referrer">
+      <Section title={t('members.section.referrer')} en="Referrer">
         <Grid>
-          <Text label="姓名 / Name" value={v.referrer_name} onChange={(x) => set('referrer_name', x)} />
-          <Text label="电话 / Phone" value={v.referrer_phone} onChange={(x) => set('referrer_phone', x)} />
+          <Text label={t('members.ff.name')} value={v.referrer_name} onChange={(x) => set('referrer_name', x)} />
+          <Text label={t('members.ff.phone')} value={v.referrer_phone} onChange={(x) => set('referrer_phone', x)} />
         </Grid>
       </Section>
 
-      <Section title="备注" en="Notes">
+      <Section title={t('members.section.notes')} en="Notes">
         <textarea
           value={v.notes}
           onChange={(e) => set('notes', e.target.value)}
@@ -250,7 +252,7 @@ export function MemberForm({
             <>
               {' — '}
               <Link href={`/dashboard/members/${dup.id}`} className="underline text-accent-deep">
-                查看已有会员：{dup.name}
+                {t('members.form.viewExisting', { name: dup.name })}
               </Link>
             </>
           )}
@@ -266,14 +268,14 @@ export function MemberForm({
           disabled={saving}
           className="btn-primary px-5 py-2 text-sm transition disabled:opacity-50"
         >
-          {saving ? '保存中…' : mode === 'create' ? '创建会员' : '保存修改'}
+          {saving ? t('members.saving') : mode === 'create' ? t('members.createMember') : t('members.saveChanges')}
         </button>
         <button
           onClick={() => router.back()}
           disabled={saving}
           className="btn-secondary px-5 py-2 text-sm transition disabled:opacity-50"
         >
-          取消
+          {t('members.cancel')}
         </button>
       </div>
     </div>
@@ -282,10 +284,13 @@ export function MemberForm({
 
 // ── little form primitives (warm palette) ────────────────────────────────────
 function Section({ title, en, children }: { title: string; en: string; children: ReactNode }) {
+  // `en` is a permanent English gloss (a reading aid) shown only in the Chinese UI;
+  // in en/id the translated `title` already reads in that language, so the gloss is hidden.
+  const locale = useLocale();
   return (
     <section className="bg-surface border border-border rounded-2xl p-5">
       <h2 className="text-base font-semibold font-serif text-ink mb-3">
-        {title} <span className="text-xs font-normal text-ink-faint">{en}</span>
+        {title}{locale === 'zh' && <span className="text-xs font-normal text-ink-faint"> {en}</span>}
       </h2>
       {children}
     </section>
@@ -333,12 +338,13 @@ function Sel({
   );
 }
 function TriSel({ label, value, onChange }: { label: string; value: Tri; onChange: (v: Tri) => void }) {
+  const t = useT();
   return (
     <Sel
       label={label}
       value={value}
       onChange={(x) => onChange(x as Tri)}
-      options={[['unknown', '未知'], ['yes', '是'], ['no', '否']]}
+      options={[['unknown', t('members.unknown')], ['yes', t('members.yes')], ['no', t('members.no')]]}
     />
   );
 }

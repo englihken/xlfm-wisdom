@@ -15,6 +15,17 @@ import { cockpitPart } from './parts/cockpit';
 import { carePart } from './parts/care';
 import { inboxuiPart } from './parts/inboxui';
 import { durenPart } from './parts/duren';
+// E4 sweep-3 surfaces
+import { membersPart } from './parts/members';
+import { eventsPart } from './parts/events';
+import { inventoryPart } from './parts/inventory';
+import { financePart } from './parts/finance';
+import { publicFormsPart } from './parts/publicforms';
+import { settingsPart } from './parts/settings';
+// E4 sweep-3 shared display-vocabulary + chip/relative-time maps
+import { inboxVocabPart } from './parts/inboxvocab';
+import { financeVocabPart } from './parts/financevocab';
+import { eventsVocabPart } from './parts/eventsvocab';
 
 export const zh = {
   ...zhCore,
@@ -23,6 +34,15 @@ export const zh = {
   ...carePart.zh,
   ...inboxuiPart.zh,
   ...durenPart.zh,
+  ...membersPart.zh,
+  ...eventsPart.zh,
+  ...inventoryPart.zh,
+  ...financePart.zh,
+  ...publicFormsPart.zh,
+  ...settingsPart.zh,
+  ...inboxVocabPart.zh,
+  ...financeVocabPart.zh,
+  ...eventsVocabPart.zh,
 };
 
 export const en = {
@@ -32,6 +52,15 @@ export const en = {
   ...carePart.en,
   ...inboxuiPart.en,
   ...durenPart.en,
+  ...membersPart.en,
+  ...eventsPart.en,
+  ...inventoryPart.en,
+  ...financePart.en,
+  ...publicFormsPart.en,
+  ...settingsPart.en,
+  ...inboxVocabPart.en,
+  ...financeVocabPart.en,
+  ...eventsVocabPart.en,
 };
 
 export const id = {
@@ -41,4 +70,13 @@ export const id = {
   ...carePart.id,
   ...inboxuiPart.id,
   ...durenPart.id,
+  ...membersPart.id,
+  ...eventsPart.id,
+  ...inventoryPart.id,
+  ...financePart.id,
+  ...publicFormsPart.id,
+  ...settingsPart.id,
+  ...inboxVocabPart.id,
+  ...financeVocabPart.id,
+  ...eventsVocabPart.id,
 };

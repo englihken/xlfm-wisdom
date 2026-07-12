@@ -64,8 +64,9 @@ function groupByState(centres: Centre[]): { state: string; centres: Centre[] }[]
 }
 
 export default function FinanceOverviewPage() {
+  const t = useT();
   return (
-    <ErpGate active="finance" module="finance" titleSuffix="总览">
+    <ErpGate active="finance" module="finance" titleSuffix={t('finance.tab.overview')}>
       {(me) => <Overview me={me} />}
     </ErpGate>
   );

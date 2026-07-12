@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ErpGate } from '@/components/erp-gate';
 import { MOVEMENT_DIRECTION, MOVEMENT_TYPE_OPTIONS } from '@/lib/inventory-display';
 import { ItemPicker } from '@/components/inventory-chrome';
+import { useT } from '@/lib/i18n-react';
 
 type Meta = {
   locations: { id: string; kind: string; name_cn: string }[];
@@ -25,10 +26,11 @@ function todayMYT(): string {
 }
 
 export default function NewMovementPage() {
+  const t = useT();
   return (
-    <ErpGate active="inventory" module="inventory" titleSuffix="记录变动">
+    <ErpGate active="inventory" module="inventory" titleSuffix={t('inv.suffix.newMovement')}>
       {() => (
-        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">加载中…</p>}>
+        <Suspense fallback={<p className="p-6 text-sm text-ink-muted">{t('inv.loading')}</p>}>
           <NewMovementForm />
         </Suspense>
       )}
@@ -37,6 +39,7 @@ export default function NewMovementPage() {
 }
 
 function NewMovementForm() {
+  const t = useT();
   const router = useRouter();
   const sp = useSearchParams();
   const [meta, setMeta] = useState<Meta>({ locations: [], items: [], events: [] });
@@ -78,10 +81,10 @@ function NewMovementForm() {
 
   const submit = async () => {
     setError('');
-    if (!itemId) return setError('请选择品项');
+    if (!itemId) return setError(t('inv.errPickItem'));
     const n = Number(qty);
-    if (!Number.isInteger(n) || n <= 0) return setError('数量须为大于 0 的整数');
-    if (rule.from && rule.to && fromId === toId) return setError('「从仓」与「到仓」不能相同');
+    if (!Number.isInteger(n) || n <= 0) return setError(t('inv.new.errQty'));
+    if (rule.from && rule.to && fromId === toId) return setError(t('inv.new.errSameLoc'));
 
     setSaving(true);
     try {
@@ -93,7 +96,7 @@ function NewMovementForm() {
         const up = await fetch('/api/dashboard/inventory/upload?kind=photo', { method: 'POST', body: fd });
         const uj = await up.json().catch(() => ({}));
         if (!up.ok || !uj.path) {
-          setError(uj.error ?? '照片上传失败');
+          setError(uj.error ?? t('inv.photoUploadFailed'));
           setSaving(false);
           return;
         }
@@ -116,13 +119,13 @@ function NewMovementForm() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(j.error ?? '记录失败，请重试');
+        setError(j.error ?? t('inv.new.errSave'));
         setSaving(false);
         return;
       }
       router.push('/dashboard/inventory/movements');
     } catch {
-      setError('网络异常，请重试');
+      setError(t('inv.new.errNetwork'));
       setSaving(false);
     }
   };
@@ -135,15 +138,15 @@ function NewMovementForm() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-5">
       <div className="flex items-baseline gap-2">
-        <h2 className="text-xl font-bold font-serif text-ink">📦 记录变动</h2>
+        <h2 className="text-xl font-bold font-serif text-ink">{t('inv.new.title')}</h2>
         <span className="text-sm text-ink-faint">New movement</span>
       </div>
 
       <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
         {/* type */}
-        <Field label="变动类型">
+        <Field label={t('inv.new.typeLabel')}>
           <div className="flex flex-wrap gap-1.5">
-            {MOVEMENT_TYPE_OPTIONS.map(([v, label]) => (
+            {MOVEMENT_TYPE_OPTIONS.map(([v]) => (
               <button
                 key={v}
                 type="button"
@@ -154,33 +157,33 @@ function NewMovementForm() {
                     : 'bg-surface text-ink border-border-strong hover:border-accent'
                 }`}
               >
-                {label}
+                {t(`inv.mv.opt.${v}`)}
               </button>
             ))}
           </div>
         </Field>
 
         {/* item picker */}
-        <Field label="品项">
+        <Field label={t('inv.field.item')}>
           <ItemPicker items={meta.items} value={itemId} onChange={setItemId} />
         </Field>
 
         {/* locations per direction rule */}
         <div className="grid sm:grid-cols-2 gap-4">
           {rule.from && (
-            <Field label="从仓（出）">
+            <Field label={t('inv.new.fromLabel')}>
               <SelBox value={fromId} onChange={setFromId} options={locOptions} />
             </Field>
           )}
           {rule.to && (
-            <Field label="到仓（入）">
+            <Field label={t('inv.new.toLabel')}>
               <SelBox value={toId} onChange={setToId} options={locOptions} />
             </Field>
           )}
         </div>
 
         <div className="grid sm:grid-cols-3 gap-4">
-          <Field label="数量">
+          <Field label={t('inv.new.qtyLabel')}>
             <input
               type="number"
               min={1}
@@ -190,7 +193,7 @@ function NewMovementForm() {
               className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent tabular-nums"
             />
           </Field>
-          <Field label="日期">
+          <Field label={t('inv.field.date')}>
             <input
               type="date"
               value={movedAt}
@@ -198,23 +201,23 @@ function NewMovementForm() {
               className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
             />
           </Field>
-          <Field label="关联活动（可选）">
+          <Field label={t('inv.field.eventOptional')}>
             <SelBox value={eventId} onChange={setEventId}
-              options={[['', '（无）'], ...meta.events.map((e) => [e.id, `${e.code} ${e.title}`] as [string, string])]} />
+              options={[['', t('inv.none')], ...meta.events.map((e) => [e.id, `${e.code} ${e.title}`] as [string, string])]} />
           </Field>
         </div>
 
-        <Field label="备注（可选）">
+        <Field label={t('inv.field.remarkOptional')}>
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="如：新到货 / 823 法会拣货 / 盘点差异…"
+            placeholder={t('inv.new.notePlaceholder')}
             className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
           />
         </Field>
 
-        <Field label="照片（可选，如到货存证）">
+        <Field label={t('inv.new.photoLabel')}>
           <input
             type="file"
             accept="image/*"
@@ -230,19 +233,19 @@ function NewMovementForm() {
 
         <div className="flex items-center gap-2 pt-1">
           <button onClick={submit} disabled={saving} className="px-5 py-2 text-sm btn-primary">
-            {saving ? '记录中…' : '记录变动'}
+            {saving ? t('inv.new.saving') : t('inv.new.submit')}
           </button>
           <button
             onClick={() => router.push('/dashboard/inventory/movements')}
             className="px-4 py-2 text-sm border border-border-strong rounded-lg bg-surface text-ink hover:border-accent transition"
           >
-            取消
+            {t('inv.cancel')}
           </button>
         </div>
       </div>
 
       <p className="text-xs text-ink-faint">
-        出库类变动（调拨/结缘发放/盘点调减）不允许超出该仓当前推算库存；数量与实物不符时，请先用盘点调增/调减对齐。
+        {t('inv.new.footer')}
       </p>
     </div>
   );

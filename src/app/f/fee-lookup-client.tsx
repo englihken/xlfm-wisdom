@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { pledgeLabel, moneyRM } from '@/lib/finance-display';
+import { useT } from '@/lib/i18n-react';
 
 type Member = {
   maskedName: string;
@@ -25,6 +26,7 @@ function paidThroughLabel(ym: string): string {
 }
 
 export function FeeLookupClient() {
+  const t = useT();
   const [phone, setPhone] = useState('');
   const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle');
   const [members, setMembers] = useState<Member[]>([]);
@@ -49,7 +51,7 @@ export function FeeLookupClient() {
         {members.map((m, i) => (
           <MemberCard key={i} m={m} />
         ))}
-        <button onClick={() => { setState('idle'); setMembers([]); setPhone(''); }} className="w-full py-2 text-sm text-accent-deep">← 查询其他号码</button>
+        <button onClick={() => { setState('idle'); setMembers([]); setPhone(''); }} className="w-full py-2 text-sm text-accent-deep">{t('feeLookup.lookupAnother')}</button>
       </div>
     );
   }
@@ -57,19 +59,19 @@ export function FeeLookupClient() {
   return (
     <div className="space-y-3">
       <div className="bg-surface border border-border rounded-2xl p-5">
-        <p className="text-[10.5px] tracking-wide text-[#8A7444] uppercase mb-1.5">手机号</p>
+        <p className="text-[10.5px] tracking-wide text-[#8A7444] uppercase mb-1.5">{t('feeLookup.phoneLabel')}</p>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="012-345 6789"
           onKeyDown={(e) => { if (e.key === 'Enter') lookup(); }}
           className="w-full text-base px-3 py-2.5 border border-border-strong rounded-xl bg-surface-soft text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent" />
-        <button disabled={state === 'loading'} onClick={lookup} className="w-full mt-3 py-2.5 text-sm btn-primary">{state === 'loading' ? '查询中…' : '查询'}</button>
-        <p className="mt-2 text-[10.5px] text-ink-faint text-center">只显示与此手机号绑定的记录 · 姓名打码显示</p>
+        <button disabled={state === 'loading'} onClick={lookup} className="w-full mt-3 py-2.5 text-sm btn-primary">{state === 'loading' ? t('feeLookup.lookingUp') : t('feeLookup.lookupButton')}</button>
+        <p className="mt-2 text-[10.5px] text-ink-faint text-center">{t('feeLookup.privacyNote')}</p>
       </div>
 
       {state === 'done' && members.length === 0 && (
         <div className="bg-surface border border-border rounded-2xl p-6 text-center">
           <p className="text-2xl mb-1">🪷</p>
-          <p className="text-sm text-ink">查无记录</p>
-          <p className="mt-1 text-xs text-ink-muted">此号码暂无月费记录。如有疑问，请联系所属中心财政。</p>
+          <p className="text-sm text-ink">{t('feeLookup.notFound')}</p>
+          <p className="mt-1 text-xs text-ink-muted">{t('feeLookup.notFoundSub')}</p>
         </div>
       )}
     </div>
@@ -77,39 +79,40 @@ export function FeeLookupClient() {
 }
 
 function MemberCard({ m }: { m: Member }) {
-  const pl = pledgeLabel(m.pledge);
+  const t = useT();
+  const pl = pledgeLabel(m.pledge, t);
   const waived = !!m.pledge.fee_waived_from;
-  const t = m.transparency;
+  const trans = m.transparency;
   return (
     <div className="space-y-3">
       <div className="text-center">
-        <div className="font-serif text-base font-bold text-ink">{m.maskedName} 师兄 🙏</div>
-        <div className="text-xs text-ink-muted">{m.centre ?? '—'} · 认捐 {pl.text}</div>
+        <div className="font-serif text-base font-bold text-ink">{t('feeLookup.memberGreeting', { name: m.maskedName })}</div>
+        <div className="text-xs text-ink-muted">{t('feeLookup.centrePledge', { centre: m.centre ?? '—', pledge: pl.text })}</div>
       </div>
 
       <div className="rounded-2xl p-5 text-center border" style={{ background: 'linear-gradient(150deg,#FCF4DF,#F8ECCB)', borderColor: '#EDDCAC' }}>
-        <p className="text-[10.5px] tracking-wide text-[#8A7444] uppercase">已付至</p>
+        <p className="text-[10.5px] tracking-wide text-[#8A7444] uppercase">{t('feeLookup.paidThroughLabel')}</p>
         {waived ? (
           <>
-            <p className="font-serif text-2xl font-bold text-[#6B5B8A] my-1">豁免中</p>
-            <p className="text-xs text-ink-body">已豁免月费 · 感恩护持 🙏</p>
+            <p className="font-serif text-2xl font-bold text-[#6B5B8A] my-1">{t('feeLookup.waived')}</p>
+            <p className="text-xs text-ink-body">{t('feeLookup.waivedNote')}</p>
           </>
         ) : m.paidThrough ? (
           <>
             <p className="font-serif text-3xl font-bold text-accent-deep my-1">{paidThroughLabel(m.paidThrough)}</p>
-            <p className="text-xs text-ink-body">感恩护持 · 功德无量 🙏</p>
+            <p className="text-xs text-ink-body">{t('feeLookup.paidNote')}</p>
           </>
         ) : (
           <>
-            <p className="font-serif text-xl font-bold text-accent-deep my-1">暂无缴费记录</p>
-            <p className="text-xs text-ink-body">感恩护持 🙏</p>
+            <p className="font-serif text-xl font-bold text-accent-deep my-1">{t('feeLookup.noPayments')}</p>
+            <p className="text-xs text-ink-body">{t('feeLookup.thanks')}</p>
           </>
         )}
       </div>
 
       {m.payments.length > 0 && (
         <div className="bg-surface border border-border rounded-2xl p-4">
-          <p className="text-[10.5px] tracking-wide text-[#8A7444] uppercase mb-2">缴付记录</p>
+          <p className="text-[10.5px] tracking-wide text-[#8A7444] uppercase mb-2">{t('feeLookup.paymentsTitle')}</p>
           <table className="w-full text-[11.5px]">
             <tbody>
               {m.payments.map((p, i) => (
@@ -125,11 +128,11 @@ function MemberCard({ m }: { m: Member }) {
         </div>
       )}
 
-      {t && (
+      {trans && (
         <div className="text-xs text-[#4A3A14] bg-[#FBF3DE] border border-gold-border rounded-xl px-4 py-3 leading-relaxed">
-          🏮 {m.centre ?? '本中心'} 本月：已收 {moneyRM(t.collected)} · 支出 {moneyRM(t.expenses)} · 结余 {moneyRM(t.surplus)}。
-          {t.paused && <b> 本月已满，感恩 🙏 本月无需再缴。</b>}
-          {t.paused && t.pausedNote && <span className="block mt-1 text-ink-muted">{t.pausedNote}</span>}
+          {t('feeLookup.transparency', { centre: m.centre ?? t('feeLookup.thisCentre'), collected: moneyRM(trans.collected), expenses: moneyRM(trans.expenses), surplus: moneyRM(trans.surplus) })}
+          {trans.paused && <b> {t('feeLookup.monthFull')}</b>}
+          {trans.paused && trans.pausedNote && <span className="block mt-1 text-ink-muted">{trans.pausedNote}</span>}
         </div>
       )}
     </div>
