@@ -8,9 +8,13 @@
 
 import { cookies } from 'next/headers';
 import { createT, LOCALE_COOKIE, toLocale, type Locale, type TFunc } from './i18n';
-import { getAuthenticatedUser } from './supabase-server';
+import { getActiveVolunteer } from './supabase-server';
 import { supabaseAdmin } from './supabase';
 
+// The NEXT_LOCALE cookie is BROWSER-GLOBAL — correct only for anonymous/public
+// surfaces (public pages + the language pill). It must NEVER decide the dashboard
+// language: on a shared browser it holds whoever was here last. The dashboard's
+// authoritative source is the signed-in volunteer's volunteers.locale (below).
 export async function getRequestLocale(): Promise<Locale> {
   try {
     const jar = await cookies();
@@ -20,33 +24,62 @@ export async function getRequestLocale(): Promise<Locale> {
   }
 }
 
-// Bound translator for the current request's locale.
+// Bound translator for the request COOKIE locale — anonymous/public surfaces only.
 export async function getServerT(): Promise<TFunc> {
   return createT(await getRequestLocale());
 }
 
-// AUTHORITATIVE dashboard locale (fixes shared-browser bleed). The NEXT_LOCALE
-// cookie is browser-global, so on a shared machine it may hold the PREVIOUS user's
-// language — never trust it to seed a signed-in dashboard. Instead resolve from the
-// SESSION: the logged-in volunteer's own volunteers.locale. Only when there is no
-// valid session (anonymous) do we fall back to the cookie. Any DB hiccup falls back
-// to the cookie too, so this can never throw during a dashboard render.
-export async function getDashboardLocale(): Promise<Locale> {
-  try {
-    const user = await getAuthenticatedUser();
-    if (user && supabaseAdmin) {
-      const { data } = await supabaseAdmin
-        .from('volunteers')
-        .select('locale, active')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (data?.active && isLocaleValue(data.locale)) return data.locale;
-    }
-  } catch {
-    /* fall through to the cookie */
-  }
+// Read one volunteer's saved UI locale (volunteers.locale, migration 034). Falls
+// back to the cookie on a genuine miss, but WARNS first so a lookup miss is never
+// silent again (the previous silent fallback hid this exact bug).
+export async function getVolunteerLocale(volunteerId: string): Promise<Locale> {
+  if (!supabaseAdmin) return getRequestLocale();
+  const { data, error } = await supabaseAdmin
+    .from('volunteers')
+    .select('locale')
+    .eq('id', volunteerId)
+    .maybeSingle();
+  if (!error && isLocaleValue(data?.locale)) return data.locale;
+  console.warn(
+    `[i18n] volunteer ${volunteerId} locale unresolved (locale=${JSON.stringify(data?.locale)}${error ? `, error=${error.message}` : ''}) — falling back to cookie`
+  );
   return getRequestLocale();
 }
+
+// AUTHORITATIVE dashboard/session locale. Resolves the SAME active-volunteer row
+// that /api/dashboard/me uses (getActiveVolunteer → volunteers by auth id) and reads
+// its locale. ONLY a genuinely anonymous caller (no active session) falls back to the
+// browser cookie. Used to seed the dashboard provider (server) AND to localize every
+// dashboard-facing API route (never getRequestLocale for those).
+export async function getSessionLocale(): Promise<Locale> {
+  try {
+    const access = await getActiveVolunteer();
+    if (access) return await getVolunteerLocale(access.volunteer.id);
+  } catch (e) {
+    // cookies()/auth throw Next's DynamicServerError during the build's static probe
+    // to opt the route into dynamic rendering — let that propagate (it's not a real
+    // locale-resolution failure and must not be swallowed or it pollutes the warn).
+    if (isDynamicServerError(e)) throw e;
+    console.warn('[i18n] getSessionLocale failed — falling back to cookie', e);
+  }
+  return getRequestLocale(); // anonymous / no active volunteer
+}
+
+function isDynamicServerError(e: unknown): boolean {
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    (e as { digest?: unknown }).digest === 'DYNAMIC_SERVER_USAGE'
+  );
+}
+
+// Bound translator for the signed-in volunteer — use in dashboard-facing API routes.
+export async function getSessionT(): Promise<TFunc> {
+  return createT(await getSessionLocale());
+}
+
+// The dashboard server-component seed IS the session locale.
+export const getDashboardLocale = getSessionLocale;
 
 function isLocaleValue(v: unknown): v is Locale {
   return v === 'zh' || v === 'en' || v === 'id';

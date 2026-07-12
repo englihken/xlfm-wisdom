@@ -13,7 +13,7 @@ import { loadVisibleMailboxes, countsByMailbox, ownersByMailbox, loadEscalation 
 import { ageDays, overdueLevel, snippet } from '@/lib/inbox';
 import { countUnreadConversations, isUnread } from '@/lib/care-inbox';
 import { createT } from '@/lib/i18n';
-import { getRequestLocale } from '@/lib/i18n-server';
+import { getVolunteerLocale } from '@/lib/i18n-server';
 
 export const runtime = 'nodejs';
 
@@ -24,7 +24,6 @@ const ACTION_CN: Record<string, string> = {
 };
 
 export async function GET() {
-  const tr = createT(await getRequestLocale()); // localized tile/task labels
   const access = await getActiveVolunteer();
   if (!access) {
     const user = await getAuthenticatedUser();
@@ -33,6 +32,10 @@ export async function GET() {
   if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
   const db = supabaseAdmin;
   const me = access.volunteer;
+  // Localize tile/task labels by the SIGNED-IN volunteer's saved locale — never the
+  // browser cookie (the home tiles must match the rest of the dashboard, not whoever
+  // used this browser last).
+  const tr = createT(await getVolunteerLocale(me.id));
 
   const grants: Grants = {};
   const { data: grantRows } = await db.from('role_grants').select('module, access').eq('role', me.role);

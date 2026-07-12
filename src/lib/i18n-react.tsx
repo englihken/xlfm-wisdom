@@ -50,22 +50,13 @@ export function useT(): TFunc {
   return useMemo(() => createT(locale), [locale]);
 }
 
-// Mirror the SERVER-resolved dashboard locale (the signed-in volunteer's saved
-// preference, already used to seed the provider server-side) into the NEXT_LOCALE
-// cookie on mount. This keeps the browser-global cookie pointing at the CURRENT
-// user, so any public page opened right after (/m, /f, …) renders in their
-// language and no stale previous-user value lingers. Renders nothing.
-export function SyncLocaleCookie({ locale }: { locale: Locale }) {
-  useEffect(() => {
-    setLocaleCookie(locale);
-  }, [locale]);
-  return null;
-}
-
-// Drop-in for client-gated dashboard subtrees: once /api/dashboard/me resolves,
-// push the session volunteer's saved locale into the provider so the whole
-// dashboard follows the user's preference (survives logout/login). Renders
-// nothing. Safe to mount more than once.
+// Client authority for the dashboard locale. Fetches /api/dashboard/me — a Route
+// Handler where the session ALWAYS resolves (unlike a server component after a
+// client-side login nav) — and pushes the signed-in volunteer's saved locale into
+// the provider, unconditionally overriding whatever the SSR seed was, then mirrors
+// it to the cookie (session → cookie only; it never reads the cookie into the
+// provider). This is what makes the dashboard follow the LOGGED-IN user and not the
+// browser-global cookie. Renders nothing. Safe to mount more than once.
 export function LocaleFromSession() {
   const setLocale = useSetLocale();
   useEffect(() => {
@@ -76,7 +67,7 @@ export function LocaleFromSession() {
         if (active && j?.locale) {
           const loc = toLocale(j.locale);
           setLocale(loc);
-          setLocaleCookie(loc); // keep SSR seed in sync with the saved preference
+          setLocaleCookie(loc); // keep the cookie mirroring the CURRENT user
         }
       })
       .catch(() => {});

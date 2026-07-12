@@ -5,7 +5,8 @@
 import { NextResponse } from 'next/server';
 import { resolveInbox, notFound, ownersByMailbox, loadEscalation, threadReach, type Db } from '@/lib/inbox-server';
 import { ageDays, overdueLevel, linkedHref, statusLabel } from '@/lib/inbox';
-import { getServerT } from '@/lib/i18n-server';
+import { createT } from '@/lib/i18n';
+import { getVolunteerLocale } from '@/lib/i18n-server';
 import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
@@ -84,7 +85,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const mbCentre = mbRow ? (Array.isArray(mbRow.centre) ? mbRow.centre[0] : mbRow.centre) : null;
   const nowMs = Date.now();
   const age = ageDays(t.last_message_at as string, nowMs);
-  const tr = await getServerT(); // localize the status chip label by request locale
+  const tr = createT(await getVolunteerLocale(volunteer.id)); // localize the status chip by the signed-in volunteer's locale
 
   return NextResponse.json({
     thread: {

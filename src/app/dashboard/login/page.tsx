@@ -10,11 +10,13 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PLATFORM_NAME } from '@/lib/platform';
 import { visibleModules } from '@/lib/access';
-import { useT } from '@/lib/i18n-react';
+import { useT, useSetLocale, setLocaleCookie } from '@/lib/i18n-react';
+import { toLocale } from '@/lib/i18n';
 
 export default function DashboardLoginPage() {
   const router = useRouter();
   const t = useT();
+  const setLocale = useSetLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +52,15 @@ export default function DashboardLoginPage() {
         const meRes = await fetch('/api/dashboard/me');
         if (meRes.ok) {
           const me = await meRes.json();
+          // LOGIN is the authoritative moment for the dashboard language: seed the
+          // provider + cookie from THIS user's saved locale now, so the client-side
+          // nav to the dashboard (which does not re-run the server layout) lands in
+          // their language with no flash and never inherits the previous user's.
+          if (me.locale) {
+            const loc = toLocale(me.locale);
+            setLocale(loc);
+            setLocaleCookie(loc);
+          }
           const mods = visibleModules({ role: me.role, grants: me.grants ?? {} });
           if (mods.length > 1) dest = '/dashboard/home';
           else if (mods.length === 1 && mods[0] === 'members') dest = '/dashboard/members';
