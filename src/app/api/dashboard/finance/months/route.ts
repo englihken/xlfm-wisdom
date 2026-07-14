@@ -20,7 +20,7 @@ export async function PATCH(req: Request) {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
 
-  const scope = await financeScope(supabaseAdmin, access.volunteer.id);
+  const scope = financeScope(access.volunteer);
   const enforced = enforceScope(scope, typeof body.centre_id === 'string' ? body.centre_id : null);
   if (!enforced.ok) return NextResponse.json({ error: enforced.error }, { status: 400 });
   const centreId = enforced.centreId;

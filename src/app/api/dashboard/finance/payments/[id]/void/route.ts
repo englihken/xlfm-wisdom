@@ -28,7 +28,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .maybeSingle();
   if (!payment) return NextResponse.json({ error: '收款记录不存在' }, { status: 404 });
 
-  const scope = await financeScope(supabaseAdmin, access.volunteer.id);
+  const scope = financeScope(access.volunteer);
   const enforced = enforceScope(scope, payment.centre_id);
   if (!enforced.ok) return NextResponse.json({ error: enforced.error }, { status: 400 });
   if (payment.voided_at) return NextResponse.json({ error: '该记录已作废' }, { status: 400 });

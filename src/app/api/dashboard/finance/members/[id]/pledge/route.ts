@@ -31,7 +31,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .maybeSingle();
   if (!member) return NextResponse.json({ error: '会员不存在' }, { status: 404 });
 
-  const scope = await financeScope(supabaseAdmin, access.volunteer.id);
+  const scope = financeScope(access.volunteer);
   const enforced = enforceScope(scope, member.gyt_centre_id);
   if (!enforced.ok) return NextResponse.json({ error: enforced.error }, { status: 400 });
 

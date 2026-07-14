@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   if (!contact) return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
 
   // Centre-scope wall: a locked account may only record on its own centre's 善缘.
-  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  const scope = outreachScope(access.volunteer);
   if (!scopeAllowsContact(scope, (contact as { centre_id: string | null }).centre_id)) {
     return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
   }

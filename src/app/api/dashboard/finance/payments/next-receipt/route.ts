@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   if (!access.ok) return NextResponse.json({ error: access.status === 401 ? 'Unauthorized' : 'Forbidden' }, { status: access.status });
   if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
 
-  const scope = await financeScope(supabaseAdmin, access.volunteer.id);
+  const scope = financeScope(access.volunteer);
   const enforced = enforceScope(scope, new URL(req.url).searchParams.get('centre_id'));
   if (!enforced.ok) return NextResponse.json({ error: enforced.error }, { status: 400 });
   if (!enforced.centreId) return NextResponse.json({ error: '请选择中心' }, { status: 400 });

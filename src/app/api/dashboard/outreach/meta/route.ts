@@ -16,7 +16,7 @@ export async function GET() {
   if (!access.ok) return NextResponse.json({ error: access.status === 401 ? 'Unauthorized' : 'Forbidden' }, { status: access.status });
   if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
 
-  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  const scope = outreachScope(access.volunteer);
 
   let centreQ = supabaseAdmin.from('centres').select('id, code, name_cn').eq('is_active', true);
   // A locked account's centre picker is pinned to its own centre — return only that one.

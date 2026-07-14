@@ -46,6 +46,17 @@ export async function getVolunteerLocale(volunteerId: string): Promise<Locale> {
   return getRequestLocale();
 }
 
+// PERF variant: resolve the locale from the volunteer row ALREADY fetched this
+// request (getActiveVolunteer/requireModuleAccess select locale) — no volunteers
+// round trip. Same fallback + warn semantics as getVolunteerLocale.
+export async function resolveVolunteerLocale(v: { id: string; locale: string | null }): Promise<Locale> {
+  if (isLocaleValue(v.locale)) return v.locale;
+  console.warn(
+    `[i18n] volunteer ${v.id} locale unresolved (locale=${JSON.stringify(v.locale)}) — falling back to cookie`
+  );
+  return getRequestLocale();
+}
+
 // AUTHORITATIVE dashboard/session locale. Resolves the SAME active-volunteer row
 // that /api/dashboard/me uses (getActiveVolunteer → volunteers by auth id) and reads
 // its locale. ONLY a genuinely anonymous caller (no active session) falls back to the
@@ -54,7 +65,8 @@ export async function getVolunteerLocale(volunteerId: string): Promise<Locale> {
 export async function getSessionLocale(): Promise<Locale> {
   try {
     const access = await getActiveVolunteer();
-    if (access) return await getVolunteerLocale(access.volunteer.id);
+    // The active-volunteer row already carries locale — no second volunteers read.
+    if (access) return await resolveVolunteerLocale(access.volunteer);
   } catch (e) {
     // cookies()/auth throw Next's DynamicServerError during the build's static probe
     // to opt the route into dynamic rendering — let that propagate (it's not a real

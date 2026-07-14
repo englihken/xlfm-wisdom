@@ -30,7 +30,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   // CENTRE-SCOPE WALL (security audit C1): a locked caller may only list registrations
   // of their own centre's events. Cross-wall → the SAME 404 as an unknown event id.
-  const scope = await eventsScope(supabaseAdmin, access.volunteer.id);
+  const scope = eventsScope(access.volunteer);
   if (scope.locked) {
     const { data: ev, error: evErr } = await supabaseAdmin
       .from('events')

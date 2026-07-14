@@ -33,7 +33,7 @@ export async function GET(req: Request) {
   if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
 
   const sp = new URL(req.url).searchParams;
-  const scope = await financeScope(supabaseAdmin, access.volunteer.id);
+  const scope = financeScope(access.volunteer);
   const enforced = enforceScope(scope, sp.get('centre_id'));
   if (!enforced.ok) return NextResponse.json({ error: enforced.error }, { status: 400 });
   const centreId = enforced.centreId;
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
 
-  const scope = await financeScope(supabaseAdmin, access.volunteer.id);
+  const scope = financeScope(access.volunteer);
   const enforced = enforceScope(scope, typeof body.centre_id === 'string' ? body.centre_id : null);
   if (!enforced.ok) return NextResponse.json({ error: enforced.error }, { status: 400 });
   const centreId = enforced.centreId;

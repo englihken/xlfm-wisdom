@@ -58,7 +58,9 @@ export async function getAuthenticatedUser(): Promise<User | null> {
 export type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee' | 'centre_head';
 
 // A row from the `volunteers` table (migrations/006). `role` gates admin-only
-// features; `active` gates dashboard access.
+// features; `active` gates dashboard access. scope/centre_id/locale ride along on
+// the SAME single read (perf: Sydney round trips are expensive) so the scope
+// resolvers and locale helpers never re-query volunteers within a request.
 export type Volunteer = {
   id: string;
   email: string;
@@ -66,7 +68,13 @@ export type Volunteer = {
   role: Role;
   active: boolean;
   must_change_password: boolean;
+  scope: 'all_centers' | 'own_center' | null;
+  centre_id: string | null;
+  locale: string | null;
 };
+
+const VOLUNTEER_SELECT =
+  'id, email, display_name, role, active, must_change_password, scope, centre_id, locale';
 
 // Returns the logged-in user together with their volunteers row, but ONLY when
 // that row exists and is active — otherwise null. This is the role-aware gate for
@@ -81,7 +89,7 @@ export async function getActiveVolunteer(): Promise<
 
   const { data, error } = await supabaseAdmin
     .from('volunteers')
-    .select('id, email, display_name, role, active, must_change_password')
+    .select(VOLUNTEER_SELECT)
     .eq('id', user.id)
     .maybeSingle();
 
@@ -106,20 +114,31 @@ export async function requireModuleAccess(
   module: ModuleKey,
   min: AccessLevel
 ): Promise<{ ok: true; user: User; volunteer: Volunteer } | { ok: false; status: 401 | 403 }> {
-  const access = await getActiveVolunteer();
-  if (!access || !supabaseAdmin) return { ok: false, status: 401 };
+  const user = await getAuthenticatedUser();
+  if (!user || !supabaseAdmin) return { ok: false, status: 401 };
 
-  const { data } = await supabaseAdmin
-    .from('role_grants')
-    .select('access')
-    .eq('role', access.volunteer.role)
-    .eq('module', module)
-    .maybeSingle();
+  // PERF: the volunteers row and the module's grant rows don't depend on each
+  // other, so fetch them in ONE parallel round trip instead of two serial ones
+  // (role_grants per module is ≤ a handful of rows; the caller's grant is picked
+  // out in JS). Semantics identical: missing/inactive volunteer → 401, missing
+  // grant → 'none' → 403 when below `min`.
+  const [volRes, grantsRes] = await Promise.all([
+    supabaseAdmin.from('volunteers').select(VOLUNTEER_SELECT).eq('id', user.id).maybeSingle(),
+    supabaseAdmin.from('role_grants').select('role, access').eq('module', module),
+  ]);
 
-  const granted = (data?.access as AccessLevel | undefined) ?? 'none';
+  if (volRes.error) {
+    console.error('[auth] volunteer lookup failed:', volRes.error);
+    return { ok: false, status: 401 };
+  }
+  const volunteer = volRes.data as Volunteer | null;
+  if (!volunteer || !volunteer.active) return { ok: false, status: 401 };
+
+  const grantRow = (grantsRes.data ?? []).find((g) => g.role === volunteer.role);
+  const granted = ((grantRow?.access as AccessLevel | undefined) ?? 'none') as AccessLevel;
   if (ACCESS_RANK[granted] < ACCESS_RANK[min]) {
     return { ok: false, status: 403 };
   }
 
-  return { ok: true, user: access.user, volunteer: access.volunteer };
+  return { ok: true, user, volunteer };
 }

@@ -9,19 +9,24 @@
 // 分会负责人 (own_center) role is deliberately NOT in this set, so it locks the day it exists —
 // today there are no own_center outreach accounts, so nothing changes for current users.
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-
 export type OutreachScope = { centreId: string | null; locked: boolean };
+
+// The columns the resolver needs from the per-request volunteer row (fetched once
+// by requireModuleAccess — PERF: no second volunteers round trip per request).
+export type VolunteerScopeRow = {
+  role: string | null;
+  scope: string | null;
+  centre_id: string | null;
+};
 
 const NATIONAL_ROLES = new Set(['admin', 'erp_admin', 'committee', 'volunteer']);
 
-export async function outreachScope(db: SupabaseClient, volunteerId: string): Promise<OutreachScope> {
-  const { data } = await db.from('volunteers').select('scope, centre_id, role').eq('id', volunteerId).maybeSingle();
-  const scope = (data?.scope as string | undefined) ?? 'own_center';
-  const role = (data?.role as string | undefined) ?? 'volunteer';
+export function outreachScope(v: VolunteerScopeRow): OutreachScope {
+  const scope = v.scope ?? 'own_center';
+  const role = v.role ?? 'volunteer';
   const allCentres = scope === 'all_centers' || NATIONAL_ROLES.has(role);
   if (allCentres) return { centreId: null, locked: false };
-  return { centreId: (data?.centre_id as string | null) ?? null, locked: true };
+  return { centreId: v.centre_id ?? null, locked: true };
 }
 
 // May a locked account touch a contact with this centre_id? all_centers → always; locked → only

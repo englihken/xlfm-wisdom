@@ -36,34 +36,33 @@ export type InboxAccess = {
 };
 
 // Resolve the caller's inbox access. `db` must be the service-role client.
-export async function getInboxAccess(db: SupabaseClient, volunteer: Volunteer): Promise<InboxAccess> {
-  // 1. role_grants access level for inbox
-  const { data: grantRow } = await db
-    .from('role_grants')
-    .select('access')
-    .eq('role', volunteer.role)
-    .eq('module', 'inbox')
-    .maybeSingle();
-  const grant = ((grantRow?.access as AccessLevel | undefined) ?? 'none') as AccessLevel;
+// PERF: the volunteer row (scope/centre_id/role) is the one fetched once per request
+// by getActiveVolunteer/requireModuleAccess — no volunteers re-read here. Pass
+// `knownGrant` when the caller already loaded the role's grants (e.g. home/summary)
+// to skip the role_grants read too; otherwise it is fetched IN PARALLEL with the
+// ownership rows instead of serially.
+export async function getInboxAccess(
+  db: SupabaseClient,
+  volunteer: Volunteer,
+  knownGrant?: AccessLevel
+): Promise<InboxAccess> {
+  // 1+3. role_grants access level for inbox + owned mailboxes — independent reads,
+  // one parallel round trip. Grant semantics unchanged: missing row → 'none'.
+  const [grantRes, ownerRes] = await Promise.all([
+    knownGrant !== undefined
+      ? Promise.resolve(null)
+      : db.from('role_grants').select('access').eq('role', volunteer.role).eq('module', 'inbox').maybeSingle(),
+    db.from('inbox_mailbox_owners').select('mailbox_id').eq('volunteer_id', volunteer.id),
+  ]);
+  const grant = (knownGrant ?? ((grantRes?.data?.access as AccessLevel | undefined) ?? 'none')) as AccessLevel;
+  const ownedMailboxIds = (ownerRes.data ?? []).map((r) => r.mailbox_id as string);
 
   // 2. centre scope (mirror outreach-scope): locked = own_center account
-  const { data: vrow } = await db
-    .from('volunteers')
-    .select('scope, centre_id, role')
-    .eq('id', volunteer.id)
-    .maybeSingle();
-  const scope = (vrow?.scope as string | undefined) ?? 'own_center';
-  const role = (vrow?.role as string | undefined) ?? volunteer.role;
-  const centreId = (vrow?.centre_id as string | null) ?? null;
+  const scope = volunteer.scope ?? 'own_center';
+  const role = volunteer.role;
+  const centreId = volunteer.centre_id ?? null;
   const national = scope === 'all_centers' || NATIONAL_ROLES.has(role);
   const locked = !national;
-
-  // 3. owned mailboxes (content access independent of role)
-  const { data: ownerRows } = await db
-    .from('inbox_mailbox_owners')
-    .select('mailbox_id')
-    .eq('volunteer_id', volunteer.id);
-  const ownedMailboxIds = (ownerRows ?? []).map((r) => r.mailbox_id as string);
 
   // 4. own-centre mailbox id for a locked centre_head (edit)
   let centreMailboxId: string | null = null;

@@ -45,7 +45,7 @@ export async function GET(req: Request) {
   // CENTRE-SCOPE WALL (security audit C1): the caller's scope is resolved server-side
   // and ALWAYS applied — the ?centre= param can only narrow within it, never widen.
   // A locked account with no centre_id sees nothing (fail closed, same as 主页 tiles).
-  const scope = await membersScope(supabaseAdmin, access.volunteer.id);
+  const scope = membersScope(access.volunteer);
   if (scope.locked && !scope.centreId) {
     return NextResponse.json({ members: [], total: 0, page, limit, totalPages: 0 });
   }
@@ -110,33 +110,33 @@ export async function GET(req: Request) {
   const total = count ?? 0;
 
   // Enrich each page row with its centre (code/name) and current teams — two
-  // batched queries + a JS join, no N+1.
+  // independent batched queries in ONE parallel round trip + a JS join, no N+1.
   const centreIds = [...new Set(rows.map((r) => r.gyt_centre_id).filter(Boolean) as string[])];
   const memberIds = rows.map((r) => r.id as string);
 
+  const [centresRes, teamsRes] = await Promise.all([
+    centreIds.length
+      ? supabaseAdmin.from('centres').select('id, code, name_cn').in('id', centreIds)
+      : Promise.resolve({ data: [] as CentreLite[] }),
+    memberIds.length
+      ? supabaseAdmin
+          .from('member_teams')
+          .select('member_id, role, team:teams ( name_cn )')
+          .in('member_id', memberIds)
+          .eq('is_current', true)
+      : Promise.resolve({ data: [] as MemberTeamLite[] }),
+  ]);
+
   const centreById = new Map<string, CentreLite>();
-  if (centreIds.length) {
-    const { data: cs } = await supabaseAdmin
-      .from('centres')
-      .select('id, code, name_cn')
-      .in('id', centreIds);
-    for (const c of (cs ?? []) as CentreLite[]) centreById.set(c.id, c);
-  }
+  for (const c of (centresRes.data ?? []) as CentreLite[]) centreById.set(c.id, c);
 
   const teamsByMember = new Map<string, { name_cn: string; role: string }[]>();
-  if (memberIds.length) {
-    const { data: mts } = await supabaseAdmin
-      .from('member_teams')
-      .select('member_id, role, team:teams ( name_cn )')
-      .in('member_id', memberIds)
-      .eq('is_current', true);
-    for (const mt of (mts ?? []) as MemberTeamLite[]) {
-      const t = Array.isArray(mt.team) ? mt.team[0] : mt.team;
-      if (!t) continue;
-      const list = teamsByMember.get(mt.member_id) ?? [];
-      list.push({ name_cn: t.name_cn, role: mt.role });
-      teamsByMember.set(mt.member_id, list);
-    }
+  for (const mt of (teamsRes.data ?? []) as MemberTeamLite[]) {
+    const t = Array.isArray(mt.team) ? mt.team[0] : mt.team;
+    if (!t) continue;
+    const list = teamsByMember.get(mt.member_id) ?? [];
+    list.push({ name_cn: t.name_cn, role: mt.role });
+    teamsByMember.set(mt.member_id, list);
   }
 
   const members = rows.map((r) => {

@@ -33,7 +33,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   // CENTRE-SCOPE WALL (security audit C1): a locked caller may only sign receipts of
   // registrations whose event belongs to their own centre. Cross-wall → the SAME 404
   // as an unknown id (no existence oracle).
-  const scope = await eventsScope(supabaseAdmin, access.volunteer.id);
+  const scope = eventsScope(access.volunteer);
   if (scope.locked) {
     const ev = Array.isArray(reg.event) ? reg.event[0] : reg.event;
     const eventCentre = (ev?.organizing_centre_id as string | null) ?? null;

@@ -41,7 +41,7 @@ export async function GET(req: Request) {
 
   // Centre-scope wall: a locked own_center account sees ONLY its own centre (NULL-centre national
   // contacts are invisible to it); the centre filter param is honoured only for all_centers.
-  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  const scope = outreachScope(access.volunteer);
   if (scope.locked) {
     if (!scope.centreId) return NextResponse.json({ persons: [], total: 0, page, limit, totalPages: 1 });
     q = q.eq('centre_id', scope.centreId);
@@ -156,7 +156,7 @@ export async function POST(req: Request) {
   if (!centreId && eventCentre) centreId = eventCentre;
 
   // Centre-scope wall: a locked account can only create a 善缘 in its own centre.
-  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  const scope = outreachScope(access.volunteer);
   if (scope.locked) {
     if (!scope.centreId) return NextResponse.json({ error: '账号未绑定中心，无法新增' }, { status: 400 });
     centreId = scope.centreId;

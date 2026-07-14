@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   const sp = new URL(req.url).searchParams;
   const monthFirst = monthInputToDate(sp.get('month')) ?? new Date().toISOString().slice(0, 8) + '01';
   const monthEnd = nextMonthFirst(monthFirst);
-  const scope = await financeScope(supabaseAdmin, access.volunteer.id);
+  const scope = financeScope(access.volunteer);
 
   let centreQ = supabaseAdmin.from('centres').select('id, code, name_cn, name_en, state, sort').eq('is_active', true);
   if (scope.locked) {

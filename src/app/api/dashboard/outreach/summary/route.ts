@@ -19,7 +19,7 @@ export async function GET() {
   if (!access.ok) return NextResponse.json({ error: access.status === 401 ? 'Unauthorized' : 'Forbidden' }, { status: access.status });
   if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
 
-  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  const scope = outreachScope(access.volunteer);
   if (scope.locked && !scope.centreId) return NextResponse.json({ newThisMonth: 0, chantingThisMonth: 0, total: 0, stale: 0 });
 
   const now = new Date();

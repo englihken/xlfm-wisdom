@@ -30,7 +30,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!contact) return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
 
   // Centre-scope wall: a locked account may not read another centre's (or a national) contact.
-  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  const scope = outreachScope(access.volunteer);
   if (!scopeAllowsContact(scope, (contact as { centre_id: string | null }).centre_id)) {
     return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
   }
@@ -73,7 +73,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   // Centre-scope wall: a locked account may not touch another centre's contact, and its centre
   // picker is pinned to its own centre (any centre_id edit is forced back to it).
-  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  const scope = outreachScope(access.volunteer);
   if (!scopeAllowsContact(scope, (before as { centre_id: string | null }).centre_id)) {
     return NextResponse.json({ error: '结缘人不存在' }, { status: 404 });
   }

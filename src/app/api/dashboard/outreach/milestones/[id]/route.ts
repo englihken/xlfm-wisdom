@@ -9,16 +9,17 @@ import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
-import { outreachScope, scopeAllowsContact } from '@/lib/outreach-scope';
+import { outreachScope, scopeAllowsContact, type VolunteerScopeRow } from '@/lib/outreach-scope';
 
 export const runtime = 'nodejs';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // A locked account may only touch milestones on its own centre's contacts.
-async function inScope(volunteerId: string, contactId: string): Promise<boolean> {
+// PERF: takes the request's already-fetched volunteer row (no volunteers re-read).
+async function inScope(volunteer: VolunteerScopeRow, contactId: string): Promise<boolean> {
   const db = supabaseAdmin!;
-  const scope = await outreachScope(db, volunteerId);
+  const scope = outreachScope(volunteer);
   if (!scope.locked) return true;
   const { data: ct } = await db.from('contacts').select('centre_id').eq('id', contactId).maybeSingle();
   return scopeAllowsContact(scope, (ct as { centre_id: string | null } | null)?.centre_id ?? null);
@@ -35,7 +36,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const { data: before } = await supabaseAdmin.from('contact_milestones').select('id, contact_id, milestone, happened_on, event_id, note').eq('id', id).maybeSingle();
   if (!before) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
-  if (!(await inScope(access.volunteer.id, before.contact_id))) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
+  if (!(await inScope(access.volunteer, before.contact_id))) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
 
   const patch: Record<string, unknown> = {};
   if ('happened_on' in body) {
@@ -83,7 +84,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const { data: row } = await supabaseAdmin.from('contact_milestones').select('id, contact_id, milestone').eq('id', id).maybeSingle();
   if (!row) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
-  if (!(await inScope(access.volunteer.id, row.contact_id))) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
+  if (!(await inScope(access.volunteer, row.contact_id))) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
   if (row.milestone === 'first_contact') return NextResponse.json({ error: '「初次接触」不可删除（可改日期）' }, { status: 400 });
 
   const { error: delErr } = await supabaseAdmin.from('contact_milestones').delete().eq('id', id);

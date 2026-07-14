@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
   // CENTRE-SCOPE WALL (security audit H6): same wall as every other outreach route —
   // a locked (own_center) caller only searches members of their own centre.
-  const scope = await outreachScope(supabaseAdmin, access.volunteer.id);
+  const scope = outreachScope(access.volunteer);
   if (scope.locked && !scope.centreId) return NextResponse.json({ members: [] });
 
   let query = supabaseAdmin

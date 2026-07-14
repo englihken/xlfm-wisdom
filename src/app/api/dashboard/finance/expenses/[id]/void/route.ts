@@ -23,7 +23,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { data: expense } = await supabaseAdmin.from('expenses').select('id, centre_id, voided_at').eq('id', id).maybeSingle();
   if (!expense) return NextResponse.json({ error: '支出记录不存在' }, { status: 404 });
 
-  const scope = await financeScope(supabaseAdmin, access.volunteer.id);
+  const scope = financeScope(access.volunteer);
   const enforced = enforceScope(scope, expense.centre_id);
   if (!enforced.ok) return NextResponse.json({ error: enforced.error }, { status: 400 });
   if (expense.voided_at) return NextResponse.json({ error: '该记录已作废' }, { status: 400 });
