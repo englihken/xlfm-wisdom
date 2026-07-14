@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { eventsScope } from '@/lib/members-scope';
 
 export const runtime = 'nodejs';
 
@@ -20,7 +21,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { data: reg, error } = await supabaseAdmin
     .from('registrations')
-    .select('payment_proof_path')
+    .select('payment_proof_path, event:events!event_id ( organizing_centre_id )')
     .eq('id', id)
     .maybeSingle();
   if (error) {
@@ -28,6 +29,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
   if (!reg || !reg.payment_proof_path) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // CENTRE-SCOPE WALL (security audit C1): a locked caller may only sign receipts of
+  // registrations whose event belongs to their own centre. Cross-wall → the SAME 404
+  // as an unknown id (no existence oracle).
+  const scope = await eventsScope(supabaseAdmin, access.volunteer.id);
+  if (scope.locked) {
+    const ev = Array.isArray(reg.event) ? reg.event[0] : reg.event;
+    const eventCentre = (ev?.organizing_centre_id as string | null) ?? null;
+    if (!scope.centreId || eventCentre !== scope.centreId) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+  }
 
   const { data: signed, error: signErr } = await supabaseAdmin.storage
     .from(BUCKET)

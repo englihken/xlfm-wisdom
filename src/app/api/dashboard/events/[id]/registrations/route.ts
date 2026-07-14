@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
+import { eventsScope } from '@/lib/members-scope';
 import { computeFees, parseSelections, type FeeItem } from '@/lib/event-fees';
 import { fetchOfferedKeys, invalidMealKeys } from '@/lib/event-slots';
 
@@ -26,6 +27,24 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const access = await requireModuleAccess('events', 'view');
   if (!access.ok) return gate401or403(access.status);
   if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
+
+  // CENTRE-SCOPE WALL (security audit C1): a locked caller may only list registrations
+  // of their own centre's events. Cross-wall → the SAME 404 as an unknown event id.
+  const scope = await eventsScope(supabaseAdmin, access.volunteer.id);
+  if (scope.locked) {
+    const { data: ev, error: evErr } = await supabaseAdmin
+      .from('events')
+      .select('organizing_centre_id')
+      .eq('id', id)
+      .maybeSingle();
+    if (evErr) {
+      console.error('[registrations] event scope check failed:', evErr);
+      return NextResponse.json({ error: 'Failed to load registrations' }, { status: 500 });
+    }
+    if (!ev || !scope.centreId || ev.organizing_centre_id !== scope.centreId) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+  }
 
   const sp = new URL(req.url).searchParams;
   const page = Math.max(1, parseInt(sp.get('page') ?? '1', 10) || 1);

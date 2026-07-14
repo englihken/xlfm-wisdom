@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { parseMemberInput } from '@/lib/members';
+import { membersScope } from '@/lib/members-scope';
 import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
@@ -40,6 +41,18 @@ export async function GET(req: Request) {
   const search = (sp.get('search') ?? '').trim();
   const centre = sp.get('centre');
   const team = sp.get('team');
+
+  // CENTRE-SCOPE WALL (security audit C1): the caller's scope is resolved server-side
+  // and ALWAYS applied — the ?centre= param can only narrow within it, never widen.
+  // A locked account with no centre_id sees nothing (fail closed, same as 主页 tiles).
+  const scope = await membersScope(supabaseAdmin, access.volunteer.id);
+  if (scope.locked && !scope.centreId) {
+    return NextResponse.json({ members: [], total: 0, page, limit, totalPages: 0 });
+  }
+  if (scope.locked && centre && centre !== scope.centreId) {
+    return NextResponse.json({ error: '无权访问该中心的成员数据' }, { status: 403 });
+  }
+  const effectiveCentre = scope.locked ? scope.centreId : centre;
   const disciple = sp.get('disciple');
   const fullVeg = sp.get('full_veg');
   const status = sp.get('status') ?? 'active'; // default 在册
@@ -67,7 +80,7 @@ export async function GET(req: Request) {
     );
 
   if (status === 'active' || status === 'inactive') q = q.eq('status', status);
-  if (centre) q = q.eq('gyt_centre_id', centre);
+  if (effectiveCentre) q = q.eq('gyt_centre_id', effectiveCentre);
   if (disciple === 'true' || disciple === 'false') q = q.eq('disciple', disciple === 'true');
   if (fullVeg === 'true' || fullVeg === 'false') q = q.eq('full_veg', fullVeg === 'true');
   if (teamMemberIds) q = q.in('id', teamMemberIds);
