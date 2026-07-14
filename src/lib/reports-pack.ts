@@ -667,8 +667,13 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
 }
 
 // ── CSV flattening (quiet link in the UI) ─────────────────────────────────────
+// Security audit M7: a leading = + - @ or tab/CR makes Excel execute the cell as a
+// formula (=HYPERLINK exfiltration via attacker-reachable values like the public /m
+// form's subject). Prefix a single quote so Excel renders it as text.
 function csvEscape(v: string | number): string {
-  const s = String(v);
+  let s = String(v);
+  // Only strings can carry attacker text; a negative NUMBER must stay a number.
+  if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

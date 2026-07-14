@@ -216,9 +216,21 @@ export function rateLimit(key: string, limit: number, windowMs: number): boolean
   return true;
 }
 
-// Caller IP for the rate-limit key (best effort; behind Vercel's proxy this is XFF).
+// Caller IP for the rate-limit key. Security audit M4: the LEFTMOST x-forwarded-for
+// entry is client-controlled (anyone can send their own XFF header and the proxy
+// prepends/keeps it), which let one attacker rotate keys freely. On Vercel the
+// trustworthy signals are x-real-ip (set by the platform) and the LAST XFF hop
+// (appended by the proxy itself) — prefer those, in that order.
+// KNOWN LIMITATION: the in-memory per-instance Map above remains a best-effort
+// speed bump (serverless instances don't share it); a durable counter (DB/Upstash)
+// is the real fix and is tracked separately.
 export function clientIp(req: Request): string {
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
   const xff = req.headers.get('x-forwarded-for');
-  if (xff) return xff.split(',')[0]!.trim();
-  return req.headers.get('x-real-ip') ?? 'unknown';
+  if (xff) {
+    const hops = xff.split(',').map((s) => s.trim()).filter(Boolean);
+    if (hops.length) return hops[hops.length - 1]!;
+  }
+  return 'unknown';
 }
