@@ -16,6 +16,7 @@
 // happens within the handler's lifetime (maxDuration below), not in a detached
 // task that a serverless freeze would kill.
 
+import { createHmac, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { sendWhatsAppText, formatForWhatsApp } from '@/lib/whatsapp';
@@ -48,11 +49,51 @@ export async function GET(req: NextRequest) {
   return new Response('Forbidden', { status: 403 });
 }
 
+// ── Signature verification (security audit C2) ────────────────────────────────
+// Meta signs every webhook POST: X-Hub-Signature-256 = 'sha256=' + HMAC-SHA256(rawBody,
+// app secret). Without this check, anyone who knows the URL can inject forged inbound
+// messages (thread poisoning + a Claude call per forged message). Verified over the RAW
+// body BEFORE parsing. Constant-time compare. Fail-CLOSED: when WHATSAPP_APP_SECRET is
+// set, a missing/bad signature skips all processing; when it is unset (pre-go-live
+// simulated mode), production still refuses to process — only non-production
+// environments may run unsigned, so local testing keeps working.
+function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (!appSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[wa] WHATSAPP_APP_SECRET not set — refusing unsigned webhook in production');
+      return false;
+    }
+    console.warn('[wa] WHATSAPP_APP_SECRET not set — accepting unsigned webhook (non-production only)');
+    return true;
+  }
+  if (!signatureHeader) return false;
+  const expected = 'sha256=' + createHmac('sha256', appSecret).update(rawBody, 'utf8').digest('hex');
+  const a = Buffer.from(signatureHeader);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 // ── POST: inbound messages + statuses ─────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  // Read the RAW body first — the HMAC is over the exact bytes Meta sent.
+  let rawBody: string;
+  try {
+    rawBody = await req.text();
+  } catch {
+    return NextResponse.json({ ok: true });
+  }
+
+  if (!verifySignature(rawBody, req.headers.get('x-hub-signature-256'))) {
+    // Bad/missing signature: process NOTHING. Still 200 so a misconfigured (or
+    // malicious) sender learns nothing and Meta never hammers retries.
+    console.error('[wa] webhook signature verification failed — payload ignored');
+    return NextResponse.json({ ok: true });
+  }
+
   let payload: unknown;
   try {
-    payload = await req.json();
+    payload = JSON.parse(rawBody);
   } catch {
     // Malformed body — nothing to do, but still 200 so Meta doesn't retry.
     return NextResponse.json({ ok: true });
