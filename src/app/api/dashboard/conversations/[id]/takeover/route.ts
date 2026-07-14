@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { refreshContactSummaries } from '@/lib/care-summary';
+import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60; // headroom for the synchronous summary refresh
@@ -70,6 +71,18 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     console.error('[dashboard] takeover update failed:', updateError);
     return NextResponse.json({ error: 'Failed to take over' }, { status: 500 });
   }
+
+  // Taking over a seeker's conversation leaves a trace (security audit M3).
+  await writeAudit({
+    actorId: me.id,
+    actorEmail: me.email,
+    module: 'care',
+    action: 'care.takeover',
+    tableName: 'conversations',
+    recordId: id,
+    before: { status: conv.status, assigned_volunteer: conv.assigned_volunteer },
+    after: { status: 'volunteer_handling', assigned_volunteer: me.id },
+  });
 
   // On-demand summary refresh: fold this contact's pending conversations (this one
   // included, forced) into the rolling profile and gist them, RIGHT NOW. Awaited so

@@ -242,6 +242,8 @@ export const zh = {
   'account.field.email': '邮箱',
   'account.pw.title': '修改密码',
   'account.pw.hint': '设置新密码后，下次登录使用新密码。',
+  'account.pw.current': '当前密码',
+  'account.pw.currentRequired': '请输入当前密码',
   'account.pw.new': '新密码（至少 8 位）',
   'account.pw.confirm': '确认新密码',
   'account.pw.submit': '更新密码',

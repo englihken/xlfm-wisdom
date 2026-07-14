@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { sendWhatsAppText } from '@/lib/whatsapp';
+import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -109,6 +110,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const result = await sendWhatsAppText(contact.wa_id, text);
     simulated = Boolean(result.simulated);
   }
+
+  // An outbound reply to the public leaves a trace (security audit M3). Message
+  // content is already stored on the messages row — the audit records who/when/where.
+  await writeAudit({
+    actorId: me.id,
+    actorEmail: me.email,
+    module: 'care',
+    action: 'care.reply',
+    tableName: 'messages',
+    recordId: inserted.id as string,
+    after: { conversation_id: id, channel: conv.channel, length: text.length },
+  });
 
   return NextResponse.json({
     ok: true,

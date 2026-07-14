@@ -246,6 +246,8 @@ export const en: Record<keyof typeof zh, string> = {
   'account.field.email': 'Email',
   'account.pw.title': 'Change password',
   'account.pw.hint': 'After setting a new password, use it at your next sign-in.',
+  'account.pw.current': 'Current password',
+  'account.pw.currentRequired': 'Please enter your current password',
   'account.pw.new': 'New password (at least 8 characters)',
   'account.pw.confirm': 'Confirm new password',
   'account.pw.submit': 'Update password',

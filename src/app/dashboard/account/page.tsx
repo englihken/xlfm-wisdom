@@ -149,6 +149,7 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
 // 修改密码 — reuses the existing own-account change-password route.
 function ChangePasswordCard() {
   const t = useT();
+  const [current, setCurrent] = useState('');
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
   const [busy, setBusy] = useState(false);
@@ -157,6 +158,10 @@ function ChangePasswordCard() {
   const submit = async () => {
     if (busy) return;
     setMsg(null);
+    if (!current) {
+      setMsg({ ok: false, text: t('account.pw.currentRequired') });
+      return;
+    }
     if (pw.length < 8) {
       setMsg({ ok: false, text: t('account.pw.tooShort') });
       return;
@@ -170,10 +175,11 @@ function ChangePasswordCard() {
       const res = await fetch('/api/dashboard/me/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword: pw }),
+        body: JSON.stringify({ currentPassword: current, newPassword: pw }),
       });
       const j = await res.json().catch(() => null);
       if (res.ok) {
+        setCurrent('');
         setPw('');
         setPw2('');
         setMsg({ ok: true, text: t('account.pw.done') });
@@ -195,6 +201,20 @@ function ChangePasswordCard() {
       <h2 className="font-serif text-base font-semibold text-ink">{t('account.pw.title')}</h2>
       <p className="mt-1 text-sm text-ink-muted">{t('account.pw.hint')}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <label htmlFor="acct-pw-current" className="u-label block mb-1">
+            {t('account.pw.current')}
+          </label>
+          <input
+            id="acct-pw-current"
+            type="password"
+            autoComplete="current-password"
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+            disabled={busy}
+            className={inputCls}
+          />
+        </div>
         <div>
           <label htmlFor="acct-pw" className="u-label block mb-1">
             {t('account.pw.new')}
@@ -229,7 +249,7 @@ function ChangePasswordCard() {
       <div className="mt-4 flex items-center gap-3">
         <button
           onClick={submit}
-          disabled={busy || pw.length < 8 || pw2.length < 8}
+          disabled={busy || !current || pw.length < 8 || pw2.length < 8}
           className="btn-primary px-5 py-2 text-sm disabled:cursor-not-allowed"
         >
           {busy ? t('account.pw.saving') : t('account.pw.submit')}

@@ -36,7 +36,13 @@ export type AuditAction =
   | 'template_deleted'
   | 'settings_updated'
   | 'centre_created'
-  | 'centre_updated';
+  | 'centre_updated'
+  // 关怀 (care) conversation mutations + credential rotation (security audit M3).
+  | 'care.takeover'
+  | 'care.reply'
+  | 'care.handback'
+  | 'care.contact_update'
+  | 'password_changed';
 
 export async function writeAudit(entry: {
   actorId: string | null;

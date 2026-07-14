@@ -12,6 +12,7 @@
 import { useState, type FormEvent } from 'react';
 
 export function PasswordChangeGate({ onDone }: { onDone: () => void }) {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [saving, setSaving] = useState(false);
@@ -22,6 +23,10 @@ export function PasswordChangeGate({ onDone }: { onDone: () => void }) {
     if (saving) return;
     setError(null);
 
+    if (!currentPassword) {
+      setError('请输入当前密码（初始密码）');
+      return;
+    }
     if (password.length < 8) {
       setError('密码至少需要 8 位');
       return;
@@ -36,7 +41,7 @@ export function PasswordChangeGate({ onDone }: { onDone: () => void }) {
       const res = await fetch('/api/dashboard/me/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword: password }),
+        body: JSON.stringify({ currentPassword, newPassword: password }),
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
@@ -65,6 +70,24 @@ export function PasswordChangeGate({ onDone }: { onDone: () => void }) {
           autoComplete="off"
           className="bg-surface border border-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-5"
         >
+          <div>
+            <label htmlFor="current-password" className="block text-sm font-medium text-ink mb-1.5">
+              当前密码（初始密码）
+            </label>
+            <input
+              id="current-password"
+              name="current-password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              disabled={saving}
+              placeholder="登录时使用的密码"
+              className="w-full p-3 border border-border-strong rounded-xl bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50"
+            />
+          </div>
+
           <div>
             <label htmlFor="new-password" className="block text-sm font-medium text-ink mb-1.5">
               新密码
@@ -111,7 +134,7 @@ export function PasswordChangeGate({ onDone }: { onDone: () => void }) {
 
           <button
             type="submit"
-            disabled={saving || password.length < 8 || confirm.length < 8}
+            disabled={saving || !currentPassword || password.length < 8 || confirm.length < 8}
             className="btn-primary w-full py-3 text-sm font-medium"
           >
             {saving ? '设置中…' : '确认'}

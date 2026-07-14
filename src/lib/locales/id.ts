@@ -246,6 +246,8 @@ export const id: Record<keyof typeof zh, string> = {
   'account.field.email': 'Email',
   'account.pw.title': 'Ubah kata sandi',
   'account.pw.hint': 'Setelah menyetel kata sandi baru, gunakan saat masuk berikutnya.',
+  'account.pw.current': 'Kata sandi saat ini',
+  'account.pw.currentRequired': 'Masukkan kata sandi Anda saat ini',
   'account.pw.new': 'Kata sandi baru (minimal 8 karakter)',
   'account.pw.confirm': 'Konfirmasi kata sandi baru',
   'account.pw.submit': 'Perbarui kata sandi',

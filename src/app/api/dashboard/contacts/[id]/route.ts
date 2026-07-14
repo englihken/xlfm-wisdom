@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { STAGE_KEYS } from '@/lib/outreach';
+import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -91,6 +92,17 @@ export async function PATCH(
     if (!data) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+
+    // Stage/notes edits leave a trace (security audit M3).
+    await writeAudit({
+      actorId: access.volunteer.id,
+      actorEmail: access.volunteer.email,
+      module: 'care',
+      action: 'care.contact_update',
+      tableName: 'contacts',
+      recordId: id,
+      after: update,
+    });
 
     return NextResponse.json({ contact: data });
   } catch (err) {

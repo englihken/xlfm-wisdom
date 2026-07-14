@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -53,6 +54,18 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     console.error('[dashboard] handback update failed:', updateError);
     return NextResponse.json({ error: 'Failed to hand back' }, { status: 500 });
   }
+
+  // Handing a conversation back to the AI leaves a trace (security audit M3).
+  await writeAudit({
+    actorId: me.id,
+    actorEmail: me.email,
+    module: 'care',
+    action: 'care.handback',
+    tableName: 'conversations',
+    recordId: id,
+    before: { assigned_volunteer: conv.assigned_volunteer },
+    after: { status: 'ai_handling', assigned_volunteer: null },
+  });
 
   return NextResponse.json({ ok: true, status: 'ai_handling' });
 }
