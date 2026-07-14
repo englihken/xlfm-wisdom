@@ -93,19 +93,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: '发放失败（无法记录调拨）' }, { status: 500 });
   }
 
-  // 2) Advance the request. On failure, roll the movement back.
+  // 2) Advance the request — COMPARE-AND-SWAP on the qty_fulfilled we read (security
+  // audit H5): the update only lands if no concurrent release advanced it first. Two
+  // concurrent releases both read qty_fulfilled=0; without this, both would pass the
+  // remaining-check and 2×qty would leave HQ while the request records qty. The loser
+  // matches 0 rows here, rolls its movement back, and 409s. On failure, roll the
+  // movement back (house manual-compensation pattern).
   const newFulfilled = request.qty_fulfilled + qty;
   const newStatus = newFulfilled >= (request.qty_approved ?? 0) ? 'fulfilled' : 'partial';
   const { data: updated, error: updErr } = await supabaseAdmin
     .from('inventory_requests')
     .update({ qty_fulfilled: newFulfilled, status: newStatus, updated_at: new Date().toISOString() })
     .eq('id', request.id)
+    .eq('qty_fulfilled', request.qty_fulfilled)
     .select(REQUEST_SELECT)
-    .single();
-  if (updErr || !updated) {
+    .maybeSingle();
+  if (updErr) {
     console.error('[inventory/release] request update failed, rolling back movement:', updErr);
     await supabaseAdmin.from('inventory_movements').delete().eq('id', movement.id);
     return NextResponse.json({ error: '发放失败（申请状态未更新）' }, { status: 500 });
+  }
+  if (!updated) {
+    // CAS lost: someone else released concurrently — undo OUR movement only.
+    console.error('[inventory/release] concurrent release detected (stale qty_fulfilled), rolling back movement');
+    await supabaseAdmin.from('inventory_movements').delete().eq('id', movement.id);
+    return NextResponse.json({ error: '该申请刚被其他人发放，请刷新后重试' }, { status: 409 });
   }
 
   await writeAudit({

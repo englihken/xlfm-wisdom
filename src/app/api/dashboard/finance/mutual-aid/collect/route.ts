@@ -34,11 +34,21 @@ export async function POST(req: Request) {
   const ids = (centres ?? []).map((c) => c.id);
   if (ids.length === 0) return NextResponse.json({ results: [] });
 
-  const [{ data: pays }, { data: exps }, { data: existing }] = await Promise.all([
+  const [paysRes, expsRes, existingRes] = await Promise.all([
     supabaseAdmin.from('fee_payments').select('centre_id, amount').is('voided_at', null).gte('paid_at', month).lt('paid_at', monthEnd).in('centre_id', ids),
     supabaseAdmin.from('expenses').select('centre_id, amount').is('voided_at', null).gte('spent_at', month).lt('spent_at', monthEnd).in('centre_id', ids),
     supabaseAdmin.from('mutual_aid_entries').select('centre_id').eq('entry_type', 'in').eq('month', month).in('centre_id', ids),
   ]);
+  // FAIL CLOSED (security audit H4): a failed guard read must abort the collection —
+  // a silently-empty `existing` would re-insert already-collected centres (fund
+  // double-count); a silently-empty `exps` would inflate every surplus.
+  if (paysRes.error || expsRes.error || existingRes.error) {
+    console.error('[finance/mutual-aid/collect] guard read failed:', paysRes.error ?? expsRes.error ?? existingRes.error);
+    return NextResponse.json({ error: '归集失败（读取数据出错，请重试）' }, { status: 500 });
+  }
+  const { data: pays } = paysRes;
+  const { data: exps } = expsRes;
+  const { data: existing } = existingRes;
 
   const collected = new Map<string, number>();
   for (const p of (pays ?? []) as { centre_id: string; amount: number }[]) collected.set(p.centre_id, (collected.get(p.centre_id) ?? 0) + Number(p.amount));
@@ -68,6 +78,11 @@ export async function POST(req: Request) {
   if (toInsert.length > 0) {
     const { error: insErr } = await supabaseAdmin.from('mutual_aid_entries').insert(toInsert);
     if (insErr) {
+      // 23505 = the pending unique (entry_type, month, centre_id) constraint caught a
+      // concurrent 归集 for the same month — a safe stop, not a corruption.
+      if (insErr.code === '23505') {
+        return NextResponse.json({ error: '该月份正被同时归集（并发操作），请刷新后查看结果' }, { status: 409 });
+      }
       console.error('[finance/mutual-aid/collect] insert failed:', insErr);
       return NextResponse.json({ error: '归集失败' }, { status: 500 });
     }
