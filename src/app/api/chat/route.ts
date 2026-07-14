@@ -79,6 +79,40 @@ async function persistInbound(params: {
     contactId = null;
   }
 
+  // OWNERSHIP CHECK (security audit H1): a client-supplied conversationId is only
+  // honoured when the conversation's contact belongs to THIS browser — the same check
+  // chat/updates does. Anything else (unknown id, no browserId, orphan conversation,
+  // different browser) falls through to a NEW conversation instead, so an attacker who
+  // learns another visitor's conversation UUID can't inject into their thread.
+  try {
+    if (convId) {
+      const { data: claimed } = await supabaseAdmin
+        .from('conversations')
+        .select('id, status, contact:contacts ( browser_id )')
+        .eq('id', convId)
+        .maybeSingle();
+      const rawContact = claimed
+        ? (claimed as { contact: { browser_id: string | null } | { browser_id: string | null }[] | null }).contact
+        : null;
+      const contact = Array.isArray(rawContact) ? rawContact[0] ?? null : rawContact;
+      const owned = Boolean(
+        claimed && params.browserId && contact?.browser_id && contact.browser_id === params.browserId
+      );
+      if (!owned) {
+        console.warn('[chat] conversationId ownership check failed — starting a new conversation');
+        convId = null;
+        status = 'ai_handling';
+      } else {
+        status = (claimed?.status as string | null) ?? status;
+      }
+    }
+  } catch (e) {
+    // Fail closed: if we can't verify ownership, don't write into the claimed thread.
+    console.error('[supabase] conversation ownership check failed:', e);
+    convId = null;
+    status = 'ai_handling';
+  }
+
   // Find-or-create conversation. For an existing one, read back its status so a
   // human takeover can silence the AI (below).
   try {
@@ -100,14 +134,8 @@ async function persistInbound(params: {
         .select('id')
         .single();
       convId = created?.id ?? null;
-    } else {
-      const { data: existingConv } = await supabaseAdmin
-        .from('conversations')
-        .select('status')
-        .eq('id', convId)
-        .maybeSingle();
-      status = existingConv?.status ?? status;
     }
+    // (an existing convId already had its status read during the ownership check)
   } catch (e) {
     console.error('[supabase] conversation create failed:', e);
     convId = null;
