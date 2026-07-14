@@ -12,6 +12,12 @@ import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
+// Anything non-UUID that lands in this dynamic segment (e.g. /members/search) must
+// 404 cleanly — passing it to `.eq('id', …)` makes Postgres reject the cast (22P02)
+// and the route answered 500. Checked BEFORE the auth gate on purpose: a malformed
+// id can never name data, so the 404 discloses nothing and costs zero round trips.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 type TeamRow = {
   team_id: string;
   role: string;
@@ -23,6 +29,7 @@ type TeamRow = {
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const access = await requireModuleAccess('members', 'view');
   if (!access.ok) {
     return NextResponse.json(
@@ -82,6 +89,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const access = await requireModuleAccess('members', 'edit');
   if (!access.ok) {
     return NextResponse.json(
