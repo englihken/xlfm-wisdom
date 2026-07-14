@@ -4,7 +4,7 @@
 // reply and never move the escalation clock. Owners/admin/internal-sender only; all audit.
 
 import { NextResponse } from 'next/server';
-import { resolveInbox, notFound, threadReach } from '@/lib/inbox-server';
+import { resolveInbox, notFound, threadReach, auditBreakGlass } from '@/lib/inbox-server';
 import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
@@ -25,6 +25,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const reach = await threadReach(db, access, volunteer, t as never, new URL(req.url).searchParams.get('breakglass') === '1');
   if (!reach.act) return notFound();
+  // 代管 write leaves a trace BEFORE the mutation (security audit H3).
+  if (reach.brokeGlass) await auditBreakGlass(db, volunteer.id, volunteer.email, t.mailbox_id as string);
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
@@ -58,7 +60,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     action: direction === 'outbound' ? 'replied' : 'note_added',
     tableName: 'inbox_messages',
     recordId: msg.id as string,
-    after: { thread_id: id, direction },
+    after: { thread_id: id, direction, ...(reach.brokeGlass ? { broke_glass: true } : {}) },
   });
 
   return NextResponse.json({ ok: true, id: msg.id }, { status: 201 });

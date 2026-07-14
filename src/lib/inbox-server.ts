@@ -9,6 +9,7 @@ import { getActiveVolunteer, type Volunteer } from './supabase-server';
 import { getInboxAccess, canOpenMailbox, type InboxAccess } from './inbox-scope';
 import { ACCESS_RANK, type AccessLevel } from './access';
 import { DEFAULT_ESCALATION, type Escalation } from './inbox';
+import { writeAudit } from './audit';
 
 export type Db = NonNullable<typeof supabaseAdmin>;
 
@@ -64,6 +65,43 @@ export async function threadReach(
   if (access.level === 'admin' && breakglass) return { read: true, act: true, brokeGlass: true };
 
   return { read: false, act: false, brokeGlass: false };
+}
+
+// 代管 (break-glass) audit row — REQUIRED whenever threadReach returns brokeGlass:true,
+// on READS and WRITES alike (security audit H3: break-glass must always leave a trace).
+// E3 dedupe (brief §5): the same actor re-opening the same mailbox within 30 minutes
+// writes ONE break_glass_view row, not one per thread click — the log stays readable
+// while 代管 still always leaves a trace. Thread-action audits are untouched (write
+// routes additionally stamp broke_glass:true into their action audit's after).
+// Fail-open: if the dedupe check errors, we WRITE (never skip an audit because a
+// read failed).
+export async function auditBreakGlass(db: Db, actorId: string, actorEmail: string, mailboxId: string) {
+  const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const { data: recent, error: dedupeErr } = await db
+    .from('audit_log')
+    .select('id')
+    .eq('actor_id', actorId)
+    .eq('action', 'break_glass_view')
+    .eq('record_id', mailboxId)
+    .gte('at', since)
+    .limit(1);
+  if (dedupeErr) {
+    console.error('[inbox] break-glass dedupe check failed (writing anyway):', dedupeErr);
+  } else if (recent && recent.length > 0) {
+    return;
+  }
+
+  const { data: mb } = await db.from('inbox_mailboxes').select('centre:centres!centre_id ( name_cn )').eq('id', mailboxId).maybeSingle();
+  const centre = mb ? (Array.isArray(mb.centre) ? mb.centre[0] : mb.centre) : null;
+  await writeAudit({
+    actorId,
+    actorEmail,
+    module: 'inbox',
+    action: 'break_glass_view',
+    tableName: 'inbox_mailboxes',
+    recordId: mailboxId,
+    after: { mailbox: mailboxId, centre: (centre?.name_cn as string) ?? null },
+  });
 }
 
 export type MailboxRow = {

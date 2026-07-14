@@ -8,7 +8,7 @@
 // the provenance in the journey ledger.
 
 import { NextResponse } from 'next/server';
-import { resolveInbox, notFound, threadReach } from '@/lib/inbox-server';
+import { resolveInbox, notFound, threadReach, auditBreakGlass } from '@/lib/inbox-server';
 import { writeAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
@@ -30,6 +30,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const mailboxId = t.mailbox_id as string;
   const reach = await threadReach(db, access, volunteer, t as never, new URL(req.url).searchParams.get('breakglass') === '1');
   if (!reach.act) return notFound();
+  // 代管 write leaves a trace BEFORE the mutation (security audit H3).
+  if (reach.brokeGlass) await auditBreakGlass(db, volunteer.id, volunteer.email, mailboxId);
 
   // Idempotent — already linked.
   if (t.contact_id) {
@@ -86,7 +88,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     action: 'outreach.person_create',
     tableName: 'contacts',
     recordId: contactId,
-    after: { display_name: displayName, source_type: 'form', from_inbox_thread: id },
+    after: { display_name: displayName, source_type: 'form', from_inbox_thread: id, ...(reach.brokeGlass ? { broke_glass: true } : {}) },
   });
 
   return NextResponse.json({ ok: true, contact_id: contactId }, { status: 201 });
