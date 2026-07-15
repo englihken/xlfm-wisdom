@@ -5,6 +5,8 @@
 // starts_on − reg_edit_cutoff_days. Recomputes fee_total + fee_breakdown from the event's
 // CURRENT fees (a fresh snapshot), validates meal keys ⊆ offered slots, and audits the
 // before/after {selections, fee_total}. No status change, no reg_no change, no delete.
+// Unknown selections namespaces on the stored row (e.g. import813) are PRESERVED —
+// only the known fee keys are rebuilt from the submission.
 
 import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
@@ -81,10 +83,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { total, breakdown } = computeFees(fees, selections);
   const me = access.volunteer;
 
+  // Preserve unknown namespaces on the stored row (e.g. selections.import813 from the
+  // 813 event import): the edit dialog only round-trips the known fee keys, so anything
+  // else must survive the rebuild. Known keys always come from the fresh parse; unknown
+  // keys in the INCOMING body stay dropped (parseSelections), exactly as before.
+  const KNOWN_KEYS = new Set(['meal_days', 'meals', 'nights', 'transfer', 'uniform', 'other_qty']);
+  const preserved: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries((reg.selections ?? {}) as Record<string, unknown>)) {
+    if (!KNOWN_KEYS.has(k)) preserved[k] = v;
+  }
+  const nextSelections = { ...preserved, ...selections };
+
   const { data: updated, error } = await supabaseAdmin
     .from('registrations')
     .update({
-      selections,
+      selections: nextSelections,
       fee_total: total,
       fee_breakdown: breakdown,
       updated_at: new Date().toISOString(),
@@ -106,7 +119,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     tableName: 'registrations',
     recordId: id,
     before: { selections: reg.selections ?? {}, fee_total: Number(reg.fee_total) || 0 },
-    after: { selections, fee_total: total },
+    after: { selections: nextSelections, fee_total: total },
   });
 
   return NextResponse.json({ registration: updated });
