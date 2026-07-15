@@ -89,6 +89,10 @@ const zh = {
 
   // ── detail: registration queue ───────────────────────────────────────────────
   'events.tab.all': '全部',
+  'events.prevPage': '上一页',
+  'events.nextPage': '下一页',
+  'events.pageInfo': '第 {page} / {totalPages} 页 · 共 {total}',
+  'events.exporting': '导出中…',
   'events.addReg': '＋代报名',
   'events.queue.empty': '🪷 暂无报名，静候有缘人。',
   'events.row.team': '组：',
@@ -406,6 +410,10 @@ export const eventsPart: {
 
     // ── detail: registration queue ─────────────────────────────────────────────
     'events.tab.all': 'All',
+    'events.prevPage': 'Previous',
+    'events.nextPage': 'Next',
+    'events.pageInfo': 'Page {page} / {totalPages} · {total} total',
+    'events.exporting': 'Exporting…',
     'events.addReg': '＋Register for member',
     'events.queue.empty': '🪷 No registrations yet — awaiting those with affinity.',
     'events.row.team': 'Team: ',
@@ -716,6 +724,10 @@ export const eventsPart: {
 
     // ── detail: registration queue ─────────────────────────────────────────────
     'events.tab.all': 'Semua',
+    'events.prevPage': 'Sebelumnya',
+    'events.nextPage': 'Berikutnya',
+    'events.pageInfo': 'Halaman {page} / {totalPages} · {total} total',
+    'events.exporting': 'Mengekspor…',
     'events.addReg': '＋Daftarkan anggota',
     'events.queue.empty': '🪷 Belum ada pendaftaran — menanti yang berjodoh.',
     'events.row.team': 'Tim: ',

@@ -61,7 +61,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     )
     .eq('event_id', id);
   if (status) q = q.eq('status', status);
-  q = q.order('created_at', { ascending: true }).range(from, to);
+  // reg_no tiebreaker: bulk-imported rows share created_at, and without a total order
+  // the page boundaries are non-deterministic (rows repeat or vanish across pages).
+  q = q.order('created_at', { ascending: true }).order('reg_no', { ascending: true }).range(from, to);
 
   const { data, count, error } = await q;
   if (error) {

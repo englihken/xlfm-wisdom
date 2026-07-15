@@ -58,6 +58,11 @@ type RegRow = {
 };
 type Team = { id: string; name_cn: string; slug: string };
 
+// Registrations list page size (server DEFAULT is 25, MAX 100); CSV export re-fetches
+// the full filtered list in MAX-sized batches so it never depends on the visible page.
+const REG_PAGE_SIZE = 50;
+const CSV_BATCH = 100;
+
 // Compact selections summary chips: 🍚N餐/N天 🏨N晚 🚐 👕size×qty 🎁×N
 function selectionsSummary(t: TFunc, sel: Record<string, unknown> | undefined): string {
   if (!sel) return '';
@@ -112,6 +117,10 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [tab, setTab] = useState<'pending' | 'approved' | 'rejected' | 'cancelled' | 'all'>('pending');
   const [regs, setRegs] = useState<RegRow[]>([]);
+  const [regPage, setRegPage] = useState(1);
+  const [regTotalPages, setRegTotalPages] = useState(1);
+  const [regTotal, setRegTotal] = useState(0);
+  const [exporting, setExporting] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [rejectFor, setRejectFor] = useState<RegRow | null>(null);
@@ -142,16 +151,23 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
 
   const loadRegs = useCallback(async () => {
     try {
-      const qs = tab === 'all' ? '' : `?status=${tab}`;
-      const res = await fetch(`/api/dashboard/events/${id}/registrations${qs}`);
+      const sp = new URLSearchParams({ page: String(regPage), limit: String(REG_PAGE_SIZE) });
+      if (tab !== 'all') sp.set('status', tab);
+      const res = await fetch(`/api/dashboard/events/${id}/registrations?${sp}`);
       if (res.ok) {
         const j = await res.json();
         setRegs(j.registrations ?? []);
+        setRegTotal(j.total ?? 0);
+        setRegTotalPages(j.totalPages ?? 1);
+        // deciding away the last row of the final page leaves it empty — step back
+        if ((j.registrations ?? []).length === 0 && (j.total ?? 0) > 0 && regPage > 1) {
+          setRegPage((p) => Math.max(1, p - 1));
+        }
       }
     } catch {
       /* ignore */
     }
-  }, [id, tab]);
+  }, [id, tab, regPage]);
 
   useEffect(() => {
     loadEvent();
@@ -311,15 +327,24 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
         <div className="px-4 py-3 border-b border-border flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1">
             {tabs.map(([tv, n]) => (
-              <button key={tv} onClick={() => setTab(tv)}
+              <button key={tv} onClick={() => { setTab(tv); setRegPage(1); }}
                 className={`px-3 py-1 rounded-full text-xs border transition ${tab === tv ? 'bg-accent/10 text-ink border-border' : 'text-ink-muted border-transparent hover:bg-accent/5'}`}>
                 {tv === 'all' ? t('events.tab.all') : regStatusLabel(tv, t)}{n != null ? ` ${n}` : ''}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => exportCsv(t, e.code, tab, regs, teamName)}
-              className="px-3 py-1 text-xs btn-secondary">{t('events.exportCsv')}</button>
+            <button disabled={exporting}
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  if (!(await exportCsv(t, e.code, id, tab, teamName))) flashToast(t('events.toast.actionFailed'));
+                } finally {
+                  setExporting(false);
+                }
+              }}
+              className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">
+              {exporting ? t('events.exporting') : t('events.exportCsv')}</button>
             {canEdit && e.status === 'open' && (
               <button onClick={() => setAddOpen(true)} className="px-3 py-1 text-xs btn-primary">{t('events.addReg')}</button>
             )}
@@ -398,6 +423,15 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
               );
             })}
           </ul>
+        )}
+        {regTotalPages > 1 && (
+          <div className="px-4 py-3 border-t border-border flex items-center justify-center gap-3">
+            <button disabled={regPage <= 1} onClick={() => setRegPage((p) => Math.max(1, p - 1))}
+              className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">{t('events.prevPage')}</button>
+            <span className="text-xs text-ink-muted">{t('events.pageInfo', { page: regPage, totalPages: regTotalPages, total: regTotal })}</span>
+            <button disabled={regPage >= regTotalPages} onClick={() => setRegPage((p) => Math.min(regTotalPages, p + 1))}
+              className="px-3 py-1 text-xs btn-secondary disabled:opacity-40">{t('events.nextPage')}</button>
+          </div>
         )}
       </div>
 
@@ -873,8 +907,25 @@ function PaymentPanel({ reg, onClose, onDone }: { reg: RegRow; onClose: () => vo
   );
 }
 
-// CSV of the current rows (BOM for Excel).
-function exportCsv(t: TFunc, code: string, tab: string, regs: RegRow[], teamName: Map<string, string>) {
+// CSV of the FULL filtered list (BOM for Excel) — re-fetches every page of the current
+// tab in CSV_BATCH-sized requests so the export never depends on the visible page.
+// Returns false on any fetch failure (nothing is downloaded).
+async function exportCsv(t: TFunc, code: string, eventId: string, tab: string, teamName: Map<string, string>): Promise<boolean> {
+  const regs: RegRow[] = [];
+  for (let page = 1; ; page++) {
+    const sp = new URLSearchParams({ page: String(page), limit: String(CSV_BATCH) });
+    if (tab !== 'all') sp.set('status', tab);
+    let j: { registrations?: RegRow[]; totalPages?: number } | null = null;
+    try {
+      const res = await fetch(`/api/dashboard/events/${eventId}/registrations?${sp}`);
+      if (res.ok) j = await res.json();
+    } catch {
+      /* fall through to failure */
+    }
+    if (!j) return false;
+    regs.push(...(j.registrations ?? []));
+    if (page >= (j.totalPages ?? 1)) break;
+  }
   const header = [t('events.csv.regNo'), t('events.csv.name'), t('events.csv.centre'), t('events.csv.team'), t('events.csv.selections'), t('events.csv.fee'), t('events.csv.status'), t('events.csv.decider'), t('events.csv.decideDate')];
   const rows = regs.map((r) => [
     r.reg_no, r.name, r.centreCode ?? '', r.volunteer_team_id ? teamName.get(r.volunteer_team_id) ?? '' : '',
@@ -890,6 +941,7 @@ function exportCsv(t: TFunc, code: string, tab: string, regs: RegRow[], teamName
   a.download = `${code}-${t('events.csv.filenameTag')}-${tab}-${new Date().toLocaleDateString('en-CA')}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+  return true;
 }
 
 // A crisp inline-SVG QR of `text` (dep-free renderer, src/lib/qr.ts). 4-module quiet zone.
