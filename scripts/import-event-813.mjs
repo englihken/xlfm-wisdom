@@ -9,26 +9,9 @@
 // .env, same dotenv pattern as the other scripts). --dry-run connects and computes
 // everything (including the verification report preview) but writes NOTHING.
 //
-// What it writes (and the conventions each part follows):
-//   • events        — find-or-create by code XLFM-2608. status 'open',
-//                     requires_approval false, organizing_centre = HQ,
-//                     starts_on = ends_on = 2026-08-13, capacity null,
-//                     public_registration_enabled stays false (schema default).
-//   • event_fees    — one 'meal' row at RM0 billed per_item. WITHOUT a per_item
-//                     meal fee, every selections-edit path (PATCH …/selections,
-//                     the 代报名 dialog) strips selections.meals ("delete
-//                     selections.meals when !mealPerItem"), silently destroying
-//                     the kitchen roster. RM0 keeps fee_total 0 while making the
-//                     imported meal picks first-class. Flagged in the run report.
-//   • event_meal_slots — the full date×meal grid over the span of meals that
-//                     actually appear in the data (expected 2026-08-10 dinner →
-//                     2026-08-14 breakfast), offered = that cell appears in the
-//                     data. Grid shape matches syncMealSlots' convention; upsert
-//                     on (event_id, slot_date, meal). NOTE: the event itself is
-//                     single-day 08-13, so a later staff edit that changes the
-//                     event DATES would regenerate the grid to 08-13-only and
-//                     delete these slots (event-slots.ts syncMealSlots) — flagged
-//                     to the architect in the run report.
+// The event, its RM0 per_item meal fee, and the 15 event_meal_slots rows were
+// pre-created by the architect — this script FINDS and VERIFIES them (aborting on
+// any mismatch) and writes ONLY registrations:
 //   • registrations — one per source record. reg_no follows the app convention
 //                     `${event.code}-${String(seq).padStart(4,'0')}` continuing
 //                     after the highest existing suffix. member_id null,
@@ -41,8 +24,10 @@
 //                     'YYYY-MM-DD:meal' keys so kitchen stats work; everything
 //                     else lives untouched under the import813 namespace.
 //
-// IDEMPOTENT: a volunteer is skipped when their src_no already exists in this
-// event's registrations (selections->import813->>src_no). Batches of 200.
+// IDEMPOTENT: a volunteer is skipped when their src_row (Excel row number — the
+// only unique key; src_no restarts per centre AND collides within Selayang/Puchong)
+// already exists in this event's registrations (selections->import813->>src_row).
+// Batches of 200.
 //
 // SHARED PHONES: migration 018's registrations_public_dupe unique index forbids two
 // member_id-NULL pending/approved rows with the same (event_id, applicant_phone).
@@ -61,8 +46,6 @@ dotenv.config({ path: '.env' });
 const DRY_RUN = process.argv.includes('--dry-run');
 const DATA_FILE = path.join(process.cwd(), 'scripts', 'data', 'event-813-volunteers.json');
 const EVENT_CODE = 'XLFM-2608';
-const EVENT_DATE = '2026-08-13'; // starts_on = ends_on (single-day fahui)
-const HQ_CODE = 'HQ';
 const MEALS = ['breakfast', 'lunch', 'dinner'];
 const BATCH_SIZE = 200;
 const PAGE = 1000; // PostgREST per-request row cap
@@ -88,14 +71,14 @@ if (!Array.isArray(volunteers) || volunteers.length === 0) die('volunteers[] mis
 
 const seenSrc = new Set();
 for (const v of volunteers) {
-  if (v.src_no === undefined || v.src_no === null || String(v.src_no).trim() === '') {
-    die(`record without src_no (applicant_name=${JSON.stringify(v.applicant_name)})`);
+  if (v.src_row === undefined || v.src_row === null) {
+    die(`record without src_row (applicant_name=${JSON.stringify(v.applicant_name)})`);
   }
-  const key = String(v.src_no);
-  if (seenSrc.has(key)) die(`duplicate src_no in source data: ${key}`);
+  const key = String(v.src_row);
+  if (seenSrc.has(key)) die(`duplicate src_row in source data: ${key}`);
   seenSrc.add(key);
   if (typeof v.applicant_name !== 'string' || !v.applicant_name.trim()) {
-    die(`record src_no=${key} has no applicant_name`);
+    die(`record src_row=${key} has no applicant_name`);
   }
 }
 console.log(`Loaded ${volunteers.length} volunteer records from ${path.relative(process.cwd(), DATA_FILE)}`);
@@ -136,10 +119,7 @@ const gridRows = [];
 }
 console.log(`Meal grid: ${gridRows.length} cells over ${slotDates[0]}…${slotDates[slotDates.length - 1]}, ${pickedCells.size} offered`);
 
-// ── reference data: HQ centre + teams by slug ──────────────────────────────────────
-const { data: hq, error: hqErr } = await db.from('centres').select('id').eq('code', HQ_CODE).single();
-if (hqErr || !hq) die(`HQ centre lookup failed: ${hqErr?.message}`);
-
+// ── reference data: teams by slug ──────────────────────────────────────────────────
 const { data: teamRows, error: teamErr } = await db.from('teams').select('id, slug, name_cn').eq('is_active', true);
 if (teamErr) die(`teams lookup failed: ${teamErr.message}`);
 const teamBySlug = new Map(teamRows.map((t) => [t.slug, t]));
@@ -148,109 +128,78 @@ const teamById = new Map(teamRows.map((t) => [t.id, t]));
 const unknownSlugs = [...new Set(volunteers.map((v) => v.team_slug).filter((s) => s && !teamBySlug.has(s)))];
 if (unknownSlugs.length) die(`team_slug values not in teams table: ${unknownSlugs.join(', ')}`);
 
-// ── 1. EVENT — find-or-create by code ──────────────────────────────────────────────
-let { data: event, error: evErr } = await db
+// ── 1. EVENT + FEE + SLOTS — pre-created by the architect; FIND and VERIFY only ────
+const { data: event, error: evErr } = await db
   .from('events')
   .select('id, code, status, starts_on, ends_on')
   .eq('code', EVENT_CODE)
   .maybeSingle();
 if (evErr) die(`event lookup failed: ${evErr.message}`);
+if (!event) die(`event ${EVENT_CODE} not found — the architect pre-creates it; this script no longer inserts events`);
+console.log(`Event ${EVENT_CODE} found (${event.id}, status=${event.status})`);
 
-if (event) {
-  console.log(`Event ${EVENT_CODE} already exists (${event.id}) — reusing`);
-} else if (DRY_RUN) {
-  console.log(`[dry-run] would create event ${EVENT_CODE} "${srcEvent.title}"`);
-} else {
-  const { data: created, error } = await db
-    .from('events')
-    .insert({
-      code: EVENT_CODE,
-      title: srcEvent.title,
-      event_type: srcEvent.event_type,
-      organizing_centre_id: hq.id,
-      co_centre_ids: [],
-      starts_on: EVENT_DATE,
-      ends_on: EVENT_DATE,
-      location: srcEvent.location ?? null,
-      capacity: null,
-      reg_deadline: null,
-      requires_approval: false,
-      status: 'open',
-      created_by: null,
-      updated_by: null,
-    })
-    .select('id, code, status, starts_on, ends_on')
-    .single();
-  if (error || !created) die(`event create failed: ${error?.message}`);
-  event = created;
-  console.log(`Created event ${EVENT_CODE} (${event.id})`);
-}
-
-if (!DRY_RUN) {
-  // RM0 per_item meal fee — keeps selections.meals alive through every edit path
-  // (see header). find-or-create on the (event_id, item) unique.
+{
   const { data: mealFee, error: feeSelErr } = await db
     .from('event_fees').select('id, amount, billing').eq('event_id', event.id).eq('item', 'meal').maybeSingle();
   if (feeSelErr) die(`event_fees lookup failed: ${feeSelErr.message}`);
-  if (!mealFee) {
-    const { error } = await db.from('event_fees').insert({
-      event_id: event.id, item: 'meal', label_cn: '餐点（义工餐）', amount: 0, billing: 'per_item', sort: 0,
-    });
-    if (error) die(`meal fee insert failed: ${error.message}`);
-    console.log('Created RM0 per_item meal fee row');
+  if (!mealFee || mealFee.billing !== 'per_item' || Number(mealFee.amount) !== 0) {
+    die(`expected a pre-created RM0 per_item meal fee row, found: ${JSON.stringify(mealFee)}`);
   }
 
-  const { error: slotErr } = await db
-    .from('event_meal_slots')
-    .upsert(gridRows.map((r) => ({ ...r, event_id: event.id })), { onConflict: 'event_id,slot_date,meal' });
-  if (slotErr) die(`meal-slot upsert failed: ${slotErr.message}`);
-  console.log(`Upserted ${gridRows.length} meal-slot cells`);
+  const { data: slots, error: slotErr } = await db
+    .from('event_meal_slots').select('slot_date, meal, offered').eq('event_id', event.id);
+  if (slotErr) die(`meal-slot lookup failed: ${slotErr.message}`);
+  const offeredInDb = new Set(
+    (slots ?? []).filter((s) => s.offered).map((s) => `${s.slot_date}:${s.meal}`)
+  );
+  const missing = [...pickedCells].filter((k) => !offeredInDb.has(k));
+  if (missing.length) die(`data references meal cells not offered in DB: ${missing.join(', ')}`);
+  console.log(`Verified meal fee + ${slots.length} slot rows (${offeredInDb.size} offered) cover all picked cells`);
 }
+void gridRows;
 
 // ── 2. IDEMPOTENCY — src_nos already imported for this event ───────────────────────
 const existingSrc = new Set();
 const usedPhones = new Set(); // phones already occupying the 018 partial-unique slot
 let maxSeq = 0;
-if (event) {
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await db
-      .from('registrations')
-      .select('reg_no, member_id, applicant_phone, status, src_no:selections->import813->>src_no')
-      .eq('event_id', event.id)
-      .range(from, from + PAGE - 1);
-    if (error) die(`existing-registrations scan failed: ${error.message}`);
-    for (const r of data) {
-      if (r.src_no != null) existingSrc.add(String(r.src_no));
-      if (r.member_id === null && r.applicant_phone && ['pending', 'approved'].includes(r.status)) {
-        usedPhones.add(r.applicant_phone);
-      }
-      const m = /-(\d+)$/.exec(r.reg_no ?? '');
-      if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
+for (let from = 0; ; from += PAGE) {
+  const { data, error } = await db
+    .from('registrations')
+    .select('reg_no, member_id, applicant_phone, status, src_row:selections->import813->>src_row')
+    .eq('event_id', event.id)
+    .range(from, from + PAGE - 1);
+  if (error) die(`existing-registrations scan failed: ${error.message}`);
+  for (const r of data) {
+    if (r.src_row != null) existingSrc.add(String(r.src_row));
+    if (r.member_id === null && r.applicant_phone && ['pending', 'approved'].includes(r.status)) {
+      usedPhones.add(r.applicant_phone);
     }
-    if (data.length < PAGE) break;
+    const m = /-(\d+)$/.exec(r.reg_no ?? '');
+    if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
   }
+  if (data.length < PAGE) break;
 }
-const todo = volunteers.filter((v) => !existingSrc.has(String(v.src_no)));
+const todo = volunteers.filter((v) => !existingSrc.has(String(v.src_row)));
 console.log(`${existingSrc.size} already imported, ${todo.length} to insert`);
 
 // ── 3. REGISTRATIONS — batched inserts ─────────────────────────────────────────────
 const nowIso = new Date().toISOString();
 let seq = maxSeq;
-const sharedPhone = []; // src_nos whose phone moved to import813-only (018 dupe index)
+const sharedPhone = []; // (centre, src_no, src_row) whose phone moved to import813-only
 const rows = todo.map((v) => {
   const meals = mealKeysOf(v);
   seq += 1;
   let phone = v.phone ?? null;
   if (phone) {
     if (usedPhones.has(phone)) {
-      sharedPhone.push(String(v.src_no));
+      sharedPhone.push(`${v.centre}#${v.src_no} (row ${v.src_row})`);
       phone = null; // 018 registrations_public_dupe — phone preserved in import813
     } else {
       usedPhones.add(phone);
     }
   }
   return {
-    event_id: event?.id, // set for real runs; dry-run may have no event yet
+    event_id: event.id,
     reg_no: `${EVENT_CODE}-${String(seq).padStart(4, '0')}`,
     member_id: null,
     applicant_name: v.applicant_name.trim(),
@@ -285,10 +234,6 @@ if (DRY_RUN) {
 }
 
 // ── 4. VERIFY + REPORT — recount from the DB, not from what we think we wrote ──────
-if (!event) {
-  console.log('[dry-run] no event in DB — skipping DB verification');
-  process.exit(0);
-}
 const dbRows = [];
 for (let from = 0; ; from += PAGE) {
   const { data, error } = await db
@@ -325,18 +270,13 @@ console.log(`\nBy centre:\n${fmt(byCentre)}`);
 console.log(`\nBy team:\n${fmt(byTeam)}`);
 console.log(`\nOffered meal slots (${pickedCells.size}): ${[...pickedCells].sort().join(', ')}`);
 if (sharedPhone.length) {
-  console.log(`\nShared phones (applicant_phone set NULL to satisfy the 018 dupe index; number kept in import813) — src_no: ${sharedPhone.join(', ')}`);
+  console.log(`\nShared phones (applicant_phone set NULL to satisfy the 018 dupe index; number kept in import813):\n  ${sharedPhone.join('\n  ')}`);
 }
-console.log(`\nFlags for the architect:
-  • event is single-day ${EVENT_DATE} but meal slots span ${slotDates[0]}…${slotDates[slotDates.length - 1]} —
-    a staff edit that CHANGES THE EVENT DATES will regenerate the grid and delete
-    the out-of-range slots (syncMealSlots). Consider starts_on 08-10 / ends_on 08-14
-    if that becomes a problem.
-  • a RM0 per_item meal fee row was created so selections.meals survives the
-    selections-edit paths (they strip meals when no per_item meal fee exists).
-  • the selections PATCH route rebuilds selections via parseSelections, which drops
-    unknown keys — an edit through that route would WIPE selections.import813 for
-    that registration. Consider preserving unknown namespaces there.
+console.log(`\nNotes (accepted/known):
+  • event is single-day ${event.starts_on} while meal slots span ${slotDates[0]}…${slotDates[slotDates.length - 1]} —
+    a staff edit that CHANGES THE EVENT DATES would regenerate the grid and delete
+    out-of-range slots (accepted by architect; dates won't be edited).
+  • RM0 per_item meal fee (pre-created) keeps selections.meals alive through edits.
   • 018's registrations_public_dupe index forbids duplicate applicant_phone among
     member_id-null pending/approved rows per event — records sharing a phone were
     imported with applicant_phone NULL (see shared-phones list above). The number

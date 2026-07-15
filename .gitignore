@@ -42,3 +42,6 @@ next-env.d.ts
 
 # PDF books (large, stored locally)
 content/books/*.pdf
+
+# import source data (volunteer PII — this repo is public, NEVER commit)
+scripts/data/
