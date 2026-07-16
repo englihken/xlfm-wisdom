@@ -261,8 +261,9 @@ export async function loadAndClassify(req: Request): Promise<
 
   const wb = new ExcelJS.Workbook();
   try {
-    // exceljs.load wants a Node Buffer — a bare ArrayBuffer throws in the nodejs runtime.
-    await wb.xlsx.load(Buffer.from(await file.arrayBuffer()));
+    // exceljs.load wants a Node Buffer at runtime (a bare ArrayBuffer throws); the cast
+    // bridges @types/node's generic Buffer<ArrayBuffer> to exceljs's Buffer parameter.
+    await wb.xlsx.load(Buffer.from(await file.arrayBuffer()) as unknown as Parameters<typeof wb.xlsx.load>[0]);
   } catch {
     return { ok: false, status: 400, error: '无法读取文件 — 请上传 .xlsx 格式' };
   }
