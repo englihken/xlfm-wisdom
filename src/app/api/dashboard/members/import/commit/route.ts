@@ -68,12 +68,19 @@ export async function POST(req: Request) {
   }
 
   // ── every source row → legacy_rows (the permanent import trail) ────────────────────
+  // match_method must be one of the DB CHECK vocabulary:
+  //   phone | name_centre (how a DUPLICATE matched) · created_new (a NEW insert) ·
+  //   skipped (REVIEW — ambiguous, left for a human) · error (validation failed).
   const legacy = rows.map((r: ImportRow) => ({
     batch_id: batch.id,
     row_no: r.rowNo,
     raw: r.raw,
     member_id: r.matchedMemberId,
-    match_method: r.cls === 'duplicate' ? r.matchMethod : r.cls === 'new' ? 'created' : null,
+    match_method:
+      r.cls === 'duplicate' ? r.matchMethod
+      : r.cls === 'new' ? 'created_new'
+      : r.cls === 'review' ? 'skipped'
+      : 'error',
     issues: r.issues,
   }));
   for (let i = 0; i < legacy.length; i += INSERT_BATCH) {
