@@ -12,6 +12,7 @@ import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { grantAllows } from '@/lib/access';
 import { useT, useLocale } from '@/lib/i18n-react';
 import type { TFunc } from '@/lib/i18n';
+import { splitBirthplace, isBirthplaceCode, isReligion, isMarital, isLanguage } from '@/lib/member-vocab';
 
 type Member = Record<string, unknown> & {
   id: string;
@@ -44,6 +45,22 @@ function ageFromDob(dob: string | null): number | null {
 }
 const s = (v: unknown): string => (v == null || v === '' ? '–' : String(v));
 const tri = (t: TFunc, v: unknown): string => (v === true ? t('members.yes') : v === false ? t('members.no') : t('members.unknown'));
+
+// Localized label for a vocab CODE; a legacy (non-code) value renders as-is.
+const optLabel = (t: TFunc, group: string, code: string, known: (c: string) => boolean): string =>
+  known(code) ? t(`members.opt.${group}.${code}`) : code;
+const religionLabel = (t: TFunc, v: unknown): string => (v == null || v === '' ? '–' : optLabel(t, 'religion', String(v), isReligion));
+const maritalLabel = (t: TFunc, v: unknown): string => (v == null || v === '' ? '–' : optLabel(t, 'marital', String(v), isMarital));
+const languagesLabel = (t: TFunc, v: unknown): string => {
+  if (!Array.isArray(v) || v.length === 0) return '–';
+  return (v as string[]).map((c) => optLabel(t, 'lang', c, isLanguage)).join('、');
+};
+const birthplaceLabel = (t: TFunc, v: unknown): string => {
+  if (v == null || v === '') return '–';
+  const { code, city } = splitBirthplace(String(v));
+  const base = optLabel(t, 'bp', code, isBirthplaceCode);
+  return city ? `${base} · ${city}` : base;
+};
 
 export default function MemberProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -158,14 +175,14 @@ function MemberProfile({ me, id }: { me: ErpMe; id: string }) {
       <Card title={t('members.card.logistics')}>
         <Dl items={[
           [t('members.dl.shirtSize'), s(m.shirt_size)], [t('members.dl.snoring'), tri(t, m.snoring)],
-          [t('members.dl.languages'), Array.isArray(m.languages) ? (m.languages as string[]).join('、') || '–' : '–'],
+          [t('members.dl.languages'), languagesLabel(t, m.languages)],
         ]} />
       </Card>
 
       <Card title={t('members.card.life')}>
         <Dl items={[
-          [t('members.dl.address'), s(m.address)], [t('members.dl.birthplace'), s(m.birthplace)], [t('members.dl.religion'), s(m.religion)],
-          [t('members.dl.marital'), s(m.marital_status)], [t('members.dl.occupation'), s(m.occupation)],
+          [t('members.dl.address'), s(m.address)], [t('members.dl.birthplace'), birthplaceLabel(t, m.birthplace)], [t('members.dl.religion'), religionLabel(t, m.religion)],
+          [t('members.dl.marital'), maritalLabel(t, m.marital_status)], [t('members.dl.occupation'), s(m.occupation)],
         ]} />
       </Card>
 

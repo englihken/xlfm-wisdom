@@ -10,6 +10,7 @@ import { ErpGate, type ErpMe } from '@/components/erp-gate';
 import { MemberForm, EMPTY_MEMBER, type MemberFormValues } from '@/components/member-form';
 import { grantAllows } from '@/lib/access';
 import { useT } from '@/lib/i18n-react';
+import { splitBirthplace } from '@/lib/member-vocab';
 
 const str = (v: unknown): string => (v == null ? '' : String(v));
 const triFrom = (v: unknown): MemberFormValues['disciple'] => (v === true ? 'yes' : v === false ? 'no' : 'unknown');
@@ -34,10 +35,13 @@ function toForm(m: Record<string, unknown>): MemberFormValues {
     veg_since: str(m.veg_since),
     shirt_size: str(m.shirt_size),
     snoring: triFrom(m.snoring),
-    languages: Array.isArray(m.languages) ? (m.languages as string[]).join(', ') : '',
+    languages: Array.isArray(m.languages) ? (m.languages as unknown[]).map(String) : [],
     address: str(m.address),
-    birthplace: str(m.birthplace),
-    religion: str(m.religion),
+    birthplace: splitBirthplace(str(m.birthplace)).code,
+    birthplace_city: splitBirthplace(str(m.birthplace)).city,
+    // religion DEFAULTS to buddhism for edited records too (per spec); we don't
+    // mass-backfill the DB — an empty row only gets buddhism if the user saves.
+    religion: str(m.religion) || 'buddhism',
     marital_status: str(m.marital_status),
     occupation: str(m.occupation),
     emergency_contact_name: str(m.emergency_contact_name),

@@ -16,6 +16,7 @@ import ExcelJS from 'exceljs';
 import { supabaseAdmin } from './supabase';
 import { normalizePhone } from './members';
 import { isValidDate } from './events';
+import { langToCode, maritalToCode, religionToCode, birthplaceToCode, splitBirthplace, joinBirthplace } from './member-vocab';
 
 export const IMPORT_SHEET = '会员';
 export const REF_SHEET = '参考';
@@ -39,6 +40,10 @@ export const IMPORT_COLUMNS = [
   { key: 'full_veg', label: '是否全素 Full Veg (是/否)' },
   { key: 'veg_since', label: '全素年份 Veg Since' },
   { key: 'shirt_size', label: 'T恤尺寸 T-shirt Size' },
+  { key: 'languages', label: '语言 Languages (逗号分隔 / comma-separated)' },
+  { key: 'marital_status', label: '婚姻状况 Marital Status' },
+  { key: 'religion', label: '宗教 Religion' },
+  { key: 'birthplace', label: '出生地 Birthplace' },
   { key: 'occupation', label: '职业 Occupation' },
   { key: 'member_type', label: '会员类型 Type (member/volunteer)' },
   { key: 'notes', label: '备注 Notes' },
@@ -144,6 +149,34 @@ export function validateRow(raw: Record<string, string>, centres: CentreRef[]): 
     if (!(SHIRT_SIZES as readonly string[]).includes(raw.shirt_size.toUpperCase())) issues.push(`T恤尺寸无效：${raw.shirt_size}`);
     else values.shirt_size = raw.shirt_size.toUpperCase();
   } else values.shirt_size = null;
+
+  // ── constrained vocab fields (lenient: accept a code OR its zh label) ──
+  if (raw.languages) {
+    const codes: string[] = [];
+    for (const part of raw.languages.split(/[,，、]/).map((p) => p.trim()).filter(Boolean)) {
+      const code = langToCode(part);
+      if (!code) issues.push(`语言无效：${part}`);
+      else if (!codes.includes(code)) codes.push(code);
+    }
+    values.languages = codes;
+  } else values.languages = [];
+
+  for (const [k, toCode, label] of [
+    ['marital_status', maritalToCode, '婚姻状况'],
+    ['religion', religionToCode, '宗教'],
+  ] as const) {
+    if (!raw[k]) { values[k] = null; continue; }
+    const code = toCode(raw[k]);
+    if (!code) issues.push(`${label}无效：${raw[k]}`);
+    else values[k] = code;
+  }
+
+  if (raw.birthplace) {
+    const { code: rawCode, city } = splitBirthplace(raw.birthplace);
+    const code = birthplaceToCode(rawCode);
+    if (!code) issues.push(`出生地无效：${rawCode}`);
+    else values.birthplace = joinBirthplace(code, city.replace(/:/g, ' '));
+  } else values.birthplace = null;
 
   const mt = raw.member_type.toLowerCase();
   if (!mt) values.member_type = 'member';

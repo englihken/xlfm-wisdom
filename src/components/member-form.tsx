@@ -11,8 +11,16 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useT, useLocale } from '@/lib/i18n-react';
+import type { TFunc } from '@/lib/i18n';
+import {
+  LANGUAGES, MARITAL_STATUSES, RELIGIONS, BIRTHPLACES, joinBirthplace,
+} from '@/lib/member-vocab';
 
 type Tri = 'unknown' | 'yes' | 'no';
+
+// Build [code, localized-label] option pairs for a vocab group.
+const opts = (t: TFunc, group: string, codes: readonly string[]): [string, string][] =>
+  codes.map((c) => [c, t(`members.opt.${group}.${c}`)]);
 
 export type MemberFormValues = {
   name_cn: string;
@@ -32,9 +40,10 @@ export type MemberFormValues = {
   veg_since: string;
   shirt_size: string;
   snoring: Tri;
-  languages: string;
+  languages: string[];       // vocab codes
   address: string;
-  birthplace: string;
+  birthplace: string;        // birthplace state/country CODE
+  birthplace_city: string;   // optional free-text city detail (stored as code:city)
   religion: string;
   marital_status: string;
   occupation: string;
@@ -49,8 +58,9 @@ export const EMPTY_MEMBER: MemberFormValues = {
   name_cn: '', name_en: '', gender: '', dob: '', phone: '', email: '',
   gyt_centre_id: '', member_type: 'member', disciple: 'unknown', disciple_no: '',
   baishi_year: '', baishi_place: '', start_practice_year: '', full_veg: 'unknown',
-  veg_since: '', shirt_size: '', snoring: 'unknown', languages: '', address: '',
-  birthplace: '', religion: '', marital_status: '', occupation: '',
+  veg_since: '', shirt_size: '', snoring: 'unknown', languages: [], address: '',
+  // religion DEFAULTS to buddhism for new records (they've joined the org).
+  birthplace: '', birthplace_city: '', religion: 'buddhism', marital_status: '', occupation: '',
   emergency_contact_name: '', emergency_contact_phone: '', referrer_name: '',
   referrer_phone: '', notes: '',
 };
@@ -79,9 +89,9 @@ function toBody(v: MemberFormValues): Record<string, unknown> {
     veg_since: v.veg_since,
     shirt_size: v.shirt_size,
     snoring: triToApi(v.snoring),
-    languages: v.languages.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
+    languages: v.languages,
     address: v.address,
-    birthplace: v.birthplace,
+    birthplace: joinBirthplace(v.birthplace, v.birthplace_city),
     religion: v.religion,
     marital_status: v.marital_status,
     occupation: v.occupation,
@@ -208,16 +218,24 @@ export function MemberForm({
           <Sel label={t('members.ff.shirtSize')} value={v.shirt_size} onChange={(x) => set('shirt_size', x)}
             options={[['', '–'], ...SHIRT_SIZES.map((s) => [s, s] as [string, string])]} />
           <TriSel label={t('members.ff.snoring')} value={v.snoring} onChange={(x) => set('snoring', x)} />
-          <Text label={t('members.ff.languages')} value={v.languages} onChange={(x) => set('languages', x)} placeholder={t('members.ff.langPlaceholder')} />
         </Grid>
+        <div className="mt-4">
+          <MultiChip label={t('members.ff.languages')} value={v.languages} onChange={(x) => set('languages', x)}
+            options={opts(t, 'lang', LANGUAGES)} />
+        </div>
       </Section>
 
       <Section title={t('members.section.life')} en="Life">
         <Grid>
           <Text label={t('members.ff.address')} value={v.address} onChange={(x) => set('address', x)} />
-          <Text label={t('members.ff.birthplace')} value={v.birthplace} onChange={(x) => set('birthplace', x)} />
-          <Text label={t('members.ff.religion')} value={v.religion} onChange={(x) => set('religion', x)} />
-          <Text label={t('members.ff.marital')} value={v.marital_status} onChange={(x) => set('marital_status', x)} />
+          <LegacySel label={t('members.ff.birthplace')} value={v.birthplace} onChange={(x) => set('birthplace', x)}
+            options={opts(t, 'bp', BIRTHPLACES)} legacyLabel={t('members.opt.legacy')} />
+          <Text label={t('members.ff.birthplaceCity')} value={v.birthplace_city} onChange={(x) => set('birthplace_city', x)}
+            placeholder={t('members.ff.birthplaceCityPlaceholder')} />
+          <LegacySel label={t('members.ff.religion')} value={v.religion} onChange={(x) => set('religion', x)}
+            options={opts(t, 'religion', RELIGIONS)} legacyLabel={t('members.opt.legacy')} />
+          <LegacySel label={t('members.ff.marital')} value={v.marital_status} onChange={(x) => set('marital_status', x)}
+            options={opts(t, 'marital', MARITAL_STATUSES)} legacyLabel={t('members.opt.legacy')} />
           <Text label={t('members.ff.occupation')} value={v.occupation} onChange={(x) => set('occupation', x)} />
         </Grid>
       </Section>
@@ -337,6 +355,52 @@ function Sel({
     </label>
   );
 }
+// A single-select that GRACEFULLY renders a stored legacy (non-code) value: if `value`
+// is non-empty and not among the known option codes, it is shown as a distinct
+// "(legacy)" option so the dropdown never silently drops it. Saving picks a real code.
+function LegacySel({
+  label, value, onChange, options, legacyLabel,
+}: {
+  label: string; value: string; onChange: (v: string) => void; options: [string, string][]; legacyLabel: string;
+}) {
+  const known = options.some(([c]) => c === value);
+  const all: [string, string][] = [['', '–'], ...options];
+  if (value && !known) all.push([value, `${value}${legacyLabel}`]);
+  return <Sel label={label} value={value} onChange={onChange} options={all} />;
+}
+
+// Multi-select as a wrapped set of toggle chips (checkbox semantics). value is the
+// selected code[]; a stored legacy code not in `options` still renders as a checked chip.
+function MultiChip({
+  label, value, onChange, options,
+}: {
+  label: string; value: string[]; onChange: (v: string[]) => void; options: [string, string][];
+}) {
+  const toggle = (code: string) => {
+    onChange(value.includes(code) ? value.filter((c) => c !== code) : [...value, code]);
+  };
+  const legacy = value.filter((c) => !options.some(([oc]) => oc === c));
+  const all: [string, string][] = [...options, ...legacy.map((c) => [c, c] as [string, string])];
+  return (
+    <div>
+      <span className="u-label block mb-1.5">{label}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {all.map(([code, lbl]) => {
+          const on = value.includes(code);
+          return (
+            <button type="button" key={code} onClick={() => toggle(code)}
+              className={`px-2.5 py-1 rounded-full text-xs border transition ${
+                on ? 'bg-accent text-white border-accent' : 'bg-surface text-ink border-border-strong hover:bg-accent/5'
+              }`}>
+              {lbl}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TriSel({ label, value, onChange }: { label: string; value: Tri; onChange: (v: Tri) => void }) {
   const t = useT();
   return (

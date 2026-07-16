@@ -3,6 +3,8 @@
 // and body → DB-row coercion/validation. Kept out of the route files so create
 // (POST) and update (PATCH) share exactly the same rules.
 
+import { isLanguage, isMarital, isReligion, isBirthplaceCode, splitBirthplace, joinBirthplace } from './member-vocab';
+
 // Normalize a typed phone to the canonical international-digits form (no '+') for the
 // three communities the org actually serves (MY centres; SG members; the Batam /
 // Pekanbaru / Tg. Balai / Tg. Pinang / Dumai Indonesian branches):
@@ -55,9 +57,10 @@ export function canonicalizeStoredPhone(stored: string | null): string | null {
 
 const SHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
 
-// Fields that are plain trimmed free text (null when blank).
+// Fields that are plain trimmed free text (null when blank). birthplace / religion /
+// marital_status are NO LONGER here — they are code-validated below (member-vocab).
 const TEXT_FIELDS = [
-  'name_cn', 'name_en', 'email', 'address', 'birthplace', 'religion', 'marital_status',
+  'name_cn', 'name_en', 'email', 'address',
   'occupation', 'disciple_no', 'baishi_place', 'emergency_contact_name',
   'emergency_contact_phone', 'referrer_name', 'referrer_phone', 'photo_path',
   'photo_source_url', 'notes', 'dob', 'gyt_centre_id', 'referrer_member_id',
@@ -113,9 +116,32 @@ export function parseMemberInput(
   }
   if ('languages' in body) {
     const raw = body.languages;
-    values.languages = Array.isArray(raw)
-      ? raw.map((x) => String(x).trim()).filter((x) => x !== '')
-      : null;
+    const codes = Array.isArray(raw) ? [...new Set(raw.map((x) => String(x).trim()).filter(Boolean))] : [];
+    const bad = codes.filter((c) => !isLanguage(c));
+    if (bad.length) return { error: `语言无效：${bad.join('、')}` };
+    values.languages = codes; // [] when none — a real empty array, not null
+  }
+  // ── code-validated single-selects (empty allowed; unknown code rejected) ──
+  if ('marital_status' in body) {
+    const v = text(body.marital_status);
+    if (v !== null && !isMarital(v)) return { error: `婚姻状况无效：${v}` };
+    values.marital_status = v;
+  }
+  if ('religion' in body) {
+    const v = text(body.religion);
+    if (v !== null && !isReligion(v)) return { error: `宗教无效：${v}` };
+    values.religion = v;
+  }
+  if ('birthplace' in body) {
+    const v = text(body.birthplace);
+    if (v !== null) {
+      const { code, city } = splitBirthplace(v);
+      if (!isBirthplaceCode(code)) return { error: `出生地无效：${code}` };
+      // re-join canonically (drops stray whitespace; city is free text, ':' collapsed)
+      values.birthplace = joinBirthplace(code, city.replace(/:/g, ' '));
+    } else {
+      values.birthplace = null;
+    }
   }
   if ('phone' in body) {
     const { phone, error } = normalizePhone(String(body.phone ?? ''));
