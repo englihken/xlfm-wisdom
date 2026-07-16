@@ -120,7 +120,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     if (dupe) return NextResponse.json({ error: '您已报名此活动', existing: { reg_no: maskRegNo(event.code) } }, { status: 409 });
   } else {
     // newcomer pre-check; the partial unique index is the durable backstop (race-safe)
-    // for canonical-form rows. storedPhoneForms also matches rows that predate the 033
+    // for canonical-form rows. storedPhoneForms also matches rows that predate the 038
     // normalization migration (bulk-imported local / zero-stripped formats).
     const { data: dupe } = await supabaseAdmin
       .from('registrations')

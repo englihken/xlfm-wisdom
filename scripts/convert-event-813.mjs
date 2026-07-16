@@ -47,7 +47,7 @@ const asPhone = (v) => {
   const s = typeof v === 'number' ? String(v) : String(v).trim();
   if (s === '' || s === '-') return null;
   // Canonicalize to the app's international-digits form (same rules as normalizePhone
-  // in src/lib/members.ts + migration 033): MY 60…, SG 65…, ID 62…. Recovers
+  // in src/lib/members.ts + migration 038): MY 60…, SG 65…, ID 62…. Recovers
   // Excel-eaten leading zeros; takes the first number of an 'a/b' dual cell.
   // Unparseable values keep the original strip-spaces/dashes behaviour so no data is lost.
   const digits = s.split('/')[0].replace(/\D/g, '');
@@ -216,10 +216,8 @@ for (const v of volunteers) {
   rowKeys.add(v.src_row);
 }
 
-// offered slot union (expect exactly the 11 architect cells)
-const union = new Set();
-for (const v of volunteers) for (const k of Object.keys(v.meals)) union.add(k.replace('_', ' ').replace(/ /, ':').replace(/_(?=[a-z]+$)/, ':'));
-// simpler: keys are 'YYYY-MM-DD_meal' — split at the LAST underscore
+// offered slot union (expect exactly the 11 architect cells) — meal keys are
+// 'YYYY-MM-DD_meal', so split each at its LAST underscore to get the app form.
 const offered = [...new Set(volunteers.flatMap((v) => Object.keys(v.meals)))].map((k) => {
   const i = k.lastIndexOf('_');
   return `${k.slice(0, i)}:${k.slice(i + 1)}`;
@@ -229,7 +227,6 @@ check('offered slots', offered, [
   '2026-08-12:breakfast', '2026-08-12:dinner', '2026-08-12:lunch',
   '2026-08-13:breakfast', '2026-08-13:dinner', '2026-08-13:lunch', '2026-08-14:breakfast',
 ]);
-void union;
 
 // shared phones preview (dedupe happens at import time, file order)
 const seenPhones = new Map();

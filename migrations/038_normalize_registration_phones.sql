@@ -1,4 +1,4 @@
--- 033_normalize_registration_phones.sql
+-- 038_normalize_registration_phones.sql
 -- =====================================================================================
 -- PURPOSE (DATA FIX — event-813 import follow-up).
 --   registrations.applicant_phone was bulk-imported in the source sheets' raw formats.

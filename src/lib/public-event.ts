@@ -134,7 +134,7 @@ export async function matchOwnedRegistration(regNo: string, phone: string): Prom
 
   const memberRaw = (reg as { member?: { phone: string | null } | { phone: string | null }[] | null }).member;
   const memberPhone = (Array.isArray(memberRaw) ? memberRaw[0] ?? null : memberRaw ?? null)?.phone ?? null;
-  // The stored applicant_phone may predate the 033 normalization migration (bulk-imported
+  // The stored applicant_phone may predate the 038 normalization migration (bulk-imported
   // local / zero-stripped formats) — canonicalize it before comparing. member.phone is
   // always canonical already (parseMemberInput).
   const applicantCanon = canonicalizeStoredPhone((reg.applicant_phone as string | null) ?? null);

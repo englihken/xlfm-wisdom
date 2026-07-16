@@ -30,7 +30,7 @@ export function normalizePhone(raw: string): { phone: string | null; error?: str
 }
 
 // The raw shapes a canonical number may still be stored under in registrations rows
-// that predate the 033 phone-normalization migration: the source sheets held local
+// that predate the 038 phone-normalization migration: the source sheets held local
 // formats (0122037919) and Excel-stripped leading zeros (122037919). Use with .in()
 // so lookups stay index-backed while matching legacy storage.
 export function storedPhoneForms(canonical: string): string[] {
@@ -38,7 +38,7 @@ export function storedPhoneForms(canonical: string): string[] {
   return [...new Set([canonical, '0' + national, national])];
 }
 
-// Canonicalize a STORED phone value (may predate 033): take the first number of an
+// Canonicalize a STORED phone value (may predate 038): take the first number of an
 // 'a/b' dual cell, strip junk characters, recover Excel-eaten leading zeros, then
 // normalize. Unparseable values fall back to their raw digits so an exact typed
 // match still works.
