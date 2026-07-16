@@ -51,6 +51,14 @@ function monthCn(ym: string, locale: Locale = 'zh'): string {
   return `${y}年${Number(m)}月`;
 }
 
+// The selector's fixed 12-slot month grid (a month is enabled only if it is in the
+// pack's selectable range; the grid shape stays stable regardless).
+const MONTHS12 = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+// Year / month chip labels — same locale-format convention as monthCn (年/月 in zh,
+// bare numerics in en/id) so no new dictionary keys are needed.
+const yearLabel = (y: string, locale: Locale): string => (locale === 'zh' ? `${y}年` : y);
+const monthChipLabel = (mm: string, locale: Locale): string => (locale === 'zh' ? `${Number(mm)}月` : mm);
+
 function moneyRM(v: number): string {
   return `RM ${Math.round(v).toLocaleString()}`;
 }
@@ -68,6 +76,9 @@ export default function ReportsPage() {
   const [pack, setPack] = useState<ReportsPack | null>(null);
   const [loading, setLoading] = useState(true);
   const [dept, setDept] = useState('outreach');
+  // Which year the month grid shows. Follows the selected month's year, but a manual
+  // year switch (which doesn't change pack.month) persists until a month is picked.
+  const [selYear, setSelYear] = useState<string>('');
 
   // 演示模式 state — pageIdx indexes pack.pages.
   const [present, setPresent] = useState(false);
@@ -186,6 +197,12 @@ export default function ReportsPage() {
     };
   }, [pack, exitPresent]);
 
+  // Keep the grid's year in sync with the selected month's year. Fires only when
+  // pack.month actually changes (after a month pick), so a manual year switch stands.
+  useEffect(() => {
+    if (pack?.month) setSelYear(pack.month.slice(0, 4));
+  }, [pack?.month]);
+
   const changeMonth = (m: string) => {
     if (!pack || m === pack.month) return;
     setPack(null);
@@ -281,17 +298,53 @@ export default function ReportsPage() {
           <div className="bg-surface border border-border rounded-2xl px-4 py-3 rpt-hide">
             <div className="flex flex-wrap items-center gap-2">
               <b className="text-sm text-ink mr-1">{t('reports.monthLabel')}</b>
-              {(pack?.months ?? []).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => changeMonth(m)}
-                  className={`px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold border transition ${
-                    m === pack?.month ? 'pill-gold' : 'border-border text-ink-muted hover:bg-accent/5'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
+              {pack && (() => {
+                const years = [...new Set(pack.months.map((m) => m.slice(0, 4)))]; // oldest→newest
+                const enabled = new Set(pack.months);
+                const yr = selYear || pack.month.slice(0, 4);
+                return (
+                  <>
+                    {/* year control: chips when few years, a compact dropdown once it grows */}
+                    {years.length <= 3 ? (
+                      <div className="flex gap-1">
+                        {years.map((y) => (
+                          <button key={y} onClick={() => setSelYear(y)}
+                            className={`px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold border transition ${
+                              y === yr ? 'pill-gold' : 'border-border text-ink-muted hover:bg-accent/5'
+                            }`}>
+                            {yearLabel(y, locale)}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <select value={yr} onChange={(e) => setSelYear(e.target.value)}
+                        className="text-[11.5px] font-semibold px-2 py-1 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent">
+                        {years.map((y) => <option key={y} value={y}>{yearLabel(y, locale)}</option>)}
+                      </select>
+                    )}
+                    <span className="w-px h-4 bg-border mx-0.5" aria-hidden />
+                    {/* fixed 12-month grid for the selected year; out-of-range months disabled */}
+                    <div className="flex flex-wrap gap-1">
+                      {MONTHS12.map((mm) => {
+                        const ym = `${yr}-${mm}`;
+                        const on = ym === pack.month;
+                        const avail = enabled.has(ym);
+                        return (
+                          <button key={mm} disabled={!avail} onClick={() => changeMonth(ym)}
+                            title={ym}
+                            className={`px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold border transition ${
+                              on ? 'pill-gold'
+                                : avail ? 'border-border text-ink-muted hover:bg-accent/5'
+                                  : 'border-transparent text-ink-faint opacity-40 cursor-not-allowed'
+                            }`}>
+                            {monthChipLabel(mm, locale)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
               <span className="ml-auto" />
               <button onClick={enterPresent} className="btn-primary px-3.5 py-1 text-[12.5px]" disabled={!pack}>
                 {t('reports.present')}

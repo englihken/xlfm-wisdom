@@ -92,6 +92,20 @@ export function monthAdd(ym: string, delta: number): string {
   return `${ny}-${String(nm).padStart(2, '0')}`;
 }
 
+// The platform's first operational month — the earliest SELECTABLE report month, and
+// the floor the two-level (year + month) selector opens down to. Months before this
+// predate the system and render disabled in the selector. It is also the earliest month
+// the legacy flat chip row (rolling last-6 + current) would have shown at launch.
+export const REPORTS_GENESIS_MONTH = '2026-01';
+
+// Every 'YYYY-MM' from `from` to `to` inclusive, oldest→newest. Lexicographic compare is
+// correct for zero-padded YYYY-MM. Bounded (600 = 50y) as an infinite-loop backstop.
+export function monthRange(from: string, to: string): string[] {
+  const out: string[] = [];
+  for (let m = from; m <= to && out.length < 600; m = monthAdd(m, 1)) out.push(m);
+  return out;
+}
+
 const firstDay = (ym: string) => `${ym}-01`;
 
 function ymdAddDays(ymd: string, days: number): string {
@@ -105,7 +119,7 @@ export type Delta = { dir: 'up' | 'flat' | 'down'; text: string } | null;
 
 export type ReportsPack = {
   month: string;
-  months: string[]; // chips: last 6 + current
+  months: string[]; // full selectable range (genesis → current), oldest→newest — the selector's enabled set
   windowDays: number;
   scope: { locked: boolean; centreId: string | null; centreName: string | null };
   pages: string[]; // dept page keys present in this payload
@@ -185,8 +199,13 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
   const db = supabaseAdmin as Db;
 
   const current = currentMonthMYT();
-  const months = Array.from({ length: 7 }, (_, i) => monthAdd(current, i - 6));
-  const month = monthParam && /^\d{4}-\d{2}$/.test(monthParam) && months.includes(monthParam) ? monthParam : current;
+  // Full selectable range: system genesis → current month (MYT). The client's year+month
+  // selector reads this as the enabled set; anything outside it renders disabled.
+  const months = monthRange(REPORTS_GENESIS_MONTH, current);
+  const month =
+    monthParam && /^\d{4}-\d{2}$/.test(monthParam) && monthParam >= REPORTS_GENESIS_MONTH && monthParam <= current
+      ? monthParam
+      : current;
   const prev = monthAdd(month, -1);
   const trendMonths = Array.from({ length: 6 }, (_, i) => monthAdd(month, i - 5));
 
