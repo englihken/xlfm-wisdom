@@ -120,6 +120,8 @@ function MembersList({ me }: { me: ErpMe }) {
         </div>
         {canEdit && (
           <div className="flex items-center gap-2">
+            {/* plain anchor: this is a file download (Content-Disposition), not a page nav */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a href="/api/dashboard/members/import/template"
               className="btn-secondary px-4 py-1.5 text-sm transition">
               {t('members.import.download')}
