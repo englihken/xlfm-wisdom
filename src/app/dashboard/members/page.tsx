@@ -52,6 +52,9 @@ function MembersList({ me }: { me: ErpMe }) {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = () => setReloadKey((k) => k + 1);
 
   // Debounce the search box into `search` (and reset to page 1).
   useEffect(() => {
@@ -100,7 +103,7 @@ function MembersList({ me }: { me: ErpMe }) {
     return () => {
       active = false;
     };
-  }, [search, centre, team, disciple, fullVeg, status, page]);
+  }, [search, centre, team, disciple, fullVeg, status, page, reloadKey]);
 
   const onFilter = (fn: () => void) => {
     fn();
@@ -116,14 +119,27 @@ function MembersList({ me }: { me: ErpMe }) {
           <span className="text-sm text-ink-faint">{t('members.subtitle', { n: total })}</span>
         </div>
         {canEdit && (
-          <Link
-            href="/dashboard/members/new"
-            className="btn-primary px-4 py-1.5 text-sm transition"
-          >
-            {t('members.addMember')}
-          </Link>
+          <div className="flex items-center gap-2">
+            <a href="/api/dashboard/members/import/template"
+              className="btn-secondary px-4 py-1.5 text-sm transition">
+              {t('members.import.download')}
+            </a>
+            <button onClick={() => setImportOpen(true)} className="btn-secondary px-4 py-1.5 text-sm transition">
+              {t('members.import.upload')}
+            </button>
+            <Link
+              href="/dashboard/members/new"
+              className="btn-primary px-4 py-1.5 text-sm transition"
+            >
+              {t('members.addMember')}
+            </Link>
+          </div>
         )}
       </div>
+
+      {importOpen && (
+        <ImportDialog onClose={() => setImportOpen(false)} onDone={() => { setImportOpen(false); setPage(1); reload(); }} />
+      )}
 
       {/* search + filters */}
       <div className="flex flex-wrap items-center gap-2">
@@ -249,4 +265,104 @@ function Th({ children }: { children: React.ReactNode }) {
 }
 function Badge({ children }: { children: React.ReactNode }) {
   return <span className="pill-gold inline-block px-2 py-0.5 rounded-full text-[11px]">{children}</span>;
+}
+
+// ── 会员 bulk-import dialog: upload → preview → confirm commit ─────────────────────────
+type PreviewRow = { rowNo: number; name: string; centre: string; phone: string; cls: 'new' | 'duplicate' | 'review' | 'error'; matchMethod: string | null; issues: string[] };
+type Preview = { fileName: string; total: number; counts: { new: number; duplicate: number; review: number; error: number }; rows: PreviewRow[] };
+const CLS_STYLE: Record<PreviewRow['cls'], string> = {
+  new: 'bg-[#EAF3E2] text-[#3F6B2E]', duplicate: 'bg-[#EEF] text-[#4B4B7A]',
+  review: 'bg-[#FBF6E3] text-[#7A6420]', error: 'bg-[#FEF2F2] text-red-700',
+};
+
+function ImportDialog({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const t = useT();
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [done, setDone] = useState<{ inserted: number; skippedDuplicates: number; review: number; errors: number } | null>(null);
+
+  const send = async (path: string) => {
+    if (!file) return null;
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch(path, { method: 'POST', body: fd });
+    const j = await res.json().catch(() => null);
+    if (!res.ok) { setErr(j?.error ?? t('members.import.failed')); return null; }
+    return j;
+  };
+
+  const doPreview = async () => { setBusy(true); setErr(null); const j = await send('/api/dashboard/members/import/preview'); if (j) setPreview(j); setBusy(false); };
+  const doCommit = async () => { setBusy(true); setErr(null); const j = await send('/api/dashboard/members/import/commit'); if (j) setDone(j); setBusy(false); };
+
+  const clsLabel = (c: PreviewRow['cls']) => t(`members.import.cls.${c}`);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+      <div className="bg-surface rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold font-serif text-ink mb-3">{t('members.import.title')}</h3>
+
+        {done ? (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-[#CBE3BF] bg-[#EAF3E2] p-3 text-sm text-[#3F6B2E]">
+              {t('members.import.doneMsg', { n: done.inserted })}
+            </div>
+            <p className="text-xs text-ink-muted">
+              {t('members.import.doneDetail', { dup: done.skippedDuplicates, review: done.review, err: done.errors })}
+            </p>
+            <button onClick={onDone} className="w-full btn-primary py-2 text-sm font-medium">{t('members.import.done')}</button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-ink-muted">{t('members.import.hint')}</p>
+            <input type="file" accept=".xlsx" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setPreview(null); setErr(null); }}
+              className="block w-full text-sm text-ink file:mr-3 file:rounded-lg file:border-0 file:bg-accent/10 file:px-3 file:py-1.5 file:text-accent-deep" />
+
+            {preview && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className={`px-2 py-1 rounded-full ${CLS_STYLE.new}`}>{t('members.import.cls.new')} {preview.counts.new}</span>
+                  <span className={`px-2 py-1 rounded-full ${CLS_STYLE.duplicate}`}>{t('members.import.cls.duplicate')} {preview.counts.duplicate}</span>
+                  <span className={`px-2 py-1 rounded-full ${CLS_STYLE.review}`}>{t('members.import.cls.review')} {preview.counts.review}</span>
+                  <span className={`px-2 py-1 rounded-full ${CLS_STYLE.error}`}>{t('members.import.cls.error')} {preview.counts.error}</span>
+                </div>
+                <div className="border border-border rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-accent/5 text-ink-faint">
+                      <tr><th className="px-2 py-1.5 text-left">#</th><th className="px-2 py-1.5 text-left">{t('members.col.name')}</th><th className="px-2 py-1.5 text-left">{t('members.col.centre')}</th><th className="px-2 py-1.5 text-left"></th></tr>
+                    </thead>
+                    <tbody>
+                      {preview.rows.map((r) => (
+                        <tr key={r.rowNo} className="border-t border-border">
+                          <td className="px-2 py-1.5 text-ink-faint">{r.rowNo}</td>
+                          <td className="px-2 py-1.5 text-ink">{r.name}</td>
+                          <td className="px-2 py-1.5 text-ink-muted">{r.centre}</td>
+                          <td className="px-2 py-1.5">
+                            <span className={`px-1.5 py-0.5 rounded-full ${CLS_STYLE[r.cls]}`}>{clsLabel(r.cls)}</span>
+                            {r.issues.length > 0 && <span className="ml-1 text-ink-muted">{r.issues.join('；')}</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {err && <p className="text-sm text-red-600">{err}</p>}
+
+            <div className="flex gap-2">
+              {!preview ? (
+                <button disabled={!file || busy} onClick={doPreview} className="flex-1 btn-primary py-2 text-sm font-medium disabled:opacity-50">{busy ? t('members.import.parsing') : t('members.import.preview')}</button>
+              ) : (
+                <button disabled={busy || preview.counts.new === 0} onClick={doCommit} className="flex-1 btn-primary py-2 text-sm font-medium disabled:opacity-50">{busy ? t('members.import.committing') : t('members.import.commit', { n: preview.counts.new })}</button>
+              )}
+              <button disabled={busy} onClick={onClose} className="px-4 btn-secondary text-sm">{t('members.cancel')}</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
