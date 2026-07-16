@@ -3,23 +3,54 @@
 // and body → DB-row coercion/validation. Kept out of the route files so create
 // (POST) and update (PATCH) share exactly the same rules.
 
-// Normalize a Malaysian phone to the canonical 60… form.
-//   blank/no digits            → { phone: null }                     (no phone on file)
-//   leading 0 (012…)           → 6 + digits (== 60 + national)       (0123456789 → 60123456789)
-//   already 60…                → kept
-//   anything not ^60\d{8,10}$  → { error, phone: null }              (ambiguous — reject)
+// Normalize a typed phone to the canonical international-digits form (no '+') for the
+// three communities the org actually serves (MY centres; SG members; the Batam /
+// Pekanbaru / Tg. Balai / Tg. Pinang / Dumai Indonesian branches):
+//   Malaysia   0123456789 / +60 12-345 6789 / 60123456789   → 60123456789
+//   Singapore  81221124 / +65 8122 1124 / 6581221124        → 6581221124
+//   Indonesia  081234567890 / +62 812… / 6281234567890      → 6281234567890
+//   blank/no digits → { phone: null } (no phone on file); anything else → { error }.
+// Disambiguation: a bare 8-digit number starting 8/9 can only be an SG mobile (MY
+// numbers are 0/1-leading and longer); a 0-leading '08…' of 11+ digits can only be
+// Indonesian (MY 08x Sarawak landlines are 9-10 digits incl. the 0).
 export function normalizePhone(raw: string): { phone: string | null; error?: string } {
   const digits = (raw ?? '').replace(/\D/g, '');
   if (!digits) return { phone: null };
   let d = digits;
-  if (d.startsWith('0')) d = '6' + d;
-  if (!/^60\d{8,10}$/.test(d)) {
-    return {
-      phone: null,
-      error: `电话号码格式不正确（应为马来西亚号码，如 60123456789）：${d}`,
-    };
+  if (/^[89]\d{7}$/.test(d)) d = '65' + d;                // bare SG mobile
+  else if (/^08\d{9,11}$/.test(d)) d = '62' + d.slice(1); // Indonesian local 08… (11-13 digits)
+  else if (d.startsWith('0')) d = '6' + d;                // MY local → 60…
+  if (/^60\d{8,10}$/.test(d) || /^65[3689]\d{7}$/.test(d) || /^62\d{8,12}$/.test(d)) {
+    return { phone: d };
   }
-  return { phone: d };
+  return {
+    phone: null,
+    error: `电话号码格式不正确（马来西亚 0123456789 / 60…、新加坡 65…、印尼 62…）：${d}`,
+  };
+}
+
+// The raw shapes a canonical number may still be stored under in registrations rows
+// that predate the 033 phone-normalization migration: the source sheets held local
+// formats (0122037919) and Excel-stripped leading zeros (122037919). Use with .in()
+// so lookups stay index-backed while matching legacy storage.
+export function storedPhoneForms(canonical: string): string[] {
+  const national = canonical.replace(/^6[025]/, '');
+  return [...new Set([canonical, '0' + national, national])];
+}
+
+// Canonicalize a STORED phone value (may predate 033): take the first number of an
+// 'a/b' dual cell, strip junk characters, recover Excel-eaten leading zeros, then
+// normalize. Unparseable values fall back to their raw digits so an exact typed
+// match still works.
+export function canonicalizeStoredPhone(stored: string | null): string | null {
+  if (!stored) return null;
+  const digits = String(stored).split('/')[0].replace(/\D/g, '');
+  if (!digits) return null;
+  let d = digits;
+  if (/^1\d{8,9}$/.test(d)) d = '0' + d;       // MY mobile missing its leading 0
+  else if (/^8\d{9,11}$/.test(d)) d = '0' + d; // Indonesian mobile missing its leading 0
+  const { phone } = normalizePhone(d);
+  return phone ?? digits;
 }
 
 const SHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];

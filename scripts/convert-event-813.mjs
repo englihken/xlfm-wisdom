@@ -46,7 +46,19 @@ const asPhone = (v) => {
   if (v === null) return null;
   const s = typeof v === 'number' ? String(v) : String(v).trim();
   if (s === '' || s === '-') return null;
-  return s.replace(/[\s-]/g, ''); // spaces and dashes ONLY; '/' kept (two-number cells)
+  // Canonicalize to the app's international-digits form (same rules as normalizePhone
+  // in src/lib/members.ts + migration 033): MY 60…, SG 65…, ID 62…. Recovers
+  // Excel-eaten leading zeros; takes the first number of an 'a/b' dual cell.
+  // Unparseable values keep the original strip-spaces/dashes behaviour so no data is lost.
+  const digits = s.split('/')[0].replace(/\D/g, '');
+  if (!digits) return null;
+  let d = digits;
+  if (/^1\d{8,9}$/.test(d)) d = '0' + d;        // MY mobile missing its leading 0
+  else if (/^8\d{9,11}$/.test(d)) d = '0' + d;  // Indonesian mobile missing its leading 0
+  if (/^[89]\d{7}$/.test(d)) d = '65' + d;      // bare SG mobile
+  else if (/^08\d{9,11}$/.test(d)) d = '62' + d.slice(1); // Indonesian local 08…
+  else if (d.startsWith('0')) d = '6' + d;      // MY local → 60…
+  return /^(60\d{8,10}|65[3689]\d{7}|62\d{8,12})$/.test(d) ? d : s.replace(/[\s-]/g, '');
 };
 
 // meal columns 30-41 → slot key (underscore style, import813 shape) or paid box

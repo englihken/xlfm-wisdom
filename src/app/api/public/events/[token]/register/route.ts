@@ -15,7 +15,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
-import { normalizePhone } from '@/lib/members';
+import { normalizePhone, storedPhoneForms } from '@/lib/members';
 import { computeFees, parseSelections, type FeeItem } from '@/lib/event-fees';
 import { invalidMealKeys } from '@/lib/event-slots';
 import {
@@ -119,14 +119,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       .maybeSingle();
     if (dupe) return NextResponse.json({ error: '您已报名此活动', existing: { reg_no: maskRegNo(event.code) } }, { status: 409 });
   } else {
-    // newcomer pre-check; the partial unique index is the durable backstop (race-safe).
+    // newcomer pre-check; the partial unique index is the durable backstop (race-safe)
+    // for canonical-form rows. storedPhoneForms also matches rows that predate the 033
+    // normalization migration (bulk-imported local / zero-stripped formats).
     const { data: dupe } = await supabaseAdmin
       .from('registrations')
       .select('id')
       .eq('event_id', event.id)
-      .eq('applicant_phone', phone)
+      .in('applicant_phone', storedPhoneForms(phone))
       .is('member_id', null)
       .in('status', ['pending', 'approved'])
+      .limit(1)
       .maybeSingle();
     if (dupe) return NextResponse.json({ error: '此电话已报名此活动', existing: { reg_no: maskRegNo(event.code) } }, { status: 409 });
   }

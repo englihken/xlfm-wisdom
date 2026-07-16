@@ -14,6 +14,7 @@
 
 import { supabaseAdmin } from './supabase';
 import { mealSlotKey } from './events';
+import { canonicalizeStoredPhone } from './members';
 
 // A token is an urlsafe base64 slug (~16 chars). Validate shape before touching the DB so
 // junk input is cheaply rejected as 404 (still no signal — same as a real unknown token).
@@ -133,7 +134,11 @@ export async function matchOwnedRegistration(regNo: string, phone: string): Prom
 
   const memberRaw = (reg as { member?: { phone: string | null } | { phone: string | null }[] | null }).member;
   const memberPhone = (Array.isArray(memberRaw) ? memberRaw[0] ?? null : memberRaw ?? null)?.phone ?? null;
-  if (reg.applicant_phone !== phone && memberPhone !== phone) return null;
+  // The stored applicant_phone may predate the 033 normalization migration (bulk-imported
+  // local / zero-stripped formats) — canonicalize it before comparing. member.phone is
+  // always canonical already (parseMemberInput).
+  const applicantCanon = canonicalizeStoredPhone((reg.applicant_phone as string | null) ?? null);
+  if (applicantCanon !== phone && memberPhone !== phone) return null;
 
   const evRaw = (reg as { event?: OwnedRegistration['event'] | OwnedRegistration['event'][] | null }).event;
   const event = Array.isArray(evRaw) ? evRaw[0] ?? null : evRaw ?? null;
