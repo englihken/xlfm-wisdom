@@ -4,14 +4,22 @@
 // never care.
 //
 // POST { phone } — normalize the phone, silently match ONE active member by it, and
-//   return ONLY { matched, maskedName?, maskedCentre? }. NEVER returns member_id, full
-//   name, or any other field. Matched and unmatched share an identical shape (no leak).
-//   A masked initial is the entire harvestable surface — Ken's chosen privacy stance.
+//   return ONLY { matched, maskedName?, maskedCentre?, alreadyRegistered, maskedRegNo? }.
+//   NEVER returns member_id, full name, or any other field. Matched and unmatched share
+//   an identical member shape (no leak). A masked initial is the entire harvestable
+//   surface — Ken's chosen privacy stance.
+//
+//   alreadyRegistered (architect-approved): the SAME newcomer dupe check the register
+//   route runs at submit (this event only, member_id null, pending/approved,
+//   storedPhoneForms) — surfaced at the identify step so an already-registered
+//   volunteer sees it before filling the form. It reveals ONLY existence + the masked
+//   reg_no, exactly what the submit-time 409 already reveals for the same phone. The
+//   409 stays as the backstop.
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { normalizePhone } from '@/lib/members';
-import { loadPublicEvent, sameOrigin, rateLimit, clientIp, readJsonCapped, hasUnknownKeys, maskName } from '@/lib/public-event';
+import { normalizePhone, storedPhoneForms } from '@/lib/members';
+import { loadPublicEvent, sameOrigin, rateLimit, clientIp, readJsonCapped, hasUnknownKeys, maskName, maskRegNo } from '@/lib/public-event';
 
 export const runtime = 'nodejs';
 
@@ -38,14 +46,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
   // Match exactly one ACTIVE member by normalized phone (phone is partial-unique). An
   // inactive/no match returns the SAME { matched:false } shape — no existence leak.
-  const { data: member } = await supabaseAdmin
-    .from('members')
-    .select('name_cn, name_en, centre:centres!gyt_centre_id ( name_cn )')
-    .eq('phone', phone)
-    .eq('status', 'active')
-    .maybeSingle();
+  // In parallel: the newcomer already-registered check for THIS event only (identical
+  // predicate to the register route's dupe guard, incl. legacy stored phone forms).
+  const [{ data: member }, { data: existingReg }] = await Promise.all([
+    supabaseAdmin
+      .from('members')
+      .select('name_cn, name_en, centre:centres!gyt_centre_id ( name_cn )')
+      .eq('phone', phone)
+      .eq('status', 'active')
+      .maybeSingle(),
+    supabaseAdmin
+      .from('registrations')
+      .select('id')
+      .eq('event_id', ev.event.id)
+      .in('applicant_phone', storedPhoneForms(phone))
+      .is('member_id', null)
+      .in('status', ['pending', 'approved'])
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  if (!member) return NextResponse.json({ matched: false });
+  const alreadyRegistered = !!existingReg;
+  const regFields = alreadyRegistered
+    ? { alreadyRegistered: true, maskedRegNo: maskRegNo(ev.event.code) }
+    : { alreadyRegistered: false };
+
+  if (!member) return NextResponse.json({ matched: false, ...regFields });
 
   const centreRaw = (member as { centre?: { name_cn: string } | { name_cn: string }[] | null }).centre;
   const centre = Array.isArray(centreRaw) ? centreRaw[0] ?? null : centreRaw ?? null;
@@ -56,5 +82,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     // Coarse centre confirmation (one of ~36) to help the real owner recognise themselves.
     // Not further masked; it is the mild-privacy lever if the policy tightens.
     maskedCentre: centre?.name_cn ?? undefined,
+    ...regFields,
   });
 }

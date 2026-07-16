@@ -12,6 +12,7 @@ import { writeAudit } from '@/lib/audit';
 import { eventsScope } from '@/lib/members-scope';
 import { computeFees, parseSelections, type FeeItem } from '@/lib/event-fees';
 import { fetchOfferedKeys, invalidMealKeys } from '@/lib/event-slots';
+import { normalizePhone, storedPhoneForms } from '@/lib/members';
 
 export const runtime = 'nodejs';
 
@@ -52,6 +53,39 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const from = (page - 1) * limit;
   const to = from + limit - 1;
   const status = sp.get('status');
+  const search = (sp.get('search') ?? '').trim();
+
+  // ?search= filters WITHIN this event only (the centre-scope wall above already
+  // decided whether the caller may see the event at all — search cannot widen it).
+  // Matches reg_no (partial), applicant_name, phone in any format (canonical +
+  // legacy stored forms; long digit runs also match as a substring), and team name.
+  let searchOr: string | null = null;
+  if (search) {
+    const safe = search.replace(/[,.()%*"\\]/g, ' ').trim();
+    const ors: string[] = [];
+    if (safe) {
+      ors.push(`reg_no.ilike.%${safe}%`);
+      ors.push(`applicant_name.ilike.%${safe}%`);
+    }
+    const { phone: canonical } = normalizePhone(search);
+    if (canonical) {
+      ors.push(`applicant_phone.in.(${storedPhoneForms(canonical).join(',')})`);
+    } else {
+      const digits = search.replace(/\D/g, '');
+      if (digits.length >= 7) ors.push(`applicant_phone.ilike.%${digits}%`);
+    }
+    if (safe) {
+      // team-name search — one cheap lookup, then filter by the matching team ids
+      const { data: teamRows } = await supabaseAdmin
+        .from('teams')
+        .select('id')
+        .ilike('name_cn', `%${safe}%`);
+      const teamIds = (teamRows ?? []).map((t) => t.id);
+      if (teamIds.length) ors.push(`volunteer_team_id.in.(${teamIds.join(',')})`);
+    }
+    if (!ors.length) return NextResponse.json({ registrations: [], total: 0, page, limit, totalPages: 1 });
+    searchOr = ors.join(',');
+  }
 
   let q = supabaseAdmin
     .from('registrations')
@@ -61,6 +95,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     )
     .eq('event_id', id);
   if (status) q = q.eq('status', status);
+  if (searchOr) q = q.or(searchOr);
   // reg_no tiebreaker: bulk-imported rows share created_at, and without a total order
   // the page boundaries are non-deterministic (rows repeat or vanish across pages).
   q = q.order('created_at', { ascending: true }).order('reg_no', { ascending: true }).range(from, to);

@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { computeFees, type FeeItem, type Selections } from '@/lib/event-fees';
@@ -77,8 +77,9 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
 
   // identify state
   const [phone, setPhone] = useState('');
-  const [identifyMode, setIdentifyMode] = useState<'unknown' | 'matched' | 'newcomer'>('unknown');
+  const [identifyMode, setIdentifyMode] = useState<'unknown' | 'matched' | 'newcomer' | 'registered'>('unknown');
   const [masked, setMasked] = useState<{ name?: string; centre?: string } | null>(null);
+  const [maskedRegNo, setMaskedRegNo] = useState<string | null>(null);
   const [nameCn, setNameCn] = useState('');
   const [nameEn, setNameEn] = useState('');
   const [idBusy, setIdBusy] = useState(false);
@@ -145,6 +146,9 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
       });
       const j = await res.json();
       if (!res.ok) { setIdErr(j.error ?? t('reg.errRetry')); return; }
+      // Already registered for THIS event → friendly stop instead of the wizard (the
+      // submit-time 409 remains the backstop if this is bypassed).
+      if (j.alreadyRegistered) { setMaskedRegNo(j.maskedRegNo ?? null); setMasked(null); setIdentifyMode('registered'); return; }
       if (j.matched) { setMasked({ name: j.maskedName, centre: j.maskedCentre }); setIdentifyMode('matched'); }
       else { setMasked(null); setIdentifyMode('newcomer'); }
     } catch {
@@ -196,7 +200,7 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
             <label className="block text-sm font-medium text-ink">{t('reg.phoneLabel')}</label>
             <input
               value={phone}
-              onChange={(e) => { setPhone(e.target.value); setIdentifyMode('unknown'); setMasked(null); }}
+              onChange={(e) => { setPhone(e.target.value); setIdentifyMode('unknown'); setMasked(null); setMaskedRegNo(null); }}
               inputMode="tel" placeholder={t('reg.phonePlaceholder')}
               className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint outline-none focus:border-accent"
             />
@@ -206,6 +210,14 @@ function Flow({ token, event }: { token: string; event: PublicEvent }) {
                 className="w-full btn-primary py-2.5 font-medium">
                 {idBusy ? t('reg.searching') : t('reg.next')}
               </button>
+            )}
+
+            {identifyMode === 'registered' && (
+              <div className="rounded-xl border border-[#E7D9A8] bg-[#FBF6E3] p-3">
+                <p className="text-sm text-[#7A6420]">{t('reg.alreadyRegd', { no: maskedRegNo ?? '' })}</p>
+                <p className="mt-1 text-xs text-ink-muted">{t('reg.alreadyRegdHint')}</p>
+                <Link href={`/r/${token}/status`} className="mt-2 inline-block btn-secondary px-4 py-1.5 text-sm font-medium">{t('reg.lookupCta')}</Link>
+              </div>
             )}
 
             {identifyMode === 'matched' && masked && (

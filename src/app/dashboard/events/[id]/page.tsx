@@ -121,6 +121,8 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
   const [regTotalPages, setRegTotalPages] = useState(1);
   const [regTotal, setRegTotal] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [regSearch, setRegSearch] = useState('');   // raw input
+  const [regQuery, setRegQuery] = useState('');     // debounced — drives the fetch
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [rejectFor, setRejectFor] = useState<RegRow | null>(null);
@@ -149,10 +151,21 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
     }
   }, [id]);
 
+  // debounce the search input; a query change restarts at page 1 (identical values
+  // bail out in React, so mount/no-op ticks cause no extra fetch)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setRegQuery(regSearch.trim());
+      setRegPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [regSearch]);
+
   const loadRegs = useCallback(async () => {
     try {
       const sp = new URLSearchParams({ page: String(regPage), limit: String(REG_PAGE_SIZE) });
       if (tab !== 'all') sp.set('status', tab);
+      if (regQuery) sp.set('search', regQuery);
       const res = await fetch(`/api/dashboard/events/${id}/registrations?${sp}`);
       if (res.ok) {
         const j = await res.json();
@@ -167,7 +180,7 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
     } catch {
       /* ignore */
     }
-  }, [id, tab, regPage]);
+  }, [id, tab, regPage, regQuery]);
 
   useEffect(() => {
     loadEvent();
@@ -334,11 +347,14 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
             ))}
           </div>
           <div className="flex items-center gap-2">
+            <input value={regSearch} onChange={(ev2) => setRegSearch(ev2.target.value)} type="search"
+              placeholder={t('events.regSearchPlaceholder')}
+              className="w-44 text-xs p-1.5 border border-border-strong rounded-lg bg-surface text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent" />
             <button disabled={exporting}
               onClick={async () => {
                 setExporting(true);
                 try {
-                  if (!(await exportCsv(t, e.code, id, tab, teamName))) flashToast(t('events.toast.actionFailed'));
+                  if (!(await exportCsv(t, e.code, id, tab, regQuery, teamName))) flashToast(t('events.toast.actionFailed'));
                 } finally {
                   setExporting(false);
                 }
@@ -908,13 +924,14 @@ function PaymentPanel({ reg, onClose, onDone }: { reg: RegRow; onClose: () => vo
 }
 
 // CSV of the FULL filtered list (BOM for Excel) — re-fetches every page of the current
-// tab in CSV_BATCH-sized requests so the export never depends on the visible page.
-// Returns false on any fetch failure (nothing is downloaded).
-async function exportCsv(t: TFunc, code: string, eventId: string, tab: string, teamName: Map<string, string>): Promise<boolean> {
+// tab + search in CSV_BATCH-sized requests so the export never depends on the visible
+// page. Returns false on any fetch failure (nothing is downloaded).
+async function exportCsv(t: TFunc, code: string, eventId: string, tab: string, search: string, teamName: Map<string, string>): Promise<boolean> {
   const regs: RegRow[] = [];
   for (let page = 1; ; page++) {
     const sp = new URLSearchParams({ page: String(page), limit: String(CSV_BATCH) });
     if (tab !== 'all') sp.set('status', tab);
+    if (search) sp.set('search', search);
     let j: { registrations?: RegRow[]; totalPages?: number } | null = null;
     try {
       const res = await fetch(`/api/dashboard/events/${eventId}/registrations?${sp}`);

@@ -89,6 +89,7 @@ const zh = {
 
   // ── detail: registration queue ───────────────────────────────────────────────
   'events.tab.all': '全部',
+  'events.regSearchPlaceholder': '搜索 姓名 / 电话 / 编号…',
   'events.prevPage': '上一页',
   'events.nextPage': '下一页',
   'events.pageInfo': '第 {page} / {totalPages} 页 · 共 {total}',
@@ -239,6 +240,8 @@ const zh = {
   'reg.errNetwork': '网络错误，请重试',
   'reg.dupeSelf': '您已报名此活动',
   'reg.dupeNo': '（编号 {no}）',
+  'reg.alreadyRegd': '此电话已报名此活动（报名编号 {no}）',
+  'reg.alreadyRegdHint': '如需查看报名详情或状态，请使用查询页。',
   'reg.submitFailed': '报名失败，请重试',
 
   // ── step 2: selections ───────────────────────────────────────────────────────
@@ -410,6 +413,7 @@ export const eventsPart: {
 
     // ── detail: registration queue ─────────────────────────────────────────────
     'events.tab.all': 'All',
+    'events.regSearchPlaceholder': 'Search name / phone / reg no…',
     'events.prevPage': 'Previous',
     'events.nextPage': 'Next',
     'events.pageInfo': 'Page {page} / {totalPages} · {total} total',
@@ -560,6 +564,8 @@ export const eventsPart: {
     'reg.errNetwork': 'Network error, please try again',
     'reg.dupeSelf': 'You have already registered for this event',
     'reg.dupeNo': ' (Reg. No. {no})',
+    'reg.alreadyRegd': 'This phone number is already registered for this event (Reg. No. {no}).',
+    'reg.alreadyRegdHint': 'To view your registration details or status, use the lookup page.',
     'reg.submitFailed': 'Registration failed, please try again',
 
     // ── step 2: selections ─────────────────────────────────────────────────────
@@ -724,6 +730,7 @@ export const eventsPart: {
 
     // ── detail: registration queue ─────────────────────────────────────────────
     'events.tab.all': 'Semua',
+    'events.regSearchPlaceholder': 'Cari nama / telepon / no…',
     'events.prevPage': 'Sebelumnya',
     'events.nextPage': 'Berikutnya',
     'events.pageInfo': 'Halaman {page} / {totalPages} · {total} total',
@@ -874,6 +881,8 @@ export const eventsPart: {
     'reg.errNetwork': 'Kesalahan jaringan, silakan coba lagi',
     'reg.dupeSelf': 'Anda sudah mendaftar kegiatan ini',
     'reg.dupeNo': ' (No. {no})',
+    'reg.alreadyRegd': 'Nomor telepon ini sudah terdaftar untuk kegiatan ini (No. Pendaftaran {no}).',
+    'reg.alreadyRegdHint': 'Untuk melihat rincian atau status pendaftaran Anda, gunakan halaman cek status.',
     'reg.submitFailed': 'Pendaftaran gagal, silakan coba lagi',
 
     // ── step 2: selections ─────────────────────────────────────────────────────
