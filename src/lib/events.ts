@@ -35,6 +35,19 @@ export function addDays(date: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Today in Malaysia time (YYYY-MM-DD) — the timezone every cutoff rule anchors to.
+export function todayMYT(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' });
+}
+
+// THE selections-edit cutoff rule (single home — staff PATCH and the public
+// self-edit route both call this): edits are open while today (MYT) is strictly
+// BEFORE starts_on − cutoffDays. With starts_on 2026-08-13 and cutoff 7, the last
+// editable day is 2026-08-05; edits are locked ON 2026-08-06.
+export function regEditOpen(startsOn: string, cutoffDays: number, today: string): boolean {
+  return today < addDays(startsOn, -(Number(cutoffDays) || 0));
+}
+
 // Enumerate every date in [startsOn, endsOn] inclusive (endsOn null = single day).
 // UTC-anchored so DST/local offsets never shift a day. Bounded to a sane span.
 export function datesInRange(startsOn: string, endsOn: string | null): string[] {

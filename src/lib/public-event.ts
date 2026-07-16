@@ -13,8 +13,9 @@
 //     intentionally anonymous; the gate is token + enabled + open, nothing else.
 
 import { supabaseAdmin } from './supabase';
-import { mealSlotKey } from './events';
+import { addDays, mealSlotKey, regEditOpen, todayMYT } from './events';
 import { canonicalizeStoredPhone } from './members';
+import { resolveStay, type StayInfo } from './stay';
 
 // A token is an urlsafe base64 slug (~16 chars). Validate shape before touching the DB so
 // junk input is cheaply rejected as 404 (still no signal — same as a real unknown token).
@@ -120,14 +121,15 @@ export type OwnedRegistration = {
   selections: unknown;
   payment_status: string;
   payment_proof_path: string | null;
-  event: { title: string; code: string; starts_on: string; ends_on: string | null } | null;
+  volunteer_team_id: string | null;
+  event: { id: string; title: string; code: string; starts_on: string; ends_on: string | null; reg_edit_cutoff_days: number } | null;
 };
 
 export async function matchOwnedRegistration(regNo: string, phone: string): Promise<OwnedRegistration | null> {
   if (!supabaseAdmin) return null;
   const { data: reg } = await supabaseAdmin
     .from('registrations')
-    .select('id, reg_no, status, fee_total, selections, payment_status, payment_proof_path, applicant_phone, member:members!member_id ( phone ), event:events!event_id ( title, code, starts_on, ends_on )')
+    .select('id, reg_no, status, fee_total, selections, payment_status, payment_proof_path, applicant_phone, volunteer_team_id, member:members!member_id ( phone ), event:events!event_id ( id, title, code, starts_on, ends_on, reg_edit_cutoff_days )')
     .eq('reg_no', regNo)
     .maybeSingle();
   if (!reg) return null;
@@ -151,7 +153,83 @@ export async function matchOwnedRegistration(regNo: string, phone: string): Prom
     selections: reg.selections,
     payment_status: (reg.payment_status as string) ?? 'unpaid',
     payment_proof_path: (reg.payment_proof_path as string | null) ?? null,
+    volunteer_team_id: (reg.volunteer_team_id as string | null) ?? null,
     event,
+  };
+}
+
+// ── full self-service detail (status page v2) ────────────────────────────────────────
+// Everything the OWNER of a registration may see about their own record, built AFTER
+// matchOwnedRegistration passed (the reg_no + phone two-factor gate). Includes the
+// resolved stay (stay ?? import813 via resolveStay — the single-convention reader),
+// the import813 read-only extras, the offered meal slots (for the picker), the stay
+// window derived from the event's meal-slot span, and the shared edit-cutoff verdict.
+export type OwnedRegistrationDetail = {
+  teamName: string | null;
+  meals: string[];
+  stay: StayInfo;
+  extras: {
+    tshirt: string | null;
+    remarks: string | null;
+    special_note: string | null;
+    flight: {
+      airport_pickup: boolean | null; arrival_date: string | null; arrival_time: string | null; flight_arr: string | null;
+      airport_dropoff: boolean | null; departure_date: string | null; departure_time: string | null; flight_dep: string | null;
+    };
+  };
+  editable: boolean;
+  cutoffDate: string | null; // first LOCKED day (starts_on − cutoff_days)
+  offeredSlots: string[];    // 'YYYY-MM-DD:meal'
+  stayWindow: { min: string; max: string } | null;
+};
+
+export async function buildOwnedRegistrationDetail(reg: OwnedRegistration): Promise<OwnedRegistrationDetail> {
+  const sel = (reg.selections ?? {}) as Record<string, unknown>;
+  const imp = (sel.import813 ?? {}) as Record<string, unknown>;
+  const s = (v: unknown) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
+  const b = (v: unknown) => (v === true ? true : v === false ? false : null);
+
+  let teamName: string | null = null;
+  let offeredSlots: string[] = [];
+  let stayWindow: { min: string; max: string } | null = null;
+  if (supabaseAdmin) {
+    const [teamRes, slotRes] = await Promise.all([
+      reg.volunteer_team_id
+        ? supabaseAdmin.from('teams').select('name_cn').eq('id', reg.volunteer_team_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      reg.event
+        ? supabaseAdmin.from('event_meal_slots').select('slot_date, meal, offered').eq('event_id', reg.event.id)
+        : Promise.resolve({ data: [] }),
+    ]);
+    teamName = (teamRes.data as { name_cn: string } | null)?.name_cn ?? null;
+    const slots = (slotRes.data ?? []) as { slot_date: string; meal: string; offered: boolean }[];
+    offeredSlots = slots.filter((x) => x.offered).map((x) => mealSlotKey(x.slot_date, x.meal)).sort();
+    const dates = [...new Set(slots.map((x) => x.slot_date))].sort();
+    if (dates.length) stayWindow = { min: dates[0], max: dates[dates.length - 1] };
+  }
+
+  const cutoffDays = Number(reg.event?.reg_edit_cutoff_days) || 0;
+  const editable =
+    !!reg.event && ['pending', 'approved'].includes(reg.status) &&
+    regEditOpen(reg.event.starts_on, cutoffDays, todayMYT());
+
+  return {
+    teamName,
+    meals: Array.isArray(sel.meals) ? (sel.meals as unknown[]).filter((x): x is string => typeof x === 'string') : [],
+    stay: resolveStay(reg.selections),
+    extras: {
+      tshirt: s(imp.tshirt),
+      remarks: s(imp.remarks),
+      special_note: s(imp.special_note),
+      flight: {
+        airport_pickup: b(imp.airport_pickup), arrival_date: s(imp.arrival_date), arrival_time: s(imp.arrival_time), flight_arr: s(imp.flight_arr),
+        airport_dropoff: b(imp.airport_dropoff), departure_date: s(imp.departure_date), departure_time: s(imp.departure_time), flight_dep: s(imp.flight_dep),
+      },
+    },
+    editable,
+    cutoffDate: reg.event ? addDays(reg.event.starts_on, -cutoffDays) : null,
+    offeredSlots,
+    stayWindow,
   };
 }
 

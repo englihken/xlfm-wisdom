@@ -37,6 +37,8 @@ export type AuditAction =
   | 'settings_updated'
   | 'centre_created'
   | 'centre_updated'
+  // public self-service (status page v2) — actor is the registrant (actor_id null).
+  | 'reg.self_update'
   // 关怀 (care) conversation mutations + credential rotation (security audit M3).
   | 'care.takeover'
   | 'care.reply'

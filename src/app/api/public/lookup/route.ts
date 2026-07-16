@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { normalizePhone } from '@/lib/members';
-import { sameOrigin, rateLimit, clientIp, readJsonCapped, hasUnknownKeys, matchOwnedRegistration } from '@/lib/public-event';
+import { sameOrigin, rateLimit, clientIp, readJsonCapped, hasUnknownKeys, matchOwnedRegistration, buildOwnedRegistrationDetail } from '@/lib/public-event';
 
 export const runtime = 'nodejs';
 
@@ -50,6 +50,11 @@ export async function POST(req: Request) {
   const reg = await matchOwnedRegistration(regNo, phone);
   if (!reg) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  // detail = the owner's FULL record view (status page v2) — team, meals, resolved
+  // stay, import813 extras, edit window + picker inputs. Still strictly this one
+  // registration, behind the same two-factor gate.
+  const detail = await buildOwnedRegistrationDetail(reg);
+
   return NextResponse.json({
     reg_no: reg.reg_no,
     status: reg.status,
@@ -58,5 +63,6 @@ export async function POST(req: Request) {
     has_proof: !!reg.payment_proof_path,
     event: reg.event ? { title: reg.event.title, code: reg.event.code, starts_on: reg.event.starts_on, ends_on: reg.event.ends_on } : null,
     selections: summarize(reg.selections),
+    detail,
   });
 }

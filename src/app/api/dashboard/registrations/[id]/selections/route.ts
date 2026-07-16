@@ -14,13 +14,9 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
 import { computeFees, parseSelections, type FeeItem } from '@/lib/event-fees';
 import { fetchOfferedKeys, invalidMealKeys } from '@/lib/event-slots';
-import { addDays } from '@/lib/events';
+import { regEditOpen, todayMYT } from '@/lib/events';
 
 export const runtime = 'nodejs';
-
-function todayMYT(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' }); // YYYY-MM-DD
-}
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -59,8 +55,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!event) return NextResponse.json({ error: '活动不存在' }, { status: 404 });
 
   const cutoffDays = Number(event.reg_edit_cutoff_days) || 0;
-  const cutoff = addDays(event.starts_on as string, -cutoffDays); // editable while today < cutoff
-  if (todayMYT() >= cutoff) {
+  if (!regEditOpen(event.starts_on as string, cutoffDays, todayMYT())) {
     return NextResponse.json({ error: `选项已锁定（活动开始前 ${cutoffDays} 天截止修改）` }, { status: 400 });
   }
 

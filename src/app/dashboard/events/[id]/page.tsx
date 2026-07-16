@@ -18,6 +18,7 @@ import { useT } from '@/lib/i18n-react';
 import type { TFunc } from '@/lib/i18n';
 import { BringToOutreachButton } from '@/components/bring-to-outreach-button';
 import { computeFees, type FeeItem, type Selections } from '@/lib/event-fees';
+import { resolveStay, stayNights } from '@/lib/stay';
 import { addDays, mealSlotKey } from '@/lib/events';
 import { qrModules } from '@/lib/qr';
 import {
@@ -435,6 +436,21 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
                     ))}
                   </ul>
                 )}
+                {isOpen && (() => {
+                  // stay ?? import813 via resolveStay — the ONE accommodation-reading convention
+                  const st = resolveStay(r.selections);
+                  if (st.needs_accommodation === null && !st.check_in && !st.room_assign) return null;
+                  const nights = stayNights(st.check_in, st.check_out);
+                  const parts = st.needs_accommodation === false
+                    ? [t('reg.stay.noNeed')]
+                    : [
+                        t('reg.stay.need'),
+                        st.room_type,
+                        st.check_in && st.check_out ? `${st.check_in} → ${st.check_out}${nights !== null ? `（${t('reg.stay.nights', { n: nights })}）` : ''}` : null,
+                        st.room_assign ? `${t('reg.stay.roomAssign')} ${st.room_assign}` : null,
+                      ].filter(Boolean);
+                  return <p className="mt-2 ml-1 pl-3 border-l-2 border-border text-xs text-ink-muted">🏨 {parts.join(' · ')}</p>;
+                })()}
               </li>
               );
             })}
