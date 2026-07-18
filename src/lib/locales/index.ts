@@ -20,6 +20,8 @@ import { membersPart } from './parts/members';
 import { eventsPart } from './parts/events';
 import { inventoryPart } from './parts/inventory';
 import { financePart } from './parts/finance';
+// 财务 v2 Phase 1 — 账户 + 流水 cash book
+import { cashbookPart } from './parts/cashbook';
 import { publicFormsPart } from './parts/publicforms';
 import { settingsPart } from './parts/settings';
 // E4 sweep-3 shared display-vocabulary + chip/relative-time maps
@@ -38,6 +40,7 @@ export const zh = {
   ...eventsPart.zh,
   ...inventoryPart.zh,
   ...financePart.zh,
+  ...cashbookPart.zh,
   ...publicFormsPart.zh,
   ...settingsPart.zh,
   ...inboxVocabPart.zh,
@@ -56,6 +59,7 @@ export const en = {
   ...eventsPart.en,
   ...inventoryPart.en,
   ...financePart.en,
+  ...cashbookPart.en,
   ...publicFormsPart.en,
   ...settingsPart.en,
   ...inboxVocabPart.en,
@@ -74,6 +78,7 @@ export const id = {
   ...eventsPart.id,
   ...inventoryPart.id,
   ...financePart.id,
+  ...cashbookPart.id,
   ...publicFormsPart.id,
   ...settingsPart.id,
   ...inboxVocabPart.id,
