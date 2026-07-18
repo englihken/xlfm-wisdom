@@ -12,8 +12,16 @@
 //             happened_on is a date column, compared as stored)
 //   发心义工 = volunteer milestones inside the rolling funnel window
 //   funnel  = milestone counts over org_settings outreach.event_window_days
-//   收入    = 月费 fee_payments (non-void, paid_at in month) + 随喜 event fees
-//             (registrations payment_verified_at in month, MYT-bucketed)
+//   收入/支出 = the 财务 v2 CASH BOOK (finance_transactions, non-void, txn_date in
+//             month, transfers excluded, each row gated on its account's
+//             opening_as_of). Phase 2 moved these off fee_payments + verified
+//             registrations + the legacy expenses table so the tiles, the
+//             six-month bars and the expense pie all reduce from ONE source and
+//             cannot disagree on a slide. fee_payments is deliberately NOT
+//             unioned back in — the 月费 income category already carries fee
+//             income in the cash book, so it would double-count.
+//   收缴率   = still fee_payments (months_to coverage per member) — a membership
+//             measure the cash book cannot express, so it keeps its own source
 // EVERY month boundary comes from the ONE mytMonthWindow helper below: date
 // columns compare as YYYY-MM-DD against its calendar dates, timestamptz
 // columns against its UTC instants of MYT midnight — one implementation, so
@@ -252,7 +260,6 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
   const monthEndUtc = w.endUtc;
   const prevStartUtc = wPrev.startUtc;
   const trendStart = wTrendStart.startDate;
-  const trendStartUtc = wTrendStart.startUtc;
 
   // ── batched reads ───────────────────────────────────────────────────────────
   const [
@@ -262,8 +269,6 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
     centresRes,
     membersRes,
     paysRes,
-    expensesRes,
-    regPaysRes,
     cashOutRes,
     eventsRes,
     itemsRes,
@@ -283,23 +288,21 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
     locked
       ? Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
       : db.from('fee_payments').select('centre_id, member_id, amount, paid_at, months_to').is('voided_at', null).limit(50000),
-    locked
-      ? Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
-      : db.from('expenses').select('centre_id, amount, spent_at').is('voided_at', null).gte('spent_at', trendStart).lt('spent_at', monthEnd),
-    locked
-      ? Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
-      : db.from('registrations').select('paid_amount, payment_verified_at').eq('payment_status', 'verified').gte('payment_verified_at', trendStartUtc).lt('payment_verified_at', monthEndUtc),
-    // 财务 v2 cash book — the month's 支出 rows with their category group and the
-    // owning account's opening_as_of, so the SAME cutoff the finance dashboard
-    // applies is applied here too. txn_date is a date column → startDate/endDate.
+    // The legacy `expenses` and verified-`registrations` reads were dropped here:
+    // Phase 2 moved 运营·财务's money onto the cash book, and they fed nothing else.
+    // 财务 v2 cash book — THE source for the 运营·财务 money figures (收入/支出/结余,
+    // the six-month trend, and the expense pie). Spans the whole trend window, both
+    // directions, carrying each row's category group and its account's opening_as_of
+    // so the SAME cutoff the finance dashboard applies is applied here too.
+    // txn_date is a date column → compare against startDate/endDate as stored.
     locked
       ? Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
       : db
           .from('finance_transactions')
-          .select('amount, txn_date, category:finance_categories!category_id ( grp ), account:finance_accounts!finance_transactions_account_id_fkey ( opening_as_of )')
-          .eq('direction', 'out')
+          .select('amount, txn_date, direction, category:finance_categories!category_id ( grp ), account:finance_accounts!finance_transactions_account_id_fkey ( opening_as_of )')
+          .in('direction', ['in', 'out'])
           .is('voided_at', null)
-          .gte('txn_date', monthStart)
+          .gte('txn_date', trendStart)
           .lt('txn_date', monthEnd)
           .limit(50000),
     db
@@ -518,9 +521,10 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
   let ops: ReportsPack['ops'] = null;
   if (!locked) {
     const members = (membersRes.data ?? []) as { id: string; gyt_centre_id: string | null; fee_pledge_amount: number | null; fee_waived_from: string | null }[];
+    // fee_payments still feeds 收缴率 ONLY (has this member paid up — a membership
+    // measure keyed on months_to, which the cash book cannot express). The money
+    // figures no longer read it; see the cash-book block below.
     const pays = (paysRes.data ?? []) as { centre_id: string; member_id: string; amount: number; paid_at: string; months_to: string }[];
-    const expenses = (expensesRes.data ?? []) as { centre_id: string; amount: number; spent_at: string }[];
-    const regPays = (regPaysRes.data ?? []) as { paid_amount: number | null; payment_verified_at: string }[];
 
     // coverage — same rule as finance/stats: of pledged (active, pledge set, not
     // waived), paid = max non-void coverage months_to >= month start
@@ -545,44 +549,50 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
       }
     }
 
-    const incomeByMonth = new Map<string, number>();
-    const expenseByMonth = new Map<string, number>();
-    for (const p of pays) {
-      if (p.paid_at >= trendStart && p.paid_at < monthEnd) {
-        const ym = p.paid_at.slice(0, 7);
-        incomeByMonth.set(ym, (incomeByMonth.get(ym) ?? 0) + Number(p.amount));
-      }
-    }
-    for (const rp of regPays) {
-      // MYT month of the verification instant (shared helper)
-      const ym = mytMonthOf(rp.payment_verified_at);
-      incomeByMonth.set(ym, (incomeByMonth.get(ym) ?? 0) + Number(rp.paid_amount ?? 0));
-    }
-    for (const e of expenses) {
-      const ym = e.spent_at.slice(0, 7);
-      expenseByMonth.set(ym, (expenseByMonth.get(ym) ?? 0) + Number(e.amount));
-    }
-    const income = incomeByMonth.get(month) ?? 0;
-    const expensesMonth = expenseByMonth.get(month) ?? 0;
-
-    // 财务 v2 expense split. Group order is canonical (EXPENSE_GROUPS) so the legend
-    // does not reshuffle month to month; a group with no spend is dropped rather than
-    // drawn as a zero-width arc. txnCounts applies the account's opening_as_of cutoff,
-    // matching the finance dashboard exactly.
-    type CashOutRow = {
+    // ── money: ONE source, the 财务 v2 cash book ───────────────────────────────
+    // 收入/支出/结余, the six-month trend and the expense pie all reduce from the
+    // same finance_transactions rows, so the tiles, the bars and the pie can never
+    // disagree. (Before Phase 2 these came from fee_payments + registrations +
+    // expenses, which the pie did not read — the numbers told two different
+    // stories on one slide.) fee_payments is NOT unioned back in: the 月费 income
+    // category already carries fee income in the cash book, so adding it would
+    // double-count. Transfers are excluded by the query — moving money between a
+    // centre's own wallets is neither income nor expense.
+    // Sums run in integer CENTS; numeric(12,2) through JS floats drifts.
+    type CashRow = {
       amount: number | string;
       txn_date: string;
+      direction: string;
       category: { grp: string } | { grp: string }[] | null;
       account: { opening_as_of: string | null } | { opening_as_of: string | null }[] | null;
     };
     const flat = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
+    const incomeCents = new Map<string, number>();
+    const expenseCents = new Map<string, number>();
     const groupCents = new Map<string, number>();
-    for (const r of (cashOutRes.data ?? []) as unknown as CashOutRow[]) {
+    for (const r of (cashOutRes.data ?? []) as unknown as CashRow[]) {
+      // opening_as_of cutoff — identical to the finance dashboard and to the
+      // balance math, so a figure here can never count a row a balance ignores.
       if (!txnCounts(flat(r.account) ?? undefined, r.txn_date)) continue;
-      const grp = flat(r.category)?.grp;
-      if (!grp) continue;
-      groupCents.set(grp, (groupCents.get(grp) ?? 0) + Math.round(Number(r.amount) * 100));
+      const ym = r.txn_date.slice(0, 7);
+      const c = Math.round(Number(r.amount) * 100);
+      if (r.direction === 'in') {
+        incomeCents.set(ym, (incomeCents.get(ym) ?? 0) + c);
+      } else {
+        expenseCents.set(ym, (expenseCents.get(ym) ?? 0) + c);
+        // The pie is the SELECTED MONTH's split only, not the whole trend window.
+        if (ym === month) {
+          const grp = flat(r.category)?.grp;
+          if (grp) groupCents.set(grp, (groupCents.get(grp) ?? 0) + c);
+        }
+      }
     }
+    const income = (incomeCents.get(month) ?? 0) / 100;
+    const expensesMonth = (expenseCents.get(month) ?? 0) / 100;
+
+    // Group order is canonical (EXPENSE_GROUPS) so the legend does not reshuffle
+    // month to month; a group with no spend is dropped rather than drawn as a
+    // zero-width arc. Totals to `expensesMonth` exactly, by construction.
     const expenseByGroup = (EXPENSE_GROUPS as readonly string[])
       .filter((g) => (groupCents.get(g) ?? 0) > 0)
       .map((g) => ({ grp: g, label: EXPENSE_GROUP_CN[g] ?? g, value: (groupCents.get(g) ?? 0) / 100 }));
@@ -593,11 +603,11 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
       coverage: { paid, pledged, pct: pledged > 0 ? (paid / pledged) * 100 : 0 },
       income,
       expenses: expensesMonth,
-      surplus: income - expensesMonth,
+      surplus: Math.round(((incomeCents.get(month) ?? 0) - (expenseCents.get(month) ?? 0))) / 100,
       sixMonth: {
         months: trendMonths,
-        income: trendMonths.map((tm) => incomeByMonth.get(tm) ?? 0),
-        expenses: trendMonths.map((tm) => expenseByMonth.get(tm) ?? 0),
+        income: trendMonths.map((tm) => (incomeCents.get(tm) ?? 0) / 100),
+        expenses: trendMonths.map((tm) => (expenseCents.get(tm) ?? 0) / 100),
       },
       centreCoverage: centres
         .map((c) => {

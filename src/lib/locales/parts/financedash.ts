@@ -55,7 +55,7 @@ const zh = {
 
   // ── 报表 finance pie ───────────────────────────────────────────────────────
   'reports.ops.expensePie': '本月支出分类',
-  'reports.ops.expensePieNote': '来自流水账（财务 v2），与上方支出金额的口径可能不同。',
+  'reports.ops.expensePieNote': '合计等于上方的本月支出。数据来自流水账（已作废的不计）。',
 } as const;
 
 const en: Record<keyof typeof zh, string> = {
@@ -104,7 +104,7 @@ const en: Record<keyof typeof zh, string> = {
   'fdash.readonly': 'Read-only',
 
   'reports.ops.expensePie': 'Expenses by category this month',
-  'reports.ops.expensePieNote': 'From the v2 cash book — may be scoped differently from the expense figure above.',
+  'reports.ops.expensePieNote': 'Totals to the expense figure above. From the cash book (voided entries excluded).',
 };
 
 const id: Record<keyof typeof zh, string> = {
@@ -153,7 +153,7 @@ const id: Record<keyof typeof zh, string> = {
   'fdash.readonly': 'Hanya baca',
 
   'reports.ops.expensePie': 'Pengeluaran per kategori bulan ini',
-  'reports.ops.expensePieNote': 'Dari buku kas v2 — cakupannya bisa berbeda dari angka pengeluaran di atas.',
+  'reports.ops.expensePieNote': 'Totalnya sama dengan angka pengeluaran di atas. Dari buku kas (yang dibatalkan tidak dihitung).',
 };
 
 export const financeDashPart: {
