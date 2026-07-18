@@ -25,6 +25,10 @@ export const EXPENSE_GROUPS = ['premises', 'altar', 'admin', 'activity', 'other_
 
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export const MONTH_RE = /^\d{4}-\d{2}$/;
+// Any id that gets interpolated into a PostgREST .or() filter STRING must be
+// shape-checked first: unlike .eq(), the .or() grammar is not value-encoded, so a
+// raw query param there could inject extra filters and widen the result set.
+export const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 // Same bucket + prefix as the D4 expenses receipt (finance-receipts / receipts/<hex>.<ext>),
 // so v2 reuses /api/dashboard/finance/upload and /media-url unchanged.
 export const RECEIPT_PATH_RE = /^receipts\/[A-Za-z0-9._-]+$/;

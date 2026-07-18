@@ -17,7 +17,7 @@ import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
 import { financeScope, enforceScope } from '@/lib/finance';
-import { isTxnDirection, monthWindow, DATE_RE, RECEIPT_PATH_RE } from '@/lib/finance-cashbook';
+import { isTxnDirection, monthWindow, DATE_RE, RECEIPT_PATH_RE, UUID_RE } from '@/lib/finance-cashbook';
 
 export const runtime = 'nodejs';
 
@@ -69,10 +69,18 @@ export async function GET(req: Request) {
     q = q.eq('direction', direction);
   }
   const categoryId = sp.get('category_id');
-  if (categoryId) q = q.eq('category_id', categoryId);
+  if (categoryId) {
+    if (!UUID_RE.test(categoryId)) return NextResponse.json({ error: '类别无效' }, { status: 400 });
+    q = q.eq('category_id', categoryId);
+  }
   const accountId = sp.get('account_id');
-  // Match either leg: a transfer shows on both the source and destination wallet.
-  if (accountId) q = q.or(`account_id.eq.${accountId},counterparty_account_id.eq.${accountId}`);
+  if (accountId) {
+    // Shape-checked before interpolation: this lands in an .or() filter STRING,
+    // which PostgREST does not value-encode (see UUID_RE).
+    if (!UUID_RE.test(accountId)) return NextResponse.json({ error: '账户无效' }, { status: 400 });
+    // Match either leg: a transfer shows on both the source and destination wallet.
+    q = q.or(`account_id.eq.${accountId},counterparty_account_id.eq.${accountId}`);
+  }
 
   const rawQ = sp.get('q');
   if (rawQ && rawQ.trim()) {
