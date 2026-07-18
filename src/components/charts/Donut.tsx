@@ -2,6 +2,11 @@
 // Donut with a center hero number (brief §1). Callers pass ≤4 named segments +
 // an optional 其他 fold (neutral) — the fold itself is done by the data layer.
 // Legend list beside the ring; hover tooltip per arc; 表格 toggle.
+//
+// `format` and `showPct` were added for the 财务 expense pie: money needs an
+// RM-formatted label (a raw 13207.09 reads as noise) and the committee wants the
+// share of spend beside it. Both are OPTIONAL and default to the original
+// behaviour, so the outreach-sources callers are unaffected.
 
 'use client';
 
@@ -18,17 +23,23 @@ export function Donut({
   centerValue,
   centerLabel,
   valueHeader,
+  format,
+  showPct = false,
 }: {
   segments: DonutSegment[];
   centerValue: string | number;
   centerLabel: string;
   valueHeader: string;
+  format?: (v: number) => string;
+  showPct?: boolean;
 }) {
   const { show, hide, layer } = useTip();
-  const total = Math.max(
-    1,
-    segments.reduce((s, x) => s + x.value, 0)
-  );
+  const fmt = format ?? ((v: number) => String(v));
+  const rawTotal = segments.reduce((s, x) => s + x.value, 0);
+  const total = Math.max(1, rawTotal);
+  // Share of the real total — guarded so an all-zero month renders 0% rather
+  // than NaN%.
+  const pct = (v: number): string => (rawTotal > 0 ? `${Math.round((v / rawTotal) * 100)}%` : '0%');
   let offset = 0;
   const arcs = segments
     .filter((s) => s.value > 0)
@@ -42,8 +53,8 @@ export function Donut({
   return (
     <ChartShell
       table={{
-        headers: [centerLabel, valueHeader],
-        rows: segments.map((s) => [s.label, s.value]),
+        headers: showPct ? [centerLabel, valueHeader, '%'] : [centerLabel, valueHeader],
+        rows: segments.map((s) => (showPct ? [s.label, fmt(s.value), pct(s.value)] : [s.label, fmt(s.value)])),
       }}
     >
       <div className="flex items-center gap-[18px] flex-wrap">
@@ -58,8 +69,8 @@ export function Donut({
                 stroke={a.color}
                 strokeDasharray={`${Math.max(a.len - 2, 0.5)} ${CIRC}`}
                 strokeDashoffset={-a.offset}
-                onMouseEnter={(e) => show(e, `${a.label} ${a.value}`)}
-                onMouseMove={(e) => show(e, `${a.label} ${a.value}`)}
+                onMouseEnter={(e) => show(e, `${a.label} ${fmt(a.value)}${showPct ? ` · ${pct(a.value)}` : ''}`)}
+                onMouseMove={(e) => show(e, `${a.label} ${fmt(a.value)}${showPct ? ` · ${pct(a.value)}` : ''}`)}
                 onMouseLeave={hide}
               />
             ))}
@@ -79,7 +90,8 @@ export function Donut({
                 style={{ background: s.color }}
               />
               <span className="text-ink">{s.label}</span>
-              <b className="ml-1.5 tabular-nums text-ink">{s.value}</b>
+              <b className="ml-1.5 tabular-nums text-ink">{fmt(s.value)}</b>
+              {showPct && <span className="ml-1.5 tabular-nums text-ink-faint">{pct(s.value)}</span>}
             </div>
           ))}
         </div>

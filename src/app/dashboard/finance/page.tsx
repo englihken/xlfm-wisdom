@@ -1,376 +1,359 @@
 // src/app/dashboard/finance/page.tsx
-// 财务总览 (D1) — the finance landing tab. Scope-aware: 财务总监 sees all centres, an own_center
-// 财政 sees only their own numbers. 4 stat tiles (本月已收 / 支出 / 结余 / 已缴·认捐 人数), then a
-// state-GROUPED overview of every in-scope centre — 表格 (default on desktop) or 卡片 (default on
-// <md), toggled by a segment. Both views band centres by state (band order = min sort in group,
-// rows within a group by sort) with 已收 + 结余 subtotals, and click a row/card straight through
-// to that centre's 月费台账. NO ranking anywhere. Below: the 活动收款汇总 (read-only aggregate
-// from the events wing). All from /api/dashboard/finance/stats. Strings via t().
+// 财务仪表板 (财务 v2 Phase 2) — the finance LANDING tab. Two shapes off one API:
+//   • CENTRE view — an own_center 财政, or an all-centres caller drilled into one:
+//     KPI tiles (收入/支出/结余/结存) · 近六个月收支 grouped bars · 本月支出分类 donut ·
+//     账户结存 list.
+//   • HQ CONSOLIDATED — all_centers with no centre chosen: org KPI tiles, a sortable
+//     per-centre compare table (deficit rows flagged ⚠ and red, click to drill), plus
+//     the same two charts consolidated.
+// committee holds finance:view only, so it lands here read-only and never sees an
+// entry or void control — 钱要透明, but transparency is not write access.
+// Reads the cash book (finance_transactions) ONLY — fee_payments is NOT unioned,
+// because the 月费 income category already carries fee income in the ledger.
 
 'use client';
 
 import { PAGE_WIDE } from '@/lib/layout';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ErpGate, type ErpMe } from '@/components/erp-gate';
+import { grantAllows } from '@/lib/access';
 import { FinanceTabs } from '@/components/finance-chrome';
 import { moneyRM } from '@/lib/finance-display';
+import { accountKindLabel, balanceTone, EXPENSE_GROUP_COLOR } from '@/lib/cashbook-display';
+import { thisMonthMYT } from '@/lib/finance-cashbook';
+import { StatTile } from '@/components/charts/StatTile';
+import { GroupedBars } from '@/components/charts/GroupedBars';
+import { Donut } from '@/components/charts/Donut';
+import { EMERALD, NEUTRAL, ROSE } from '@/components/charts/palette';
 import { useT, useLocale } from '@/lib/i18n-react';
-import { centreName } from '@/lib/centre-name';
+import type { Locale } from '@/lib/i18n';
 
-type Centre = {
-  id: string;
-  code: string;
-  name_cn: string;
-  name_en: string | null;
-  state: string;
-  sort: number;
-  collected: number;
-  expenses: number;
-  surplus: number;
-  pledgedCount: number;
-  paidCount: number;
-  paused: boolean;
-  pausedNote: string | null;
-  receiptBookAt: string | null;
-  financeName: string | null;
-};
-type Stats = {
+type Centre = { id: string; code: string; name_cn: string };
+type Account = { id: string; centre_id: string; kind: string; name: string; is_active: boolean; balance: number };
+type PerCentre = { id: string; name: string; income: number; expense: number; net: number; balance: number };
+type Pack = {
   month: string;
-  kpis: { collected: number; expenses: number; surplus: number; pledgedCount: number; paidCount: number };
+  scope: { centreId: string | null; locked: boolean };
+  centreId: string | null;
   centres: Centre[];
-  events: { code: string; title: string; approvedFee: number; verifiedPaid: number; pendingProof: number; waived: number }[];
+  kpis: { income: number; expense: number; net: number; balance: number };
+  trend: { months: string[]; income: number[]; expense: number[] };
+  expenseByGroup: { grp: string; value: number }[];
+  accounts: Account[];
+  perCentre: PerCentre[] | null;
 };
 
-const thisMonth = () => new Date().toISOString().slice(0, 7);
-type ViewMode = 'table' | 'card';
+const GENESIS_YEAR = 2026;
+const MONTHS12 = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+const yearLabel = (y: string, locale: Locale): string => (locale === 'zh' ? `${y}年` : y);
+const monthChipLabel = (mm: string, locale: Locale): string => (locale === 'zh' ? `${Number(mm)}月` : mm);
+const inputCls = 'text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent';
 
-// Preserve API order (sorted by `sort`), so band order = min sort in group and
-// rows within a group are already sort-ordered. NO ranking by amount.
-function groupByState(centres: Centre[]): { state: string; centres: Centre[] }[] {
-  const groups: { state: string; centres: Centre[] }[] = [];
-  const idx = new Map<string, number>();
-  for (const c of centres) {
-    let i = idx.get(c.state);
-    if (i == null) {
-      i = groups.length;
-      idx.set(c.state, i);
-      groups.push({ state: c.state, centres: [] });
-    }
-    groups[i].centres.push(c);
-  }
-  return groups;
+type SortKey = 'name' | 'income' | 'expense' | 'net' | 'balance';
+
+function Card({ title, aside, children }: { title: string; aside?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="bg-surface border border-border rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-2.5 gap-2">
+        <b className="text-[14px] text-ink">{title}</b>
+        {aside && <span className="text-xs text-ink-faint">{aside}</span>}
+      </div>
+      {children}
+    </section>
+  );
 }
 
-export default function FinanceOverviewPage() {
+export default function FinanceDashboardPage() {
   const t = useT();
   return (
-    <ErpGate active="finance" module="finance" titleSuffix={t('finance.tab.overview')}>
-      {(me) => <Overview me={me} />}
+    <ErpGate active="finance" module="finance" titleSuffix={t('fdash.tab.dashboard')}>
+      {(me) => <Dashboard me={me} />}
     </ErpGate>
   );
 }
 
-function Overview(_props: { me: ErpMe }) {
+function Dashboard({ me }: { me: ErpMe }) {
   const t = useT();
   const locale = useLocale();
-  const router = useRouter();
-  const [month, setMonth] = useState(thisMonth());
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
-  // Default 表格 on desktop, 卡片 on <md. No persistence.
-  const [view, setView] = useState<ViewMode>(() =>
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'card' : 'table'
-  );
+  // committee has view but not edit — the badge tells them why nothing is clickable.
+  const canEdit = grantAllows(me.grants, 'finance', 'edit');
 
-  useEffect(() => {
+  const [month, setMonth] = useState(thisMonthMYT());
+  const [selYear, setSelYear] = useState(thisMonthMYT().slice(0, 4));
+  const [centreId, setCentreId] = useState(''); // '' = consolidated (all_centers only)
+  const [pack, setPack] = useState<Pack | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'net', dir: 'desc' });
+
+  const load = useCallback(() => {
     setLoading(true);
-    fetch(`/api/dashboard/finance/stats?month=${month}`)
+    const sp = new URLSearchParams({ month });
+    if (centreId) sp.set('centre_id', centreId);
+    fetch(`/api/dashboard/finance/dashboard?${sp.toString()}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (j) setStats(j);
-      })
+      .then((j) => { if (j) setPack(j); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [month]);
+  }, [month, centreId]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  // Row/card → that centre's 月费台账, centre + year preselected.
-  const openLedger = (centreId: string) => {
-    const year = month.slice(0, 4);
-    router.push(`/dashboard/finance/ledger?centre=${encodeURIComponent(centreId)}&year=${year}`);
-  };
+  const locked = !!pack?.scope.locked;
+  const isOrgView = !!pack?.perCentre; // consolidated only when the API sent a table
+  const centres = pack?.centres ?? [];
+  const drilledCentre = centres.find((c) => c.id === (pack?.centreId ?? '')) ?? null;
 
-  const groups = stats ? groupByState(stats.centres) : [];
+  const sortedCentres = useMemo(() => {
+    const rows = pack?.perCentre ? [...pack.perCentre] : [];
+    const dir = sort.dir === 'asc' ? 1 : -1;
+    rows.sort((a, b) =>
+      sort.key === 'name' ? a.name.localeCompare(b.name, 'zh') * dir : (a[sort.key] - b[sort.key]) * dir
+    );
+    return rows;
+  }, [pack?.perCentre, sort]);
+
+  const orgTotals = useMemo(() => {
+    const rows = pack?.perCentre ?? [];
+    const c = (n: number) => Math.round(n * 100);
+    return {
+      income: rows.reduce((s, r) => s + c(r.income), 0) / 100,
+      expense: rows.reduce((s, r) => s + c(r.expense), 0) / 100,
+      net: rows.reduce((s, r) => s + c(r.net), 0) / 100,
+      balance: rows.reduce((s, r) => s + c(r.balance), 0) / 100,
+    };
+  }, [pack?.perCentre]);
+
+  const pieSegments = useMemo(
+    () =>
+      (pack?.expenseByGroup ?? [])
+        .filter((g) => g.value > 0)
+        .map((g) => ({ label: t(`cash.grp.${g.grp}`), value: g.value, color: EXPENSE_GROUP_COLOR[g.grp] ?? NEUTRAL })),
+    [pack?.expenseByGroup, t]
+  );
+  const pieTotal = pieSegments.reduce((s, g) => s + g.value, 0);
+
+  const thisYear = Number(thisMonthMYT().slice(0, 4));
+  const years = Array.from({ length: Math.max(1, thisYear - GENESIS_YEAR + 1) }, (_, i) => String(GENESIS_YEAR + i));
+  const curMonth = thisMonthMYT();
+
+  const toggleSort = (key: SortKey) =>
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }));
+  const sortMark = (key: SortKey) => (sort.key === key ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : '');
+
+  const k = pack?.kpis;
+  const netTone = (k?.net ?? 0) < 0 ? ROSE : EMERALD;
 
   return (
     <div className={`${PAGE_WIDE} space-y-4`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold font-serif text-ink">{t('finance.overview.title')}</h2>
-          {t('finance.overview.subtitle') && (
-            <span className="text-sm text-ink-faint">{t('finance.overview.subtitle')}</span>
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <h2 className="text-xl font-bold font-serif text-ink">{t('fdash.title')}</h2>
+        <span className="text-sm text-ink-faint">
+          {isOrgView ? t('fdash.subtitleOrg') : t('fdash.subtitleCentre')}
+        </span>
+        {!canEdit && (
+          <span className="text-[11px] px-2 py-0.5 rounded-full pill-muted">{t('fdash.readonly')}</span>
+        )}
+      </div>
+      <FinanceTabs active="dashboard" />
+
+      {/* centre selector — hidden entirely for a locked 财政 (one centre, no choice) */}
+      {!locked && centres.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={centreId} onChange={(e) => setCentreId(e.target.value)} className={inputCls}>
+            <option value="">{t('fdash.allCentres')}</option>
+            {centres.map((c) => <option key={c.id} value={c.id}>{c.name_cn}</option>)}
+          </select>
+          {centreId && (
+            <button onClick={() => setCentreId('')} className="text-[12.5px] text-ink-muted hover:text-accent-deep px-2 py-1">
+              {t('fdash.backToOrg')}
+            </button>
           )}
         </div>
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent"
-        />
-      </div>
-      <FinanceTabs active="overview" />
+      )}
+      {locked && drilledCentre && <p className="text-sm font-medium text-ink">{drilledCentre.name_cn}</p>}
 
-      {loading ? (
-        <p className="p-6 text-sm text-ink-muted">{t('common.loading')}</p>
-      ) : !stats ? (
-        <p className="p-6 text-sm text-ink-muted">{t('finance.overview.loadFailed')}</p>
+      {/* month: year control + fixed 12-month grid (the 报表 selector shape) */}
+      <div className="bg-surface border border-border rounded-2xl px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {years.length <= 3 ? (
+            <div className="flex gap-1">
+              {years.map((y) => (
+                <button key={y} onClick={() => setSelYear(y)}
+                  className={`px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold border transition ${
+                    y === selYear ? 'pill-gold' : 'border-border text-ink-muted hover:bg-accent/5'
+                  }`}>
+                  {yearLabel(y, locale)}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <select value={selYear} onChange={(e) => setSelYear(e.target.value)}
+              className="text-[11.5px] font-semibold px-2 py-1 border border-border-strong rounded-lg bg-surface text-ink focus:outline-none focus:border-accent">
+              {years.map((y) => <option key={y} value={y}>{yearLabel(y, locale)}</option>)}
+            </select>
+          )}
+          <span className="w-px h-4 bg-border mx-0.5" aria-hidden />
+          <div className="flex flex-wrap gap-1">
+            {MONTHS12.map((mm) => {
+              const ym = `${selYear}-${mm}`;
+              const on = ym === month;
+              const avail = ym <= curMonth;
+              return (
+                <button key={mm} disabled={!avail} onClick={() => setMonth(ym)} title={ym}
+                  className={`px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold border transition ${
+                    on ? 'pill-gold'
+                      : avail ? 'border-border text-ink-muted hover:bg-accent/5'
+                        : 'border-transparent text-ink-faint opacity-40 cursor-not-allowed'
+                  }`}>
+                  {monthChipLabel(mm, locale)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {loading || !pack || !k ? (
+        <p className="p-6 text-sm text-ink-muted">{t('fdash.loading')}</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Tile value={moneyRM(stats.kpis.collected)} label={t('finance.kpi.collected')} />
-            <Tile value={moneyRM(stats.kpis.expenses)} label={t('finance.kpi.expenses')} />
-            <Tile value={moneyRM(stats.kpis.surplus)} label={t('finance.kpi.surplus')} accent />
-            <Tile value={`${stats.kpis.paidCount} / ${stats.kpis.pledgedCount}`} label={t('finance.kpi.paidPledged')} />
+          {/* KPI tiles */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatTile value={moneyRM(k.income)} label={t('fdash.kpi.income')} valueColor={EMERALD} />
+            <StatTile value={moneyRM(k.expense)} label={t('fdash.kpi.expense')} valueColor={ROSE} />
+            <StatTile
+              value={moneyRM(k.net)}
+              label={t('fdash.kpi.net')}
+              valueColor={netTone}
+              sub={k.net < 0 ? t('fdash.kpi.netSubDeficit') : t('fdash.kpi.netSubSurplus')}
+            />
+            <StatTile value={moneyRM(k.balance)} label={t('fdash.kpi.balance')} sub={t('fdash.kpi.balanceSub')} />
           </div>
 
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[10.5px] tracking-wide text-[#8A7444] uppercase">
-                {t('finance.overview.centresHeading', { month: stats.month })}
-              </p>
-              <ViewToggle view={view} onChange={setView} t={t} />
-            </div>
+          {/* charts */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card title={t('fdash.trend.title')}>
+              <GroupedBars
+                groups={pack.trend.months.map((m, i) => ({
+                  label: locale === 'zh' ? `${Number(m.slice(5))}月` : m.slice(5),
+                  values: [pack.trend.income[i] ?? 0, pack.trend.expense[i] ?? 0] as [number, number],
+                }))}
+                series={[
+                  { label: t('fdash.trend.income'), color: EMERALD },
+                  { label: t('fdash.trend.expense'), color: ROSE },
+                ]}
+              />
+            </Card>
 
-            {view === 'table' ? (
-              <CentreTable groups={groups} locale={locale} t={t} onOpen={openLedger} />
-            ) : (
-              <CentreCards groups={groups} locale={locale} t={t} onOpen={openLedger} />
-            )}
+            <Card title={t('fdash.pie.title')}>
+              {pieSegments.length === 0 ? (
+                <p className="text-sm text-ink-faint py-6">{t('fdash.pie.empty')}</p>
+              ) : (
+                <Donut
+                  segments={pieSegments}
+                  centerValue={moneyRM(pieTotal).replace('RM ', '')}
+                  centerLabel={t('fdash.pie.center')}
+                  valueHeader={t('fdash.pie.valueHeader')}
+                  format={moneyRM}
+                  showPct
+                />
+              )}
+            </Card>
           </div>
 
-          <div>
-            <p className="text-[10.5px] tracking-wide text-[#8A7444] uppercase mb-2">{t('finance.overview.eventsHeading')}</p>
-            <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+          {/* HQ per-centre compare, or the drilled centre's wallets */}
+          {isOrgView ? (
+            <Card title={t('fdash.centres.title')} aside={t('fdash.centres.hint')}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-                      <th className="px-4 py-2.5 font-normal">{t('finance.events.col.event')}</th>
-                      <th className="px-4 py-2.5 font-normal text-right">{t('finance.events.col.approved')}</th>
-                      <th className="px-4 py-2.5 font-normal text-right">{t('finance.events.col.verified')}</th>
-                      <th className="px-4 py-2.5 font-normal text-right">{t('finance.events.col.pending')}</th>
-                      <th className="px-4 py-2.5 font-normal text-right">{t('finance.events.col.waived')}</th>
+                      {([
+                        ['name', t('fdash.centres.col.centre'), false],
+                        ['income', t('fdash.centres.col.income'), true],
+                        ['expense', t('fdash.centres.col.expense'), true],
+                        ['net', t('fdash.centres.col.net'), true],
+                        ['balance', t('fdash.centres.col.balance'), true],
+                      ] as [SortKey, string, boolean][]).map(([key, label, right]) => (
+                        <th key={key} className={`px-4 py-2.5 font-normal ${right ? 'text-right' : ''}`}>
+                          <button onClick={() => toggleSort(key)} className="hover:text-accent-deep transition">
+                            {label}{sortMark(key)}
+                          </button>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.events.length === 0 ? (
-                      <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-ink-muted">{t('finance.events.empty')}</td></tr>
+                    {sortedCentres.length === 0 ? (
+                      <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-ink-muted">{t('fdash.centres.empty')}</td></tr>
                     ) : (
-                      stats.events.map((e) => (
-                        <tr key={e.code} className="border-b border-border last:border-b-0">
-                          <td className="px-4 py-2"><span className="font-mono text-[11px] text-ink-muted">{e.code}</span> {e.title}</td>
-                          <td className="px-4 py-2 text-right tabular-nums">{moneyRM(e.approvedFee)}</td>
-                          <td className="px-4 py-2 text-right tabular-nums text-[#3F6B2E]">{moneyRM(e.verifiedPaid)}</td>
-                          <td className="px-4 py-2 text-right tabular-nums">{e.pendingProof || '0'}</td>
-                          <td className="px-4 py-2 text-right tabular-nums">{e.waived || '0'}</td>
-                        </tr>
-                      ))
+                      sortedCentres.map((r) => {
+                        const deficit = r.net < 0;
+                        return (
+                          <tr key={r.id} onClick={() => setCentreId(r.id)}
+                            className="border-b border-border last:border-b-0 hover:bg-accent/5 cursor-pointer">
+                            <td className="px-4 py-2.5 text-ink">
+                              {deficit && <span title={t('fdash.centres.deficitTitle')} className="mr-1 text-[#B4402E]">⚠</span>}
+                              {r.name}
+                            </td>
+                            <td className="px-4 py-2.5 text-right tabular-nums text-[#3F6B2E]">{moneyRM(r.income)}</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums text-[#B4402E]">{moneyRM(r.expense)}</td>
+                            <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${deficit ? 'text-[#B4402E]' : 'text-ink'}`}>
+                              {moneyRM(r.net)}
+                            </td>
+                            <td className={`px-4 py-2.5 text-right tabular-nums ${balanceTone(r.balance)}`}>{moneyRM(r.balance)}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                    {sortedCentres.length > 0 && (
+                      <tr className="border-t-2 border-border">
+                        <td className="px-4 py-2.5 text-right text-ink-muted">{t('fdash.centres.total')}</td>
+                        <td className="px-4 py-2.5 text-right font-bold tabular-nums text-[#3F6B2E]">{moneyRM(orgTotals.income)}</td>
+                        <td className="px-4 py-2.5 text-right font-bold tabular-nums text-[#B4402E]">{moneyRM(orgTotals.expense)}</td>
+                        <td className={`px-4 py-2.5 text-right font-bold tabular-nums ${orgTotals.net < 0 ? 'text-[#B4402E]' : 'text-ink'}`}>
+                          {moneyRM(orgTotals.net)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-bold tabular-nums text-ink">{moneyRM(orgTotals.balance)}</td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
               </div>
-            </div>
-          </div>
+            </Card>
+          ) : (
+            <Card title={t('fdash.accounts.title')}>
+              {pack.accounts.length === 0 ? (
+                <p className="text-sm text-ink-faint py-4">{t('fdash.accounts.empty')}</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {pack.accounts.map((a) => (
+                        <tr key={a.id} className={`border-b border-border last:border-b-0 ${a.is_active ? '' : 'opacity-55'}`}>
+                          <td className="px-4 py-2.5 text-ink">{a.name}</td>
+                          <td className="px-4 py-2.5">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] pill-gold">{accountKindLabel(a.kind, t)}</span>
+                          </td>
+                          <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${balanceTone(a.balance)}`}>{moneyRM(a.balance)}</td>
+                        </tr>
+                      ))}
+                      <tr className="border-t-2 border-border">
+                        <td colSpan={2} className="px-4 py-2.5 text-right text-ink-muted">{t('fdash.accounts.total')}</td>
+                        <td className={`px-4 py-2.5 text-right font-bold tabular-nums ${balanceTone(k.balance)}`}>{moneyRM(k.balance)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          )}
+
+          <p className="text-xs text-ink-faint">{t('fdash.footer')}</p>
         </>
       )}
-    </div>
-  );
-}
-
-function ViewToggle({ view, onChange, t }: { view: ViewMode; onChange: (v: ViewMode) => void; t: (k: string) => string }) {
-  const seg = (v: ViewMode, label: string) => (
-    <button
-      onClick={() => onChange(v)}
-      aria-pressed={view === v}
-      className={`px-3 py-1.5 text-xs rounded-md transition ${
-        view === v ? 'bg-surface text-ink shadow-sm font-medium' : 'text-ink-muted hover:text-ink'
-      }`}
-    >
-      {label}
-    </button>
-  );
-  return (
-    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-surface-soft border border-border">
-      {seg('table', t('finance.view.table'))}
-      {seg('card', t('finance.view.card'))}
-    </div>
-  );
-}
-
-function StatusPill({ paused, note, t }: { paused: boolean; note: string | null; t: (k: string) => string }) {
-  return (
-    <span
-      title={note ?? undefined}
-      className={`inline-block text-[11px] px-2 py-0.5 rounded-full whitespace-nowrap ${
-        paused ? 'text-accent-deep border border-gold-border bg-surface' : 'text-[#3F6B2E] bg-[#E7F0E0]'
-      }`}
-    >
-      {paused ? t('finance.status.paused') : t('finance.status.collecting')}
-    </span>
-  );
-}
-
-function Treasurer({ name, t }: { name: string | null; t: (k: string) => string }) {
-  if (name) return <span className="text-ink">{name}</span>;
-  return <span className="text-[#B04A4A]">{t('finance.treasurer.unassigned')}</span>;
-}
-
-function bandTotals(centres: Centre[]) {
-  return centres.reduce(
-    (a, c) => ({ collected: a.collected + c.collected, surplus: a.surplus + c.surplus }),
-    { collected: 0, surplus: 0 }
-  );
-}
-
-function CentreTable({
-  groups,
-  locale,
-  t,
-  onOpen,
-}: {
-  groups: { state: string; centres: Centre[] }[];
-  locale: string;
-  t: (k: string, p?: Record<string, string | number>) => string;
-  onOpen: (id: string) => void;
-}) {
-  return (
-    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-[11px] text-ink-faint border-b border-border">
-              <th className="px-4 py-2.5 font-normal">{t('finance.col.centre')}</th>
-              <th className="px-3 py-2.5 font-normal">{t('finance.col.status')}</th>
-              <th className="px-3 py-2.5 font-normal text-right">{t('finance.col.paidPledged')}</th>
-              <th className="px-3 py-2.5 font-normal text-right">{t('finance.col.collectedFee')}</th>
-              <th className="px-3 py-2.5 font-normal text-right">{t('finance.col.expenses')}</th>
-              <th className="px-3 py-2.5 font-normal text-right">{t('finance.col.surplus')}</th>
-              <th className="px-3 py-2.5 font-normal">{t('finance.col.receiptBook')}</th>
-              <th className="px-3 py-2.5 font-normal">{t('finance.col.treasurer')}</th>
-              <th className="px-2 py-2.5 font-normal" aria-hidden="true"></th>
-            </tr>
-          </thead>
-          {groups.map((g) => {
-              const sub = bandTotals(g.centres);
-              return (
-                <tbody key={g.state}>
-                  <tr className="bg-surface-soft border-b border-border">
-                    <td colSpan={9} className="px-4 py-2 text-[12px] text-ink">
-                      <span className="font-semibold">📍 {g.state}</span>
-                      <span className="text-ink-muted"> · {t('finance.overview.centresCount', { n: g.centres.length })}</span>
-                      <span className="text-ink-muted"> · {t('finance.col.collected')} </span>
-                      <b className="tabular-nums">{moneyRM(sub.collected)}</b>
-                      <span className="text-ink-muted"> · {t('finance.col.surplus')} </span>
-                      <b className="tabular-nums text-[#3F6B2E]">{moneyRM(sub.surplus)}</b>
-                    </td>
-                  </tr>
-                  {g.centres.map((c) => (
-                    <tr
-                      key={c.id}
-                      onClick={() => onOpen(c.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          onOpen(c.id);
-                        }
-                      }}
-                      className="border-b border-border last:border-b-0 hover:bg-accent/5 cursor-pointer"
-                    >
-                      <td className="px-4 py-2.5">
-                        <div className="font-medium text-ink">{centreName(c, locale)}</div>
-                        {c.name_en && locale === 'zh' && <div className="text-[10.5px] text-ink-faint">{c.name_en}</div>}
-                      </td>
-                      <td className="px-3 py-2.5"><StatusPill paused={c.paused} note={c.pausedNote} t={t} /></td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-ink">{c.paidCount} / {c.pledgedCount}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-ink">{moneyRM(c.collected)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-ink">{moneyRM(c.expenses)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-[#3F6B2E]">{moneyRM(c.surplus)}</td>
-                      <td className="px-3 py-2.5 text-ink-muted whitespace-nowrap">{c.receiptBookAt ? `№ ${c.receiptBookAt}` : '—'}</td>
-                      <td className="px-3 py-2.5 text-[12px]"><Treasurer name={c.financeName} t={t} /></td>
-                      <td className="px-2 py-2.5 text-ink-faint" aria-hidden="true">›</td>
-                    </tr>
-                  ))}
-                </tbody>
-              );
-            })}
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function CentreCards({
-  groups,
-  locale,
-  t,
-  onOpen,
-}: {
-  groups: { state: string; centres: Centre[] }[];
-  locale: string;
-  t: (k: string, p?: Record<string, string | number>) => string;
-  onOpen: (id: string) => void;
-}) {
-  return (
-    <div className="space-y-4">
-      {groups.map((g) => {
-        const sub = bandTotals(g.centres);
-        return (
-          <div key={g.state}>
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-2 text-[12px]">
-              <span className="font-semibold text-ink">📍 {g.state}</span>
-              <span className="text-ink-muted">· {t('finance.overview.centresCount', { n: g.centres.length })}</span>
-              <span className="text-ink-muted">· {t('finance.col.collected')} <b className="tabular-nums">{moneyRM(sub.collected)}</b></span>
-              <span className="text-ink-muted">· {t('finance.col.surplus')} <b className="tabular-nums text-[#3F6B2E]">{moneyRM(sub.surplus)}</b></span>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {g.centres.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => onOpen(c.id)}
-                  className={`text-left border border-border rounded-2xl p-4 hover:border-accent transition ${c.paused ? 'bg-surface-soft' : 'bg-surface'}`}
-                >
-                  <div className="flex justify-between items-center gap-2">
-                    <b className="text-sm text-ink">{centreName(c, locale)}</b>
-                    <StatusPill paused={c.paused} note={c.pausedNote} t={t} />
-                  </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-xs text-ink">
-                    <span>{t('finance.col.collected')} <b>{moneyRM(c.collected)}</b></span>
-                    <span>{t('finance.col.expenses')} <b>{moneyRM(c.expenses)}</b></span>
-                    <span className="text-[#3F6B2E]">{t('finance.col.surplus')} <b>{moneyRM(c.surplus)}</b></span>
-                    <span>{t('finance.col.paidPledged')} <b>{c.paidCount} / {c.pledgedCount}</b></span>
-                  </div>
-                  <div className="mt-2 text-[11px] text-ink-faint">
-                    {t('finance.col.receiptBook')} {c.receiptBookAt ? `№ ${c.receiptBookAt}` : '—'} · {t('finance.col.treasurer')}：
-                    {c.financeName ?? t('finance.treasurer.unassigned')}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function Tile({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
-  return (
-    <div className="bg-surface border border-border rounded-2xl px-4 py-3">
-      <div className={`text-2xl font-bold tabular-nums ${accent ? 'text-[#3F6B2E]' : 'text-ink'}`}>{value}</div>
-      <div className="text-[11px] text-ink-muted mt-0.5">{label}</div>
     </div>
   );
 }

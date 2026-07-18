@@ -66,14 +66,30 @@ export function thisMonthMYT(): string {
 // re-enters float land, where a 2-dp value is representable.
 const toCents = (n: unknown): number => Math.round(Number(n ?? 0) * 100);
 
-export type BalanceAccount = { id: string; opening_balance: number | string };
+export type BalanceAccount = { id: string; opening_balance: number | string; opening_as_of?: string | null };
 export type BalanceTxn = {
   direction: string;
   amount: number | string;
   account_id: string;
   counterparty_account_id: string | null;
   voided_at: string | null;
+  txn_date?: string | null;
 };
+
+// THE opening_as_of RULE (Phase 1 review flag, folded in for Phase 2).
+// opening_balance is a STATEMENT OF FACT as at opening_as_of — whatever happened
+// before that date is already baked into it. So a transaction dated earlier must
+// not move the balance again, or it double-counts. Applied per LEG: a transfer is
+// tested against the source account's date for the outgoing side and the
+// destination's for the incoming side, since the two wallets can have been opened
+// on different days. A null opening_as_of means "no cutoff" — count everything.
+// The entry route enforces the same rule at write time (a friendly 400), so this
+// is a read-side backstop, not the only guard.
+function countsFor(acct: BalanceAccount | undefined, txnDate: string | null | undefined): boolean {
+  if (!acct) return false;
+  if (!acct.opening_as_of || !txnDate) return true;
+  return txnDate >= acct.opening_as_of; // both 'YYYY-MM-DD' — lexicographic is chronological
+}
 
 // Current balance per account id. Callers MUST pass every non-voided transaction
 // touching these accounts (as account_id OR counterparty_account_id) — a filtered
@@ -81,26 +97,49 @@ export type BalanceTxn = {
 // passing them through is harmless (defensive: the ledger route returns them).
 export function computeBalances(accounts: BalanceAccount[], txns: BalanceTxn[]): Map<string, number> {
   const cents = new Map<string, number>();
-  for (const a of accounts) cents.set(a.id, toCents(a.opening_balance));
+  const byId = new Map<string, BalanceAccount>();
+  for (const a of accounts) {
+    cents.set(a.id, toCents(a.opening_balance));
+    byId.set(a.id, a);
+  }
 
   for (const t of txns) {
     if (t.voided_at) continue; // voided never moves money
     const amt = toCents(t.amount);
     if (t.direction === 'in') {
-      if (cents.has(t.account_id)) cents.set(t.account_id, cents.get(t.account_id)! + amt);
+      if (cents.has(t.account_id) && countsFor(byId.get(t.account_id), t.txn_date)) {
+        cents.set(t.account_id, cents.get(t.account_id)! + amt);
+      }
     } else if (t.direction === 'out') {
-      if (cents.has(t.account_id)) cents.set(t.account_id, cents.get(t.account_id)! - amt);
+      if (cents.has(t.account_id) && countsFor(byId.get(t.account_id), t.txn_date)) {
+        cents.set(t.account_id, cents.get(t.account_id)! - amt);
+      }
     } else if (t.direction === 'transfer') {
       // account_id = source (money leaves), counterparty_account_id = destination.
-      if (cents.has(t.account_id)) cents.set(t.account_id, cents.get(t.account_id)! - amt);
+      // Each leg is gated on ITS OWN account's opening_as_of.
+      if (cents.has(t.account_id) && countsFor(byId.get(t.account_id), t.txn_date)) {
+        cents.set(t.account_id, cents.get(t.account_id)! - amt);
+      }
       const dst = t.counterparty_account_id;
-      if (dst && cents.has(dst)) cents.set(dst, cents.get(dst)! + amt);
+      if (dst && cents.has(dst) && countsFor(byId.get(dst), t.txn_date)) {
+        cents.set(dst, cents.get(dst)! + amt);
+      }
     }
   }
 
   const out = new Map<string, number>();
   for (const [id, c] of cents) out.set(id, c / 100);
   return out;
+}
+
+// Does this transaction count toward totals, given the account it sits on?
+// Exported so the dashboard's month/trend aggregation applies the SAME cutoff the
+// balance math does — a figure that counts a row the balance ignores is a bug.
+export function txnCounts(
+  acct: { opening_as_of?: string | null } | undefined,
+  txnDate: string | null | undefined
+): boolean {
+  return countsFor(acct as BalanceAccount | undefined, txnDate);
 }
 
 // Centre total = Σ account balances. Summed in cents for the same reason; an

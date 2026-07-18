@@ -78,3 +78,16 @@ export function amountSign(direction: string): string {
 export function balanceTone(n: number): string {
   return n < 0 ? 'text-[#B4402E]' : 'text-ink';
 }
+
+// Expense-group fills, shared by the 财务 dashboard pie and the 报表 pie so a group
+// keeps the same colour wherever the committee sees it. Values are the E3 chart
+// palette (charts/palette.ts) inlined — this module is imported by client pages
+// that must not pull the chart barrel, and the palette is a fixed contract
+// ("dataviz-validated, do not alter"). 其他支出 takes the neutral fold colour.
+export const EXPENSE_GROUP_COLOR: Record<string, string> = {
+  premises: '#009E63', // CAT[0] emerald
+  altar: '#0E86D4', // CAT[1] azure
+  admin: '#D97706', // CAT[2] amber
+  activity: '#7C5CDB', // CAT[3] violet
+  other_expense: '#A79E8B', // NEUTRAL
+};

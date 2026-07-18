@@ -129,11 +129,20 @@ export async function POST(req: Request) {
   if (!accountId) return NextResponse.json({ error: '请选择账户' }, { status: 400 });
   const { data: account } = await supabaseAdmin
     .from('finance_accounts')
-    .select('id, centre_id, is_active')
+    .select('id, centre_id, is_active, name, opening_as_of')
     .eq('id', accountId)
     .maybeSingle();
   if (!account || account.centre_id !== centreId) return NextResponse.json({ error: '账户无效' }, { status: 400 });
   if (!account.is_active) return NextResponse.json({ error: '该账户已停用' }, { status: 400 });
+  // opening_as_of rule: opening_balance already states the position on that date,
+  // so an earlier-dated entry would double-count. Refuse it with the date named,
+  // rather than silently accepting a row the balance math will then ignore.
+  if (account.opening_as_of && txnDate < account.opening_as_of) {
+    return NextResponse.json(
+      { error: `日期不能早于账户「${account.name}」的期初日期 ${account.opening_as_of}` },
+      { status: 400 }
+    );
+  }
 
   let categoryId: string | null = null;
   let counterpartyAccountId: string | null = null;
@@ -146,11 +155,18 @@ export async function POST(req: Request) {
     if (dst === accountId) return NextResponse.json({ error: '转出与转入账户不能相同' }, { status: 400 });
     const { data: dstAccount } = await supabaseAdmin
       .from('finance_accounts')
-      .select('id, centre_id, is_active')
+      .select('id, centre_id, is_active, name, opening_as_of')
       .eq('id', dst)
       .maybeSingle();
     if (!dstAccount || dstAccount.centre_id !== centreId) return NextResponse.json({ error: '转入账户无效' }, { status: 400 });
     if (!dstAccount.is_active) return NextResponse.json({ error: '转入账户已停用' }, { status: 400 });
+    // The destination leg has its own cutoff — the two wallets can differ.
+    if (dstAccount.opening_as_of && txnDate < dstAccount.opening_as_of) {
+      return NextResponse.json(
+        { error: `日期不能早于账户「${dstAccount.name}」的期初日期 ${dstAccount.opening_as_of}` },
+        { status: 400 }
+      );
+    }
     counterpartyAccountId = dst;
   } else {
     // in/out — a category is REQUIRED and its kind must match the direction.

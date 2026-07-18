@@ -48,10 +48,11 @@ export async function GET(req: Request) {
   const rows = accounts ?? [];
   // Every non-voided txn of the centre — NOT a month slice. A balance is
   // cumulative, so filtering by month here would understate it.
+  // txn_date rides along so computeBalances can apply the opening_as_of cutoff.
   const { data: txns, error: tErr } = rows.length
     ? await supabaseAdmin
         .from('finance_transactions')
-        .select('direction, amount, account_id, counterparty_account_id, voided_at')
+        .select('direction, amount, account_id, counterparty_account_id, voided_at, txn_date')
         .eq('centre_id', centreId)
         .is('voided_at', null)
     : { data: [], error: null };

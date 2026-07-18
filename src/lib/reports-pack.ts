@@ -30,6 +30,18 @@ import { MILESTONES, sourceLabel } from './outreach';
 import { loadEventWindowDays } from './org-settings';
 import { countsByMailbox, ownersByMailbox, loadEscalation } from './inbox-server';
 import { ageDays, overdueLevel } from './inbox';
+import { EXPENSE_GROUPS, txnCounts } from './finance-cashbook';
+
+// zh fallback labels for the 财务 v2 expense groups. The pack ships the stable
+// `grp` key alongside, and the UI localizes via t('cash.grp.<grp>') — this is only
+// the CSV/PPT fallback, which have no translator on the server side.
+const EXPENSE_GROUP_CN: Record<string, string> = {
+  premises: '会所',
+  altar: '佛坛',
+  admin: '行政',
+  activity: '活动',
+  other_expense: '其他支出',
+};
 
 type Db = NonNullable<typeof supabaseAdmin>;
 
@@ -164,6 +176,11 @@ export type ReportsPack = {
     surplus: number;
     sixMonth: { months: string[]; income: number[]; expenses: number[] };
     centreCoverage: { name: string; paid: number; pledged: number; pct: number }[];
+    // 财务 v2 cash-book expense split for the month, by category group. Read from
+    // finance_transactions — a DIFFERENT source from `expenses` above, which still
+    // feeds income/expenses/surplus. Reported separately and labelled as such in the
+    // UI rather than silently swapping the committee's existing numbers.
+    expenseByGroup: { grp: string; label: string; value: number }[];
   } | null;
   eventsInv: {
     capacity: { title: string; registrations: number; capacity: number }[];
@@ -247,6 +264,7 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
     paysRes,
     expensesRes,
     regPaysRes,
+    cashOutRes,
     eventsRes,
     itemsRes,
     hqRes,
@@ -271,6 +289,19 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
     locked
       ? Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
       : db.from('registrations').select('paid_amount, payment_verified_at').eq('payment_status', 'verified').gte('payment_verified_at', trendStartUtc).lt('payment_verified_at', monthEndUtc),
+    // 财务 v2 cash book — the month's 支出 rows with their category group and the
+    // owning account's opening_as_of, so the SAME cutoff the finance dashboard
+    // applies is applied here too. txn_date is a date column → startDate/endDate.
+    locked
+      ? Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
+      : db
+          .from('finance_transactions')
+          .select('amount, txn_date, category:finance_categories!category_id ( grp ), account:finance_accounts!finance_transactions_account_id_fkey ( opening_as_of )')
+          .eq('direction', 'out')
+          .is('voided_at', null)
+          .gte('txn_date', monthStart)
+          .lt('txn_date', monthEnd)
+          .limit(50000),
     db
       .from('events')
       .select('id, code, title, status, starts_on, ends_on, capacity, organizing_centre_id')
@@ -534,8 +565,31 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
     const income = incomeByMonth.get(month) ?? 0;
     const expensesMonth = expenseByMonth.get(month) ?? 0;
 
+    // 财务 v2 expense split. Group order is canonical (EXPENSE_GROUPS) so the legend
+    // does not reshuffle month to month; a group with no spend is dropped rather than
+    // drawn as a zero-width arc. txnCounts applies the account's opening_as_of cutoff,
+    // matching the finance dashboard exactly.
+    type CashOutRow = {
+      amount: number | string;
+      txn_date: string;
+      category: { grp: string } | { grp: string }[] | null;
+      account: { opening_as_of: string | null } | { opening_as_of: string | null }[] | null;
+    };
+    const flat = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
+    const groupCents = new Map<string, number>();
+    for (const r of (cashOutRes.data ?? []) as unknown as CashOutRow[]) {
+      if (!txnCounts(flat(r.account) ?? undefined, r.txn_date)) continue;
+      const grp = flat(r.category)?.grp;
+      if (!grp) continue;
+      groupCents.set(grp, (groupCents.get(grp) ?? 0) + Math.round(Number(r.amount) * 100));
+    }
+    const expenseByGroup = (EXPENSE_GROUPS as readonly string[])
+      .filter((g) => (groupCents.get(g) ?? 0) > 0)
+      .map((g) => ({ grp: g, label: EXPENSE_GROUP_CN[g] ?? g, value: (groupCents.get(g) ?? 0) / 100 }));
+
     ops = {
       activeMembers: members.length,
+      expenseByGroup,
       coverage: { paid, pledged, pct: pledged > 0 ? (paid / pledged) * 100 : 0 },
       income,
       expenses: expensesMonth,
@@ -719,6 +773,9 @@ export function packPageToCsv(pack: ReportsPack, page: string): string {
     rows.push([]);
     rows.push(['共修会', '已缴', '认捐', '收缴率%']);
     for (const c of pack.ops.centreCoverage) rows.push([c.name, c.paid, c.pledged, Math.round(c.pct)]);
+    rows.push([]);
+    rows.push(['支出分类（流水账）', '金额']);
+    for (const g of pack.ops.expenseByGroup) rows.push([g.label, g.value]);
   } else if (page === 'eventsInv') {
     rows.push(['活动', '报名', '名额']);
     for (const e of pack.eventsInv.capacity) rows.push([e.title, e.registrations, e.capacity]);

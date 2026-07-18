@@ -33,6 +33,7 @@ import { FunnelBars } from '@/components/charts/FunnelBars';
 import { ProgressRing } from '@/components/charts/ProgressRing';
 import { GroupedBars } from '@/components/charts/GroupedBars';
 import { CAT, NEUTRAL, EMERALD, AZURE, AMBER, ROSE } from '@/components/charts/palette';
+import { EXPENSE_GROUP_COLOR } from '@/lib/cashbook-display';
 
 type Role = 'admin' | 'volunteer' | 'erp_admin' | 'committee' | 'centre_head';
 type Me = { email: string; displayName: string | null; role: Role; grants?: Grants };
@@ -683,6 +684,25 @@ function OpsPage({ pack }: { pack: ReportsPack }) {
           </Faded>
           <p className="text-xs text-ink-faint mt-2">{t('reports.ops.centreCoverageFoot')}</p>
         </Card>
+        {/* 财务 v2 expense pie (Ken's ask) — from the cash book, a different source
+            from the 支出 tile above, so it carries a note saying so. */}
+        <Card title={t('reports.ops.expensePie')}>
+          <Faded when={o.expenseByGroup.length === 0} note={t('reports.ops.noDataNote')}>
+            <Donut
+              segments={o.expenseByGroup.map((g) => ({
+                label: t(`cash.grp.${g.grp}`),
+                value: g.value,
+                color: EXPENSE_GROUP_COLOR[g.grp] ?? NEUTRAL,
+              }))}
+              centerValue={moneyRM(o.expenseByGroup.reduce((s, g) => s + g.value, 0)).replace('RM ', '')}
+              centerLabel={t('reports.ops.expenses')}
+              valueHeader={t('reports.ops.expenses')}
+              format={moneyRM}
+              showPct
+            />
+          </Faded>
+          <p className="text-xs text-ink-faint mt-2">{t('reports.ops.expensePieNote')}</p>
+        </Card>
       </div>
     </>
   );
@@ -835,6 +855,12 @@ async function buildPptx(pack: ReportsPack, t: TFunc, locale: Locale) {
   const PptxGenJS = (await import('pptxgenjs')).default;
   const pptx = new PptxGenJS();
   const P = { emerald: '009E63', azure: '0E86D4', amber: 'D97706', violet: '7C5CDB', neutral: 'A79E8B', rose: 'B04A4A', ink: '33302A', muted: '948A76' };
+  // pptxgenjs wants hex WITHOUT '#', so the shared EXPENSE_GROUP_COLOR map is
+  // stripped rather than duplicated — the pie keeps the same colours on screen
+  // and in the deck.
+  const PPT_GROUP_COLOR: Record<string, string> = Object.fromEntries(
+    Object.entries(EXPENSE_GROUP_COLOR).map(([k, v]) => [k, v.replace('#', '')])
+  );
   pptx.defineSlideMaster({
     title: 'E3',
     background: { color: 'FFFFFF' },
@@ -932,6 +958,30 @@ async function buildPptx(pack: ReportsPack, t: TFunc, locale: Locale) {
         showLegend: true, legendPos: 'b',
         title: t('reports.ops.sixMonthTitle'), showTitle: true, titleFontSize: 12, titleColor: P.ink,
       });
+      // The expense pie gets its OWN slide — the ops slide's bar chart already runs
+      // to y≈5.2, so a doughnut beside it would be unreadable at projection size.
+      if (o.expenseByGroup.length > 0) {
+        const pieSlide = pptx.addSlide({ masterName: 'E3' });
+        slideTitle(pieSlide, t('reports.ops.expensePie'));
+        pieSlide.addChart(
+          pptx.ChartType.doughnut,
+          [{
+            name: t('reports.ops.expenses'),
+            labels: o.expenseByGroup.map((g) => t(`cash.grp.${g.grp}`)),
+            values: o.expenseByGroup.map((g) => g.value),
+          }],
+          {
+            x: 1.2, y: 1.3, w: 7.6, h: 3.9,
+            chartColors: o.expenseByGroup.map((g) => (PPT_GROUP_COLOR[g.grp] ?? P.neutral)),
+            showLegend: true, legendPos: 'r',
+            showPercent: true,
+            holeSize: 55,
+          }
+        );
+        pieSlide.addText(t('reports.ops.expensePieNote'), {
+          x: 0.5, y: 5.3, w: 9, h: 0.3, fontSize: 10, color: P.muted,
+        });
+      }
     } else if (page === 'eventsInv') {
       const e = pack.eventsInv;
       heroRow(slide, [
