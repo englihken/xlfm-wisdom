@@ -39,6 +39,11 @@ export type AuditAction =
   | 'centre_updated'
   // public self-service (status page v2) — actor is the registrant (actor_id null).
   | 'reg.self_update'
+  // 活动签到 (event check-in) — precise names following the reg.* precedent. The
+  // undo is NOT 'deactivate': it voids one attendance row, it does not retire a
+  // record, and the trail should say which of the two happened at a door.
+  | 'reg.check_in'
+  | 'reg.check_in_void'
   // 关怀 (care) conversation mutations + credential rotation (security audit M3).
   | 'care.takeover'
   | 'care.reply'

@@ -61,6 +61,12 @@ export async function POST(req: Request) {
     fee_total: reg.fee_total,
     payment_status: reg.payment_status,      // C3: drives the gentle payment badge
     has_proof: !!reg.payment_proof_path,
+    // 活动签到: the owner's personal QR payload + the name to print under it.
+    // Released only behind the reg_no + phone gate above, and only for a
+    // registration that is actually going ahead — a cancelled or rejected
+    // registration has no door to show a code at.
+    checkin_token: reg.status === 'cancelled' || reg.status === 'rejected' ? null : reg.checkin_token,
+    display_name: reg.display_name,
     event: reg.event ? { title: reg.event.title, code: reg.event.code, starts_on: reg.event.starts_on, ends_on: reg.event.ends_on } : null,
     selections: summarize(reg.selections),
     detail,

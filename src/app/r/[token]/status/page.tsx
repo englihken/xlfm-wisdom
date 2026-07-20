@@ -19,6 +19,7 @@ import { moneyRM, regStatusLabel, REG_STATUS_STYLES, paymentStatusLabel, PAYMENT
 import { stayNights, STAY_ROOM_TYPES, type StayInfo } from '@/lib/stay';
 import { ProofUploader } from '../page';
 import { MealGrid } from '../meal-grid';
+import { QrSvg } from '@/components/qr-svg';
 
 type Detail = {
   teamName: string | null;
@@ -40,6 +41,8 @@ type Detail = {
 type LookupResult = {
   reg_no: string; status: string; fee_total: number;
   payment_status: string; has_proof: boolean;
+  // 活动签到: null for a cancelled/rejected registration (no door to show it at).
+  checkin_token: string | null; display_name: string | null;
   event: { title: string; code: string; starts_on: string; ends_on: string | null } | null;
   detail: Detail;
 };
@@ -218,6 +221,21 @@ export default function StatusLookupPage() {
               </div>
             )}
           </div>
+
+          {/* ── 入场签到码 — a volunteer scans this at the desk. There is no
+                self-check-in: the code identifies you, the volunteer's device
+                marks you present. ── */}
+          {result.checkin_token && (
+            <div className="bg-surface border border-border rounded-2xl p-4 flex flex-col items-center text-center">
+              <h2 className="text-sm font-medium text-ink mb-3">{t('ci.qr.title')}</h2>
+              <div className="rounded-xl bg-white p-3 border border-border">
+                <QrSvg text={result.checkin_token} px={200} alt={t('ci.qr.alt')} />
+              </div>
+              {result.display_name && <p className="mt-3 text-base font-medium text-ink">{result.display_name}</p>}
+              <p className="font-mono text-sm text-ink-muted mt-0.5">{result.reg_no}</p>
+              <p className="text-xs text-ink-muted mt-2">{t('ci.qr.hint')}</p>
+            </div>
+          )}
 
           {/* ── edit-window notice ── */}
           {d.editable ? (

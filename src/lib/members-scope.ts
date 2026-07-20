@@ -36,3 +36,5 @@ export function membersScope(v: VolunteerScopeRow | null | undefined): MembersSc
 
 // The events/registrations wall is the same resolver — one scope, two module names.
 export const eventsScope = membersScope;
+// Same shape, named for the events side so those routes read as events code.
+export type EventsScope = MembersScope;

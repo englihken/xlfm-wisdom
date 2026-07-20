@@ -39,11 +39,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
   if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const [{ data: fees }, { data: needRows }, { data: regs }, { data: slotRows }] = await Promise.all([
+  const [{ data: fees }, { data: needRows }, { data: regs }, { data: slotRows }, { count: checkedInCount }] = await Promise.all([
     supabaseAdmin.from('event_fees').select('item, label_cn, amount, billing, sort').eq('event_id', id).order('sort', { ascending: true }),
     supabaseAdmin.from('event_team_needs').select('team_id, needed, team:teams ( name_cn )').eq('event_id', id),
     supabaseAdmin.from('registrations').select('status, fee_total, volunteer_team_id, selections, payment_status, paid_amount').eq('event_id', id),
     supabaseAdmin.from('event_meal_slots').select('slot_date, meal, offered').eq('event_id', id),
+    // 活动签到: head-only count of live (non-voided) attendance — the detail page
+    // shows the number, the desk page owns the breakdown.
+    supabaseAdmin.from('event_attendance').select('id', { count: 'exact', head: true }).eq('event_id', id).is('voided_at', null),
   ]);
 
   const counts = { pending: 0, approved: 0, rejected: 0, cancelled: 0 };
@@ -113,6 +116,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       counts,
       approvedFeeSum: Math.round(approvedFeeSum * 100) / 100,
       payment: { paidSum: Math.round(paidSum * 100) / 100, verifiedCount, waivedCount, proofCount },
+      checkedIn: checkedInCount ?? 0,
     },
   });
 }

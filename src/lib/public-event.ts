@@ -122,6 +122,13 @@ export type OwnedRegistration = {
   payment_status: string;
   payment_proof_path: string | null;
   volunteer_team_id: string | null;
+  // 活动签到: the QR payload the owner shows at the door, plus the display name to
+  // print under it. The token is a LOOKUP KEY, not a credential — it names a
+  // registration and grants nothing; only a logged-in volunteer at the desk can
+  // turn a scan into attendance. It is released here only to the owner, behind
+  // the same reg_no + phone gate as everything else on this page.
+  checkin_token: string | null;
+  display_name: string | null;
   event: { id: string; title: string; code: string; starts_on: string; ends_on: string | null; reg_edit_cutoff_days: number } | null;
 };
 
@@ -129,13 +136,15 @@ export async function matchOwnedRegistration(regNo: string, phone: string): Prom
   if (!supabaseAdmin) return null;
   const { data: reg } = await supabaseAdmin
     .from('registrations')
-    .select('id, reg_no, status, fee_total, selections, payment_status, payment_proof_path, applicant_phone, volunteer_team_id, member:members!member_id ( phone ), event:events!event_id ( id, title, code, starts_on, ends_on, reg_edit_cutoff_days )')
+    .select('id, reg_no, status, fee_total, selections, payment_status, payment_proof_path, applicant_phone, applicant_name, volunteer_team_id, checkin_token, member:members!member_id ( phone, name_cn ), event:events!event_id ( id, title, code, starts_on, ends_on, reg_edit_cutoff_days )')
     .eq('reg_no', regNo)
     .maybeSingle();
   if (!reg) return null;
 
-  const memberRaw = (reg as { member?: { phone: string | null } | { phone: string | null }[] | null }).member;
-  const memberPhone = (Array.isArray(memberRaw) ? memberRaw[0] ?? null : memberRaw ?? null)?.phone ?? null;
+  type MemberLite = { phone: string | null; name_cn: string | null };
+  const memberRaw = (reg as { member?: MemberLite | MemberLite[] | null }).member;
+  const member = Array.isArray(memberRaw) ? memberRaw[0] ?? null : memberRaw ?? null;
+  const memberPhone = member?.phone ?? null;
   // The stored applicant_phone may predate the 038 normalization migration (bulk-imported
   // local / zero-stripped formats) — canonicalize it before comparing. member.phone is
   // always canonical already (parseMemberInput).
@@ -154,6 +163,8 @@ export async function matchOwnedRegistration(regNo: string, phone: string): Prom
     payment_status: (reg.payment_status as string) ?? 'unpaid',
     payment_proof_path: (reg.payment_proof_path as string | null) ?? null,
     volunteer_team_id: (reg.volunteer_team_id as string | null) ?? null,
+    checkin_token: (reg.checkin_token as string | null) ?? null,
+    display_name: member?.name_cn || ((reg.applicant_name as string | null) ?? null),
     event,
   };
 }

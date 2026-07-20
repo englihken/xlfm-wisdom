@@ -46,6 +46,7 @@ type Detail = {
     counts: { pending: number; approved: number; rejected: number; cancelled: number };
     approvedFeeSum: number;
     payment?: { paidSum: number; verifiedCount: number; waivedCount: number; proofCount: number };
+    checkedIn?: number;
   };
 };
 type BreakdownLine = { item: string; label: string; amount: number; qty: number; subtotal: number };
@@ -298,6 +299,18 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
             <span className="text-ink-faint"> · {t('events.detail.noTarget')}</span>
           </div>
         )}
+        {/* 活动签到 — the count for everyone with events:view, the desk link for editors. */}
+        <div className="mt-1 text-xs text-ink-muted flex items-center gap-2 flex-wrap">
+          <span>
+            {t('ci.detail.count')}
+            <span className="font-semibold text-ink tabular-nums">{data.regStats.checkedIn ?? 0}</span>
+          </span>
+          {canEdit && (
+            <Link href={`/dashboard/events/${id}/checkin`} className="text-accent-deep hover:underline">
+              {t('ci.detail.open')} →
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* fees + team needs */}
