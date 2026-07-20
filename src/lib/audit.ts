@@ -44,6 +44,15 @@ export type AuditAction =
   // record, and the trail should say which of the two happened at a door.
   | 'reg.check_in'
   | 'reg.check_in_void'
+  // 活动收款 (event payment collection). fee_assign is a BATCH action recorded once
+  // per run against the event id, not once per registration — 918 rows of noise
+  // would bury the signal it exists to carry.
+  | 'reg.fee_assign'
+  | 'reg.pay_verify'
+  | 'reg.pay_cash'
+  | 'reg.pay_reconcile'
+  | 'event.cash_close'
+  | 'event.cash_banked'
   // 关怀 (care) conversation mutations + credential rotation (security audit M3).
   | 'care.takeover'
   | 'care.reply'

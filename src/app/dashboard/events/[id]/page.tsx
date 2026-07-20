@@ -306,9 +306,17 @@ function Detail({ me, id }: { me: ErpMe; id: string }) {
             <span className="font-semibold text-ink tabular-nums">{data.regStats.checkedIn ?? 0}</span>
           </span>
           {canEdit && (
-            <Link href={`/dashboard/events/${id}/checkin`} className="text-accent-deep hover:underline">
-              {t('ci.detail.open')} →
-            </Link>
+            <>
+              <Link href={`/dashboard/events/${id}/checkin`} className="text-accent-deep hover:underline">
+                {t('ci.detail.open')} →
+              </Link>
+              <Link href={`/dashboard/events/${id}/collect`} className="text-accent-deep hover:underline">
+                {t('ep.collect.title')} →
+              </Link>
+              <Link href={`/dashboard/events/${id}/fees`} className="text-accent-deep hover:underline">
+                {t('ep.assign.title')} →
+              </Link>
+            </>
           )}
         </div>
       </div>

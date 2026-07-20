@@ -12,14 +12,28 @@
 //   uniform       → selections.uniform?.qty ?? 0
 //   other         → selections.other_qty ?? 0
 // Zero-qty items are omitted from the breakdown.
+//
+// 'assigned' billing (migration 042, 活动收款) is the EXCEPTION to all of the above:
+// the per-person amount is not knowable at registration time (shared rooms, so
+// different people owe different amounts once allocation is done), so an admin
+// assigns it afterwards. Two consequences enforced here:
+//   1. computeFees SKIPS assigned rows — the fee row's `amount` is a placeholder
+//      and charging it at registration would bill everyone the wrong number.
+//   2. computeFees CARRIES FORWARD assigned lines already on the registration.
+//      This is load-bearing: four routes recompute fee_total from scratch (admin
+//      create, admin selections edit, public register, and the PUBLIC self-edit
+//      of meals/stay). Without the carry-forward, a registrant editing their
+//      meals would silently wipe the hostel amount HQ assigned them.
 
 export type FeeItemKind = 'registration' | 'meal' | 'accommodation' | 'transfer' | 'uniform' | 'other';
+
+export type FeeBilling = 'per_person' | 'per_day' | 'per_night' | 'per_item' | 'assigned';
 
 export type FeeItem = {
   item: FeeItemKind;
   label_cn: string | null;
   amount: number;
-  billing: 'per_person' | 'per_day' | 'per_night' | 'per_item';
+  billing: FeeBilling;
 };
 
 export type Selections = {
@@ -37,7 +51,17 @@ export type BreakdownLine = {
   amount: number;
   qty: number;
   subtotal: number;
+  // Set by the 费用分配 screen. Marks a line as DATA rather than computed, so a
+  // recompute preserves it instead of dropping it. Keyed on the line itself (not
+  // on the event's fee rows) so it survives even if the fee row is later edited.
+  assigned?: boolean;
 };
+
+// The assigned lines already on a registration — what a recompute must preserve.
+export function assignedLines(breakdown: unknown): BreakdownLine[] {
+  if (!Array.isArray(breakdown)) return [];
+  return (breakdown as BreakdownLine[]).filter((l) => l && typeof l === 'object' && l.assigned === true);
+}
 
 // Default Chinese labels when a fee row has no label_cn override.
 const DEFAULT_LABEL: Record<FeeItemKind, string> = {
@@ -67,14 +91,19 @@ function qtyFor(item: FeeItemKind, billing: FeeItem['billing'], sel: Selections)
   }
 }
 
+// `prevBreakdown` is the registration's CURRENT fee_breakdown, if any. Every
+// recompute path must pass it, or assigned amounts are lost (see the header).
 export function computeFees(
   fees: FeeItem[],
-  sel: Selections
+  sel: Selections,
+  prevBreakdown?: unknown
 ): { total: number; breakdown: BreakdownLine[] } {
   let totalCents = 0;
   const breakdown: BreakdownLine[] = [];
 
   for (const fee of fees) {
+    // Assigned rows are priced per person after allocation, never here.
+    if (fee.billing === 'assigned') continue;
     const qty = Math.max(0, Math.trunc(qtyFor(fee.item, fee.billing, sel)));
     if (qty <= 0) continue; // omit zero-qty items
 
@@ -89,6 +118,13 @@ export function computeFees(
       qty,
       subtotal: subtotalCents / 100,
     });
+  }
+
+  // Carry forward whatever the admin assigned. Appended last so the computed
+  // items keep their configured order and the assigned line reads as the tail.
+  for (const line of assignedLines(prevBreakdown)) {
+    totalCents += Math.round(Number(line.subtotal) * 100);
+    breakdown.push(line);
   }
 
   return { total: totalCents / 100, breakdown };

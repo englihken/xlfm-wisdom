@@ -34,7 +34,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // Load the registration + its event (dates + cutoff + fees drive validation).
   const { data: reg, error: regErr } = await supabaseAdmin
     .from('registrations')
-    .select('id, event_id, status, selections, fee_total')
+    .select('id, event_id, status, selections, fee_total, fee_breakdown')
     .eq('id', id)
     .maybeSingle();
   if (regErr) {
@@ -75,7 +75,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     delete selections.meals;
   }
 
-  const { total, breakdown } = computeFees(fees, selections);
+  // prev breakdown carries any 费用分配 (assigned) line through the recompute.
+  const { total, breakdown } = computeFees(fees, selections, reg.fee_breakdown);
   const me = access.volunteer;
 
   // Preserve unknown namespaces on the stored row (e.g. selections.import813 from the

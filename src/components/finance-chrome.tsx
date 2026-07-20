@@ -8,7 +8,7 @@
 import Link from 'next/link';
 import { useT } from '@/lib/i18n-react';
 
-export type FinanceTabKey = 'dashboard' | 'accounts' | 'cashbook' | 'overview' | 'ledger' | 'expenses';
+export type FinanceTabKey = 'dashboard' | 'accounts' | 'cashbook' | 'eventpay' | 'reconcile' | 'overview' | 'ledger' | 'expenses';
 
 export function FinanceTabs({ active }: { active: FinanceTabKey }) {
   const t = useT();
@@ -20,6 +20,8 @@ export function FinanceTabs({ active }: { active: FinanceTabKey }) {
     { key: 'dashboard', label: t('fdash.tab.dashboard'), href: '/dashboard/finance' },
     { key: 'accounts', label: t('cash.tab.accounts'), href: '/dashboard/finance/accounts' },
     { key: 'cashbook', label: t('cash.tab.cashbook'), href: '/dashboard/finance/cashbook' },
+    { key: 'eventpay', label: t('ep.board.title'), href: '/dashboard/finance/event-payments' },
+    { key: 'reconcile', label: t('ep.rec.title'), href: '/dashboard/finance/reconcile' },
     { key: 'overview', label: t('fdash.tab.overviewLegacy'), href: '/dashboard/finance/overview' },
     { key: 'ledger', label: t('finance.tab.ledger'), href: '/dashboard/finance/ledger' },
     { key: 'expenses', label: t('finance.tab.expenses'), href: '/dashboard/finance/expenses' },

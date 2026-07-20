@@ -26,6 +26,8 @@ import { cashbookPart } from './parts/cashbook';
 import { financeDashPart } from './parts/financedash';
 // 活动签到 Phase 1 — 签到台 desk + the attendee's personal QR
 import { checkinPart } from './parts/checkin';
+// 活动收款 Phase 1 — 费用分配 · 分会收款板 · 现场收款/日结 · 总会对账
+import { eventPayPart } from './parts/eventpay';
 import { publicFormsPart } from './parts/publicforms';
 import { settingsPart } from './parts/settings';
 // E4 sweep-3 shared display-vocabulary + chip/relative-time maps
@@ -47,6 +49,7 @@ export const zh = {
   ...cashbookPart.zh,
   ...financeDashPart.zh,
   ...checkinPart.zh,
+  ...eventPayPart.zh,
   ...publicFormsPart.zh,
   ...settingsPart.zh,
   ...inboxVocabPart.zh,
@@ -68,6 +71,7 @@ export const en = {
   ...cashbookPart.en,
   ...financeDashPart.en,
   ...checkinPart.en,
+  ...eventPayPart.en,
   ...publicFormsPart.en,
   ...settingsPart.en,
   ...inboxVocabPart.en,
@@ -89,6 +93,7 @@ export const id = {
   ...cashbookPart.id,
   ...financeDashPart.id,
   ...checkinPart.id,
+  ...eventPayPart.id,
   ...publicFormsPart.id,
   ...settingsPart.id,
   ...inboxVocabPart.id,

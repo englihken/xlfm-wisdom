@@ -95,7 +95,9 @@ export async function POST(req: Request) {
   } else if (!mealPerItem) {
     delete parsed.meals;
   }
-  const { total, breakdown } = computeFees(fees, parsed);
+  // prev breakdown MUST be passed: without it this public self-edit would wipe
+  // the hostel amount HQ assigned to this person.
+  const { total, breakdown } = computeFees(fees, parsed, reg.fee_breakdown);
 
   const nextSelections: Record<string, unknown> = { ...preserved, ...parsed };
 
