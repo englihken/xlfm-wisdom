@@ -2,19 +2,21 @@
 // Main chat endpoint for the 智慧问答 AI chatbot
 // Streams responses using Claude API with RAG from Pinecone
 
-import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest } from 'next/server';
 import { searchRelevantTeachings, formatPassagesAsContext } from '@/lib/vector-search';
 import { supabaseAdmin } from '@/lib/supabase';
-import { buildSystemBlocks, buildSources, classifyAndSaveCategory } from '@/lib/care-pipeline';
+import {
+  buildSources,
+  classifyAndSaveCategory,
+  generateGuardedReplyText,
+} from '@/lib/care-pipeline';
 import { isAiDraftEnabled } from '@/lib/org-settings';
 
 export const runtime = 'nodejs'; // Node runtime for Pinecone SDK compatibility
-export const maxDuration = 60;
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+// Opus 5 thinks before replying and the verbatim guard may regenerate once, so
+// a hard turn can run well past the old 60s. 300s is the Fluid-compute ceiling
+// on the Hobby plan.
+export const maxDuration = 300;
 
 interface ChatRequest {
   message: string;
@@ -312,23 +314,28 @@ export async function POST(req: NextRequest) {
       },
     ];
 
-    // Step 4: Stream response from Claude. The system param (stable base prompt +
-    // per-query RAG context, base block cached) is assembled by the shared pipeline.
-    const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      system: buildSystemBlocks(language, contextBlock),
+    // Step 4: Generate the reply through the shared GUARDED pipeline (model +
+    // token budget + refusal handling + verbatim/numbers guard identical to the
+    // WhatsApp channel). This BUFFERS the whole reply before anything reaches
+    // the visitor — a deliberate trade: token-by-token streaming would show
+    // fabricated 遍数/开示 before the guard could catch them (convs 29cfd74c /
+    // 6b6f74ff). The SSE protocol below is unchanged; the client just receives
+    // the text in one event instead of many deltas.
+    const { fullText, refused } = await generateGuardedReplyText({
       messages,
+      language,
+      passages,
+      contextBlock,
+      conversationId: convId,
     });
 
     // Step 5: Build rich sources — deduplicate by book+page combo (shared helper).
-    const sources = buildSources(passages);
+    const sources = refused ? [] : buildSources(passages);
 
-    // Step 6: Convert stream to web ReadableStream
+    // Step 6: Emit the SSE events the existing frontend already understands.
     const encoder = new TextEncoder();
     const readableStream = new ReadableStream({
       async start(controller) {
-        let fullText = '';
         try {
           // Send conversationId first (new event type — older clients ignore it)
           // so the frontend can persist it and send it back on the next message.
@@ -336,25 +343,15 @@ export async function POST(req: NextRequest) {
             `data: ${JSON.stringify({ type: 'conversation', conversationId: convId })}\n\n`
           ));
 
-          // Send sources next so UI can show them immediately
+          // Sources next so the UI can show them immediately
           controller.enqueue(encoder.encode(
             `data: ${JSON.stringify({ type: 'sources', sources })}\n\n`
           ));
 
-          // Stream the response text
-          for await (const event of stream) {
-            if (
-              event.type === 'content_block_delta' &&
-              event.delta.type === 'text_delta'
-            ) {
-              fullText += event.delta.text;
-              const data = JSON.stringify({
-                type: 'text',
-                text: event.delta.text,
-              });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-            }
-          }
+          // The full guarded reply as a single text event.
+          controller.enqueue(encoder.encode(
+            `data: ${JSON.stringify({ type: 'text', text: fullText })}\n\n`
+          ));
 
           // Send done signal first so the UI flips out of "streaming" instantly,
           // THEN await the assistant-message save before closing — this keeps the

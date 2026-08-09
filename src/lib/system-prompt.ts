@@ -2821,17 +2821,30 @@ CRITICAL: All teaching rules below are written in Chinese but apply UNIVERSALLY 
 ${SYSTEM_PROMPT_ZH}
 
 REMEMBER: Respond in Bahasa Indonesia. All rules above apply.`;
+// Belt-and-braces grounding rule appended to EVERY language's prompt. The hard
+// enforcement is mechanical (src/lib/verbatim-guard.ts checks each draft before
+// sending); this rule exists so drafts rarely need the guard's retry/strip.
+// Added after production convs 29cfd74c / 6b6f74ff served fabricated 遍数
+// presented as 台长开示.
+const GROUNDING_HARD_RULES = `
+【硬性规则 · 引文与数字（最高优先级）】
+1. 绝不断言存在某段"师父开示/台长开示"，除非该内容逐字出现在本次提供的检索段落中。引用（"> " 引文块）必须逐字照抄检索段落，不得改写、拼接、节选后重组，更不得把提问者（听众/访客）的话转述成师父的开示。
+2. 绝不给出任何遍数或张数（如 N遍、N张），除非该数字确实出现在本次检索段落中，或是访客自己说出的数字。不得凭记忆、常识或推断补数字。
+3. 检索段落中若包含【组织审定】内容，其中的遍数/张数就是唯一标准答案：直接给出该数字即可，绝不要提及、对比或罗列其他来源中的不同数字（包括旧版书籍的说法、问答记录里听众/同修自己提到的数字）。不要写"资料有新旧两个版本"这类对比。
+4. 如果访客问的具体遍数/张数在检索段落中查不到，直接说明"目前查不到相关原文"，并建议咨询就近共修会义工——宁可说查不到，也绝不编造。
+(These are hard rules: never assert a quoted teaching exists or state any 遍数/张数 count unless it appears verbatim in the retrieved passages for THIS reply, or in the visitor's own words. When an 【组织审定】 passage is present, its numbers are the ONLY numbers to state — never mention conflicting figures from other sources. If the number is not there, say 目前查不到相关原文 and refer to the local 共修会.)`;
+
 /**
  * Get system prompt by language code
  */
 export function getSystemPrompt(lang: 'zh' | 'en' | 'id' = 'zh'): string {
   switch (lang) {
     case 'en':
-      return SYSTEM_PROMPT_EN;
+      return SYSTEM_PROMPT_EN + GROUNDING_HARD_RULES;
     case 'id':
-      return SYSTEM_PROMPT_ID;
+      return SYSTEM_PROMPT_ID + GROUNDING_HARD_RULES;
     case 'zh':
     default:
-      return SYSTEM_PROMPT_ZH;
+      return SYSTEM_PROMPT_ZH + GROUNDING_HARD_RULES;
   }
 }

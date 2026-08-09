@@ -18,13 +18,147 @@ import {
 } from './vector-search';
 import { supabaseAdmin } from './supabase';
 import { loadCareCategories } from './org-settings';
+import { checkDraft, stripViolations, normalizeForGuard } from './verbatim-guard';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-// Kept in sync with the web chat route (extracted from it verbatim).
-const REPLY_MODEL = 'claude-sonnet-4-6';
-const REPLY_MAX_TOKENS = 2000;
+// Shared by the web chat route (imported there) and the WhatsApp channel.
+// Opus 5 runs with adaptive thinking ON by default, and thinking tokens count
+// against max_tokens — so the budget is far above the ~2000-token visible reply
+// we actually expect, or thinking would truncate the answer mid-sentence.
+export const REPLY_MODEL = 'claude-opus-5';
+export const REPLY_MAX_TOKENS = 8000;
+// The post-reply categorisation is a one-label task visitors never see — the
+// cheapest model is plenty.
+const CLASSIFY_MODEL = 'claude-haiku-4-5';
 const MAX_SOURCES = 3;
+
+// Opus 5's safety classifiers can decline a request (HTTP 200 with
+// stop_reason 'refusal' and empty/partial content). Rare for this bot, but the
+// visitor must never be left with a blank bubble — both channels fall back to
+// this gentle hand-off instead.
+export const REFUSAL_REPLY: Record<Language, string> = {
+  zh: '抱歉，这个问题我不方便回答。您可以换一个方式提问，或留下想聊的内容，我们的义工会尽快与您交流 🙏',
+  en: "I'm sorry, but I'm not able to answer this question. You could try rephrasing it, or leave a message and one of our volunteers will follow up with you soon 🙏",
+  id: 'Maaf, saya tidak dapat menjawab pertanyaan ini. Anda dapat mencoba bertanya dengan cara lain, atau tinggalkan pesan dan relawan kami akan segera menghubungi Anda 🙏',
+};
+
+// ── Verbatim guard plumbing (anti-fabrication; see verbatim-guard.ts) ─────────
+
+// Appended to a stripped reply so the visitor knows why numbers are missing.
+const GUARD_DISCLAIMER: Record<Language, string> = {
+  zh: '关于具体的遍数／张数，我目前查不到相关原文，不敢随意告诉您数字。建议咨询就近共修会的义工，以官方资料为准 🙏',
+  en: 'I could not find the exact source text for the specific counts involved, so I would rather not quote numbers from memory. Please check with the volunteers at your nearest 共修会 for the official guidance 🙏',
+  id: 'Saya tidak menemukan teks sumber untuk jumlah pastinya, jadi saya tidak berani memberikan angka. Silakan tanyakan kepada relawan di 共修会 terdekat untuk panduan resmi 🙏',
+};
+
+// Full safe answer when stripping leaves nothing usable.
+const GUARD_SAFE_REPLY: Record<Language, string> = {
+  zh: '抱歉，您问的这个修行细节，我目前查不到相关原文，不方便凭记忆随意回答，以免误导您。建议您联系就近共修会的义工确认，以官方资料为准 🙏\n\n🌐 https://xlfm.my/contact-us',
+  en: 'I could not find the source text for this practice detail, and I would rather not answer from memory and risk misleading you. Please confirm with the volunteers at your nearest 共修会 🙏\n\n🌐 https://xlfm.my/contact-us',
+  id: 'Maaf, saya tidak menemukan teks sumber untuk detail praktik ini, dan saya tidak ingin menjawab dari ingatan. Silakan konfirmasi dengan relawan di 共修会 terdekat 🙏\n\n🌐 https://xlfm.my/contact-us',
+};
+
+// Corrective system block for the single regeneration attempt.
+const GUARD_RETRY_INSTRUCTION =
+  '【重要纠正】你上一稿包含了检索资料中不存在（或不允许使用）的引文或遍数/张数。请重写回答，严格遵守：' +
+  '(1) 所有引用（"> " 引文块）必须逐字来自上方提供的检索段落，不得改写、拼接，也不得把访客的话转述成师父开示；' +
+  '(2) 检索段落中若包含【组织审定】内容，其中的遍数/张数就是唯一标准答案——直接给出该数字，' +
+  '不要提及、对比或罗列其他来源（旧版书籍、听众提问等）中的不同数字；' +
+  '(3) 除【组织审定】段落和访客自己说过的数字外，正文中不得出现其他 N遍/N张 数字（逐字引文块内的数字除外）；' +
+  '(4) 如果所需的具体遍数/张数在检索段落中查不到，明确说明"目前查不到相关原文"，并建议访客咨询就近共修会义工。';
+
+export type GuardOutcome = 'clean' | 'passed_after_retry' | 'stripped';
+
+// Generate one guarded reply: draft → mechanical verbatim/numbers check →
+// regenerate once with the corrective instruction → strip + disclaimer as the
+// last resort. Shared by the web chat (which buffers, then sends) and the
+// WhatsApp channel. Every guard trip is logged with the conversation id.
+export async function generateGuardedReplyText(params: {
+  messages: CareMessage[];
+  language: Language;
+  passages: RetrievedPassage[];
+  contextBlock: string;
+  conversationId?: string | null;
+}): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome }> {
+  const { messages, language, passages, contextBlock } = params;
+  const convId = params.conversationId ?? 'unknown';
+
+  const callModel = async (extraSystem?: string): Promise<Anthropic.Message> => {
+    const system = [
+      ...buildSystemBlocks(language, contextBlock),
+      ...(extraSystem ? [{ type: 'text' as const, text: extraSystem }] : []),
+    ];
+    // Streamed under the hood (large max_tokens + thinking would risk HTTP
+    // timeouts on a blocking call); the caller still receives the full message.
+    const stream = anthropic.messages.stream({
+      model: REPLY_MODEL,
+      max_tokens: REPLY_MAX_TOKENS,
+      system,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    });
+    return stream.finalMessage();
+  };
+
+  const textOf = (result: Anthropic.Message): string =>
+    result.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('')
+      .trim();
+
+  const chunkTexts = passages.map((p) => p.text);
+  const visitorTexts = messages.filter((m) => m.role === 'user').map((m) => m.content);
+  // 组织审定 canonical chunks: when present, prose 遍数/张数 must come from
+  // them (or the visitor) — numbers found only in ordinary book chunks are
+  // rejected (see verbatim-guard.ts).
+  const canonicalTexts = passages
+    .filter((p) => p.type === 'canonical_ruling')
+    .map((p) => p.text);
+  const guardOpts = { canonicalTexts };
+
+  let result = await callModel();
+  if (result.stop_reason === 'refusal') {
+    console.warn('[care-pipeline] model refused; sending hand-off reply');
+    return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'clean' };
+  }
+
+  let draft = textOf(result);
+  let violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);
+  if (violations.length === 0) return { fullText: draft, refused: false, guard: 'clean' };
+
+  for (const v of violations) {
+    console.error(
+      `[verbatim-guard] conversation=${convId} violation=${v.type} attempt=1 text=${JSON.stringify(v.text)}`
+    );
+  }
+
+  // One corrective regeneration.
+  result = await callModel(GUARD_RETRY_INSTRUCTION);
+  if (result.stop_reason === 'refusal') {
+    console.warn('[care-pipeline] model refused on guard retry; sending hand-off reply');
+    return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'passed_after_retry' };
+  }
+  draft = textOf(result);
+  violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);
+  if (violations.length === 0) {
+    return { fullText: draft, refused: false, guard: 'passed_after_retry' };
+  }
+
+  for (const v of violations) {
+    console.error(
+      `[verbatim-guard] conversation=${convId} violation=${v.type} attempt=2 text=${JSON.stringify(v.text)}`
+    );
+  }
+
+  // Last resort: strip the offending content and disclose the gap.
+  const stripped = stripViolations(draft, violations);
+  const fullText =
+    normalizeForGuard(stripped).length < 40
+      ? GUARD_SAFE_REPLY[language]
+      : `${stripped}\n\n${GUARD_DISCLAIMER[language]}`;
+  return { fullText, refused: false, guard: 'stripped' };
+}
 
 export type Language = 'zh' | 'en' | 'id';
 export type CareMessage = { role: 'user' | 'assistant'; content: string };
@@ -78,12 +212,13 @@ export function buildSources(passages: RetrievedPassage[]): CareSource[] {
 }
 
 // ── Non-streaming reply (WhatsApp) ────────────────────────────────────────────
-// Same retrieval + system prompt + model as the web chat, in a single blocking
-// call. Retrieval keys off the latest user turn (as the web route does); the full
-// message history is passed to Claude for multi-turn context.
+// Same retrieval + system prompt + model + verbatim guard as the web chat, in
+// one blocking call. Retrieval keys off the latest user turn (as the web route
+// does); the full message history is passed to Claude for multi-turn context.
 export async function generateReply(
   messages: CareMessage[],
-  language: Language = 'zh'
+  language: Language = 'zh',
+  opts: { conversationId?: string | null } = {}
 ): Promise<{ fullText: string; sources: CareSource[] }> {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   const query = lastUser?.content ?? '';
@@ -91,20 +226,15 @@ export async function generateReply(
   const passages = await searchRelevantTeachings(query, undefined, language);
   const contextBlock = formatPassagesAsContext(passages);
 
-  const result = await anthropic.messages.create({
-    model: REPLY_MODEL,
-    max_tokens: REPLY_MAX_TOKENS,
-    system: buildSystemBlocks(language, contextBlock),
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+  const { fullText, refused } = await generateGuardedReplyText({
+    messages,
+    language,
+    passages,
+    contextBlock,
+    conversationId: opts.conversationId,
   });
 
-  const fullText = result.content
-    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-    .map((b) => b.text)
-    .join('')
-    .trim();
-
-  return { fullText, sources: buildSources(passages) };
+  return { fullText, sources: refused ? [] : buildSources(passages) };
 }
 
 // ── Conversation categorisation (cheap, post-reply) ───────────────────────────
@@ -139,7 +269,7 @@ export async function classifyConversation(
       .join('\n');
 
     const result = await anthropic.messages.create({
-      model: REPLY_MODEL,
+      model: CLASSIFY_MODEL,
       max_tokens: 20,
       messages: [
         {

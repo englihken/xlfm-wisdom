@@ -59,7 +59,17 @@ export type Topic =
   | 'karma_debt'
   | 'karma_warning'
   | 'practice_method'
-  | 'muslim_boundary';
+  | 'muslim_boundary'
+  | 'canonical_ritual_numbers';
+
+// 组织审定 canonical rulings (type: 'canonical_ruling' in the corpus). These are
+// org-verified doctrine tables (e.g. 礼佛大忏悔文特殊日子遍数) that must BEAT
+// ordinary book chunks whenever they match: production incidents 29cfd74c /
+// 6b6f74ff showed the model reconstructing 遍数 from stray context when the
+// real table wasn't retrieved. The boost is far above cosine-score spread, so
+// a retrieved canonical chunk always sorts first.
+const CANONICAL_TYPE = 'canonical_ruling';
+const CANONICAL_BOOST = 0.5;
 
 // === BOOK PRIORITY (for tie-breaking) ===
 // When two passages have similar relevance scores, prefer these sources
@@ -109,6 +119,17 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
     'Muslim', 'Islam', 'Malay', 'Melayu',
     '马来朋友', '穆斯林朋友', '回教朋友',
   ],
+  // Doctrinal-numbers queries (礼佛遍数 / 特殊日子 / 佛诞 / 小房子张数 …):
+  // routes a guaranteed parallel query against the 组织审定 canonical docs so
+  // the authoritative table is ALWAYS in context for these questions.
+  canonical_ritual_numbers: [
+    '礼佛', '遍数', '几遍', '多少遍', '张数', '几张', '多少张',
+    '初一', '十五', '佛诞', '圣诞', '诞辰', '成道', '出家日', '涅槃日',
+    '年三十', '除夕', '年初一', '大年初一', '元旦', '元宵', '中秋',
+    '中元', '清明', '冬至', '重阳', '端午', '春节',
+    '孕妇', '坐月子', '自修经文', '自存',
+    '地藏王', '弥勒', '阿弥陀', '大势至', '燃灯古佛', '释迦牟尼',
+  ],
 };
 
 // Score boost applied during re-ranking when a passage's `type` matches a
@@ -127,6 +148,8 @@ const TOPIC_TYPE_BOOST: Record<Topic, Record<string, number>> = {
     ethics_guide: 0.02,
   },
   muslim_boundary: {},
+  // Canonical docs get CANONICAL_BOOST via their type, not a topic-type boost.
+  canonical_ritual_numbers: {},
 };
 
 export function detectTopics(query: string): Topic[] {
@@ -262,6 +285,12 @@ export async function searchRelevantTeachings(
         pineconeSearch(query, 5, mergeWith({ book_category: { $eq: 'spirit_realm' } }))
       );
     }
+    // 组织审定 canonical rulings: guaranteed retrieval for doctrinal-numbers
+    // queries. Deliberately NOT language-filtered — the canonical tables are
+    // zh-only but authoritative for every user language.
+    if (topics.includes('canonical_ritual_numbers')) {
+      queries.push(pineconeSearch(query, 4, { type: { $eq: CANONICAL_TYPE } }));
+    }
 
     const resultGroups = await Promise.all(queries);
     const primaryResults = resultGroups.flat();
@@ -311,10 +340,12 @@ export async function searchRelevantTeachings(
       }
     }
 
-    // Re-rank: topic-type boost + book-priority tie-breaker
+    // Re-rank: canonical-ruling boost (always first) + topic-type boost +
+    // book-priority tie-breaker
     const ranked = Array.from(uniqueById.values())
       .map((p) => {
         let boost = (BOOK_PRIORITY[p.book] || 0) * 0.01;
+        if (p.type === CANONICAL_TYPE) boost += CANONICAL_BOOST;
         for (const topic of topics) {
           if (p.type && TOPIC_TYPE_BOOST[topic][p.type]) {
             boost += TOPIC_TYPE_BOOST[topic][p.type];

@@ -24,7 +24,11 @@ import { generateReply, classifyAndSaveCategory, type CareMessage } from '@/lib/
 import { isAiDraftEnabled } from '@/lib/org-settings';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+// Opus 5 replies are non-streaming here and the model thinks before answering —
+// 60s was cutting it close. 300s is the Fluid-compute ceiling on the Hobby plan.
+// Meta may re-deliver while we're still generating; wa_message_id dedup makes
+// that harmless.
+export const maxDuration = 300;
 
 const CONVERSATION_WINDOW_MS = 24 * 60 * 60 * 1000; // reuse an open convo for 24h
 const HISTORY_LIMIT = 20; // prior turns fed back to the model for context
@@ -228,7 +232,7 @@ async function handleInboundMessage(msg: WaMessage, contacts: WaContact[]): Prom
   // leaving the user hanging.
   let reply: { fullText: string; sources: unknown } | null = null;
   try {
-    reply = await generateReply(convoMessages, 'zh');
+    reply = await generateReply(convoMessages, 'zh', { conversationId });
   } catch (e) {
     console.error('[wa] generateReply failed:', e);
     await sendWhatsAppText(waId, FALLBACK_REPLY);
