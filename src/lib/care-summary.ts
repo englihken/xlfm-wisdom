@@ -20,6 +20,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
+// Summaries are internal bookkeeping the visitor never sees — the cheapest
+// model is plenty. The nightly cron additionally routes these calls through the
+// Message Batches API (50% price) via prepareContactFold/applyFoldOutput below;
+// the takeover + self-heal paths stay synchronous on the same model.
+export const SUMMARY_MODEL = 'claude-haiku-4-5';
+
 export const IDLE_MS = 2 * 60 * 60 * 1000; // cron: only fold conversations idle 2h+
 export const HEAL_IDLE_MS = 10 * 60 * 1000; // self-heal: skip conversations active in the last 10min
 const GISTS_PER_CALL = 6; // max conversations folded per Claude call (prompt-size bound)
@@ -147,20 +153,25 @@ export type RefreshOptions = {
   throttled?: boolean;
 };
 
-// Regenerate ONE contact's rolling profile from its pending conversations, writing
-// per-conversation gists along the way. Strictly scoped: every query below filters
-// on this contact's id, so no other contact's messages can ever enter the prompt.
-export async function refreshContactSummaries(
+// ── Prepare half (no model call) ─────────────────────────────────────────────
+// Builds ONE contact's fold prompt without calling Claude. Shared by the
+// synchronous refresh below and the nightly cron's Batch API path (which
+// submits the same prompts through Message Batches at 50% price). Junk / empty
+// conversations are marked along the way — they never need a model call.
+
+export type PreparedFold = {
+  prompt: string;
+  maxTokens: number;
+  // Speaking conversations in prompt order — gist N in the model output maps
+  // to conversationIds[N].
+  conversationIds: string[];
+};
+
+export async function prepareContactFold(
   db: Db,
   contactId: string,
   opts: RefreshOptions = {}
-): Promise<RefreshResult> {
-  if (opts.throttled) {
-    const last = lastHealAttempt.get(contactId) ?? 0;
-    if (Date.now() - last < HEAL_THROTTLE_MS) return noChange();
-    lastHealAttempt.set(contactId, Date.now());
-  }
-
+): Promise<{ prepared: PreparedFold | null; marked: number; error?: string }> {
   const { data: contact, error: contactError } = await db
     .from('contacts')
     .select('id, summary')
@@ -168,9 +179,9 @@ export async function refreshContactSummaries(
     .maybeSingle();
   if (contactError) {
     console.error(`[care-summary] contact ${contactId} fetch failed:`, contactError);
-    return noChange('contact fetch failed');
+    return { prepared: null, marked: 0, error: 'contact fetch failed' };
   }
-  if (!contact) return noChange('contact not found');
+  if (!contact) return { prepared: null, marked: 0, error: 'contact not found' };
 
   // Pending = this contact's unsummarized conversations (idle-gated when asked),
   // NEWEST first so the profile always reflects the person's latest activity even
@@ -187,7 +198,7 @@ export async function refreshContactSummaries(
   const { data: pendingRows, error: pendingError } = await pendingQuery;
   if (pendingError) {
     console.error(`[care-summary] pending select failed for contact ${contactId}:`, pendingError);
-    return noChange('pending select failed');
+    return { prepared: null, marked: 0, error: 'pending select failed' };
   }
 
   let pending = (pendingRows ?? []) as PendingConv[];
@@ -221,7 +232,7 @@ export async function refreshContactSummaries(
   // Newest GISTS_PER_CALL, then chronological order for the prompt.
   const batchDesc = pending.slice(0, GISTS_PER_CALL);
   const batch = [...batchDesc].sort((a, b) => a.last_message_at.localeCompare(b.last_message_at));
-  if (batch.length === 0) return { ...noChange(), marked };
+  if (batch.length === 0) return { prepared: null, marked };
 
   // Load all transcripts in one query, grouped per conversation.
   const { data: messageRows, error: msgError } = await db
@@ -231,7 +242,7 @@ export async function refreshContactSummaries(
     .order('created_at', { ascending: true });
   if (msgError) {
     console.error(`[care-summary] messages fetch failed for contact ${contactId}:`, msgError);
-    return { ...noChange('messages fetch failed'), marked };
+    return { prepared: null, marked, error: 'messages fetch failed' };
   }
 
   const byConv = new Map<string, TranscriptMessage[]>();
@@ -248,66 +259,87 @@ export async function refreshContactSummaries(
     if (rows.some((m) => m.role === 'user' && m.content?.trim())) speaking.push(conv);
     else await markOnly(conv.id);
   }
-  if (speaking.length === 0) return { ...noChange(), marked };
+  if (speaking.length === 0) return { prepared: null, marked };
 
   const promptConvs = speaking.map((conv) => ({
     date: conv.last_message_at.slice(0, 10),
     transcript: formatTranscript(byConv.get(conv.id) ?? []),
   }));
 
-  // One Claude call → evolving profile + numbered gists. Throws on empty output so
-  // the caller leaves everything unmarked for a retry (never blank the profile).
-  let profile: string;
-  let gists: (string | null)[];
-  try {
-    const result = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 300 + 80 * speaking.length,
-      messages: [{ role: 'user', content: buildPrompt(contact.summary ?? '', promptConvs) }],
-    });
-    const textPart = result.content.find((b) => b.type === 'text');
-    const text = textPart && textPart.type === 'text' ? textPart.text.trim() : '';
-    if (!text) throw new Error('empty summary from model');
-    ({ profile, gists } = parseBatchSummary(text, speaking.length));
-  } catch (e) {
-    console.error(`[care-summary] model call failed for contact ${contactId}:`, e);
-    return { ...noChange('model call failed'), marked };
-  }
+  return {
+    prepared: {
+      prompt: buildPrompt(contact.summary ?? '', promptConvs),
+      maxTokens: 300 + 80 * speaking.length,
+      conversationIds: speaking.map((c) => c.id),
+    },
+    marked,
+  };
+}
 
-  // Save the EVOLVING profile to the contact…
+// ── Apply half (write-back) ──────────────────────────────────────────────────
+// Parse one fold's model output and persist it: the evolving profile onto the
+// contact, then gist + summarized_at per conversation. A parse-missed gist gets
+// the degraded fallback and is STILL marked (logged, never silent) — an endless
+// retry loop would refold the same content into the profile every night.
+// The cron may apply a batch result a day after the prompt was built; if a
+// takeover refresh rewrote the profile in between, this is last-write-wins —
+// the same behavior today's concurrent refresh paths already have.
+export async function applyFoldOutput(
+  db: Db,
+  contactId: string,
+  conversationIds: string[],
+  rawText: string
+): Promise<RefreshResult> {
+  const text = rawText.trim();
+  if (!text) return noChange('empty summary from model');
+  const { profile, gists } = parseBatchSummary(text, conversationIds.length);
+
   const { error: profileError } = await db
     .from('contacts')
     .update({ summary: profile })
     .eq('id', contactId);
   if (profileError) {
     console.error(`[care-summary] profile write failed for contact ${contactId}:`, profileError);
-    return { ...noChange('profile write failed'), marked };
+    return noChange('profile write failed');
   }
 
-  // …then gist + summarized_at per conversation. A parse-missed gist gets the
-  // degraded fallback and is STILL marked (logged, never silent) — an endless
-  // retry loop would refold the same content into the profile every night.
+  // Fallback gists need transcripts — only fetched when some gist is missing.
+  let byConv: Map<string, TranscriptMessage[]> | null = null;
+  if (gists.some((g) => !g)) {
+    const { data } = await db
+      .from('messages')
+      .select('conversation_id, role, content, created_at')
+      .in('conversation_id', conversationIds)
+      .order('created_at', { ascending: true });
+    byConv = new Map();
+    for (const m of (data ?? []) as TranscriptMessage[]) {
+      const list = byConv.get(m.conversation_id) ?? [];
+      list.push(m);
+      byConv.set(m.conversation_id, list);
+    }
+  }
+
   const nowIso = new Date().toISOString();
   const gistById = new Map<string, string>();
   let processed = 0;
-  for (let i = 0; i < speaking.length; i++) {
-    const conv = speaking[i];
+  for (let i = 0; i < conversationIds.length; i++) {
+    const convId = conversationIds[i];
     let gist = gists[i];
     if (!gist) {
       console.error(
-        `[care-summary] gist missing in model output for conversation ${conv.id} (contact ${contactId}); using fallback`
+        `[care-summary] gist missing in model output for conversation ${convId} (contact ${contactId}); using fallback`
       );
-      gist = fallbackGist(byConv.get(conv.id) ?? []);
+      gist = fallbackGist(byConv?.get(convId) ?? []);
     }
     const { error: markError } = await db
       .from('conversations')
       .update({ summary: gist, summarized_at: nowIso })
-      .eq('id', conv.id);
+      .eq('id', convId);
     if (markError) {
-      console.error(`[care-summary] gist write failed for conversation ${conv.id}:`, markError);
+      console.error(`[care-summary] gist write failed for conversation ${convId}:`, markError);
       continue;
     }
-    gistById.set(conv.id, gist);
+    gistById.set(convId, gist);
     processed++;
   }
 
@@ -317,8 +349,48 @@ export async function refreshContactSummaries(
     profileUpdatedAt: nowIso,
     gists: gistById,
     processed,
-    marked,
+    marked: 0,
   };
+}
+
+// ── Synchronous refresh (takeover + self-heal) ───────────────────────────────
+// Regenerate ONE contact's rolling profile from its pending conversations:
+// prepare → one Claude call → apply. Strictly scoped: every query filters on
+// this contact's id, so no other contact's messages can ever enter the prompt.
+export async function refreshContactSummaries(
+  db: Db,
+  contactId: string,
+  opts: RefreshOptions = {}
+): Promise<RefreshResult> {
+  if (opts.throttled) {
+    const last = lastHealAttempt.get(contactId) ?? 0;
+    if (Date.now() - last < HEAL_THROTTLE_MS) return noChange();
+    lastHealAttempt.set(contactId, Date.now());
+  }
+
+  const { prepared, marked, error } = await prepareContactFold(db, contactId, opts);
+  if (error) return { ...noChange(error), marked };
+  if (!prepared) return { ...noChange(), marked };
+
+  // One Claude call → evolving profile + numbered gists. Empty output leaves
+  // everything unmarked for a retry (never blank the profile).
+  let text: string;
+  try {
+    const result = await anthropic.messages.create({
+      model: SUMMARY_MODEL,
+      max_tokens: prepared.maxTokens,
+      messages: [{ role: 'user', content: prepared.prompt }],
+    });
+    const textPart = result.content.find((b) => b.type === 'text');
+    text = textPart && textPart.type === 'text' ? textPart.text.trim() : '';
+    if (!text) throw new Error('empty summary from model');
+  } catch (e) {
+    console.error(`[care-summary] model call failed for contact ${contactId}:`, e);
+    return { ...noChange('model call failed'), marked };
+  }
+
+  const applied = await applyFoldOutput(db, contactId, prepared.conversationIds, text);
+  return { ...applied, marked: applied.marked + marked };
 }
 
 // ── Staleness probe (conversation-detail GET) ────────────────────────────────
