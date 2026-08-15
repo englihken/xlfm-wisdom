@@ -1,0 +1,145 @@
+// i18n part: 复盘队列 + 月度回顾 (P1 quality loop, 智慧问答 module)
+const zh = {
+  'review.moduleTitle': '智慧问答 · 复盘',
+  'review.tabQueue': '复盘队列',
+  'review.tabMonthly': '月度回顾',
+  'review.backToChat': '← 返回对话',
+  'review.queueLink': '复盘',
+  'review.loading': '加载中…',
+  'review.loadFailed': '无法加载复盘数据',
+
+  // ── queue list ──────────────────────────────────────────────────────────────
+  'review.empty': '暂无待复盘条目 🎉',
+  'review.openCount': '{n} 条待复盘',
+  'review.colDate': '日期',
+  'review.colCategory': '分类',
+  'review.colQuestionKey': '主题',
+  'review.colReason': '原因',
+  'review.colHint': '改进建议',
+  'review.openConversation': '查看对话',
+  'review.emotionalHeavy': '情绪沉重',
+  'review.emotionalLight': '情绪明显',
+  'review.uncategorized': '未分类',
+
+  // ── actions ────────────────────────────────────────────────────────────────
+  'review.dismiss': '没问题',
+  'review.handle': '已处理',
+  'review.dismissReasonLabel': '忽略原因（必填）',
+  'review.dismissReasonPlaceholder': '为什么这条不需要跟进？',
+  'review.dismissConfirm': '确认忽略',
+  'review.cancel': '取消',
+  'review.actionFailed': '操作失败，请重试',
+
+  // ── unanswered alarm banner ────────────────────────────────────────────────
+  'review.unansweredBanner': '⚠️ 昨日有 {n} 个对话未获回复 — 检查 API 余额',
+  'review.unansweredToday': '今日暂计 {n} 个未回复',
+
+  // ── monthly tab ────────────────────────────────────────────────────────────
+  'review.month': '月份',
+  'review.volume': '对话量',
+  'review.reviewed': '已复盘',
+  'review.niRate': '待改进率',
+  'review.heavy': '情绪沉重对话',
+  'review.unanswered': '未回复对话',
+  'review.categoryMix': '分类分布',
+  'review.topKeys': '高频主题',
+  'review.notReviewedYet': '该月尚无复盘数据',
+  'review.vsPrev': '上月 {value}',
+  'review.monthEmpty': '该月暂无对话',
+};
+
+export const reviewPart: {
+  zh: typeof zh;
+  en: Record<keyof typeof zh, string>;
+  id: Record<keyof typeof zh, string>;
+} = {
+  zh,
+  en: {
+    'review.moduleTitle': 'Wisdom Q&A · Review',
+    'review.tabQueue': 'Review queue',
+    'review.tabMonthly': 'Monthly review',
+    'review.backToChat': '← Back to conversations',
+    'review.queueLink': 'Review',
+    'review.loading': 'Loading…',
+    'review.loadFailed': 'Failed to load review data',
+
+    'review.empty': 'Nothing to review 🎉',
+    'review.openCount': '{n} open item(s)',
+    'review.colDate': 'Date',
+    'review.colCategory': 'Category',
+    'review.colQuestionKey': 'Topic',
+    'review.colReason': 'Reason',
+    'review.colHint': 'Improvement hint',
+    'review.openConversation': 'Open conversation',
+    'review.emotionalHeavy': 'Emotionally heavy',
+    'review.emotionalLight': 'Emotionally notable',
+    'review.uncategorized': 'Uncategorized',
+
+    'review.dismiss': 'No issue',
+    'review.handle': 'Handled',
+    'review.dismissReasonLabel': 'Dismiss reason (required)',
+    'review.dismissReasonPlaceholder': 'Why does this item need no follow-up?',
+    'review.dismissConfirm': 'Confirm dismiss',
+    'review.cancel': 'Cancel',
+    'review.actionFailed': 'Action failed, please retry',
+
+    'review.unansweredBanner': '⚠️ {n} conversation(s) got no reply yesterday — check API balance',
+    'review.unansweredToday': '{n} unanswered so far today',
+
+    'review.month': 'Month',
+    'review.volume': 'Conversations',
+    'review.reviewed': 'Reviewed',
+    'review.niRate': 'Needs-improvement rate',
+    'review.heavy': 'Emotionally heavy',
+    'review.unanswered': 'Unanswered',
+    'review.categoryMix': 'Category mix',
+    'review.topKeys': 'Top topics',
+    'review.notReviewedYet': 'No reviews for this month yet',
+    'review.vsPrev': 'prev. {value}',
+    'review.monthEmpty': 'No conversations this month',
+  },
+  id: {
+    'review.moduleTitle': 'Tanya Jawab · Tinjauan',
+    'review.tabQueue': 'Antrean tinjauan',
+    'review.tabMonthly': 'Tinjauan bulanan',
+    'review.backToChat': '← Kembali ke percakapan',
+    'review.queueLink': 'Tinjauan',
+    'review.loading': 'Memuat…',
+    'review.loadFailed': 'Gagal memuat data tinjauan',
+
+    'review.empty': 'Tidak ada yang perlu ditinjau 🎉',
+    'review.openCount': '{n} item terbuka',
+    'review.colDate': 'Tanggal',
+    'review.colCategory': 'Kategori',
+    'review.colQuestionKey': 'Topik',
+    'review.colReason': 'Alasan',
+    'review.colHint': 'Saran perbaikan',
+    'review.openConversation': 'Buka percakapan',
+    'review.emotionalHeavy': 'Emosi berat',
+    'review.emotionalLight': 'Emosi terlihat',
+    'review.uncategorized': 'Tanpa kategori',
+
+    'review.dismiss': 'Tidak masalah',
+    'review.handle': 'Sudah ditangani',
+    'review.dismissReasonLabel': 'Alasan pengabaian (wajib)',
+    'review.dismissReasonPlaceholder': 'Mengapa item ini tidak perlu ditindaklanjuti?',
+    'review.dismissConfirm': 'Konfirmasi abaikan',
+    'review.cancel': 'Batal',
+    'review.actionFailed': 'Tindakan gagal, silakan coba lagi',
+
+    'review.unansweredBanner': '⚠️ {n} percakapan tanpa balasan kemarin — periksa saldo API',
+    'review.unansweredToday': '{n} belum terbalas hari ini',
+
+    'review.month': 'Bulan',
+    'review.volume': 'Percakapan',
+    'review.reviewed': 'Ditinjau',
+    'review.niRate': 'Tingkat perlu perbaikan',
+    'review.heavy': 'Emosi berat',
+    'review.unanswered': 'Tanpa balasan',
+    'review.categoryMix': 'Distribusi kategori',
+    'review.topKeys': 'Topik teratas',
+    'review.notReviewedYet': 'Belum ada tinjauan untuk bulan ini',
+    'review.vsPrev': 'bln. lalu {value}',
+    'review.monthEmpty': 'Tidak ada percakapan bulan ini',
+  },
+};

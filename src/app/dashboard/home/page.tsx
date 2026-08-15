@@ -74,6 +74,11 @@ export default function HubPage() {
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [gate, setGate] = useState<'checking' | 'ok'>('checking');
   const [data, setData] = useState<HomeData | null>(null);
+  // P1 §1.3 unanswered alarm (care users only; null until loaded).
+  const [unanswered, setUnanswered] = useState<{
+    unansweredYesterday: number;
+    unansweredToday: number;
+  } | null>(null);
 
   const forceSignOut = useCallback(async () => {
     await signOutEverywhere();
@@ -154,6 +159,22 @@ export default function HubPage() {
     };
   }, [gate]);
 
+  // P1 §1.3 unanswered alarm for care users (the endpoint 403s for anyone else —
+  // the catch keeps that silent and the banner simply never renders).
+  useEffect(() => {
+    if (gate !== 'ok' || !grantAllows(me?.grants, 'care', 'view')) return;
+    let active = true;
+    fetch('/api/dashboard/reviews?meta=1')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (active && j) setUnanswered(j as { unansweredYesterday: number; unansweredToday: number });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [gate, me]);
+
   const handleLogout = async () => {
     await forceSignOut();
     router.refresh();
@@ -202,6 +223,17 @@ export default function HubPage() {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* 2b. P1 §1.3 — unanswered alarm strip (care users). Same visual
+              weight as the crisis strip: yesterday's visitors got NO reply. */}
+          {unanswered && unanswered.unansweredYesterday > 0 && (
+            <Link href="/dashboard" className="block rounded-xl px-4 py-3 bg-red-700 text-white text-sm font-medium hover:bg-red-800">
+              {t('review.unansweredBanner', { n: unanswered.unansweredYesterday })}
+              {unanswered.unansweredToday > 0 && (
+                <span className="ml-2 text-xs opacity-80">{t('review.unansweredToday', { n: unanswered.unansweredToday })}</span>
+              )}
+            </Link>
           )}
 
           {/* 3. crisis strip */}

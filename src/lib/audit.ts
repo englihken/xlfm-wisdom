@@ -58,6 +58,9 @@ export type AuditAction =
   | 'care.reply'
   | 'care.handback'
   | 'care.contact_update'
+  // P1 复盘队列 dispositions (conversation_reviews, migration 043).
+  | 'review_dismissed'
+  | 'review_handled'
   | 'password_changed';
 
 export async function writeAudit(entry: {

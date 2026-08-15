@@ -308,20 +308,49 @@ export async function classifyConversation(
   }
 }
 
+// ── Crisis-protocol reply detection (P1 §1.4) ────────────────────────────────
+// The crisis four-step protocol (system-prompt.ts 第十部分) instructs the model
+// to hand out these exact hotline identifiers. A normal reply never mentions
+// them, so their presence in an ASSISTANT turn is a mechanical (non-fuzzy)
+// signal that the reply activated the protocol. Matching is done on a
+// whitespace/dash-stripped lowercase form so "03-7627 2929" == "03 7627 2929".
+const CRISIS_REPLY_MARKERS = ['befrienders', '0376272929', 'taliankasih', '15999'];
+
+export function replyActivatesCrisisProtocol(text: string): boolean {
+  const normalized = text.toLowerCase().replace(/[\s-]+/g, '');
+  return CRISIS_REPLY_MARKERS.some((m) => normalized.includes(m));
+}
+
 // Classify a conversation and persist the category + crisis overlay onto its row.
 // Fully fail-safe (no-ops without storage, never throws). Shared by the web chat
 // and WhatsApp so the post-reply tagging behaves identically on both channels.
+//
+// crisis_flag: the classifier's judgement OR-ed with the mechanical protocol
+// detection over every assistant turn in the transcript (P1 §1.4) — a reply
+// that handed out a crisis hotline marks the conversation even if the cheap
+// classifier misses it, and re-tagging on a later calm message can't erase a
+// protocol activation earlier in the same transcript. Crisis conversations are
+// thereby excluded from the nightly review pass (eligibility: crisis_flag=false).
 export async function classifyAndSaveCategory(
   conversationId: string,
   messages: CareMessage[]
 ): Promise<void> {
   if (!supabaseAdmin) return;
   try {
+    const mechanicalCrisis = messages.some(
+      (m) => m.role === 'assistant' && replyActivatesCrisisProtocol(m.content)
+    );
     const tag = await classifyConversation(messages);
     if (tag) {
       await supabaseAdmin
         .from('conversations')
-        .update({ category: tag.category, crisis_flag: tag.crisis_flag })
+        .update({ category: tag.category, crisis_flag: tag.crisis_flag || mechanicalCrisis })
+        .eq('id', conversationId);
+    } else if (mechanicalCrisis) {
+      // Classifier failed but the protocol trip is certain — persist the flag alone.
+      await supabaseAdmin
+        .from('conversations')
+        .update({ crisis_flag: true })
         .eq('id', conversationId);
     }
   } catch (e) {

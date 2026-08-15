@@ -8,6 +8,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, Fragment, type ChangeEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient, signOutEverywhere } from '@/lib/supabase-browser';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
@@ -203,6 +204,13 @@ export default function DashboardPage() {
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // P1 quality loop: 复盘 open-count badge + the unanswered alarm banner.
+  const [reviewMeta, setReviewMeta] = useState<{
+    openCount: number;
+    unansweredYesterday: number;
+    unansweredToday: number;
+  } | null>(null);
+
   // Ignore stale list responses when search + polling races overlap.
   const listReqRef = useRef(0);
   // Latest selected id, read inside the polling closure without re-arming it.
@@ -345,6 +353,30 @@ export default function DashboardPage() {
       /* ignore — the next poll will retry */
     }
   }, []);
+
+  // P1: load the 复盘 badge + unanswered alarm once past the auth gate (light —
+  // one counts-only call; the numbers change nightly, no polling needed).
+  useEffect(() => {
+    if (checking) return;
+    fetch('/api/dashboard/reviews?meta=1')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json) setReviewMeta(json);
+      })
+      .catch(() => {});
+  }, [checking]);
+
+  // Deep-link from the 复盘队列: /dashboard?conversation=<id> opens that thread.
+  // window.location (not useSearchParams) — client-only read, no Suspense needed.
+  useEffect(() => {
+    if (checking) return;
+    const deepLinkId = new URLSearchParams(window.location.search).get('conversation');
+    if (deepLinkId) {
+      setSelectedId(deepLinkId);
+      setDetailLoading(true);
+      markRead(deepLinkId);
+    }
+  }, [checking, markRead]);
 
   // Debounce the search field (300ms) into `query`. setState lives in the timeout
   // callback, never synchronously in the effect body.
@@ -580,6 +612,21 @@ export default function DashboardPage() {
 
       <DashboardNav role={me?.role ?? 'volunteer'} active="inbox" grants={me?.grants} />
 
+      {/* P1 §1.3 — unanswered alarm: visitors wrote yesterday and nobody (AI or
+          volunteer) replied. Computed live server-side, so it clears on its own. */}
+      {reviewMeta && reviewMeta.unansweredYesterday > 0 && (
+        <div className="shrink-0 bg-red-700 text-white text-sm px-5 py-2 flex items-center gap-3">
+          <span className="font-medium">
+            {t('review.unansweredBanner', { n: reviewMeta.unansweredYesterday })}
+          </span>
+          {reviewMeta.unansweredToday > 0 && (
+            <span className="text-xs opacity-80">
+              {t('review.unansweredToday', { n: reviewMeta.unansweredToday })}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* THREE PANELS */}
       <div className="flex-1 flex min-h-0">
         {/* LEFT — search + conversation list */}
@@ -595,7 +642,7 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* FILTER TABS */}
+          {/* FILTER TABS + 复盘 link (open-count badge) */}
           <div className="shrink-0 px-3 py-2 border-b border-border flex items-center gap-1">
             {([['all', t('care.filterAll')], ['mine', t('care.filterMine')]] as const).map(([f, label]) => (
               <button
@@ -610,6 +657,17 @@ export default function DashboardPage() {
                 {label}
               </button>
             ))}
+            <Link
+              href="/dashboard/review"
+              className="ml-auto px-3 py-1 rounded-full text-xs text-ink-muted hover:bg-accent/5 transition"
+            >
+              {t('review.queueLink')}
+              {reviewMeta && reviewMeta.openCount > 0 && (
+                <span className="ml-1 inline-block min-w-[18px] text-center px-1 rounded-full bg-red-700 text-white text-[10.5px]">
+                  {reviewMeta.openCount}
+                </span>
+              )}
+            </Link>
           </div>
 
           {/* LIST (scrolls; day headers stick within this container) */}

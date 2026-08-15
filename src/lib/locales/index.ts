@@ -34,12 +34,14 @@ import { settingsPart } from './parts/settings';
 import { inboxVocabPart } from './parts/inboxvocab';
 import { financeVocabPart } from './parts/financevocab';
 import { eventsVocabPart } from './parts/eventsvocab';
+import { reviewPart } from './parts/review';
 
 export const zh = {
   ...zhCore,
   ...loginPart.zh,
   ...cockpitPart.zh,
   ...carePart.zh,
+  ...reviewPart.zh,
   ...inboxuiPart.zh,
   ...durenPart.zh,
   ...membersPart.zh,
@@ -62,6 +64,7 @@ export const en = {
   ...loginPart.en,
   ...cockpitPart.en,
   ...carePart.en,
+  ...reviewPart.en,
   ...inboxuiPart.en,
   ...durenPart.en,
   ...membersPart.en,
@@ -84,6 +87,7 @@ export const id = {
   ...loginPart.id,
   ...cockpitPart.id,
   ...carePart.id,
+  ...reviewPart.id,
   ...inboxuiPart.id,
   ...durenPart.id,
   ...membersPart.id,
