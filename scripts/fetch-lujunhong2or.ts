@@ -35,10 +35,15 @@ const CACHE_DIR = path.join(__dirname, 'data', 'lujunhong2or-cache');
 const STATE_FILE = path.join(OUT_DIR, 'state.json');
 
 // Category names as they appear (decoded) in /wp/v2/categories; IDs are
-// resolved live by name, per the brief (currently 2047 and 2046).
+// resolved live by name, per the brief (currently 2047, 2046, 8, 3).
+// NOTE (Phase B sampling): 玄艺问答/玄艺综述 contain many posts CROSS-FILED from
+// the letters/fahui categories (same post ids) — upload-lujunhong2or.ts dedupes
+// by id with letters > fahui > wenda > zongshu precedence.
 const SOURCES = [
   { key: 'letters', file: 'letters', categoryName: '开示解答来信疑惑' },
   { key: 'fahui', file: 'fahui-qa', categoryName: '法会弟子提问' },
+  { key: 'wenda', file: 'wenda', categoryName: '玄艺问答' },
+  { key: 'zongshu', file: 'zongshu', categoryName: '玄艺综述' },
 ] as const;
 
 interface State {

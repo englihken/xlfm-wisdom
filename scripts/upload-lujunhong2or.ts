@@ -13,12 +13,23 @@
 //
 //   npx tsx scripts/upload-lujunhong2or.ts             # parse + upload
 //   npx tsx scripts/upload-lujunhong2or.ts --dry-run   # parse + report only
+//   npx tsx scripts/upload-lujunhong2or.ts --only=wenda,zongshu
+//     Upload only the named sources (skips re-embedding the others). ALL
+//     sources are still parsed first so the cross-category id-dedupe stays
+//     identical to a full run.
 
 import { Pinecone } from '@pinecone-database/pinecone';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
-import { parsePosts, extractOriginalDate, WpPost, SourceKind } from './lujunhong2or-parse';
+import {
+  parsePosts,
+  parseTranscriptPosts,
+  extractOriginalDate,
+  extractDateLoose,
+  WpPost,
+  SourceKind,
+} from './lujunhong2or-parse';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config({ path: '.env' });
@@ -28,12 +39,18 @@ const SRC_DIR = path.join(__dirname, '..', 'corpus-sources', 'lujunhong2or');
 const BATCH_SIZE = 90; // Pinecone integrated-inference upsert caps at 96 records
 const BATCH_DELAY_MS = 500;
 
+// Order matters: dedupe precedence. 玄艺问答/玄艺综述 contain many posts
+// CROSS-FILED from the letters/fahui categories (same WP post id) — a post is
+// uploaded ONLY under the first source that carries it, so cross-filed posts
+// keep their letters_/fahui_ ids and are skipped (logged) in wenda/zongshu.
 const SOURCES: {
   kind: SourceKind;
   filePrefix: string;
   book: string;
-  type: 'letter_qa' | 'fahui_qa';
+  type: 'letter_qa' | 'fahui_qa' | 'case_qa';
   category: string;
+  mode: 'letters' | 'transcript';
+  dateOf: (title: string) => string | null;
 }[] = [
   {
     kind: 'letters',
@@ -41,6 +58,8 @@ const SOURCES: {
     book: '解答来信疑惑',
     type: 'letter_qa',
     category: '开示解答来信疑惑',
+    mode: 'letters',
+    dateOf: extractOriginalDate,
   },
   {
     kind: 'fahui',
@@ -48,6 +67,28 @@ const SOURCES: {
     book: '法会弟子提问',
     type: 'fahui_qa',
     category: '法会弟子提问',
+    mode: 'letters',
+    dateOf: extractOriginalDate,
+  },
+  // Phase B — radio-program transcripts; type='case_qa' for BOTH (brief 2.3).
+  // Broadcast date comes loose from the title (《玄艺问答》节目2010年6月11日).
+  {
+    kind: 'wenda',
+    filePrefix: 'wenda-',
+    book: '玄艺问答',
+    type: 'case_qa',
+    category: '玄艺问答',
+    mode: 'transcript',
+    dateOf: extractDateLoose,
+  },
+  {
+    kind: 'zongshu',
+    filePrefix: 'zongshu-',
+    book: '玄艺综述',
+    type: 'case_qa',
+    category: '玄艺综述',
+    mode: 'transcript',
+    dateOf: extractDateLoose,
   },
 ];
 
@@ -75,20 +116,34 @@ function loadPosts(filePrefix: string): WpPost[] {
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
+  const onlyArg = process.argv.find((a) => a.startsWith('--only='));
+  const only = onlyArg ? new Set(onlyArg.slice('--only='.length).split(',')) : null;
 
   const allRecords: Record<string, unknown>[] = [];
+  const seenPostIds = new Set<number>(); // cross-category dedupe (precedence = SOURCES order)
   for (const src of SOURCES) {
     console.log(`\n=== ${src.category} ===`);
-    const posts = loadPosts(src.filePrefix);
-    const { chunks, unparseable, warnings, perPost } = parsePosts(posts, src.kind);
-    console.log(`  posts: ${posts.length} · parsed: ${perPost.size} · pairs: ${chunks.length} · unparseable: ${unparseable.length}`);
+    const allPosts = loadPosts(src.filePrefix);
+    const posts = allPosts.filter((p) => !seenPostIds.has(p.id));
+    const crossFiled = allPosts.length - posts.length;
+    for (const p of posts) seenPostIds.add(p.id);
+    const parse = src.mode === 'transcript' ? parseTranscriptPosts : parsePosts;
+    const { chunks, unparseable, warnings, perPost } = parse(posts, src.kind);
+    console.log(
+      `  posts: ${allPosts.length} · cross-filed skipped: ${crossFiled} · parsed: ${perPost.size} · pairs: ${chunks.length} · unparseable: ${unparseable.length}`
+    );
     for (const w of warnings) console.warn(`  [warn] ${w}`);
     for (const u of unparseable) console.error(`  [UNPARSEABLE] post ${u.postId} "${u.title}": ${u.reason}`);
+
+    if (only && !only.has(src.kind)) {
+      console.log(`  (--only: parsed for dedupe, records skipped)`);
+      continue;
+    }
 
     const postById = new Map(posts.map((p) => [p.id, p]));
     for (const c of chunks) {
       const post = postById.get(c.postId)!;
-      const originalDate = extractOriginalDate(post.title.rendered);
+      const originalDate = src.dateOf(post.title.rendered);
       allRecords.push({
         _id: c.id,
         text: c.text,

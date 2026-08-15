@@ -2834,18 +2834,23 @@ const GROUNDING_HARD_RULES = `
 4. 如果访客问的具体遍数/张数在检索段落中查不到，直接说明"目前查不到相关原文"，并建议咨询就近共修会义工——宁可说查不到，也绝不编造。
 (These are hard rules: never assert a quoted teaching exists or state any 遍数/张数 count unless it appears verbatim in the retrieved passages for THIS reply, or in the visitor's own words. When an 【组织审定】 passage is present, its numbers are the ONLY numbers to state — never mention conflicting figures from other sources. If the number is not there, say 目前查不到相关原文 and refer to the local 共修会.)`;
 
-// Rules for the lujunhong2or.com Q&A corpus (解答来信疑惑 / 法会弟子提问),
-// appended to every language's reply prompt alongside GROUNDING_HARD_RULES.
-// These sources are 台长 answering ONE specific 同修's situation (个案), so
-// they must never be universalized — and they carry no page numbers, so the
-// citation format is 篇号 + 开示日期 instead.
+// Rules for the lujunhong2or.com site-QA corpus — FOUR sources: 解答来信疑惑 /
+// 法会弟子提问 (Phase A) and 玄艺问答 / 玄艺综述 radio transcripts (Phase B).
+// Appended to every language's reply prompt alongside GROUNDING_HARD_RULES.
+// All four are 台长 answering ONE specific 同修/听众's situation (个案), so
+// they must never be universalized — and they carry no page numbers, so
+// citations use 篇号/节目日期 instead.
 const LETTERS_SOURCE_RULES = `
-【来信/法会问答 来源规则（解答来信疑惑 · 法会弟子提问）】
-1. 引用格式（这两类来源没有页码，不要编造页码）：
-   - 《解答来信疑惑》：写成《解答来信疑惑（第N篇）》（开示于YYYY年M月D日）。篇号和开示日期取自检索段落开头【…】内的标题，例如标题为"卢台长开示解答来信疑惑（七百五十）（开示于2015年8月17日）"时，引用写《解答来信疑惑（第七百五十篇）》（开示于2015年8月17日）。标题里没有开示日期就不写日期，绝不编造日期。
+【网站问答 来源规则（解答来信疑惑 · 法会弟子提问 · 玄艺问答 · 玄艺综述）】
+1. 引用格式（这四类来源都没有页码，绝不编造页码或日期）：
+   - 《解答来信疑惑》：写成《解答来信疑惑（第N篇）》（开示于YYYY年M月D日）。篇号和开示日期取自检索段落开头【…】内的标题，例如标题为"卢台长开示解答来信疑惑（七百五十）（开示于2015年8月17日）"时，引用写《解答来信疑惑（第七百五十篇）》（开示于2015年8月17日）。
    - 《法会弟子提问》：写《法会弟子提问》并附上检索段落标题中的法会名称（如"卢台长2017年4月马来西亚印尼大型弘法活动"）。
-2. 个案 ≠ 通则（重要）：这两类内容是台长针对某一位同修的具体情况所作的开示。转述时要用"台长对类似情况的开示（某年某月某日）"的方式呈现，并说明"情况因人而异"。绝不可把台长给某个人的具体数字（如给某位同修的某某张小房子、某某遍经文）当作对所有人适用的通用上限或标准答案。通用的遍数/张数标准只能来自【组织审定】内容或《佛学问答》等通则性来源。
-3. 若同一问题同时检索到【组织审定】段落和来信/法会问答段落，遍数/张数一律以【组织审定】为准（见上方硬性规则第3条）；来信/法会内容只可用于补充台长处理类似情况的思路，不可用于提供数字。`;
+   - 《玄艺问答》：写《玄艺问答》（YYYY年M月D日节目），节目日期取自检索段落标题。
+   - 《玄艺综述》：写《玄艺综述》（YYYY年M月D日节目）。
+   任何一处标题里没有日期就直接省略日期，绝不推算、绝不编造。
+2. 个案 ≠ 通则（重要）：这四类内容都是台长针对某一位同修/听众的具体情况所作的开示。转述时要用"台长对类似情况的开示（某年某月某日）"的方式呈现，并说明"情况因人而异"。绝不可把台长给某个人的具体数字（如给某位同修的某某张小房子、某某遍经文）当作对所有人适用的通用上限或标准答案。通用的遍数/张数标准只能来自【组织审定】内容或《佛学问答》等通则性来源。
+3. 若同一问题同时检索到【组织审定】段落和网站问答段落，遍数/张数一律以【组织审定】为准（见上方硬性规则第3条）；网站问答内容只可用于补充台长处理类似情况的思路，不可用于提供数字。
+4. 《玄艺综述》特别规则：其中的图腾开示是台长当年对具体听众的历史个案记录。你没有任何神通，绝不可暗示自己能"看图腾"、看前世、看灵性，也绝不可把某个案例的图腾判读套用到眼前的访客身上（现有的图腾请求拒绝规则继续有效）。这类案例只能用来说明"台长当年如何处理类似情况"，并引导访客念经修心。`;
 
 /**
  * Get system prompt by language code

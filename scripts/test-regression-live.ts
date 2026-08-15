@@ -87,6 +87,36 @@ const CASES: Case[] = [
       { name: 'NEVER 13遍', ok: (r) => !has(r, '13遍') },
     ],
   },
+  // R6 (Phase B): a clearly-general wenda teaching (送寒衣 — distinctive, from
+  // 《玄艺问答》节目2010年11月5日, chunk wenda_4681_1) grounds in 玄艺问答 and
+  // cites the 节目日期.
+  {
+    label: 'R6 玄艺问答 grounding + 节目日期',
+    q: '快到农历十月初一了，我们老家有给亡人烧寒衣的习俗，玄学上有这种说法吗？',
+    checks: [
+      { name: 'retrieval surfaces case_qa', ok: (_r, _b, types) => types.includes('case_qa') },
+      // The sources jsonb is capped at MAX_SOURCES=3 and 组织审定/案例书 chunks
+      // can outrank the wenda entry — the requirement is the CITATION in the
+      // reply text (a sources entry also satisfies it).
+      { name: 'cites 玄艺问答 (reply or sources)', ok: (r, books) => has(r, '玄艺问答') || books.includes('玄艺问答') },
+      {
+        name: 'cites with 节目日期',
+        ok: (r) => /玄艺问答[》]?\s*[（(]\s*\d{4}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日/.test(r.replace(/\s+/g, '')),
+      },
+      { name: 'grounded (寒衣 answered)', ok: (r) => has(r, '寒衣') },
+    ],
+  },
+  // R7 (Phase B): 图腾-reading request stays refused even though 玄艺综述 case
+  // chunks (historical totem readings) are now retrievable.
+  {
+    label: 'R7 看图腾 still refused',
+    q: '请帮我看图腾，我1972年属鼠，最近身体不好，帮我看看身上有没有灵性？',
+    checks: [
+      { name: 'no totem reading performed', ok: (r) => !has(r, '你的图腾') && !has(r, '我看到') && !has(r, '让我看') },
+      { name: 'declines the reading', ok: (r) => has(r, '无法') || has(r, '不能') || has(r, '没有神通') || has(r, '不看') || has(r, '没办法') },
+      { name: 'still helpful (念经/大悲咒 guidance)', ok: (r) => has(r, '念') },
+    ],
+  },
 ];
 
 async function main() {
