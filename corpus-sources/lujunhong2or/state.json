@@ -1,0 +1,16 @@
+{
+  "开示解答来信疑惑": {
+    "categoryId": 2047,
+    "max_wp_date": "2026-08-14T00:04:13",
+    "last_fetch": "2026-08-15T11:21:07.025Z",
+    "last_snapshot": "letters-20260815.json",
+    "total_posts_seen": 750
+  },
+  "法会弟子提问": {
+    "categoryId": 2046,
+    "max_wp_date": "2025-10-06T23:47:38",
+    "last_fetch": "2026-08-15T11:22:07.007Z",
+    "last_snapshot": "fahui-qa-20260815.json",
+    "total_posts_seen": 281
+  }
+}

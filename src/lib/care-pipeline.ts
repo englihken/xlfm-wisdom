@@ -194,7 +194,9 @@ export function buildSystemBlocks(
 export function buildSources(passages: RetrievedPassage[]): CareSource[] {
   const sourcesMap = new Map<string, CareSource>();
   for (const p of passages) {
-    const key = `${p.book}:${p.page_start ?? 0}`;
+    // Pageless sources (组织审定, 解答来信疑惑, 法会弟子提问) dedupe by excerpt
+    // (= doc/post title) so two different letters posts stay distinct entries.
+    const key = `${p.book}:${p.page_start ?? p.excerpt ?? 0}`;
     const existing = sourcesMap.get(key);
     if (existing) {
       existing.count++;
