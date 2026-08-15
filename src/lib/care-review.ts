@@ -27,14 +27,20 @@ export interface ReviewResult {
   emotional_weight: EmotionalWeight;
 }
 
-export type TranscriptMessage = { role: string; content: string };
+export type TranscriptSource = { book?: string; page_start?: number; page_end?: number };
+export type TranscriptMessage = { role: string; content: string; sources?: TranscriptSource[] | null };
 
 // Transcript caps: reviews read the whole conversation, but pathological
 // transcripts are trimmed to the newest turns so one conversation can't blow
-// the token budget. (7,754 messages over 1,491 backfill conversations — the
-// typical conversation is far below these caps.)
+// the token budget. ASSISTANT turns get a much larger cap than the rest: they
+// are the review subject, and the original 1200-char cap sliced complete
+// 1,800-3,000-char ENGLISH replies mid-sentence inside the review prompt —
+// the reviewer then flagged perfectly complete production replies as
+// "truncated" (P2 §5; e.g. 修行-荤素禁忌: cut at char 1171/3024 exactly where
+// the cap landed). zh replies (~300-700 chars) never hit it.
 const MAX_TURNS = 30;
-const MAX_TURN_CHARS = 1200;
+const MAX_TURN_CHARS = 1200; // user / volunteer turns
+const MAX_ASSISTANT_TURN_CHARS = 6000; // never truncate what is being judged
 
 const ROLE_LABEL: Record<string, string> = {
   user: '访客',
@@ -51,14 +57,32 @@ function wellFormed(s: string): string {
     .replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
 }
 
+// Render one assistant turn's retrieval sources ([{book, page_start…}] from
+// messages.sources) as a compact provenance line for the reviewer.
+function sourcesLine(sources: TranscriptSource[] | null | undefined): string {
+  if (!sources || sources.length === 0) return '';
+  const labels = sources
+    .filter((s) => s.book)
+    .map((s) => {
+      const pages = s.page_start
+        ? s.page_start === s.page_end || !s.page_end
+          ? ` 第${s.page_start}页`
+          : ` 第${s.page_start}-${s.page_end}页`
+        : '';
+      return `《${s.book}》${pages}`;
+    });
+  return labels.length > 0 ? `\n〔本回复的检索来源：${labels.join('、')}〕` : '';
+}
+
 export function buildReviewPrompt(messages: TranscriptMessage[]): string {
   const turns = messages.slice(-MAX_TURNS).map((m) => {
     const label = ROLE_LABEL[m.role] ?? m.role;
     const raw = wellFormed(m.content);
+    const cap = m.role === 'assistant' ? MAX_ASSISTANT_TURN_CHARS : MAX_TURN_CHARS;
     // Re-strip after truncation — slice() can split a valid surrogate pair.
-    const content =
-      raw.length > MAX_TURN_CHARS ? wellFormed(raw.slice(0, MAX_TURN_CHARS)) + '…' : raw;
-    return `${label}：${content}`;
+    const content = raw.length > cap ? wellFormed(raw.slice(0, cap)) + '…（记录截断）' : raw;
+    const srcLine = m.role === 'assistant' ? sourcesLine(m.sources) : '';
+    return `${label}：${content}${srcLine}`;
   });
 
   return `你是"心灵法门智慧问答"平台的质量审查员。以下是一段访客与 AI 助手的完整对话记录（义工=人工回复，不在审查范围，但可作上下文）。请只审查 AI 助手的回复质量。
@@ -66,6 +90,11 @@ export function buildReviewPrompt(messages: TranscriptMessage[]): string {
 ════ 对话记录 ════
 ${turns.join('\n\n')}
 ════ 记录结束 ════
+
+关于引文与出处（重要）：
+- AI 回复中的师父开示引文（"> " 引用块）在发送前已经由系统逐字机械校验过，必须与检索到的原文一字不差才能发出——引文的真实性不需要你验证。
+- 每条 AI 回复下方〔本回复的检索来源〕列出了该回复实际检索到的书目。只要来源列表存在，就不要因为"未标注具体出处/页码/日期"而扣分——那是系统层已经保证的事。
+- 你要判断的是实质问题：内容是否切题、有没有前后矛盾、语气是否得当、有没有漏答访客明确提出的问题、该承认"查不到原文"时是否承认了。
 
 评审标准（verdict）：
 - "good"：回复扎实——内容有依据、切题、语气得当、访客的问题得到了回应

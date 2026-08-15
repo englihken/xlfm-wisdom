@@ -19,6 +19,7 @@ import {
 import { supabaseAdmin } from './supabase';
 import { loadCareCategories } from './org-settings';
 import { checkDraft, stripViolations, normalizeForGuard } from './verbatim-guard';
+import { wisdomEntryIdsInPassages, incrementWisdomUseCounts } from './wisdom-sync';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -84,6 +85,13 @@ export async function generateGuardedReplyText(params: {
   const { messages, language, passages, contextBlock } = params;
   const convId = params.conversationId ?? 'unknown';
 
+  // 智库 use_count (P2 §3): a wisdom_ chunk in this reply's retrieved passages
+  // counts as a use. Fire-and-forget, service role, never blocks the reply.
+  if (supabaseAdmin) {
+    const wisdomIds = wisdomEntryIdsInPassages(passages);
+    if (wisdomIds.length > 0) void incrementWisdomUseCounts(supabaseAdmin, wisdomIds);
+  }
+
   const callModel = async (extraSystem?: string): Promise<Anthropic.Message> => {
     const system = [
       ...buildSystemBlocks(language, contextBlock),
@@ -121,6 +129,12 @@ export async function generateGuardedReplyText(params: {
   if (result.stop_reason === 'refusal') {
     console.warn('[care-pipeline] model refused; sending hand-off reply');
     return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'clean' };
+  }
+  // Observability only (P2 §5): REPLY_MAX_TOKENS=8000 is ~4x the longest reply
+  // seen in production, but a genuine cap hit should never again be diagnosable
+  // only through a reviewer complaint.
+  if (result.stop_reason === 'max_tokens') {
+    console.error(`[care-pipeline] conversation=${convId} reply hit REPLY_MAX_TOKENS — truncated mid-reply`);
   }
 
   let draft = textOf(result);

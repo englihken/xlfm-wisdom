@@ -119,7 +119,7 @@ export async function GET(req: Request) {
       try {
         const { data: msgs } = await db
           .from('messages')
-          .select('role, content')
+          .select('role, content, sources')
           .eq('conversation_id', conversationId)
           .order('created_at', { ascending: true });
         const transcript = (msgs ?? []) as TranscriptMessage[];

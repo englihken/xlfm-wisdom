@@ -8,7 +8,7 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 type Check = { name: string; ok: (reply: string, books: string[], types: string[]) => boolean };
-type Case = { label: string; q: string; checks: Check[] };
+type Case = { label: string; q: string; lang?: 'zh' | 'en' | 'id'; checks: Check[] };
 
 // Whitespace-blind contains: the model writes "21 遍" / "21遍" interchangeably.
 const has = (s: string, sub: string) => s.replace(/\s+/g, '').includes(sub.replace(/\s+/g, ''));
@@ -117,6 +117,23 @@ const CASES: Case[] = [
       { name: 'still helpful (念经/大悲咒 guidance)', ok: (r) => has(r, '念') },
     ],
   },
+  // R8 (P2 §5): the EN reply that the P1 reviewer flagged as "truncated" —
+  // the truncation was an artifact of the reviewer's own 1200-char transcript
+  // cap, but the live EN reply must demonstrably arrive complete: substantial
+  // length and a proper closing (not cut mid-word).
+  {
+    label: 'R8 EN reply complete (collagen/vegetarian)',
+    q: 'I have spondylosis and osteoporosis and my doctor requires me to take collagen as part of treatment. But I have been a vegetarian for 14 years. Can I take normal collagen?',
+    lang: 'en',
+    checks: [
+      { name: 'substantial reply (>600 chars)', ok: (r) => r.length > 600 },
+      {
+        name: 'ends cleanly (punctuation/emoji, not mid-word)',
+        ok: (r) => /[.!?。！？🙏]\s*$/.test(r.trim()),
+      },
+      { name: 'answers the vegetarian-collagen question', ok: (r) => /collagen/i.test(r) },
+    ],
+  },
 ];
 
 async function main() {
@@ -130,11 +147,12 @@ async function main() {
 
   const results = await Promise.all(
     CASES.map(async (c) => {
-      const passages = await searchRelevantTeachings(c.q, undefined, 'zh');
+      const lang = c.lang ?? 'zh';
+      const passages = await searchRelevantTeachings(c.q, undefined, lang);
       const contextBlock = formatPassagesAsContext(passages);
       const { fullText, guard } = await generateGuardedReplyText({
         messages: [{ role: 'user', content: c.q }],
-        language: 'zh',
+        language: lang,
         passages,
         contextBlock,
         conversationId: 'regression-test',

@@ -32,6 +32,41 @@ type ReviewItem = {
   conversationDate: string | null;
 };
 
+type WisdomEntry = {
+  id: string;
+  canonical_question: string;
+  variants: string | null;
+  keywords: string | null;
+  answer_guidance: string | null;
+  language: 'zh' | 'en' | 'id';
+  status: 'draft' | 'approved' | 'retired';
+  source_conversation_id: string | null;
+  source_review_id: string | null;
+  approved_at: string | null;
+  use_count: number;
+  updated_at: string;
+};
+type WisdomForm = {
+  id: string | null; // null = creating
+  canonical_question: string;
+  variants: string;
+  keywords: string;
+  answer_guidance: string;
+  language: 'zh' | 'en' | 'id';
+  sourceReviewId: string | null;
+  sourceConversationId: string | null;
+};
+const EMPTY_WISDOM_FORM: WisdomForm = {
+  id: null,
+  canonical_question: '',
+  variants: '',
+  keywords: '',
+  answer_guidance: '',
+  language: 'zh',
+  sourceReviewId: null,
+  sourceConversationId: null,
+};
+
 type MonthStats = {
   volume: number;
   categories: Record<string, number>;
@@ -75,7 +110,7 @@ export default function ReviewPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
 
-  const [tab, setTab] = useState<'queue' | 'monthly'>('queue');
+  const [tab, setTab] = useState<'queue' | 'monthly' | 'wisdom'>('queue');
 
   // queue state
   const [items, setItems] = useState<ReviewItem[]>([]);
@@ -91,6 +126,16 @@ export default function ReviewPage() {
   const [month, setMonth] = useState(currentMonthMYT());
   const [monthly, setMonthly] = useState<MonthlyData | null>(null);
   const [monthlyLoading, setMonthlyLoading] = useState(false);
+
+  // 智库 state (P2)
+  const [wisdomItems, setWisdomItems] = useState<WisdomEntry[]>([]);
+  const [wisdomCounts, setWisdomCounts] = useState({ draft: 0, approved: 0, retired: 0 });
+  const [wisdomStatus, setWisdomStatus] = useState<'all' | 'draft' | 'approved' | 'retired'>('all');
+  const [wisdomLoading, setWisdomLoading] = useState(false);
+  const [wisdomForm, setWisdomForm] = useState<WisdomForm | null>(null);
+  const [wisdomBusy, setWisdomBusy] = useState(false);
+  const [wisdomNotice, setWisdomNotice] = useState<string | null>(null);
+  const [draftingReviewId, setDraftingReviewId] = useState<string | null>(null);
 
   const forceSignOut = useCallback(async () => {
     await signOutEverywhere();
@@ -183,6 +228,121 @@ export default function ReviewPage() {
     };
   }, [me, tab, month]);
 
+  // ── 智库 (P2) ──────────────────────────────────────────────────────────────
+  const loadWisdom = useCallback(async (status: string) => {
+    setWisdomLoading(true);
+    try {
+      const res = await fetch(`/api/dashboard/wisdom?status=${status}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      setWisdomItems(json.items ?? []);
+      setWisdomCounts(json.counts ?? { draft: 0, approved: 0, retired: 0 });
+    } catch {
+      /* transient */
+    } finally {
+      setWisdomLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!me || tab !== 'wisdom') return;
+    loadWisdom(wisdomStatus);
+  }, [me, tab, wisdomStatus, loadWisdom]);
+
+  // 起草智库条目 from a queue row: prefill the form with the visitor's main
+  // question + the bot's answer as the guidance starting point (P2 §2).
+  const draftFromReview = async (item: ReviewItem) => {
+    setDraftingReviewId(item.id);
+    try {
+      const res = await fetch(`/api/dashboard/conversations/${item.conversationId}`);
+      let question = item.questionKey ?? '';
+      let guidance = '';
+      if (res.ok) {
+        const json = await res.json();
+        const msgs = (json.messages ?? []) as { role: string; content: string }[];
+        // Longest user message ≈ the substantive question; last assistant
+        // message = the answer the guidance starts from.
+        const userMsgs = msgs.filter((m) => m.role === 'user');
+        question = userMsgs.reduce((a, b) => (b.content.length > a.length ? b.content : a), question);
+        const assistantMsgs = msgs.filter((m) => m.role === 'assistant');
+        guidance = assistantMsgs.length ? assistantMsgs[assistantMsgs.length - 1].content : '';
+      }
+      setWisdomForm({
+        ...EMPTY_WISDOM_FORM,
+        canonical_question: question.slice(0, 500),
+        answer_guidance: guidance.slice(0, 8000),
+        keywords: item.questionKey ?? '',
+        sourceReviewId: item.id,
+        sourceConversationId: item.conversationId,
+      });
+      setTab('wisdom');
+    } finally {
+      setDraftingReviewId(null);
+    }
+  };
+
+  const saveWisdom = async () => {
+    if (!wisdomForm) return;
+    setWisdomBusy(true);
+    setWisdomNotice(null);
+    try {
+      const isNew = !wisdomForm.id;
+      const res = await fetch(isNew ? '/api/dashboard/wisdom' : `/api/dashboard/wisdom/${wisdomForm.id}`, {
+        method: isNew ? 'POST' : 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(isNew ? {} : { action: 'save' }),
+          canonical_question: wisdomForm.canonical_question,
+          variants: wisdomForm.variants,
+          keywords: wisdomForm.keywords,
+          answer_guidance: wisdomForm.answer_guidance,
+          language: wisdomForm.language,
+          ...(isNew
+            ? { sourceReviewId: wisdomForm.sourceReviewId, sourceConversationId: wisdomForm.sourceConversationId }
+            : {}),
+        }),
+      });
+      if (!res.ok) {
+        setWisdomNotice(t('wisdom.actionFailed'));
+        return;
+      }
+      const json = await res.json();
+      // 起草 flow: the review left the open queue as 'drafted'.
+      if (isNew && wisdomForm.sourceReviewId && json.reviewDrafted) {
+        setItems((prev) => prev.filter((i) => i.id !== wisdomForm.sourceReviewId));
+        setOpenCount((n) => Math.max(0, n - 1));
+      }
+      setWisdomForm(null);
+      setWisdomNotice(t('wisdom.saved'));
+      loadWisdom(wisdomStatus);
+    } catch {
+      setWisdomNotice(t('wisdom.actionFailed'));
+    } finally {
+      setWisdomBusy(false);
+    }
+  };
+
+  const wisdomAction = async (id: string, action: 'approve' | 'retire') => {
+    setWisdomBusy(true);
+    setWisdomNotice(null);
+    try {
+      const res = await fetch(`/api/dashboard/wisdom/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        setWisdomNotice(t('wisdom.actionFailed'));
+        return;
+      }
+      loadWisdom(wisdomStatus);
+    } catch {
+      setWisdomNotice(t('wisdom.actionFailed'));
+    } finally {
+      setWisdomBusy(false);
+    }
+  };
+
   const disposition = async (id: string, action: 'dismiss' | 'handle', reason?: string) => {
     setBusyId(id);
     setActionError(null);
@@ -219,6 +379,7 @@ export default function ReviewPage() {
   }
 
   const canEdit = grantAllows(me.grants, 'care', 'edit');
+  const isAdmin = grantAllows(me.grants, 'care', 'admin');
   const rate = (r: number | null) => (r === null ? '—' : `${(r * 100).toFixed(1)}%`);
 
   return (
@@ -238,6 +399,7 @@ export default function ReviewPage() {
                 [
                   ['queue', t('review.tabQueue')],
                   ['monthly', t('review.tabMonthly')],
+                  ['wisdom', t('wisdom.tab')],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -320,6 +482,13 @@ export default function ReviewPage() {
                           className="px-3 py-1 rounded-full text-xs bg-accent/10 text-accent-deep font-medium hover:bg-accent/20 disabled:opacity-50"
                         >
                           {t('review.handle')}
+                        </button>
+                        <button
+                          onClick={() => draftFromReview(item)}
+                          disabled={draftingReviewId === item.id}
+                          className="px-3 py-1 rounded-full text-xs border border-gold-border text-accent-deep hover:bg-accent/5 disabled:opacity-50"
+                        >
+                          ✍️ {t('wisdom.draft')}
                         </button>
                       </div>
                     )}
@@ -430,6 +599,200 @@ export default function ReviewPage() {
                     )}
                   </div>
                 </>
+              )}
+            </section>
+          )}
+          {tab === 'wisdom' && (
+            <section className="space-y-4">
+              {/* status filter + new-entry */}
+              <div className="flex items-center gap-1 flex-wrap">
+                {(
+                  [
+                    ['all', t('wisdom.statusAll'), null],
+                    ['draft', t('wisdom.statusDraft'), wisdomCounts.draft],
+                    ['approved', t('wisdom.statusApproved'), wisdomCounts.approved],
+                    ['retired', t('wisdom.statusRetired'), wisdomCounts.retired],
+                  ] as const
+                ).map(([key, label, count]) => (
+                  <button
+                    key={key}
+                    onClick={() => setWisdomStatus(key)}
+                    className={`px-3 py-1 rounded-full text-xs transition ${
+                      wisdomStatus === key
+                        ? 'bg-accent/10 text-accent-deep font-medium'
+                        : 'text-ink-muted hover:bg-accent/5'
+                    }`}
+                  >
+                    {label}
+                    {count !== null && <span className="ml-1 text-ink-faint">({count})</span>}
+                  </button>
+                ))}
+                {canEdit && (
+                  <button
+                    onClick={() => setWisdomForm({ ...EMPTY_WISDOM_FORM })}
+                    className="ml-auto px-3 py-1 rounded-full text-xs bg-accent/10 text-accent-deep font-medium hover:bg-accent/20"
+                  >
+                    {t('wisdom.new')}
+                  </button>
+                )}
+              </div>
+              {wisdomNotice && <p className="text-sm text-ink-muted">{wisdomNotice}</p>}
+
+              {/* create/edit form */}
+              {wisdomForm && (
+                <div className="rounded-xl border border-gold-border bg-surface p-4 space-y-3">
+                  {wisdomForm.sourceReviewId && (
+                    <p className="text-xs text-ink-muted">🔗 {t('wisdom.fromReview')}</p>
+                  )}
+                  <div>
+                    <label className="block text-xs text-ink-muted mb-1">{t('wisdom.fieldQuestion')} *</label>
+                    <textarea
+                      value={wisdomForm.canonical_question}
+                      onChange={(e) => setWisdomForm({ ...wisdomForm, canonical_question: e.target.value })}
+                      rows={2}
+                      className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface-soft text-ink focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-ink-muted mb-1">{t('wisdom.fieldVariants')}</label>
+                    <textarea
+                      value={wisdomForm.variants}
+                      onChange={(e) => setWisdomForm({ ...wisdomForm, variants: e.target.value })}
+                      rows={2}
+                      className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface-soft text-ink focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                  <div className="flex gap-3 flex-wrap">
+                    <div className="flex-1 min-w-[200px]">
+                      <label className="block text-xs text-ink-muted mb-1">{t('wisdom.fieldKeywords')}</label>
+                      <input
+                        value={wisdomForm.keywords}
+                        onChange={(e) => setWisdomForm({ ...wisdomForm, keywords: e.target.value })}
+                        className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface-soft text-ink focus:outline-none focus:border-accent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-ink-muted mb-1">{t('wisdom.fieldLanguage')}</label>
+                      <select
+                        value={wisdomForm.language}
+                        onChange={(e) => setWisdomForm({ ...wisdomForm, language: e.target.value as 'zh' | 'en' | 'id' })}
+                        className="text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface-soft text-ink focus:outline-none focus:border-accent"
+                      >
+                        <option value="zh">中文</option>
+                        <option value="en">English</option>
+                        <option value="id">Bahasa Indonesia</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-ink-muted mb-1">{t('wisdom.fieldGuidance')} *</label>
+                    <textarea
+                      value={wisdomForm.answer_guidance}
+                      onChange={(e) => setWisdomForm({ ...wisdomForm, answer_guidance: e.target.value })}
+                      rows={8}
+                      className="w-full text-sm px-3 py-2 border border-border-strong rounded-lg bg-surface-soft text-ink focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                  <p className="text-[11px] text-ink-faint">{t('wisdom.approveNote')}</p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={saveWisdom}
+                      disabled={wisdomBusy || !wisdomForm.canonical_question.trim() || !wisdomForm.answer_guidance.trim()}
+                      className="px-4 py-1.5 rounded-full text-sm bg-accent/10 text-accent-deep font-medium hover:bg-accent/20 disabled:opacity-50"
+                    >
+                      {t('wisdom.save')}
+                    </button>
+                    <button
+                      onClick={() => setWisdomForm(null)}
+                      className="px-4 py-1.5 rounded-full text-sm text-ink-muted hover:bg-accent/5"
+                    >
+                      {t('wisdom.cancel')}
+                    </button>
+                    {!wisdomForm.canonical_question.trim() || !wisdomForm.answer_guidance.trim() ? (
+                      <span className="text-xs text-ink-faint">{t('wisdom.requiredHint')}</span>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
+              {/* entry list */}
+              {wisdomLoading ? (
+                <p className="text-sm text-ink-muted">{t('review.loading')}</p>
+              ) : wisdomItems.length === 0 ? (
+                <p className="text-sm text-ink-muted py-8 text-center">{t('wisdom.empty')}</p>
+              ) : (
+                wisdomItems.map((entry) => (
+                  <div key={entry.id} className="rounded-xl border border-border bg-surface p-4 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full ${
+                          entry.status === 'approved'
+                            ? 'bg-accent/10 text-accent-deep'
+                            : entry.status === 'retired'
+                              ? 'bg-surface-soft text-ink-faint border border-border'
+                              : 'bg-amber-50 text-amber-800'
+                        }`}
+                      >
+                        {entry.status === 'approved'
+                          ? t('wisdom.statusApproved')
+                          : entry.status === 'retired'
+                            ? t('wisdom.statusRetired')
+                            : t('wisdom.statusDraft')}
+                      </span>
+                      <span className="text-ink-faint uppercase">{entry.language}</span>
+                      {entry.use_count > 0 && (
+                        <span className="text-ink-faint">{t('wisdom.useCount', { n: entry.use_count })}</span>
+                      )}
+                      <span className="ml-auto text-ink-faint">{mytDate(entry.updated_at)}</span>
+                    </div>
+                    <p className="text-sm font-medium text-ink">{entry.canonical_question}</p>
+                    {entry.answer_guidance && (
+                      <p className="text-sm text-ink-muted line-clamp-3 whitespace-pre-line">{entry.answer_guidance}</p>
+                    )}
+                    <div className="flex items-center gap-2 pt-1">
+                      {canEdit && (
+                        <button
+                          onClick={() =>
+                            setWisdomForm({
+                              id: entry.id,
+                              canonical_question: entry.canonical_question,
+                              variants: entry.variants ?? '',
+                              keywords: entry.keywords ?? '',
+                              answer_guidance: entry.answer_guidance ?? '',
+                              language: entry.language,
+                              sourceReviewId: null,
+                              sourceConversationId: null,
+                            })
+                          }
+                          className="px-3 py-1 rounded-full text-xs border border-border text-ink-muted hover:bg-accent/5"
+                        >
+                          {t('wisdom.edit')}
+                        </button>
+                      )}
+                      {isAdmin && entry.status !== 'approved' && (
+                        <button
+                          onClick={() => wisdomAction(entry.id, 'approve')}
+                          disabled={wisdomBusy}
+                          className="px-3 py-1 rounded-full text-xs bg-accent/10 text-accent-deep font-medium hover:bg-accent/20 disabled:opacity-50"
+                        >
+                          {t('wisdom.approve')}
+                        </button>
+                      )}
+                      {isAdmin && entry.status === 'approved' && (
+                        <button
+                          onClick={() => wisdomAction(entry.id, 'retire')}
+                          disabled={wisdomBusy}
+                          className="px-3 py-1 rounded-full text-xs border border-border text-ink-muted hover:bg-accent/5 disabled:opacity-50"
+                        >
+                          {t('wisdom.retire')}
+                        </button>
+                      )}
+                      {entry.status === 'approved' && canEdit && (
+                        <span className="text-[11px] text-ink-faint">{t('wisdom.demotedNote')}</span>
+                      )}
+                    </div>
+                  </div>
+                ))
               )}
             </section>
           )}

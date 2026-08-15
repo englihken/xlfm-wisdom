@@ -61,6 +61,11 @@ export type AuditAction =
   // P1 复盘队列 dispositions (conversation_reviews, migration 043).
   | 'review_dismissed'
   | 'review_handled'
+  // P2 智库 (wisdom_entries, migration 044). approve/retire are care-ADMIN.
+  | 'wisdom_created'
+  | 'wisdom_updated'
+  | 'wisdom_approved'
+  | 'wisdom_retired'
   | 'password_changed';
 
 export async function writeAudit(entry: {
