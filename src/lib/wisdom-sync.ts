@@ -80,9 +80,23 @@ export async function upsertWisdomRecord(entry: WisdomEntryForSync): Promise<voi
 }
 
 export async function deleteWisdomRecord(entryId: string): Promise<void> {
-  const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
-  const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
-  await index.namespace(NAMESPACE).deleteMany([wisdomRecordId(entryId)]);
+  // Raw REST, not the SDK: pinecone-js v7's deleteMany 400s against this
+  // serverless host (API-version mismatch), while POST /vectors/delete with
+  // the 2025-01 header succeeds — verified live. Deleting an absent id is a
+  // no-op 200, so the call is idempotent.
+  const host = await getHost();
+  const response = await fetch(`https://${host}/vectors/delete`, {
+    method: 'POST',
+    headers: {
+      'Api-Key': process.env.PINECONE_API_KEY!,
+      'Content-Type': 'application/json',
+      'X-Pinecone-API-Version': '2025-01',
+    },
+    body: JSON.stringify({ ids: [wisdomRecordId(entryId)], namespace: NAMESPACE }),
+  });
+  if (!response.ok) {
+    throw new Error(`wisdom delete failed: ${response.status} ${await response.text()}`);
+  }
 }
 
 // ── use_count (P2 §3) ────────────────────────────────────────────────────────
