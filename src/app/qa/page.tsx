@@ -46,7 +46,7 @@ const TRANSLATIONS = {
   zh: {
     title: '智慧问答',
     subtitle: '说出您的烦恼，这里会帮您找到方向',
-    basedOn: '基于卢台长47部著作 · 约500万字开示内容',
+    basedOn: '基于卢台长47部著作及官方网站问答存档 · 约500万字开示内容',
     free: '一切完全免费，无需注册',
     placeholder: '请输入您想问的问题...',
     sending: '正在思考...',
@@ -80,7 +80,7 @@ const TRANSLATIONS = {
   en: {
     title: 'AI Wisdom Q&A',
     subtitle: 'Share your concerns, and we will help you find direction',
-    basedOn: "Based on Master Lu's 47 volumes · ~5 million words of teachings",
+    basedOn: "Based on Master Lu's 47 volumes and the official Q&A archives · ~5 million words of teachings",
     free: 'Completely free, no registration required',
     placeholder: 'Type your question...',
     sending: 'Thinking...',
@@ -114,7 +114,7 @@ const TRANSLATIONS = {
   id: {
     title: 'Tanya Jawab Kebijaksanaan',
     subtitle: 'Ungkapkan keresahan Anda, kami akan membantu menemukan arahan',
-    basedOn: 'Berdasarkan 47 volume ajaran Master Lu · ~5 juta kata',
+    basedOn: 'Berdasarkan 47 volume ajaran Master Lu serta arsip tanya-jawab resmi · ~5 juta kata',
     free: 'Sepenuhnya gratis, tanpa pendaftaran',
     placeholder: 'Ketik pertanyaan Anda...',
     sending: 'Memikirkan...',

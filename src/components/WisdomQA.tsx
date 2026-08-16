@@ -28,7 +28,7 @@ export default function WisdomQA() {
             </h2>
 
             <p className="text-ink-body leading-loose mb-4">
-              智慧问答基于卢台长41部著作、约500万字的开示内容。不用翻书、不用搜索，说出您的烦恼，系统会自动找到最相关的开示，帮您找到方向。
+              智慧问答基于卢台长47部著作及官方网站问答存档，约500万字开示内容。不用翻书、不用搜索，说出您的烦恼，系统会自动找到最相关的开示，帮您找到方向。
             </p>
 
             <ul className="space-y-3 my-8">
@@ -48,7 +48,7 @@ export default function WisdomQA() {
 
             <Link
               href="/qa"
-              className="btn-primary px-8 py-3 font-semibold"
+              className="btn-sun px-8 py-3 font-semibold"
             >
               进入智慧问答
             </Link>
@@ -68,10 +68,10 @@ export default function WisdomQA() {
             <div className="quote-card p-5 mb-8">
               <p className="quote-card-label mb-2">师父开示</p>
               <p className="quote-card-body text-sm">
-                一个人如果心静不下来，什么事情都求不到的。求菩萨的时候要完全心静，菩萨才能听到你的声音。……先好好静下心来，人放得随和一点……
+                一个人如果心静不下来，什么事情都求不到的。求菩萨的时候要完全心静，菩萨才能听到你的声音。
               </p>
               <p className="text-xs text-label mt-3">
-                来源：《玄艺综述》2015年5月23日 · 师父原话，未经修改
+                来源：卢台长精彩节目摘录 · 玄学问答 2015年5月22日 · 师父原话，未经修改
               </p>
             </div>
 

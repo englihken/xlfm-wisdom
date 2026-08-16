@@ -38,8 +38,10 @@ export default function BaihuaFofa() {
             </div>
 
             <a
-              href="#"
-              className="btn-primary px-7 py-3 font-semibold text-sm"
+              href="https://xlfm.my/read"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-sun px-7 py-3 font-semibold text-sm"
             >
               开始阅读白话佛法
             </a>
@@ -48,14 +50,14 @@ export default function BaihuaFofa() {
           {/* Right — a thread-bound book cover (线装书) with its vertical
               title slip (题签), and a featured passage laid on the cover. */}
           <div className="flex justify-center lg:justify-end">
-            <div className="relative w-full max-w-sm aspect-[3/4] bg-gradient-to-br from-quote-bg to-[#F3E6C4] border border-gold-border rounded-sm shadow-sm">
+            <div className="relative w-full max-w-sm aspect-[3/4] bg-gradient-to-br from-butter to-[#F5D96E] border border-sun-deep/40 rounded-sm shadow-sm">
               {/* stitched spine holes along the right edge */}
               <div
-                className="absolute right-3 top-6 bottom-6 w-px border-r border-dashed border-gold-border"
+                className="absolute right-3 top-6 bottom-6 w-px border-r border-dashed border-sun-deep/50"
                 aria-hidden
               />
               {/* title slip, top-left as on a classical cover */}
-              <div className="absolute top-5 left-5 bg-surface border border-gold-border rounded-[2px] px-2.5 py-4 shadow-sm">
+              <div className="absolute top-5 left-5 bg-surface border border-sun-deep/40 rounded-[2px] px-2.5 py-4 shadow-sm">
                 <span className="v-text font-serif text-xl font-semibold text-ink tracking-[0.3em]">
                   白话佛法
                 </span>

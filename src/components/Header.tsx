@@ -13,14 +13,12 @@ const navItems = [
   { label: "智慧问答", href: "#qa" },
 ];
 
-const languages = ["中文", "EN", "ID"];
-
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeLang, setActiveLang] = useState("中文");
 
   return (
     <header className="sticky top-0 z-50 bg-bg/95 backdrop-blur-sm border-b border-border-strong">
+      <div className="h-1.5 bg-gradient-to-r from-sun via-sun-deep to-sun" aria-hidden />
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Brand — reading seal + serif wordmark */}
@@ -28,7 +26,7 @@ export default function Header() {
             <SealMark size={36} />
             <div>
               <div className="font-serif text-sm sm:text-base font-bold text-ink leading-tight tracking-wide">
-                心灵法门马来西亚
+                马来西亚卢台长心灵法门
               </div>
               <div className="u-label hidden sm:block mt-0.5">
                 Xin Ling Fa Men Malaysia
@@ -49,23 +47,16 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Language + mobile toggle */}
+          {/* The homepage itself is Chinese-only; EN/ID live in 智慧问答,
+              which is genuinely trilingual — link there instead of showing a
+              switcher that translates nothing (08-16 audit §2.3). */}
           <div className="flex items-center gap-2">
-            <div className="flex border border-border-strong rounded-full p-0.5 bg-surface">
-              {languages.map(lang => (
-                <button
-                  key={lang}
-                  onClick={() => setActiveLang(lang)}
-                  className={`px-2.5 py-1 text-xs rounded-full transition-all ${
-                    activeLang === lang
-                      ? "bg-quote-bg text-accent-deep font-semibold"
-                      : "text-ink-muted hover:text-ink"
-                  }`}
-                >
-                  {lang}
-                </button>
-              ))}
-            </div>
+            <Link
+              href="/qa"
+              className="text-xs text-ink-muted hover:text-accent-deep whitespace-nowrap px-2 py-1"
+            >
+              EN / ID<span className="hidden sm:inline"> → 智慧问答</span>
+            </Link>
 
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
