@@ -7,6 +7,7 @@ import {
   stripViolations,
   extractNumberTokens,
   normalizeForGuard,
+  chooseGuardTail,
 } from '../src/lib/verbatim-guard';
 
 let passed = 0;
@@ -39,6 +40,10 @@ assert('fullwidth digits normalize', extractNumberTokens('２１遍')[0] === '21
 assert('遍/张 units captured', extractNumberTokens('不超过49张').includes('49张'));
 assert('Chinese-numeral dates NOT tokenized', extractNumberTokens('二月十九日 观世音菩萨圣诞').length === 0);
 assert('岁 not tokenized as 遍/张', extractNumberTokens('孩子13岁').length === 0);
+assert(
+  'Traditional 張 folds to 张 (conv b119360e)',
+  JSON.stringify(extractNumberTokens('7-21張')) === JSON.stringify(['7张', '21张'])
+);
 
 console.log('— quote check —');
 {
@@ -151,6 +156,40 @@ console.log('— stripping —');
   const v = checkDraft(draft, CHUNKS, []);
   const stripped = stripViolations(draft, v);
   assert('gutted reply detectable for safe fallback', normalizeForGuard(stripped).length < 40, stripped);
+}
+
+console.log('— post-strip tail decision (08-16 contradiction bug) —');
+{
+  // The production shape: paraphrased quote (violation) + fully grounded prose
+  // numbers. After stripping, the answer keeps its counts → tail must be
+  // 'none', never the blanket numbers disclaimer.
+  const draft =
+    '初一十五礼佛大忏悔文一天不超过21遍（含功课）。\n\n师父开示：\n\n> 正常的初一十五，一天最多不可以超过21遍\n\n祝您修行顺利，多念心经对您也有帮助 🙏';
+  const opts = { canonicalTexts: [CHUNK_CANONICAL] };
+  const v = checkDraft(draft, CHUNKS, [], opts);
+  assert('paraphrased quote flagged (quote only)', v.length > 0 && v.every((x) => x.type === 'quote'), v);
+  const stripped = stripViolations(draft, v);
+  assert('grounded numbers survive stripping', extractNumberTokens(stripped).includes('21遍'), stripped);
+  assert('quote-only strip → tail none', chooseGuardTail(stripped, v) === 'none', chooseGuardTail(stripped, v));
+  assert('orphaned 师父开示： lead-in removed with its quote', !stripped.includes('师父开示'), stripped);
+}
+{
+  // Ungrounded number stripped while grounded numbers remain → scoped tail.
+  const draft =
+    '初一十五一天不超过21遍（含功课），当天没念完可以补念。\n\n另外有人说平时可以念108遍作为辅助。\n\n多念心经也有帮助，祝您顺利 🙏';
+  const v = checkDraft(draft, CHUNKS, []);
+  const stripped = stripViolations(draft, v);
+  assert('ungrounded 108遍 sentence removed', !stripped.includes('108遍'), stripped);
+  assert('grounded 21遍 kept', stripped.includes('21遍'), stripped);
+  assert('partial strip → tail partial', chooseGuardTail(stripped, v) === 'partial');
+}
+{
+  // Every number ungrounded → nothing numeric survives → blanket tail.
+  const draft = '中秋节可以念39遍，重阳节可以念59遍。\n\n此外要保持心态平和，多念心经，一切随缘，功德无量 🙏';
+  const v = checkDraft(draft, CHUNKS, []);
+  const stripped = stripViolations(draft, v);
+  assert('no numbers survive', extractNumberTokens(stripped).length === 0, stripped);
+  assert('all-numbers strip → tail blanket', chooseGuardTail(stripped, v) === 'blanket');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

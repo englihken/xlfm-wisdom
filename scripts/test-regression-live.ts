@@ -134,6 +134,19 @@ const CASES: Case[] = [
       { name: 'answers the vegetarian-collagen question', ok: (r) => /collagen/i.test(r) },
     ],
   },
+  // R9 (08-16 audit): the guard fallback must never contradict a grounded
+  // answer. Production shipped 21遍（正确，组织审定） followed by the blanket
+  // 「查不到相关原文／不敢随意告诉您数字」 tail — the R1a question must now
+  // yield the number WITHOUT any such tail (tail=none on quote-only strips).
+  {
+    label: 'R9 no contradiction tail after grounded numbers',
+    q: '初一十五礼佛大忏悔文可以念多少遍？',
+    checks: [
+      { name: 'says 21遍', ok: (r) => has(r, '21遍') },
+      { name: 'no 查不到相关原文 tail', ok: (r) => !has(r, '查不到相关原文') },
+      { name: 'no 不敢随意告诉您数字 tail', ok: (r) => !has(r, '不敢随意告诉您数字') },
+    ],
+  },
 ];
 
 async function main() {

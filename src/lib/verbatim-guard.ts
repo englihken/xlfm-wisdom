@@ -34,8 +34,10 @@ export function normalizeForGuard(s: string): string {
 
 // Light normalization for number tokenization: unify digit width, drop
 // whitespace, KEEP punctuation so ranges like 21-49遍 stay detectable.
+// Traditional 張 folds to 张 so Traditional-script replies (production conv
+// b119360e wrote 7-21張) neither bypass the check nor lose their counts.
 function normalizeForNumbers(s: string): string {
-  return s.normalize('NFKC').replace(/\s+/g, '');
+  return s.normalize('NFKC').replace(/\s+/g, '').replace(/張/g, '张');
 }
 
 // ── Number tokens ────────────────────────────────────────────────────────────
@@ -143,7 +145,14 @@ export function stripViolations(draft: string, violations: GuardViolation[]): st
       const skeleton = normalizeForGuard(quoteMatch[1]);
       // Drop the whole quote line if any offending segment lives in it.
       const isBad = [...badQuoteSkeletons].some((bad) => bad && skeleton.includes(bad));
-      if (isBad) continue;
+      if (isBad) {
+        // Also drop an orphaned lead-in ("师父开示：") left dangling above the
+        // removed quote — production 08-16 shipped one of these.
+        let i = keptLines.length - 1;
+        while (i >= 0 && keptLines[i].trim() === '') i--;
+        if (i >= 0 && /[:：]\s*$/.test(keptLines[i].trim())) keptLines.length = i;
+        continue;
+      }
       keptLines.push(line);
       continue;
     }
@@ -164,4 +173,21 @@ export function stripViolations(draft: string, violations: GuardViolation[]): st
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+// ── Post-strip tail decision ─────────────────────────────────────────────────
+// Production 08-16 shipped a fully-grounded 21遍 answer ending in the blanket
+// 「查不到相关原文」 disclaimer: the offending content was a paraphrased QUOTE,
+// every prose number survived stripping, yet the numbers-flavoured disclaimer
+// was appended unconditionally. The tail must match what actually happened:
+//   'none'    — only quotes were stripped; the surviving prose is fully
+//               grounded, so no numbers disclaimer may be added.
+//   'partial' — number sentences were stripped but grounded numbers remain;
+//               a scoped note about the omitted items, never a blanket one.
+//   'blanket' — number sentences were stripped and no counts remain.
+export type GuardTail = 'none' | 'partial' | 'blanket';
+
+export function chooseGuardTail(stripped: string, violations: GuardViolation[]): GuardTail {
+  if (!violations.some((v) => v.type === 'number')) return 'none';
+  return extractNumberTokens(stripped).length > 0 ? 'partial' : 'blanket';
 }

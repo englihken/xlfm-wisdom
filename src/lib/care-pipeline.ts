@@ -18,7 +18,7 @@ import {
 } from './vector-search';
 import { supabaseAdmin } from './supabase';
 import { loadCareCategories } from './org-settings';
-import { checkDraft, stripViolations, normalizeForGuard } from './verbatim-guard';
+import { checkDraft, stripViolations, normalizeForGuard, chooseGuardTail } from './verbatim-guard';
 import { wisdomEntryIdsInPassages, incrementWisdomUseCounts } from './wisdom-sync';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
@@ -47,10 +47,22 @@ export const REFUSAL_REPLY: Record<Language, string> = {
 // ── Verbatim guard plumbing (anti-fabrication; see verbatim-guard.ts) ─────────
 
 // Appended to a stripped reply so the visitor knows why numbers are missing.
+// ONLY for the case where no counts survive in the reply — after correct
+// figures it would contradict them (the 08-16 production defect).
 const GUARD_DISCLAIMER: Record<Language, string> = {
   zh: '关于具体的遍数／张数，我目前查不到相关原文，不敢随意告诉您数字。建议咨询就近共修会的义工，以官方资料为准 🙏',
   en: 'I could not find the exact source text for the specific counts involved, so I would rather not quote numbers from memory. Please check with the volunteers at your nearest 共修会 for the official guidance 🙏',
   id: 'Saya tidak menemukan teks sumber untuk jumlah pastinya, jadi saya tidak berani memberikan angka. Silakan tanyakan kepada relawan di 共修会 terdekat untuk panduan resmi 🙏',
+};
+
+// Scoped note when SOME number statements were stripped but grounded counts
+// remain above. Must never read as "I found no source" — the surviving numbers
+// ARE sourced. (Deliberately avoids the 查不到相关原文 / 不敢随意告诉您数字
+// phrasing, which regression R9 asserts absent after grounded answers.)
+const GUARD_PARTIAL_DISCLAIMER: Record<Language, string> = {
+  zh: '补充说明：个别涉及遍数／张数的细节因暂未能核对到原文，已略去未写；以上写出的数字均出自检索到的官方资料。如需进一步确认，请咨询就近共修会的义工 🙏',
+  en: 'Note: one or two count-related details were left out because I could not verify them against the source texts; the numbers given above come from the retrieved official materials. For anything further, please check with the volunteers at your nearest 共修会 🙏',
+  id: 'Catatan: beberapa detail jumlah dihilangkan karena tidak dapat saya verifikasi dengan teks sumber; angka-angka di atas berasal dari materi resmi yang ditemukan. Silakan konfirmasi lebih lanjut dengan relawan di 共修会 terdekat 🙏',
 };
 
 // Full safe answer when stripping leaves nothing usable.
@@ -165,12 +177,21 @@ export async function generateGuardedReplyText(params: {
     );
   }
 
-  // Last resort: strip the offending content and disclose the gap.
+  // Last resort: strip the offending content, then choose a tail that cannot
+  // contradict what survived (08-16 defect: blanket 查不到 after correct 21遍).
   const stripped = stripViolations(draft, violations);
+  if (normalizeForGuard(stripped).length < 40) {
+    console.error(`[verbatim-guard] conversation=${convId} stripped tail=safe-reply`);
+    return { fullText: GUARD_SAFE_REPLY[language], refused: false, guard: 'stripped' };
+  }
+  const tail = chooseGuardTail(stripped, violations);
+  console.error(`[verbatim-guard] conversation=${convId} stripped tail=${tail}`);
   const fullText =
-    normalizeForGuard(stripped).length < 40
-      ? GUARD_SAFE_REPLY[language]
-      : `${stripped}\n\n${GUARD_DISCLAIMER[language]}`;
+    tail === 'none'
+      ? stripped
+      : tail === 'partial'
+        ? `${stripped}\n\n${GUARD_PARTIAL_DISCLAIMER[language]}`
+        : `${stripped}\n\n${GUARD_DISCLAIMER[language]}`;
   return { fullText, refused: false, guard: 'stripped' };
 }
 
