@@ -1,3 +1,5 @@
+import SealMark from "@/components/SealMark";
+
 const footerLinks = [
   {
     title: "修学入门",
@@ -20,21 +22,13 @@ export default function Footer() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-accent-deep flex items-center justify-center">
-                <svg
-                  viewBox="0 0 32 32"
-                  className="w-5 h-5 text-white"
-                  fill="currentColor"
-                >
-                  <path d="M16 2C14 6 10 8 8 12c-2 4-1 8 2 10s7 2 10-1c3 3 7 3 10 1s4-6 2-10C30 8 26 6 24 2c-2 4-4 6-8 6S18 6 16 2z" />
-                </svg>
-              </div>
+            <div className="flex items-center gap-3 mb-4">
+              <SealMark size={36} />
               <div>
-                <div className="text-sm font-bold text-white leading-tight">
+                <div className="font-serif text-sm font-bold text-white leading-tight tracking-wide">
                   心灵法门马来西亚
                 </div>
-                <div className="text-xs text-white/50">
+                <div className="text-xs text-white/50 mt-0.5">
                   XIN LING FA MEN MALAYSIA
                 </div>
               </div>
@@ -52,7 +46,7 @@ export default function Footer() {
           {/* Link columns */}
           {footerLinks.map(group => (
             <div key={group.title}>
-              <h3 className="text-sm font-bold text-white mb-4">
+              <h3 className="font-serif text-sm font-bold text-white mb-4 tracking-wide">
                 {group.title}
               </h3>
               <ul className="space-y-2.5">
@@ -60,7 +54,7 @@ export default function Footer() {
                   <li key={link}>
                     <a
                       href="#"
-                      className="text-sm text-white/50 hover:text-accent transition-colors"
+                      className="text-sm text-white/50 hover:text-white transition-colors"
                     >
                       {link}
                     </a>

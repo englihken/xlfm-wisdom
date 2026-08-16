@@ -1,3 +1,5 @@
+import SectionEyebrow from "@/components/SectionEyebrow";
+
 const topics = [
   "因果与人生",
   "烦恼与放下",
@@ -8,29 +10,27 @@ const topics = [
 
 export default function BaihuaFofa() {
   return (
-    <section id="wisdom" className="bg-white">
+    <section id="wisdom" className="bg-bg">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          {/* Left */}
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left copy */}
           <div>
-            <span className="text-accent text-sm tracking-wider">
-              白话佛法 · BUDDHISM IN PLAIN TERMS
-            </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ink mt-3 mb-6 leading-tight">
+            <SectionEyebrow>白话佛法</SectionEyebrow>
+            <h2 className="font-serif text-2xl sm:text-3xl lg:text-[2.4rem] font-semibold text-ink mt-6 mb-6 leading-snug tracking-wide">
               用听得懂的话，
               <br />
               明白受用一生的道理
             </h2>
 
-            <p className="text-ink/70 leading-relaxed mb-6">
+            <p className="text-ink-body leading-loose mb-8">
               白话佛法是卢台长用最通俗易懂的方式讲解深奥佛理的系列著作，涵盖人生的方方面面。不需要佛学基础，每一篇都能让您有所感悟。
             </p>
 
-            <div className="flex flex-wrap gap-2 mb-8">
+            <div className="flex flex-wrap gap-2 mb-10">
               {topics.map(topic => (
                 <span
                   key={topic}
-                  className="px-4 py-2 bg-surface-soft/70 text-accent rounded-full text-sm font-medium hover:bg-surface-soft transition-colors cursor-pointer"
+                  className="pill-gold px-4 py-1.5 rounded-full text-sm"
                 >
                   {topic}
                 </span>
@@ -39,44 +39,42 @@ export default function BaihuaFofa() {
 
             <a
               href="#"
-              className="inline-flex items-center justify-center px-7 py-3.5 btn-primary font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+              className="btn-primary px-7 py-3 font-semibold text-sm"
             >
               开始阅读白话佛法
-              <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
             </a>
           </div>
 
-          {/* Right card */}
-          <div className="bg-gradient-to-br from-surface-soft/80 to-bg rounded-2xl border border-border p-6 sm:p-8">
-            <div className="bg-white rounded-xl p-5 sm:p-6 shadow-sm border border-border mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 rounded-full bg-accent" />
-                <span className="text-xs text-accent tracking-wider">
-                  精选开示
+          {/* Right — a thread-bound book cover (线装书) with its vertical
+              title slip (题签), and a featured passage laid on the cover. */}
+          <div className="flex justify-center lg:justify-end">
+            <div className="relative w-full max-w-sm aspect-[3/4] bg-gradient-to-br from-quote-bg to-[#F3E6C4] border border-gold-border rounded-sm shadow-sm">
+              {/* stitched spine holes along the right edge */}
+              <div
+                className="absolute right-3 top-6 bottom-6 w-px border-r border-dashed border-gold-border"
+                aria-hidden
+              />
+              {/* title slip, top-left as on a classical cover */}
+              <div className="absolute top-5 left-5 bg-surface border border-gold-border rounded-[2px] px-2.5 py-4 shadow-sm">
+                <span className="v-text font-serif text-xl font-semibold text-ink tracking-[0.3em]">
+                  白话佛法
                 </span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-ink mb-3">
-                不是学道理，是学会看清自己
-              </h3>
-              <p className="text-ink/70 text-sm leading-relaxed">
-                很多人学佛学了很久，道理讲得头头是道，但生活中还是烦恼不断。因为学佛不是学道理，而是学会用佛法的智慧来看清自己的内心，改变自己的习气。
-              </p>
-            </div>
 
-            <div className="bg-white/70 rounded-xl p-5 border border-accent/15">
-              <svg
-                viewBox="0 0 24 24"
-                className="w-6 h-6 text-accent/50 mb-2"
-                fill="currentColor"
-              >
-                <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
-              </svg>
-              <blockquote className="text-ink font-medium italic leading-relaxed">
-                想得通就是开悟，没有烦恼就是有智慧。
-              </blockquote>
-              <div className="mt-2 text-xs text-accent">—— 卢军宏台长</div>
+              {/* featured passage */}
+              <div className="absolute left-5 right-8 bottom-6">
+                <p className="quote-card-label mb-2">精选开示</p>
+                <h3 className="font-serif text-lg font-semibold text-quote-ink mb-3 leading-snug">
+                  不是学道理，是学会看清自己
+                </h3>
+                <p className="text-sm text-ink-body leading-loose mb-4">
+                  学佛不是学道理，而是学会用佛法的智慧来看清自己的内心，改变自己的习气。
+                </p>
+                <p className="font-serif text-quote-ink leading-loose">
+                  「想得通就是开悟，没有烦恼就是有智慧。」
+                </p>
+                <p className="text-xs text-label mt-2">—— 卢军宏台长</p>
+              </div>
             </div>
           </div>
         </div>

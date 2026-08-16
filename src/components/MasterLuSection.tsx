@@ -1,23 +1,18 @@
+﻿import SectionEyebrow from "@/components/SectionEyebrow";
+
 export default function MasterLuSection() {
   return (
-    <section id="about" className="bg-gradient-to-b from-surface-soft to-surface-soft/60">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
-        {/* Decorative top */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="h-px w-12 bg-accent/30" />
-          <svg viewBox="0 0 24 24" className="w-5 h-5 text-accent/60" fill="currentColor">
-            <path d="M12 2L9 9H2l6 4.5L5.5 21 12 16l6.5 5L16 13.5 22 9h-7z" />
-          </svg>
-          <div className="h-px w-12 bg-accent/30" />
-        </div>
+    <section id="about" className="bg-bg">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
+        <SectionEyebrow>认识心灵法门</SectionEyebrow>
 
-        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ink mb-8 leading-tight">
+        <h2 className="font-serif text-2xl sm:text-3xl lg:text-[2.4rem] font-semibold text-ink mt-6 mb-8 leading-snug tracking-wide">
           一生无偿弘法度众，
           <br className="hidden sm:block" />
           只愿天下人离苦得乐
         </h2>
 
-        <div className="space-y-5 text-ink/80 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto">
+        <div className="space-y-5 text-ink-body text-base sm:text-lg leading-loose text-left sm:text-center">
           <p>
             卢军宏台长是心灵法门的创始人。他一生致力于弘扬佛法，以观世音菩萨的慈悲精神，无偿帮助全球数百万信众解决生活中的困难和烦恼。
           </p>
@@ -26,31 +21,24 @@ export default function MasterLuSection() {
           </p>
         </div>
 
-        {/* Quote */}
-        <div className="mt-10 bg-white/60 backdrop-blur-sm rounded-2xl p-6 sm:p-8 max-w-2xl mx-auto border border-accent/20">
-          <svg
-            viewBox="0 0 24 24"
-            className="w-8 h-8 text-accent/40 mx-auto mb-3"
-            fill="currentColor"
-          >
-            <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
-          </svg>
-          <blockquote className="text-lg sm:text-xl text-ink font-medium italic leading-relaxed">
-            台长非常非常地爱你们，希望你们每个人都要想通。
+        {/* The quote, set like a piece of calligraphy: serif, corner brackets,
+            hairline attribution. */}
+        <figure className="mt-14 mb-12">
+          <blockquote className="font-serif text-xl sm:text-2xl text-quote-ink leading-loose">
+            「台长非常非常地爱你们，
+            <br className="sm:hidden" />
+            希望你们每个人都要想通。」
           </blockquote>
-          <div className="mt-3 text-sm text-accent">—— 卢军宏台长</div>
-        </div>
+          <figcaption className="mt-5 flex items-center justify-center gap-3 text-sm text-label">
+            <span className="block w-8 h-px bg-gold-border" aria-hidden />
+            卢军宏台长
+            <span className="block w-8 h-px bg-gold-border" aria-hidden />
+          </figcaption>
+        </figure>
 
-        <p className="mt-8 text-accent font-semibold text-base sm:text-lg">
+        <p className="text-accent-deep font-serif font-semibold text-base sm:text-lg tracking-wide">
           一切书籍及资料，全部免费结缘。
         </p>
-
-        <a
-          href="#about"
-          className="inline-flex items-center justify-center mt-6 px-8 py-3.5 btn-primary font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
-        >
-          了解心灵法门
-        </a>
       </div>
     </section>
   );
