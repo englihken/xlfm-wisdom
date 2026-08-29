@@ -367,7 +367,9 @@ export async function GET() {
   // ── 系统动态 (admin only) ───────────────────────────────────────────────────
   const recentAuditP = (async () => {
     if (me.role !== 'admin') return null;
-    const { data: rows } = await db.from('audit_log').select('id, at, actor_email, action, table_name, record_id').order('id', { ascending: false }).limit(6);
+    // care.guard rows are machine decision records (one per guard trip) — they
+    // would crowd out human activity in a 6-row feed.
+    const { data: rows } = await db.from('audit_log').select('id, at, actor_email, action, table_name, record_id').neq('action', 'care.guard').order('id', { ascending: false }).limit(6);
     return (rows ?? []).map((r) => {
       const ref = r.record_id ? ` (${String(r.record_id).slice(0, 8)})` : '';
       // Parts, not a baked line: the client composes `${actor ?? t(system)} ${t(actionKey) ?? actionRaw}${ref}`

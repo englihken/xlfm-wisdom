@@ -58,6 +58,11 @@ export type AuditAction =
   | 'care.reply'
   | 'care.handback'
   | 'care.contact_update'
+  // Verbatim-guard decision record (care-pipeline.ts): one row per guarded
+  // reply the guard touched — violations + reasons, strip tail, scrubbed
+  // refusal sentences. Actor null (system). Excluded from the home 系统动态
+  // feeds (volume), visible in 系统日志 via the action filter.
+  | 'care.guard'
   // P1 复盘队列 dispositions (conversation_reviews, migration 043).
   | 'review_dismissed'
   | 'review_handled'
