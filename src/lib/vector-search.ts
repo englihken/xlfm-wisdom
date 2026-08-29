@@ -60,7 +60,8 @@ export type Topic =
   | 'karma_warning'
   | 'practice_method'
   | 'muslim_boundary'
-  | 'canonical_ritual_numbers';
+  | 'canonical_ritual_numbers'
+  | 'homework_baseline';
 
 // 组织审定 canonical rulings (type: 'canonical_ruling' in the corpus). These are
 // org-verified doctrine tables (e.g. 礼佛大忏悔文特殊日子遍数) that must BEAT
@@ -115,10 +116,16 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
   practice_method: [
     '念经', '大悲咒', '心经', '礼佛', '解结咒', '小房子', '放生',
     '许愿', '功课', '佛台', '怎么念', '多少遍',
-    // 08-29: 「念什么经好」-shaped questions (the #1 cluster: 失眠 / 家人生病)
-    // previously matched only `health`, so no 功课 baseline was in context
-    // and the reply could not state any 遍数 (see HOMEWORK_BASELINE_QUERY).
-    '什么经', '哪些经', '什么咒', '念什么', '几遍', '刚开始', '初学', '入门',
+  ],
+  // 08-29: 「念什么经好 / 功课怎么做 / 刚开始」-shaped questions (the #1
+  // cluster: 失眠 / 家人生病) previously matched only `health`, so no general
+  // 功课 baseline was in context and the reply could not state any 遍数.
+  // Deliberately NARROWER than practice_method (which fires on any 念经/心经
+  // mention): the baseline chunks carry BOOK_PRIORITY and would otherwise
+  // crowd the letter/case source out of the 3-slot sources list (R4).
+  homework_baseline: [
+    '什么经', '哪些经', '什么咒', '念什么', '几遍', '多少遍', '功课',
+    '怎么念', '刚开始', '初学', '入门', '第一步',
   ],
   // Malaysia legal red line. No dedicated retrieval collection — this topic
   // exists purely to mark the query so Section 21 of the system prompt
@@ -160,6 +167,8 @@ const TOPIC_TYPE_BOOST: Record<Topic, Record<string, number>> = {
   muslim_boundary: {},
   // Canonical docs get CANONICAL_BOOST via their type, not a topic-type boost.
   canonical_ritual_numbers: {},
+  // Baseline chunks already carry BOOK_PRIORITY (佛学问答175问 = 9).
+  homework_baseline: {},
 };
 
 export function detectTopics(query: string): Topic[] {
@@ -301,16 +310,17 @@ export async function searchRelevantTeachings(
     if (topics.includes('canonical_ritual_numbers')) {
       queries.push(pineconeSearch(query, 4, { type: { $eq: CANONICAL_TYPE } }));
     }
-    // 功课 baseline (08-29): for practice-method questions, guarantee the
-    // general daily-功课 counts from 佛学问答175问 (the 通则 source the prompt
-    // names for universal 遍数) are in context. Without this, a 失眠 question
+    // 功课 baseline (08-29): for 功课-shaped questions, guarantee the general
+    // daily-功课 counts from 佛学问答175问 (the 通则 source the prompt names
+    // for universal 遍数) are in context. Without this, a 失眠 question
     // retrieves only 疾病百科/例说 case chunks and the verbatim guard — which
     // only allows counts present in the retrieved text — leaves the reply
     // with no 遍数 to give. Fixed query text (not the visitor's), zh-only
-    // content, deliberately not language-filtered (same as canonical).
-    if (topics.includes('practice_method')) {
+    // content, deliberately not language-filtered (same as canonical). Two
+    // chunks, so the topical source keeps a slot in the 3-entry sources list.
+    if (topics.includes('homework_baseline')) {
       queries.push(
-        pineconeSearch(HOMEWORK_BASELINE_QUERY, 3, { book: { $eq: HOMEWORK_BASELINE_BOOK } })
+        pineconeSearch(HOMEWORK_BASELINE_QUERY, 2, { book: { $eq: HOMEWORK_BASELINE_BOOK } })
       );
     }
 

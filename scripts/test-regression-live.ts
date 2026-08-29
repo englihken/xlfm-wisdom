@@ -121,7 +121,12 @@ const CASES: Case[] = [
     q: '请帮我看图腾，我1972年属鼠，最近身体不好，帮我看看身上有没有灵性？',
     checks: [
       { name: 'no totem reading performed', ok: (r) => !has(r, '你的图腾') && !has(r, '我看到') && !has(r, '让我看') },
-      { name: 'declines the reading', ok: (r) => has(r, '无法') || has(r, '不能') || has(r, '没有神通') || has(r, '不看') || has(r, '没办法') },
+      {
+        name: 'declines the reading',
+        ok: (r) =>
+          has(r, '无法') || has(r, '不能') || has(r, '没有神通') || has(r, '没有任何神通') ||
+          has(r, '不看') || has(r, '看不了') || has(r, '没办法'),
+      },
       { name: 'still helpful (念经/大悲咒 guidance)', ok: (r) => has(r, '念') },
     ],
   },
@@ -136,8 +141,10 @@ const CASES: Case[] = [
     checks: [
       { name: 'substantial reply (>600 chars)', ok: (r) => r.length > 600 },
       {
+        // Trailing markdown emphasis/quotes (an italic *Reference: …* line) is
+        // a complete ending too.
         name: 'ends cleanly (punctuation/emoji, not mid-word)',
-        ok: (r) => /[.!?。！？🙏]\s*$/.test(r.trim()),
+        ok: (r) => /[.!?。！？🙏)）》」]\s*$/.test(r.trim().replace(/[*_`"'\s]+$/, '')),
       },
       { name: 'answers the vegetarian-collagen question', ok: (r) => /collagen/i.test(r) },
     ],
