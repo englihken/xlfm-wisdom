@@ -8,6 +8,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import {
   buildSources,
   classifyAndSaveCategory,
+  flagCrisisByKeywords,
   generateGuardedReplyText,
   retrievalContextFrom,
 } from '@/lib/care-pipeline';
@@ -376,6 +377,9 @@ export async function POST(req: NextRequest) {
       // burst alert decide whether Ken gets an email right now.
       generationFailed = true;
       await recordReplyFailure({ conversationId: convId, channel: 'web', error: genError });
+      // The classifier will not run for this turn — set the crisis flag from
+      // the visitor's own words so 「轻生」 during an outage still tops the inbox.
+      if (convId) await flagCrisisByKeywords(convId, messages);
       fullText = GENERATION_FAILED_REPLY[language] ?? GENERATION_FAILED_REPLY.zh;
     }
 

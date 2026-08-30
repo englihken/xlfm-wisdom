@@ -20,7 +20,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { sendWhatsAppText, formatForWhatsApp } from '@/lib/whatsapp';
-import { generateReply, classifyAndSaveCategory, type CareMessage } from '@/lib/care-pipeline';
+import { generateReply, classifyAndSaveCategory, flagCrisisByKeywords, type CareMessage } from '@/lib/care-pipeline';
 import { recordReplyFailure } from '@/lib/ops-alerts';
 import { isAiDraftEnabled } from '@/lib/org-settings';
 
@@ -239,6 +239,7 @@ async function handleInboundMessage(msg: WaMessage, contacts: WaContact[]): Prom
     // Trail + dead-letter + burst alert (brief "别再把访客弄丢"). WhatsApp
     // recoveries are handed to a volunteer (delivery lives in this route).
     await recordReplyFailure({ conversationId, channel: 'whatsapp', error: e });
+    await flagCrisisByKeywords(conversationId, convoMessages);
     await sendWhatsAppText(waId, FALLBACK_REPLY);
     return;
   }
