@@ -24,8 +24,10 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { hasOpenFailedReply, processFailedReplies } from '@/lib/reply-recovery';
 
 export const runtime = 'nodejs';
-// A recovery regeneration (Opus reply + guard) can take ~20-45 s.
-export const maxDuration = 120;
+// A recovery regeneration (Opus reply + guard retry) can take 20-120 s; the
+// 08-30 backfill drain saw one hit a 120 s ceiling (504, row stuck retrying).
+// Use the Fluid-compute ceiling so the inline recovery is never cut off.
+export const maxDuration = 300;
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -69,7 +71,7 @@ export async function GET(req: Request) {
   if (!handling) {
     try {
       if (await hasOpenFailedReply(conversationId)) {
-        const run = await processFailedReplies({ conversationId, limit: 1, budgetMs: 90_000 });
+        const run = await processFailedReplies({ conversationId, limit: 1, budgetMs: 240_000 });
         if (run.attempted > 0) console.log('[chat/updates] recovery', JSON.stringify(run));
       }
     } catch (e) {
