@@ -21,8 +21,16 @@ type ContactLite = {
   channel: string | null;
   stage: string | null;
   wa_id: string | null;
+  phone?: string | null;
 };
-type MessageLite = { content: string | null; created_at: string };
+type MessageLite = { content: string | null; created_at: string; role?: string | null };
+
+// "别再把访客弄丢" §4: a conversation whose latest message is the visitor's and
+// has waited this long with no reply of any kind is surfaced in the 未回复 tab.
+const AWAITING_REPLY_AFTER_MS = 10 * 60 * 1000;
+// Contact details typed into the message itself (phone / email / WhatsApp
+// number) — the visitor said how to reach them, so they sort first.
+const CONTACT_IN_TEXT_RE = /(\+?6?0?1\d[\d\s-]{7,10}\d)|([\w.+-]+@[\w-]+\.[\w.]+)|(wa\.me\/\d+)/i;
 type ConversationRow = {
   id: string;
   channel: string;
@@ -58,8 +66,8 @@ export async function GET(req: Request) {
     .from('conversations')
     .select(
       `id, channel, status, category, crisis_flag, assigned_volunteer, last_message_at,
-       contact:contacts ( display_name, channel, stage, wa_id ),
-       messages ( content, created_at )`
+       contact:contacts ( display_name, channel, stage, wa_id, phone ),
+       messages ( content, created_at, role )`
     )
     .order('last_message_at', { ascending: false })
     .order('created_at', { referencedTable: 'messages', ascending: false })
@@ -95,7 +103,17 @@ export async function GET(req: Request) {
       // Shared predicate (see src/lib/care-inbox.ts) so the home stats strip reuses it.
       const unread = isUnread(row.last_message_at, readMap.get(row.id) ?? null);
 
+      // Awaiting reply = the newest message is the visitor's (no AI or
+      // volunteer reply after it) and it has waited past the threshold.
+      const latestRole = row.messages?.[0]?.role ?? null;
+      const waitingSinceMs = latestRole === 'user' ? Date.now() - new Date(row.last_message_at).getTime() : 0;
+      const awaitingReply = latestRole === 'user' && waitingSinceMs >= AWAITING_REPLY_AFTER_MS && row.status !== 'volunteer_handling';
+      const hasContactInfo = Boolean(contact?.wa_id || contact?.phone) || CONTACT_IN_TEXT_RE.test(latest);
+
       const item = {
+        awaitingReply,
+        waitingSinceMs,
+        hasContactInfo,
         id: row.id,
         contactName: contact?.display_name || '匿名访客',
         channel: row.channel,

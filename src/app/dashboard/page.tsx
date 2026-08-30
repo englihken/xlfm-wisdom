@@ -34,7 +34,20 @@ type ListItem = {
   lastMessageAt: string;
   unread: boolean;
   assignedToMe: boolean;
+  // "别再把访客弄丢" §4: visitor is waiting with no reply of any kind.
+  awaitingReply?: boolean;
+  waitingSinceMs?: number;
+  hasContactInfo?: boolean;
 };
+
+// Compact "waited for" label: 12分钟 / 3小时 / 2天.
+function formatWaiting(t: TFunc, ms: number): string {
+  const min = Math.floor(ms / 60_000);
+  if (min < 60) return t('care.waitMinutes', { n: min });
+  const h = Math.floor(min / 60);
+  if (h < 48) return t('care.waitHours', { n: h });
+  return t('care.waitDays', { n: Math.floor(h / 24) });
+}
 
 type ThreadMessage = {
   id: string;
@@ -200,7 +213,7 @@ export default function DashboardPage() {
   const [query, setQuery] = useState('');
 
   // Inbox filter tab + human-takeover action state (takeover / handback).
-  const [filter, setFilter] = useState<'all' | 'mine'>('all');
+  const [filter, setFilter] = useState<'all' | 'mine' | 'unanswered'>('all');
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -598,12 +611,26 @@ export default function DashboardPage() {
 
   // Apply the filter tab, then day-group the (already newest-first) list under MYT
   // date headers.
+  // 未回复 (§4): visitors still waiting, longest wait first, contact-info first.
+  const unansweredConversations = conversations
+    .filter((c) => c.awaitingReply)
+    .sort((a, b) =>
+      Number(Boolean(b.hasContactInfo)) - Number(Boolean(a.hasContactInfo)) ||
+      (b.waitingSinceMs ?? 0) - (a.waitingSinceMs ?? 0)
+    );
   const visibleConversations =
-    filter === 'mine' ? conversations.filter((c) => c.assignedToMe) : conversations;
+    filter === 'mine'
+      ? conversations.filter((c) => c.assignedToMe)
+      : filter === 'unanswered'
+        ? unansweredConversations
+        : conversations;
   const nowMs = Date.now();
   const todayKey = mytDayKey(new Date(nowMs).toISOString());
   const yesterdayKey = mytDayKey(new Date(nowMs - 86_400_000).toISOString());
-  const dayGroups = buildDayGroups(t, visibleConversations, todayKey, yesterdayKey);
+  const dayGroups =
+    filter === 'unanswered'
+      ? [{ key: 'unanswered', label: t('care.unansweredHeader', { n: unansweredConversations.length }), items: visibleConversations }]
+      : buildDayGroups(t, visibleConversations, todayKey, yesterdayKey);
 
   return (
     <div className="h-screen flex flex-col bg-bg md:ml-[72px]">
@@ -644,7 +671,7 @@ export default function DashboardPage() {
 
           {/* FILTER TABS + 复盘 link (open-count badge) */}
           <div className="shrink-0 px-3 py-2 border-b border-border flex items-center gap-1">
-            {([['all', t('care.filterAll')], ['mine', t('care.filterMine')]] as const).map(([f, label]) => (
+            {([['all', t('care.filterAll')], ['mine', t('care.filterMine')], ['unanswered', t('care.filterUnanswered')]] as const).map(([f, label]) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -655,6 +682,11 @@ export default function DashboardPage() {
                 }`}
               >
                 {label}
+                {f === 'unanswered' && unansweredConversations.length > 0 && (
+                  <span className="ml-1 inline-block min-w-[18px] text-center px-1 rounded-full bg-red-700 text-white text-[10.5px]">
+                    {unansweredConversations.length}
+                  </span>
+                )}
               </button>
             ))}
             <Link
@@ -678,7 +710,9 @@ export default function DashboardPage() {
               <p className="p-6 text-sm text-ink-muted">
                 {filter === 'mine'
                   ? t('care.emptyMine')
-                  : query
+                  : filter === 'unanswered'
+                    ? t('care.emptyUnanswered')
+                    : query
                     ? t('care.emptySearch')
                     : t('care.emptyAll')}
               </p>
@@ -732,6 +766,16 @@ export default function DashboardPage() {
                               </span>
                               {c.crisisFlag && <CrisisTag />}
                               {c.category && <CategoryTag category={c.category} />}
+                              {c.awaitingReply && (
+                                <span className="inline-block px-2 py-0.5 rounded-full text-[10.5px] bg-[#FEF2F2] text-red-700 border border-[#FCA5A5]">
+                                  {t('care.awaitingReply', { t: formatWaiting(t, c.waitingSinceMs ?? 0) })}
+                                </span>
+                              )}
+                              {c.awaitingReply && c.hasContactInfo && (
+                                <span className="inline-block px-2 py-0.5 rounded-full text-[10.5px] pill-gold">
+                                  {t('care.hasContact')}
+                                </span>
+                              )}
                             </div>
                           </button>
                         </li>

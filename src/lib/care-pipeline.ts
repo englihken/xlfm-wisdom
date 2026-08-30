@@ -34,7 +34,11 @@ import {
 import { wisdomEntryIdsInPassages, incrementWisdomUseCounts } from './wisdom-sync';
 import { writeAudit } from './audit';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+// Fast retry (brief "别再把访客弄丢" §3, sync side): the SDK retries 408/409/429/
+// 5xx and connection errors with exponential backoff (~0.5 s → 1 s → …,
+// honouring retry-after). Two retries ≈ the 1 s / 3 s ladder asked for. A
+// 400 "credit balance is too low" is NOT retried — nothing to gain.
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY!, maxRetries: 2 });
 
 // Shared by the web chat route (imported there) and the WhatsApp channel.
 // Opus 5 runs with adaptive thinking ON by default, and thinking tokens count
@@ -396,9 +400,14 @@ export function retrievalContextFrom(history: CareMessage[]): RetrievalContext {
   };
 }
 
-// The two-block system param: the stable base prompt (hits Claude's 5-min
-// ephemeral cache across turns) + the per-query RAG context (varies, uncached).
-// Byte-identical to the array the web route used inline.
+// The two-block system param: the stable base prompt (cached) + the per-query
+// RAG context (varies, uncached). Byte-identical to the array the web route
+// used inline.
+//
+// 1-hour cache TTL (brief 08-30 §1, a cost decision): the cached prefix is
+// ~49k tokens; production sees ~35 messages/day in clusters, so the 5-minute
+// TTL missed almost every time and each miss paid 1.25× full price. 1h costs
+// 2× on write and 0.1× on read — two messages within an hour already win.
 export function buildSystemBlocks(
   language: Language,
   contextBlock: string
@@ -407,7 +416,7 @@ export function buildSystemBlocks(
     {
       type: 'text',
       text: getSystemPrompt(language),
-      cache_control: { type: 'ephemeral' },
+      cache_control: { type: 'ephemeral', ttl: '1h' },
     },
     ...(contextBlock ? [{ type: 'text' as const, text: contextBlock }] : []),
   ];

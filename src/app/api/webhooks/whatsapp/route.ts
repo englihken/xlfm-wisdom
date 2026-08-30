@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { sendWhatsAppText, formatForWhatsApp } from '@/lib/whatsapp';
 import { generateReply, classifyAndSaveCategory, type CareMessage } from '@/lib/care-pipeline';
+import { recordReplyFailure } from '@/lib/ops-alerts';
 import { isAiDraftEnabled } from '@/lib/org-settings';
 
 export const runtime = 'nodejs';
@@ -235,6 +236,9 @@ async function handleInboundMessage(msg: WaMessage, contacts: WaContact[]): Prom
     reply = await generateReply(convoMessages, 'zh', { conversationId });
   } catch (e) {
     console.error('[wa] generateReply failed:', e);
+    // Trail + dead-letter + burst alert (brief "别再把访客弄丢"). WhatsApp
+    // recoveries are handed to a volunteer (delivery lives in this route).
+    await recordReplyFailure({ conversationId, channel: 'whatsapp', error: e });
     await sendWhatsAppText(waId, FALLBACK_REPLY);
     return;
   }
@@ -256,6 +260,7 @@ async function replyAndSend(waId: string, messages: CareMessage[]): Promise<void
     await sendWhatsAppText(waId, formatForWhatsApp(fullText));
   } catch (e) {
     console.error('[wa] stateless reply failed:', e);
+    await recordReplyFailure({ conversationId: null, channel: 'whatsapp', error: e });
     await sendWhatsAppText(waId, FALLBACK_REPLY);
   }
 }

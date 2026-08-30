@@ -2,9 +2,17 @@
 // PUBLIC endpoint (no volunteer auth) — lets a /qa visitor's page poll in the
 // volunteer replies that arrive when a human takes over their conversation.
 //
-// Returns ONLY role='volunteer' messages newer than `after`, plus a `handling`
-// flag (is a human currently on this conversation) so the page can show the honest
-// indicator. No AI or user messages, no volunteer identities — just the reply text.
+// Returns role='volunteer' messages newer than `after`, plus — since the
+// "别再把访客弄丢" brief — role='assistant' messages newer than `after`, which
+// are RECOVERED replies written by the dead-letter worker after a generation
+// failure (the live reply is streamed, persisted, and its timestamp handed to
+// the client as the `after` cursor, so it is never re-delivered here). Also
+// a `handling` flag (is a human currently on this conversation). No user
+// messages, no volunteer identities — just the reply text.
+//
+// This poll (every 8 s while the visitor is on the page) is also what drives
+// recovery for THIS conversation: if a failed reply is queued and due, it is
+// regenerated inline, so the 1-minute retry lands while they are still here.
 //
 // SECURITY: this is unauthenticated, so we require BOTH the conversationId AND the
 // caller's browserId, and verify server-side that the browserId matches the
@@ -13,8 +21,11 @@
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { hasOpenFailedReply, processFailedReplies } from '@/lib/reply-recovery';
 
 export const runtime = 'nodejs';
+// A recovery regeneration (Opus reply + guard) can take ~20-45 s.
+export const maxDuration = 120;
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -53,12 +64,26 @@ export async function GET(req: Request) {
 
   const handling = conv.status === 'volunteer_handling';
 
-  // Only volunteer replies, only newer than `after` (defaults to epoch).
+  // Recovery hook: a queued failed reply for this conversation, if due, is
+  // regenerated now (claim-protected, so concurrent polls can't double-answer).
+  if (!handling) {
+    try {
+      if (await hasOpenFailedReply(conversationId)) {
+        const run = await processFailedReplies({ conversationId, limit: 1, budgetMs: 90_000 });
+        if (run.attempted > 0) console.log('[chat/updates] recovery', JSON.stringify(run));
+      }
+    } catch (e) {
+      console.error('[chat/updates] recovery failed:', e);
+    }
+  }
+
+  // Volunteer replies + recovered assistant replies, only newer than `after`
+  // (defaults to epoch).
   let query = supabaseAdmin
     .from('messages')
-    .select('id, content, created_at')
+    .select('id, role, content, created_at')
     .eq('conversation_id', conversationId)
-    .eq('role', 'volunteer')
+    .in('role', ['volunteer', 'assistant'])
     .order('created_at', { ascending: true });
   if (after) query = query.gt('created_at', after);
 
