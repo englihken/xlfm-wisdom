@@ -32,6 +32,34 @@ const has = (s: string, sub: string) => s.replace(/\s+/g, '').includes(sub.repla
 const hasBianCount = (s: string) => /\d+遍/.test(s.replace(/\s+/g, ''));
 // The blanket refusal shapes the 08-29 brief forbids next to grounded numbers.
 const REFUSAL_TAIL = /查不到[^。！？!?\n]{0,24}(原文|数字|遍数)|不敢乱给|不敢随意|不方便乱给/;
+// 08-30: the refusal by another name — 「资料里没有写明具体数字」「没有写明遍数」.
+const NEW_REFUSAL = /(资料|原文|开示|段落|这次)[^。！？\n]{0,12}(没有写明|没写明|没有提到|未提及|找不到)[^。！？\n]{0,12}(数字|遍数|张数)|没有写明具体数字/;
+
+// 入门轮 "简单直接" shape checks (R14). The 功课 block = lines that are the
+// prescription itself (📿 sutra lines, 祈求词 lines, ⚠️ notes, links); the
+// "body" is everything else, measured in characters.
+const isHomeworkLine = (l: string) =>
+  /^\s*📿|祈求|念之前|请大慈大悲|感恩南无|⚠️|🔗|📞|🌐|https?:\/\//.test(l) || /^\s*[-•·]\s*《/.test(l);
+const bodyChars = (r: string) =>
+  r.split('\n').filter((l) => !isHomeworkLine(l) && !/^\s*>/.test(l) && l.trim() !== '').join('').replace(/\s+/g, '').length;
+// Blockquote paragraphs (consecutive '>' lines = one quote) and whether the
+// first one appears after the first 📿 line.
+const quoteParagraphs = (r: string) => {
+  const lines = r.split('\n');
+  let n = 0;
+  let inQuote = false;
+  let firstQuoteIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const q = /^\s*>/.test(lines[i]);
+    if (q && !inQuote) {
+      n++;
+      if (firstQuoteIdx < 0) firstQuoteIdx = i;
+    }
+    inQuote = q;
+  }
+  const firstHomeworkIdx = lines.findIndex((l) => /^\s*📿/.test(l));
+  return { n, afterHomework: firstQuoteIdx < 0 || (firstHomeworkIdx >= 0 && firstQuoteIdx > firstHomeworkIdx) };
+};
 
 const CASES: Case[] = [
   {
@@ -242,7 +270,24 @@ const BEGINNER_CASES: Case[] = [
       { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
       { name: 'contains 祈求词', ok: (r) => has(r, '请大慈大悲观世音菩萨') },
       { name: 'no 查不到相关原文 / 不敢随意 / 不敢乱说', ok: (r) => !REFUSAL_TAIL.test(r) && !has(r, '不敢乱说') },
+      { name: 'no 「资料里没有写明具体数字」 (new refusal phrasing)', ok: (r) => !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
       { name: '共修会 not the only substance (功课 present alongside)', ok: (r) => !(has(r, '共修会') && !hasBianCount(r)) },
+    ],
+  },
+  // R14 (入门轮 "简单直接" brief, 08-30): the family-quarrel beginner. Turn 2
+  // must give 大悲咒/心经/解结咒 with counts, not the 「资料里没有写明具体数字，
+  // 照官方功课说明来做 🔗」 dodge, and must be method-first and short.
+  {
+    label: 'R14 入门轮 简单直接 (吵架 → 没有念过)',
+    turns: ['和家人一直吵架，我可以先学什么？', '没有念过'],
+    checks: [
+      { name: 'contains 《大悲咒》《心经》《解结咒》', ok: (r) => has(r, '大悲咒') && has(r, '心经') && has(r, '解结咒') },
+      { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
+      { name: 'no 「资料里没有写明」 / 「没有写明具体数字」', ok: (r) => !NEW_REFUSAL.test(r.replace(/\s+/g, '')) && !REFUSAL_TAIL.test(r) },
+      { name: 'xlfm.my/chant not a substitute for counts (link ok only with counts)', ok: (r) => !has(r, 'xlfm.my/chant') || hasBianCount(r) },
+      { name: 'body (minus 功课 block) ≤ 400 chars', ok: (r) => bodyChars(r) <= 400 },
+      { name: '≤1 开示 quote, and after the 功课', ok: (r) => { const q = quoteParagraphs(r); return q.n <= 1 && q.afterHomework; } },
+      { name: 'contains 祈求词', ok: (r) => has(r, '请大慈大悲观世音菩萨') },
     ],
   },
   // R13 (入门锚定 brief, corrected 08-30): 小房子 before 功课 → give the 功课
@@ -271,6 +316,7 @@ const BEGINNER_CASES: Case[] = [
       },
       { name: 'cites 念诵指南 or 入门手册 (reply or sources)', ok: (r, books) => has(r, '念诵指南') || has(r, '入门手册') || books.includes('小房子念诵指南') || books.includes('心灵法门入门手册') },
       { name: 'no 查不到相关原文 / 不敢乱说', ok: (r) => !REFUSAL_TAIL.test(r) && !has(r, '不敢乱说') },
+      { name: 'no 「资料里没有写明具体数字」 (new refusal phrasing)', ok: (r) => !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
     ],
   },
 ];
@@ -334,7 +380,7 @@ async function main() {
       messages.push({ role: 'assistant', content: fullText });
       transcript.push(`访客：${turn}`, `AI：${fullText.length > 160 && turn !== turns[turns.length - 1] ? fullText.slice(0, 160) + '…' : fullText}`);
     }
-    const books = buildSources(passages).map((s) => s.book);
+    const books = buildSources(passages, fullText).map((s) => s.book);
     const types = passages.map((p) => p.type ?? '');
     // Invariant: whatever ships must itself pass the guard.
     const residual = checkDraft(fullText, passages.map((p) => p.text), turns, {

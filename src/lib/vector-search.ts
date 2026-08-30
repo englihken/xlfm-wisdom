@@ -369,13 +369,23 @@ export async function searchRelevantTeachings(
     // Build parallel queries. General query first, plus filtered queries for
     // any topic that has a dedicated book collection in the corpus. Language
     // filter (if any) is merged into every primary query.
+    // Per-query timing (入门轮 brief problem 3): every query below runs in ONE
+    // Promise.all — no serial waits — so wall-clock ≈ the slowest query.
+    const timings: Record<string, number> = {};
+    const timed = (label: string, p: Promise<RetrievedPassage[]>): Promise<RetrievedPassage[]> => {
+      const t0 = Date.now();
+      return p.finally(() => {
+        timings[label] = Date.now() - t0;
+      });
+    };
+    const tStart = Date.now();
     const queries: Promise<RetrievedPassage[]>[] = [
-      pineconeSearch(query, topK, mergeWith()),
+      timed('general', pineconeSearch(query, topK, mergeWith())),
     ];
 
     if (topics.includes('marriage_emotion')) {
       queries.push(
-        pineconeSearch(query, 7, mergeWith({ book_category: { $eq: 'marriage_emotion' } }))
+        timed('marriage', pineconeSearch(query, 7, mergeWith({ book_category: { $eq: 'marriage_emotion' } })))
       );
     }
 
@@ -385,19 +395,19 @@ export async function searchRelevantTeachings(
     // protocol karma-warning scenarios.
     if (topics.includes('health')) {
       queries.push(
-        pineconeSearch(query, 5, mergeWith({ book_category: { $eq: 'health' } }))
+        timed('health', pineconeSearch(query, 5, mergeWith({ book_category: { $eq: 'health' } })))
       );
     }
     if (topics.includes('karma_warning')) {
       queries.push(
-        pineconeSearch(query, 5, mergeWith({ book_category: { $eq: 'spirit_realm' } }))
+        timed('karma_warning', pineconeSearch(query, 5, mergeWith({ book_category: { $eq: 'spirit_realm' } })))
       );
     }
     // 组织审定 canonical rulings: guaranteed retrieval for doctrinal-numbers
     // queries. Deliberately NOT language-filtered — the canonical tables are
     // zh-only but authoritative for every user language.
     if (topics.includes('canonical_ritual_numbers')) {
-      queries.push(pineconeSearch(query, 4, { type: { $eq: CANONICAL_TYPE } }));
+      queries.push(timed('canonical', pineconeSearch(query, 4, { type: { $eq: CANONICAL_TYPE } })));
     }
     // 功课 baseline (08-29): for 功课-shaped questions, guarantee the general
     // daily-功课 counts are in context. Without this, a 失眠 question
@@ -408,26 +418,30 @@ export async function searchRelevantTeachings(
     if (topics.includes('homework_baseline')) {
       if (userLang === 'zh') {
         queries.push(
-          pineconeSearch(HOMEWORK_BASELINE_QUERY, 3, { book: { $eq: HOMEWORK_BASELINE_BOOK } }),
-          pineconeSearch(HOMEWORK_BASELINE_QUERY_2, 1, { book: { $eq: HOMEWORK_BASELINE_BOOK_2 } })
+          timed('homework_入门手册', pineconeSearch(HOMEWORK_BASELINE_QUERY, 3, { book: { $eq: HOMEWORK_BASELINE_BOOK } })),
+          timed('homework_175问', pineconeSearch(HOMEWORK_BASELINE_QUERY_2, 1, { book: { $eq: HOMEWORK_BASELINE_BOOK_2 } }))
         );
       } else {
         queries.push(
-          pineconeSearch(HOMEWORK_BASELINE_QUERY_EN, 3, { book: { $eq: HOMEWORK_BASELINE_BOOK_EN } })
+          timed('homework_en', pineconeSearch(HOMEWORK_BASELINE_QUERY_EN, 3, { book: { $eq: HOMEWORK_BASELINE_BOOK_EN } }))
         );
       }
     }
     // 小房子 baseline: the recitation guide's own how-to chunks.
     if (topics.includes('little_house_baseline')) {
       queries.push(
-        userLang === 'zh'
-          ? pineconeSearch(LITTLE_HOUSE_BASELINE_QUERY, 2, { book: { $eq: LITTLE_HOUSE_BASELINE_BOOK } })
-          : pineconeSearch(LITTLE_HOUSE_BASELINE_QUERY_EN, 2, { book: { $eq: LITTLE_HOUSE_BASELINE_BOOK_EN } })
+        timed(
+          'little_house',
+          userLang === 'zh'
+            ? pineconeSearch(LITTLE_HOUSE_BASELINE_QUERY, 2, { book: { $eq: LITTLE_HOUSE_BASELINE_BOOK } })
+            : pineconeSearch(LITTLE_HOUSE_BASELINE_QUERY_EN, 2, { book: { $eq: LITTLE_HOUSE_BASELINE_BOOK_EN } })
+        )
       );
     }
 
     const resultGroups = await Promise.all(queries);
     const primaryResults = resultGroups.flat();
+    console.log(`[vector-search] timing parallel=${queries.length} wall_ms=${Date.now() - tStart} per_query=${JSON.stringify(timings)}`);
 
     // Cross-language fallback: only for en/id users when primary results are
     // weak (zero hits, or average top-K cosine below threshold). Re-runs the

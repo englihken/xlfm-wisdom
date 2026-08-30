@@ -320,6 +320,16 @@ console.log('— contradiction scrub (08-29: 查不到 next to grounded counts) 
   assert('quote line untouched', r.text.includes('> 这种情况查不到原文的'), r.text);
 }
 {
+  // 08-30 production shape: 「资料里没有写明具体数字，照官方功课说明来做 🔗」
+  // next to a count → scrubbed; alone (no counts) → detected for the log.
+  const text = '📿 《大悲咒》每天3遍\n\n关于每天各念多少遍，这次的资料里没有写明具体数字，你可以照官方功课说明来做 🔗 https://xlfm.my/chant\n\n坚持念 🙏';
+  const r = scrubContradictoryRefusal(text);
+  assert('「资料里没有写明具体数字」 scrubbed next to a count', !r.text.includes('没有写明') && r.removed.length === 1, r);
+  assert('hasBlanketRefusal detects 「没有写明具体数字」', hasBlanketRefusal('这次的资料里没有写明具体数字，你可以照官方功课说明来做'));
+  assert('hasBlanketRefusal detects 「原文没有提到遍数」', hasBlanketRefusal('原文里没有提到遍数'));
+  assert('plain narrative 「资料里没有写明」 without a count word is NOT flagged', !hasBlanketRefusal('这份资料里没有写明作者是谁。'));
+}
+{
   // Scoped omission phrasing (the prompt's replacement for one missing figure)
   // is NOT a blanket refusal and survives.
   const text = '每天心经7遍。礼佛大忏悔文这一项的遍数本次资料中没有写明，建议咨询共修会义工。';
