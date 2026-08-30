@@ -193,6 +193,8 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
   homework_baseline: [
     '什么经', '哪些经', '什么咒', '念什么', '几遍', '多少遍', '功课',
     '怎么念', '刚开始', '初学', '入门', '第一步',
+    // 08-30: 「我可以先学什么？」 (homepage chip) is a 功课 question too.
+    '学什么', '先学',
     // 入门锚定 brief: the beginner's own words after the triage question.
     '没学过', '没有学过', '不会念', '不懂念', '零基础', '完全刚接触', '刚接触',
     '新手', '第一次念', '没念过', '没有念过', '从零开始', '怎么开始', '从哪里开始',

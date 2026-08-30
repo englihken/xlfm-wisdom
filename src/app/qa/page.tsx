@@ -262,14 +262,25 @@ export default function QAPage() {
         const json = await res.json();
         if (cancelled) return;
         setVolunteerHandling(Boolean(json.handling));
-        const incoming: { id: string; content: string; created_at: string }[] = json.messages ?? [];
+        const incoming: { id: string; role?: string; content: string; created_at: string }[] = json.messages ?? [];
         if (incoming.length > 0) {
           afterRef.current = incoming[incoming.length - 1].created_at;
           wasAtBottomRef.current = isNearBottom();
-          setMessages((prev) => [
-            ...prev,
-            ...incoming.map((m) => ({ role: 'volunteer' as const, content: m.content })),
-          ]);
+          setMessages((prev) => {
+            // Recovered AI replies (role assistant) arrive here after a generation
+            // failure. Skip one that exactly matches the last bubble we already
+            // show — a stale client whose `after` cursor predates the live reply.
+            const lastShown = [...prev].reverse().find((m) => m.role !== 'user')?.content;
+            const fresh = incoming.filter((m) => !(m.role === 'assistant' && m.content === lastShown));
+            if (fresh.length === 0) return prev;
+            return [
+              ...prev,
+              ...fresh.map((m) => ({
+                role: (m.role === 'assistant' ? 'assistant' : 'volunteer') as 'assistant' | 'volunteer',
+                content: m.content,
+              })),
+            ];
+          });
         }
       } catch {
         /* transient — the next tick retries */
@@ -362,6 +373,10 @@ export default function QAPage() {
                 }
                 return updated;
               });
+            } else if (parsed.type === 'persisted') {
+              // The live reply is now stored with this timestamp; start the
+              // late-reply poll strictly after it so it is never re-shown.
+              if (parsed.createdAt) afterRef.current = parsed.createdAt;
             } else if (parsed.type === 'sources') {
               setMessages((prev) => {
                 const updated = [...prev];
@@ -395,10 +410,14 @@ export default function QAPage() {
         const lastIdx = updated.length - 1;
         updated[lastIdx] = {
           role: 'assistant',
+          // Network-level failure (the server never answered). The server-side
+          // failure path sends the same honest wording as a normal text event.
           content:
             language === 'zh'
-              ? '抱歉，暂时无法连接。请稍后再试，或直接阅读台长的书籍。'
-              : 'Sorry, unable to connect. Please try again later.',
+              ? '不好意思，系统这会儿有点问题，没能马上回你 🙏 你的问题我们已经记下来了，义工会尽快跟进。如果方便，可以留个联系方式。'
+              : language === 'id'
+                ? 'Maaf, sistem sedang bermasalah dan belum bisa membalas sekarang 🙏 Pertanyaan Anda sudah kami catat dan relawan akan segera menindaklanjuti. Jika berkenan, tinggalkan kontak Anda.'
+                : "Sorry — the system is having a problem right now and could not answer you immediately 🙏 Your question has been recorded and a volunteer will follow up soon. If convenient, please leave a way to contact you.",
         };
         return updated;
       });

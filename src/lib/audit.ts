@@ -63,6 +63,12 @@ export type AuditAction =
   // refusal sentences. Actor null (system). Excluded from the home 系统动态
   // feeds (volume), visible in 系统日志 via the action filter.
   | 'care.guard'
+  // "别再把访客弄丢" (08-30): reply-failure trail + alerts + dead-letter queue.
+  | 'care.reply_failed'
+  | 'care.reply_recovered'
+  | 'care.handed_off'
+  | 'care.alert_sent'
+  | 'care.balance_checked'
   // P1 复盘队列 dispositions (conversation_reviews, migration 043).
   | 'review_dismissed'
   | 'review_handled'

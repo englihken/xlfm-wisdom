@@ -12,6 +12,19 @@ import {
   retrievalContextFrom,
 } from '@/lib/care-pipeline';
 import { isAiDraftEnabled } from '@/lib/org-settings';
+import { recordReplyFailure } from '@/lib/ops-alerts';
+import { processFailedReplies } from '@/lib/reply-recovery';
+
+// Honest message when generation fails after the fast retries (brief "别再把
+// 访客弄丢" §3). The visitor's question IS stored (persistInbound ran), it is
+// queued for automatic retry, and the care inbox shows it — so we say so.
+// Not persisted as an assistant message: that would hide the failure from
+// the unanswered stats.
+const GENERATION_FAILED_REPLY: Record<string, string> = {
+  zh: '不好意思，系统这会儿有点问题，没能马上回你 🙏 你的问题我们已经记下来了，义工会尽快跟进。如果方便，可以留个联系方式。',
+  en: "Sorry — the system is having a problem right now and could not answer you immediately 🙏 Your question has been recorded and a volunteer will follow up soon. If convenient, please leave a way to contact you.",
+  id: 'Maaf, sistem sedang bermasalah dan belum bisa membalas sekarang 🙏 Pertanyaan Anda sudah kami catat dan relawan akan segera menindaklanjuti. Jika berkenan, tinggalkan kontak Anda.',
+};
 
 export const runtime = 'nodejs'; // Node runtime for Pinecone SDK compatibility
 // Opus 5 thinks before replying and the verbatim guard may regenerate once, so
@@ -165,21 +178,27 @@ async function persistAssistant(params: {
   conversationId: string | null;
   content: string;
   sources: unknown;
-}): Promise<void> {
-  if (!supabaseAdmin || !params.conversationId) return;
+}): Promise<string | null> {
+  if (!supabaseAdmin || !params.conversationId) return null;
   try {
-    await supabaseAdmin.from('messages').insert({
-      conversation_id: params.conversationId,
-      role: 'assistant',
-      content: params.content,
-      sources: params.sources,
-    });
+    const { data } = await supabaseAdmin
+      .from('messages')
+      .insert({
+        conversation_id: params.conversationId,
+        role: 'assistant',
+        content: params.content,
+        sources: params.sources,
+      })
+      .select('created_at')
+      .maybeSingle();
     await supabaseAdmin
       .from('conversations')
       .update({ last_message_at: new Date().toISOString() })
       .eq('id', params.conversationId);
+    return (data?.created_at as string | undefined) ?? new Date().toISOString();
   } catch (e) {
     console.error('[supabase] assistant message save failed:', e);
+    return null;
   }
 }
 
@@ -338,16 +357,30 @@ export async function POST(req: NextRequest) {
     // fabricated 遍数/开示 before the guard could catch them (convs 29cfd74c /
     // 6b6f74ff). The SSE protocol below is unchanged; the client just receives
     // the text in one event instead of many deltas.
-    const { fullText, refused } = await generateGuardedReplyText({
-      messages,
-      language,
-      passages,
-      contextBlock,
-      conversationId: convId,
-    });
+    let fullText: string;
+    let refused = false;
+    let generationFailed = false;
+    try {
+      const out = await generateGuardedReplyText({
+        messages,
+        language,
+        passages,
+        contextBlock,
+        conversationId: convId,
+      });
+      fullText = out.fullText;
+      refused = out.refused;
+    } catch (genError) {
+      // After the SDK's fast retries. Never a silent 500: tell the visitor
+      // honestly, record the failure (audit + dead-letter queue), and let the
+      // burst alert decide whether Ken gets an email right now.
+      generationFailed = true;
+      await recordReplyFailure({ conversationId: convId, channel: 'web', error: genError });
+      fullText = GENERATION_FAILED_REPLY[language] ?? GENERATION_FAILED_REPLY.zh;
+    }
 
     // Step 5: Build rich sources — deduplicate by book+page combo (shared helper).
-    const sources = refused ? [] : buildSources(passages, fullText);
+    const sources = refused || generationFailed ? [] : buildSources(passages, fullText);
 
     // Step 6: Emit the SSE events the existing frontend already understands.
     const encoder = new TextEncoder();
@@ -370,22 +403,42 @@ export async function POST(req: NextRequest) {
             `data: ${JSON.stringify({ type: 'text', text: fullText })}\n\n`
           ));
 
-          // Send done signal first so the UI flips out of "streaming" instantly,
-          // THEN await the assistant-message save before closing — this keeps the
-          // Vercel lambda alive long enough for the write to land. The reply text
-          // is already fully delivered, so this never slows the visible reply.
+          // Persist the assistant message BEFORE [DONE] and tell the client its
+          // timestamp, so the visitor page's late-reply poll (which now also
+          // returns recovered assistant replies) can start strictly after it and
+          // never re-shows this one. The failure notice is NOT persisted — the
+          // conversation must still count as unanswered until recovery lands.
+          if (!generationFailed) {
+            const persistedAt = await persistAssistant({ conversationId: convId, content: fullText, sources });
+            if (persistedAt) {
+              controller.enqueue(encoder.encode(
+                `data: ${JSON.stringify({ type: 'persisted', createdAt: persistedAt })}\n\n`
+              ));
+            }
+          }
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
-          await persistAssistant({ conversationId: convId, content: fullText, sources });
 
           // Categorise the conversation in the same keep-alive window. The user
           // already has their full reply, so this adds ZERO visible latency.
           // Fail-safe: never throws, never blocks the chat. Re-tags on later
           // messages too — last classification wins.
-          if (convId) {
+          if (convId && !generationFailed) {
             await classifyAndSaveCategory(convId, [
               ...messages,
               { role: 'assistant', content: fullText },
             ]);
+          }
+
+          // Drain ONE due item from the dead-letter queue while the lambda is
+          // alive anyway (Hobby plan: no minute-level cron). Bounded so this
+          // request's function never nears the 300 s ceiling.
+          if (!generationFailed) {
+            try {
+              const run = await processFailedReplies({ limit: 1, budgetMs: 60_000 });
+              if (run.attempted > 0) console.log('[chat] recovery drain', JSON.stringify(run));
+            } catch (e) {
+              console.error('[chat] recovery drain failed:', e);
+            }
           }
 
           controller.close();

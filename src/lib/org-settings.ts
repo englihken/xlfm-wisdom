@@ -16,6 +16,11 @@ export const ORG_SETTING_ALLOWLIST: Record<string, 'string_array' | 'boolean' | 
   'public.fee_check_enabled': 'boolean',
   'public.inbox_form_enabled': 'boolean',
   'public.inbox_form_notice': 'string',
+  // Anthropic balance estimate (ops-alerts.ts checkAnthropicHealth): the last
+  // top-up amount + when it was made; alert below the threshold.
+  'anthropic.credit.amount_usd': 'number',
+  'anthropic.credit.since': 'string',
+  'anthropic.credit.alert_usd': 'number',
 };
 
 async function readSetting(key: string): Promise<unknown | undefined> {

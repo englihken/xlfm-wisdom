@@ -27,6 +27,8 @@ import {
   countUnanswered,
   type TranscriptMessage,
 } from '@/lib/care-review';
+import { checkAnthropicHealth } from '@/lib/ops-alerts';
+import { processFailedReplies } from '@/lib/reply-recovery';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -78,6 +80,26 @@ export async function GET(req: Request) {
     countUnanswered(db, windows.today.start, windows.today.end),
   ]);
   const email = unansweredYesterday > 0 ? await sendAlertEmail(unansweredYesterday) : 'skipped';
+
+  // ── Daily Anthropic health + balance check (brief "别再把访客弄丢" §2) ──────
+  // Canary call + (with an Admin key) cost-report balance estimate; emails
+  // when the canary fails or the estimate is below the threshold.
+  let health: Awaited<ReturnType<typeof checkAnthropicHealth>> | { error: string } | null = null;
+  try {
+    health = await checkAnthropicHealth();
+  } catch (e) {
+    console.error('[cron/review] health check failed:', e);
+    health = { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  // ── Dead-letter sweep (§3): retry due failed replies within a bounded budget.
+  let recovery: Awaited<ReturnType<typeof processFailedReplies>> | { error: string } | null = null;
+  try {
+    recovery = await processFailedReplies({ limit: 10, budgetMs: 120_000 });
+  } catch (e) {
+    console.error('[cron/review] recovery sweep failed:', e);
+    recovery = { error: e instanceof Error ? e.message : String(e) };
+  }
 
   // ── Review pass (§1.1) ─────────────────────────────────────────────────────
   const idleCutoff = new Date(Date.now() - IDLE_MS).toISOString();
@@ -168,6 +190,8 @@ export async function GET(req: Request) {
     unansweredYesterday,
     unansweredToday,
     alertEmail: email,
+    health,
+    recovery,
   };
   // One-line JSON result, same convention as the summarize cron.
   console.log('[cron/review]', JSON.stringify(summary));
