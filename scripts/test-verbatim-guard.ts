@@ -10,6 +10,7 @@ import {
   chooseGuardTail,
   scrubContradictoryRefusal,
   hasBlanketRefusal,
+  isOverStripped,
 } from '../src/lib/verbatim-guard';
 
 let passed = 0;
@@ -51,6 +52,23 @@ assert(
   'Traditional 張 folds to 张 (conv b119360e)',
   JSON.stringify(extractNumberTokens('7-21張')) === JSON.stringify(['7张', '21张'])
 );
+// Chinese numerals (入门锚定 brief): the 入门手册 chunks write counts this way.
+assert('三遍 → 3遍', extractNumberTokens('三遍《心经》').includes('3遍'));
+assert('二十一遍 → 21遍', extractNumberTokens('二十一遍《往生咒》').includes('21遍'));
+assert('四十九遍 → 49遍', extractNumberTokens('每天念二十一遍、二十七遍或四十九遍').includes('49遍'));
+assert('一遍至七遍 → both bounds', (() => { const t = extractNumberTokens('每天功课：一遍至七遍'); return t.includes('1遍') && t.includes('7遍'); })());
+assert('三遍或七遍以上 → 3遍 & 7遍', (() => { const t = extractNumberTokens('一般三遍或七遍以上'); return t.includes('3遍') && t.includes('7遍'); })());
+assert('一百零八遍 → 108遍', extractNumberTokens('一百零八遍').includes('108遍'));
+assert('十遍 → 10遍', extractNumberTokens('十遍').includes('10遍'));
+assert('Chinese-numeral dates still NOT tokenized', extractNumberTokens('二月十九日 观世音菩萨圣诞').length === 0);
+{
+  // Symmetric: a draft's 「三遍」 is now checked, and a chunk's 「三遍」 grounds a draft's 3遍.
+  const cnChunk = ['【心灵法门入门手册】一般初学者功课：三遍《大悲咒》，三遍《心经》，一遍礼佛大忏悔文，二十一遍《往生咒》。'];
+  assert('draft 3遍 grounded by chunk 三遍', checkDraft('《心经》每天3遍。', cnChunk, []).length === 0);
+  assert('draft 二十一遍 grounded by chunk 二十一遍', checkDraft('《往生咒》每天二十一遍。', cnChunk, []).length === 0);
+  const v = checkDraft('《大悲咒》每天四十九遍。', cnChunk, []);
+  assert('draft 四十九遍 (absent) now flagged', v.some((x) => x.text === '49遍'), v);
+}
 
 console.log('— quote check —');
 {
@@ -307,6 +325,22 @@ console.log('— contradiction scrub (08-29: 查不到 next to grounded counts) 
   const text = '每天心经7遍。礼佛大忏悔文这一项的遍数本次资料中没有写明，建议咨询共修会义工。';
   const r = scrubContradictoryRefusal(text);
   assert('scoped 没有写明 note kept', r.removed.length === 0 && r.text === text, r);
+}
+
+console.log('— over-strip detection (conv c47ffe52: 祈求词 without 经名) —');
+{
+  const gutted = '听到你没有学过也没关系 🙏\n\n念之前跟菩萨说：「请大慈大悲观世音菩萨保佑我（姓名）身体健康，心情平静」\n\n想有人陪你一起念，可以联系就近共修会 🙏';
+  assert('祈求词 with no sutra named → over-stripped', isOverStripped(gutted));
+  const ok = '📿 《大悲咒》每天3遍\n祈求：「请大慈大悲观世音菩萨保佑我（姓名）身体健康，心情平静」';
+  assert('祈求词 with 经名 → fine', !isOverStripped(ok));
+  const okBracket = '📿 《千手千眼无碍大悲心陀罗尼》每天3遍\n祈求：请大慈大悲观世音菩萨保佑我（姓名）身体健康';
+  assert('《…陀罗尼》 counts as a sutra name', !isOverStripped(okBracket));
+  assert('no 祈求词 at all → not over-stripped (nothing to judge)', !isOverStripped('先把心静下来，慢慢来 🙏'));
+  // The real production shape: strip the 功课 sentences from a full draft and check.
+  const draft = '你可以先这样开始：\n\n📿 《大悲咒》每天3遍\n📿 《心经》每天3遍\n\n念之前跟菩萨说：「请大慈大悲观世音菩萨保佑我（姓名）身体健康，心情平静」\n\n有教念视频可以跟着念。';
+  const v = checkDraft(draft, ['不学佛，你永远活在自己内心肮脏的小生命中。'], []);
+  const stripped = stripViolations(draft, v);
+  assert('stripping ungrounded 功课 lines reproduces the gutted shape', isOverStripped(stripped), stripped);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
