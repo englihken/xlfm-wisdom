@@ -70,9 +70,36 @@ function normalizeForNumbers(s: string): string {
 
 // ── Number tokens ────────────────────────────────────────────────────────────
 
-// Extract N遍 / N张 tokens. A range ("21-49遍", "21至49遍") yields BOTH bounds
-// as tokens, on drafts and ground truth alike, so range phrasing on either
-// side still matches.
+// Chinese numerals (一…九十九, 一百零八) → integer. The 入门手册 chunks write
+// 「三遍《心经》」「二十一遍《往生咒》」「一遍至七遍」; without this the book
+// could never ground a reply's 3遍/21遍 and the beginner's 功课 was stripped
+// (入门锚定 brief). Applied SYMMETRICALLY — drafts and ground truth — so it
+// is not a relaxation: a draft's 「三遍」 is now checked where it was invisible.
+const CN_DIGIT: Record<string, number> = {
+  零: 0, 〇: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9,
+};
+function cnNumeralToInt(s: string): number {
+  let total = 0;
+  let num = 0;
+  for (const ch of s) {
+    if (ch === '百') {
+      total += (num || 1) * 100;
+      num = 0;
+    } else if (ch === '十') {
+      total += (num || 1) * 10;
+      num = 0;
+    } else if (ch in CN_DIGIT) {
+      num = CN_DIGIT[ch];
+    }
+  }
+  return total + num;
+}
+const CN_NUM = '[零〇一二两三四五六七八九十百]+';
+
+// Extract N遍 / N张 tokens. A range ("21-49遍", "21至49遍", "一遍至七遍") yields
+// BOTH bounds as tokens, on drafts and ground truth alike, so range phrasing
+// on either side still matches. Arabic and Chinese numerals both tokenize to
+// the Arabic form ("三遍" → "3遍").
 export function extractNumberTokens(s: string): string[] {
   const t = normalizeForNumbers(s);
   const out: string[] = [];
@@ -81,6 +108,11 @@ export function extractNumberTokens(s: string): string[] {
   while ((m = re.exec(t)) !== null) {
     out.push(m[1] + m[3]);
     if (m[2]) out.push(m[2] + m[3]);
+  }
+  const reCn = new RegExp(`(${CN_NUM})(?:[-–—~～至到](${CN_NUM}))?(遍|张)`, 'g');
+  while ((m = reCn.exec(t)) !== null) {
+    out.push(cnNumeralToInt(m[1]) + m[3]);
+    if (m[2]) out.push(cnNumeralToInt(m[2]) + m[3]);
   }
   return out;
 }
@@ -367,4 +399,19 @@ export function scrubContradictoryRefusal(text: string): { text: string; removed
 // without waiting for a visitor complaint.
 export function hasBlanketRefusal(text: string): boolean {
   return BLANKET_REFUSAL_RE.test(text);
+}
+
+// ── Over-strip detection ─────────────────────────────────────────────────────
+// conv c47ffe52 (2026-08-30): stripping removed every 「📿 《大悲咒》每天3遍」
+// sentence, leaving a reply that still says 「念之前跟菩萨说：请大慈大悲观世音
+// 菩萨保佑我…」 but names no sutra at all — a prayer with nothing to pray
+// before. A 祈求词 with zero sutra names is a 功课 answer gutted by the guard,
+// not an answer; the pipeline treats it as a regeneration trigger rather than
+// shipping it.
+const PRAYER_RE = /请大慈大悲(的)?观世音菩萨|Guan\s*Yin Bodhisattva.{0,40}(protect|bless)/i;
+const SUTRA_NAME_RE =
+  /《[^》\n]{1,24}(经|咒|真言|陀罗尼|忏悔文)》|大悲咒|心经|礼佛大忏悔文|往生咒|解结咒|准提神咒|消灾吉祥神咒|七佛灭罪真言|功德宝山神咒|Great Compassion Mantra|Heart Sutra|Eighty-?Eight Buddhas/;
+
+export function isOverStripped(text: string): boolean {
+  return PRAYER_RE.test(text) && !SUTRA_NAME_RE.test(text);
 }

@@ -12,7 +12,19 @@ type Check = {
   name: string;
   ok: (reply: string, books: string[], types: string[], passages: Passage[]) => boolean;
 };
-type Case = { label: string; q: string; lang?: 'zh' | 'en' | 'id'; checks: Check[] };
+// Single-turn cases set `q`; multi-turn cases set `turns` (each visitor turn
+// is answered live, in order — checks run on the LAST reply). `compareNaive`
+// also prints what the OLD retrieval would have fetched for the last turn on
+// its own (general query, no context, no baselines) — the hard signal that
+// 入门锚定 actually changed what the model saw (R12).
+type Case = {
+  label: string;
+  q?: string;
+  turns?: string[];
+  compareNaive?: boolean;
+  lang?: 'zh' | 'en' | 'id';
+  checks: Check[];
+};
 
 // Whitespace-blind contains: the model writes "21 遍" / "21遍" interchangeably.
 const has = (s: string, sub: string) => s.replace(/\s+/g, '').includes(sub.replace(/\s+/g, ''));
@@ -215,6 +227,54 @@ const CASES: Case[] = [
   },
 ];
 
+const BEGINNER_CASES: Case[] = [
+  // R12 (入门锚定 brief, conv c47ffe52): the beginner follow-up. Turn 2 alone
+  // (「没有学过」) used to retrieve three 白话佛法 passages about 学佛 in general
+  // and the guard stripped every 遍数. Context-aware retrieval + 入门手册
+  // baseline must put the beginner 功课 in front of the model.
+  {
+    label: 'R12 入门跟进轮 (失眠 → 没有学过)',
+    turns: ['我最近失眠很严重，念什么经好？', '没有学过'],
+    compareNaive: true,
+    checks: [
+      { name: 'retrieval carries 心灵法门入门手册', ok: (_r, _b, _t, ps) => ps.some((p) => p.book === '心灵法门入门手册') },
+      { name: 'contains 《大悲咒》 and 《心经》', ok: (r) => has(r, '大悲咒') && has(r, '心经') },
+      { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
+      { name: 'contains 祈求词', ok: (r) => has(r, '请大慈大悲观世音菩萨') },
+      { name: 'no 查不到相关原文 / 不敢随意 / 不敢乱说', ok: (r) => !REFUSAL_TAIL.test(r) && !has(r, '不敢乱说') },
+      { name: '共修会 not the only substance (功课 present alongside)', ok: (r) => !(has(r, '共修会') && !hasBianCount(r)) },
+    ],
+  },
+  // R13 (入门锚定 brief, corrected 08-30): 小房子 before 功课 → give the 功课
+  // first (three pillars + executable counts) and say 小房子 can start once
+  // 功课 has begun — the threshold is 「有没有开始做功课」 (念诵指南 p14 +
+  // p48 Q14 「只要开始做功课，就可以念诵小房子」), NOT 「功课稳定/熟练」.
+  {
+    label: 'R13 小房子 → 还没有开始念功课',
+    turns: ['我想开始念小房子', '还没有开始念功课'],
+    checks: [
+      { name: 'retrieval carries 念诵指南 or 入门手册', ok: (_r, _b, _t, ps) => ps.some((p) => p.book === '小房子念诵指南' || p.book === '心灵法门入门手册') },
+      { name: 'gives the 功课 first (基本/基础功课 or 先…功课)', ok: (r) => /基本功课|基础功课|先(把|从|念|做|起).{0,12}功课/.test(r.replace(/\s+/g, '')) },
+      { name: 'names the three pillars (大悲咒/心经/礼佛)', ok: (r) => has(r, '大悲咒') && has(r, '心经') && has(r, '礼佛') },
+      { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
+      {
+        name: '小房子 can start once 功课 has begun (not "wait until stable")',
+        ok: (r) => {
+          const s = r.replace(/\s+/g, '');
+          // Either order: 「功课起来了…就可以开始念小房子」 / 「开始做功课就可以念小房子」 /
+          // 「只要开始做功课」 / 「不用等到经文很熟」.
+          const startsOnceBegun =
+            /功课[^。！？]{0,30}(就可以|就能|即可|可以开始|便可)[^。！？]{0,8}小房子|只要开始做功课|不用等(到)?[^。！？]{0,12}(熟|稳定)/.test(s);
+          const waitUntilStable = /功课.{0,6}(稳定|熟练|熟了|念顺).{0,12}(才|再).{0,6}(念|开始|教).{0,4}小房子/.test(s);
+          return startsOnceBegun && !waitUntilStable;
+        },
+      },
+      { name: 'cites 念诵指南 or 入门手册 (reply or sources)', ok: (r, books) => has(r, '念诵指南') || has(r, '入门手册') || books.includes('小房子念诵指南') || books.includes('心灵法门入门手册') },
+      { name: 'no 查不到相关原文 / 不敢乱说', ok: (r) => !REFUSAL_TAIL.test(r) && !has(r, '不敢乱说') },
+    ],
+  },
+];
+
 // Guard functions for R11's mechanical half (bound in main()).
 let checkDraftRef: typeof import('../src/lib/verbatim-guard').checkDraft;
 let stripViolationsRef: typeof import('../src/lib/verbatim-guard').stripViolations;
@@ -230,34 +290,91 @@ async function main() {
   stripViolationsRef = stripViolations;
   chooseGuardTailRef = chooseGuardTail;
 
+  const { retrievalContextFrom } = await import('../src/lib/care-pipeline');
+
+  // OLD retrieval for the before/after comparison: the bare last turn through
+  // the general Pinecone query only (what the pre-锚定 code did for 「没有学过」
+  // — no matching topic, no context, no baselines).
+  const naiveSearch = async (q: string): Promise<{ book: string; page_start?: number }[]> => {
+    const { Pinecone } = await import('@pinecone-database/pinecone');
+    const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
+    const host = (await pc.describeIndex(process.env.PINECONE_INDEX_NAME!)).host;
+    const r = await fetch(`https://${host}/records/namespaces/xlfm-wisdom/search`, {
+      method: 'POST',
+      headers: { 'Api-Key': process.env.PINECONE_API_KEY!, 'Content-Type': 'application/json', 'X-Pinecone-API-Version': '2025-01' },
+      body: JSON.stringify({ query: { inputs: { text: q }, top_k: 10 } }),
+    });
+    const d = await r.json();
+    return (d?.result?.hits ?? []).map((h: { fields?: { book?: string; page_start?: number } }) => ({ book: h.fields?.book ?? '?', page_start: h.fields?.page_start }));
+  };
+
   let failed = 0;
 
-  const results = await Promise.all(
-    CASES.map(async (c) => {
-      const lang = c.lang ?? 'zh';
-      const passages = await searchRelevantTeachings(c.q, undefined, lang);
+  const runCase = async (c: Case) => {
+    const lang = c.lang ?? 'zh';
+    const turns = c.turns ?? [c.q!];
+    const messages: { role: 'user' | 'assistant'; content: string }[] = [];
+    let passages: Awaited<ReturnType<typeof searchRelevantTeachings>> = [];
+    let fullText = '';
+    let guard = '';
+    const transcript: string[] = [];
+    for (const turn of turns) {
+      passages = await searchRelevantTeachings(turn, undefined, lang, retrievalContextFrom(messages));
       const contextBlock = formatPassagesAsContext(passages);
-      const { fullText, guard } = await generateGuardedReplyText({
-        messages: [{ role: 'user', content: c.q }],
+      messages.push({ role: 'user', content: turn });
+      const out = await generateGuardedReplyText({
+        messages,
         language: lang,
         passages,
         contextBlock,
         conversationId: 'regression-test',
       });
-      const books = buildSources(passages).map((s) => s.book);
-      const types = passages.map((p) => p.type ?? '');
-      // Invariant: whatever ships must itself pass the guard.
-      const residual = checkDraft(fullText, passages.map((p) => p.text), [c.q], {
-        canonicalTexts: passages.filter((p) => p.type === 'canonical_ruling').map((p) => p.text),
-      });
-      return { c, fullText, guard, books, types, passages, residual };
-    })
-  );
+      fullText = out.fullText;
+      guard = out.guard;
+      messages.push({ role: 'assistant', content: fullText });
+      transcript.push(`访客：${turn}`, `AI：${fullText.length > 160 && turn !== turns[turns.length - 1] ? fullText.slice(0, 160) + '…' : fullText}`);
+    }
+    const books = buildSources(passages).map((s) => s.book);
+    const types = passages.map((p) => p.type ?? '');
+    // Invariant: whatever ships must itself pass the guard.
+    const residual = checkDraft(fullText, passages.map((p) => p.text), turns, {
+      canonicalTexts: passages.filter((p) => p.type === 'canonical_ruling').map((p) => p.text),
+    });
+    const naive = c.compareNaive ? await naiveSearch(turns[turns.length - 1]) : null;
+    return { c, fullText, guard, books, types, passages, residual, transcript, naive };
+  };
 
-  for (const { c, fullText, guard, books, types, passages, residual } of results) {
+  // Single-turn cases in parallel; the two-turn beginner cases too (each is
+  // sequential internally). `--only R12,R13` (or `--only R1`) runs a subset —
+  // a full suite is ~15 Opus replies plus retries, so iterate on the cases
+  // under work and run everything once before committing.
+  const onlyArg = process.argv.find((a) => a.startsWith('--only'));
+  const only = onlyArg
+    ? (onlyArg.includes('=') ? onlyArg.split('=')[1] : process.argv[process.argv.indexOf(onlyArg) + 1] ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : null;
+  const selected = [...CASES, ...BEGINNER_CASES].filter(
+    (c) => !only || only.some((id) => c.label.startsWith(id + ' ') || c.label.startsWith(id))
+  );
+  if (only) console.log(`Running ${selected.length} case(s): ${selected.map((c) => c.label.split(' ')[0]).join(', ')}`);
+  const results = await Promise.all(selected.map(runCase));
+
+  for (const { c, fullText, guard, books, types, passages, residual, transcript, naive } of results) {
     console.log(`\n═══ ${c.label} — guard: ${guard} ═══`);
-    console.log(`Q: ${c.q}`);
+    if (c.turns) {
+      for (const line of transcript.slice(0, -1)) console.log(line);
+    } else {
+      console.log(`Q: ${c.q}`);
+    }
     console.log(`Sources: ${books.join(' | ')} · types: ${[...new Set(types)].join(',')}`);
+    if (c.turns) {
+      console.log(`Last-turn retrieval (ALL ${passages.length}): ${passages.map((p) => `${p.book}${p.page_start ? ' p' + p.page_start : ''}`).join(' | ')}`);
+    }
+    if (naive) {
+      console.log(`Naive (old) retrieval for 「${c.turns![c.turns!.length - 1]}」 alone: ${naive.map((p) => `${p.book}${p.page_start ? ' p' + p.page_start : ''}`).join(' | ')}`);
+    }
     for (const check of c.checks) {
       const ok = check.ok(fullText, books, types, passages);
       if (!ok) failed++;

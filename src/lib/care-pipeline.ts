@@ -15,6 +15,7 @@ import {
   searchRelevantTeachings,
   formatPassagesAsContext,
   type RetrievedPassage,
+  type RetrievalContext,
 } from './vector-search';
 import { supabaseAdmin } from './supabase';
 import { loadCareCategories } from './org-settings';
@@ -25,6 +26,7 @@ import {
   chooseGuardTail,
   scrubContradictoryRefusal,
   hasBlanketRefusal,
+  isOverStripped,
   extractNumberTokens,
   type GuardViolation,
   type GuardTail,
@@ -118,6 +120,23 @@ function buildRetryInstruction(violations: GuardViolation[]): string {
   return lines.join('\n');
 }
 
+// Over-strip regeneration (conv c47ffe52): the previous draft's 功课 sentences
+// were all removed, so the model is told which counts the passages DO carry
+// and asked for 经名＋遍数＋祈求词 built only from those.
+function buildOverStripInstruction(violations: GuardViolation[], chunkTokens: string[]): string {
+  const bad = [...new Set(violations.filter((v) => v.type === 'number').map((v) => v.text))];
+  const avail = chunkTokens.length > 0 ? chunkTokens.join('、') : '（本次检索段落中没有任何遍数/张数）';
+  return [
+    '【重要纠正】你上一稿的功课句子全部被核对系统删除了（数字' +
+      (bad.length ? `「${bad.join('」「')}」` : '') +
+      '在检索段落中不存在），剩下的回答只有祈求词、没有经名，访客不知道该念什么、念几遍。请重写整个回答：',
+    `(1) 检索段落中确实写明的遍数/张数只有：${avail}。功课只能用这些数字，逐字采用，不得改动、不得补充其他数字；`,
+    '(2) 每一部经文都要写成「经名 ＋ 遍数 ＋ 祈求词」三件套（例如「📿 《大悲咒》每天N遍，祈求：……」），至少给出一部；',
+    '(3) 如果检索段落里完全没有遍数，就只给经名和祈求词，并说明「这一项的遍数本次资料中没有写明」，不要写笼统的「查不到相关原文／不敢给数字」；',
+    '(4) 共修会只能作为结尾邀请，不能替代答案。',
+  ].join('\n');
+}
+
 export type GuardOutcome = 'clean' | 'passed_after_retry' | 'stripped';
 
 // One decision record per guarded reply that the guard touched. Written to
@@ -128,9 +147,12 @@ export type GuardOutcome = 'clean' | 'passed_after_retry' | 'stripped';
 export type GuardDecisionLog = {
   outcome: GuardOutcome;
   canonicalPresent: boolean;
-  // Every violation from both attempts, with the reason it failed.
-  violations: { attempt: 1 | 2; type: 'quote' | 'number'; text: string; reason: string }[];
+  // Every violation from all attempts (3 = the over-strip regeneration), with
+  // the reason it failed.
+  violations: { attempt: 1 | 2 | 3; type: 'quote' | 'number'; text: string; reason: string }[];
   tail?: GuardTail | 'safe-reply';
+  // Stripping left a 祈求词 with no sutra named → an extra regeneration ran.
+  overStripRegen?: boolean;
   // N遍/N张 available in the retrieved chunks vs. what the shipped reply states.
   chunkTokens: string[];
   replyTokens: string[];
@@ -226,7 +248,7 @@ export async function generateGuardedReplyText(params: {
     scrubbed: [],
     refusalWithCountsAvailable: false,
   };
-  const recordViolations = (attempt: 1 | 2, violations: GuardViolation[]) => {
+  const recordViolations = (attempt: 1 | 2 | 3, violations: GuardViolation[]) => {
     for (const v of violations) {
       console.error(
         `[verbatim-guard] conversation=${convId} violation=${v.type} attempt=${attempt} reason=${v.reason} text=${JSON.stringify(v.text)}`
@@ -293,7 +315,27 @@ export async function generateGuardedReplyText(params: {
 
   // Last resort: strip the offending content, then choose a tail that cannot
   // contradict what survived (08-16 defect: blanket 查不到 after correct 21遍).
-  const stripped = stripViolations(draft, violations);
+  let stripped = stripViolations(draft, violations);
+
+  // Over-strip guard (conv c47ffe52): if stripping left a 祈求词 with no sutra
+  // named, the 功课 answer was gutted — regenerate once more, telling the
+  // model exactly which counts the retrieved passages DO state, instead of
+  // shipping a prayer with nothing to pray before. Numbers check unchanged.
+  if (isOverStripped(stripped)) {
+    console.error(`[verbatim-guard] conversation=${convId} over-stripped (祈求词 without 经名) — regenerating`);
+    decision.overStripRegen = true;
+    result = await callModel(buildOverStripInstruction(violations, decision.chunkTokens));
+    if (result.stop_reason === 'refusal') {
+      console.warn('[care-pipeline] model refused on over-strip retry; sending hand-off reply');
+      return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'stripped' };
+    }
+    draft = textOf(result);
+    violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);
+    if (violations.length === 0) return finish(draft, 'passed_after_retry');
+    recordViolations(3, violations);
+    stripped = stripViolations(draft, violations);
+  }
+
   if (normalizeForGuard(stripped).length < 40) {
     console.error(`[verbatim-guard] conversation=${convId} stripped tail=safe-reply`);
     return finish(GUARD_SAFE_REPLY[language], 'stripped', 'safe-reply');
@@ -320,6 +362,19 @@ export type CareSource = {
 };
 
 // ── Retrieval + prompt assembly (shared by stream + non-stream) ───────────────
+
+// The previous visitor turn and previous assistant turn from a history array
+// (everything BEFORE the current message), for context-aware retrieval of
+// short follow-ups (入门锚定 brief). Shared by the web route and WhatsApp.
+export function retrievalContextFrom(history: CareMessage[]): RetrievalContext {
+  const nonEmpty = history.filter((m) => m.content && m.content.trim().length > 0);
+  const prevUser = [...nonEmpty].reverse().find((m) => m.role === 'user');
+  const prevAssistant = [...nonEmpty].reverse().find((m) => m.role === 'assistant');
+  return {
+    prevUserMessage: prevUser?.content,
+    prevAssistantMessage: prevAssistant?.content,
+  };
+}
 
 // The two-block system param: the stable base prompt (hits Claude's 5-min
 // ephemeral cache across turns) + the per-query RAG context (varies, uncached).
@@ -374,7 +429,12 @@ export async function generateReply(
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   const query = lastUser?.content ?? '';
 
-  const passages = await searchRelevantTeachings(query, undefined, language);
+  const passages = await searchRelevantTeachings(
+    query,
+    undefined,
+    language,
+    retrievalContextFrom(messages.slice(0, -1))
+  );
   const contextBlock = formatPassagesAsContext(passages);
 
   const { fullText, refused } = await generateGuardedReplyText({

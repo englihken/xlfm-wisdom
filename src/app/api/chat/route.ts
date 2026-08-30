@@ -9,6 +9,7 @@ import {
   buildSources,
   classifyAndSaveCategory,
   generateGuardedReplyText,
+  retrievalContextFrom,
 } from '@/lib/care-pipeline';
 import { isAiDraftEnabled } from '@/lib/org-settings';
 
@@ -210,8 +211,24 @@ export async function POST(req: NextRequest) {
     // Missing key / unreachable table → true (today's behavior).
     const aiDraftEnabled = await isAiDraftEnabled();
 
-    // Step 1: Search for relevant teachings from vector DB (default top_k = 10)
-    const passages = await searchRelevantTeachings(message, undefined, language);
+    // Step 1: Search for relevant teachings from vector DB (default top_k = 10).
+    // Context-aware (入门锚定): a short follow-up like 「没有学过」 is retrieved
+    // together with the previous visitor turn, and a reply to the beginner
+    // triage question is routed onto the 功课 baseline. A volunteer's turn in
+    // the history counts as the assistant side (same mapping as Step 3).
+    const passages = await searchRelevantTeachings(
+      message,
+      undefined,
+      language,
+      retrievalContextFrom(
+        conversation
+          .filter((msg) => msg.content && msg.content.trim().length > 0)
+          .map((msg) => ({
+            role: msg.role === 'user' ? ('user' as const) : ('assistant' as const),
+            content: msg.content,
+          }))
+      )
+    );
     const contextBlock = formatPassagesAsContext(passages);
 
     console.log('[chat] Retrieved passages:', passages.map(t => ({ book: t.book, score: t.score.toFixed(3) })));

@@ -61,7 +61,39 @@ export type Topic =
   | 'practice_method'
   | 'muslim_boundary'
   | 'canonical_ritual_numbers'
-  | 'homework_baseline';
+  | 'homework_baseline'
+  | 'little_house_baseline';
+
+// ── Follow-up context (入门锚定 brief, 2026-08-29) ───────────────────────────
+// A short follow-up like 「没有学过」 embeds to nothing useful on its own: conv
+// c47ffe52 retrieved three 白话佛法 passages about 学佛 in general and the
+// guard then stripped every 遍数 the prompt had correctly produced. Two
+// complementary fixes, both used:
+//   (a) query concatenation — for SHORT follow-ups the previous visitor turn
+//       is prepended to the RETRIEVAL query only (the model still sees the
+//       real conversation history); fixes 「是的」「好」「那小房子呢」 too.
+//   (b) triage marker — when the previous assistant turn asked the beginner
+//       triage question (有念过经吗 / 刚接触), this turn is forced onto the
+//       功课 baseline regardless of wording.
+export type RetrievalContext = {
+  prevUserMessage?: string;
+  prevAssistantMessage?: string;
+};
+
+const SHORT_FOLLOWUP_MAX_CHARS = 40;
+const TRIAGE_QUESTION_RE =
+  /念过经吗|念过经|学过经|刚接触|完全刚|第一次(念|接触)|从哪里开始|have you (ever )?(chanted|recited)|new to (this|chanting)|pernah (membaca|melafalkan)/i;
+
+export function buildRetrievalQuery(message: string, ctx?: RetrievalContext): string {
+  const cur = message.trim();
+  const prev = ctx?.prevUserMessage?.trim();
+  if (prev && cur.length <= SHORT_FOLLOWUP_MAX_CHARS) return `${prev} ${cur}`;
+  return cur;
+}
+
+export function isBeginnerTriageFollowup(ctx?: RetrievalContext): boolean {
+  return Boolean(ctx?.prevAssistantMessage && TRIAGE_QUESTION_RE.test(ctx.prevAssistantMessage));
+}
 
 // 组织审定 canonical rulings (type: 'canonical_ruling' in the corpus). These are
 // org-verified doctrine tables (e.g. 礼佛大忏悔文特殊日子遍数) that must BEAT
@@ -72,11 +104,32 @@ export type Topic =
 const CANONICAL_TYPE = 'canonical_ruling';
 const CANONICAL_BOOST = 0.5;
 
-// 功课 baseline retrieval (see searchRelevantTeachings): a fixed query against
-// 《佛学问答175问》 that surfaces the general daily-功课 counts (p82 每天功课
-// 一般1遍至7遍 …; p190 重病 大悲咒21遍/心经49遍, 礼佛 1-3遍 …).
-const HOMEWORK_BASELINE_BOOK = '佛学问答175问';
-const HOMEWORK_BASELINE_QUERY = '初学者每天功课：大悲咒、心经、礼佛大忏悔文一般各念几遍';
+// 功课 baseline retrieval (see searchRelevantTeachings): fixed queries that
+// guarantee the general daily-功课 counts are in context. PRIMARY is
+// 《心灵法门入门手册》 — p23 「一般初学者功课」, p24 礼佛 一遍至七遍/一般3遍左右,
+// p29 「每天念《大悲咒》7遍、《心经》7遍、礼佛大忏悔文1-3遍左右，《往生咒》21或
+// 49遍」. 《佛学问答175问》 stays as a one-chunk second baseline (p82 gives only
+// the vague 「一般1遍至7遍」 range, which is why it was the wrong primary).
+const HOMEWORK_BASELINE_BOOK = '心灵法门入门手册';
+const HOMEWORK_BASELINE_QUERY = '一般初学者功课 每天念大悲咒几遍 心经几遍 礼佛大忏悔文几遍 往生咒几遍';
+const HOMEWORK_BASELINE_BOOK_2 = '佛学问答175问';
+const HOMEWORK_BASELINE_QUERY_2 = '初学者每天功课：大悲咒、心经、礼佛大忏悔文一般各念几遍';
+// EN/ID turns use the English editions (there is no BM edition in the corpus).
+const HOMEWORK_BASELINE_BOOK_EN = 'Heart Dharma Intro (EN)';
+const HOMEWORK_BASELINE_QUERY_EN =
+  'daily recitation for beginners how many times Great Compassion Mantra Heart Sutra Eighty-Eight Buddhas Repentance';
+
+// 小房子 baseline: the recitation guide's own how-to chunks, for questions
+// that mention Little Houses directly. ⚠️ Corpus gap (architect to fix): the
+// p14 「念诵者条件」 section (「必须做好基本功课的情况下，才能念诵小房子…」 and
+// 「在每日功课均有保证的情况下…即可开始念诵小房子」) is NOT in the indexed
+// chunks — p12-17 chunks cover uses/printing. Until re-chunked, the threshold
+// (「有没有开始做功课」, per p14 + p48 Q14) is carried by the system prompt's
+// 【入门轮硬性规则】 only, not by a verbatim quote.
+const LITTLE_HOUSE_BASELINE_BOOK = '小房子念诵指南';
+const LITTLE_HOUSE_BASELINE_QUERY = '小房子 念诵者条件 尺寸 经文组合 填写 烧送 时间';
+const LITTLE_HOUSE_BASELINE_BOOK_EN = 'A Guide to Reciting Little Houses (EN)';
+const LITTLE_HOUSE_BASELINE_QUERY_EN = 'Little House recitation who can recite paper size combination of scriptures how to fill in burn time';
 
 // === BOOK PRIORITY (for tie-breaking) ===
 // When two passages have similar relevance scores, prefer these sources
@@ -86,6 +139,20 @@ const BOOK_PRIORITY: Record<string, number> = {
   '心灵法门例说': 8,        // real case studies
   '佛教念诵合集': 7,        // scripture texts
 };
+
+// DYNAMIC beginner boost (入门锚定 brief): on a 功课/小房子-intent turn the two
+// beginner handbooks must outrank 弘法度人辅导手册 (BOOK_PRIORITY 10 → +0.10)
+// — a newcomer asking 「我该念什么」 was being answered from the volunteer
+// training manual and advanced Q&A compilations (入门手册 ranked 15th over
+// 60 days). Dynamic rather than static so 度人手册 still leads when a
+// volunteer asks 怎么度人.
+const BEGINNER_BOOK_BOOST = 0.12;
+const BEGINNER_BOOKS = new Set([
+  HOMEWORK_BASELINE_BOOK,
+  LITTLE_HOUSE_BASELINE_BOOK,
+  HOMEWORK_BASELINE_BOOK_EN,
+  LITTLE_HOUSE_BASELINE_BOOK_EN,
+]);
 
 // === TOPIC DETECTION ===
 // Cheap keyword router so the RAG layer can bias retrieval toward the
@@ -126,6 +193,16 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
   homework_baseline: [
     '什么经', '哪些经', '什么咒', '念什么', '几遍', '多少遍', '功课',
     '怎么念', '刚开始', '初学', '入门', '第一步',
+    // 入门锚定 brief: the beginner's own words after the triage question.
+    '没学过', '没有学过', '不会念', '不懂念', '零基础', '完全刚接触', '刚接触',
+    '新手', '第一次念', '没念过', '没有念过', '从零开始', '怎么开始', '从哪里开始',
+    'beginner', 'just started', 'never chanted', 'never recited', 'how to start',
+    'pemula', 'baru mulai', 'belum pernah',
+  ],
+  // 小房子 questions → 《小房子念诵指南》 baseline (see LITTLE_HOUSE_BASELINE_*).
+  little_house_baseline: [
+    '小房子', '要经者', '敬赠', '烧送', '自存', '化解冤结的小房子',
+    'little house', 'little houses', 'karmic creditor',
   ],
   // Malaysia legal red line. No dedicated retrieval collection — this topic
   // exists purely to mark the query so Section 21 of the system prompt
@@ -167,8 +244,9 @@ const TOPIC_TYPE_BOOST: Record<Topic, Record<string, number>> = {
   muslim_boundary: {},
   // Canonical docs get CANONICAL_BOOST via their type, not a topic-type boost.
   canonical_ritual_numbers: {},
-  // Baseline chunks already carry BOOK_PRIORITY (佛学问答175问 = 9).
+  // Baseline books get the dynamic BEGINNER_BOOK_BOOST instead.
   homework_baseline: {},
+  little_house_baseline: {},
 };
 
 export function detectTopics(query: string): Topic[] {
@@ -253,14 +331,25 @@ async function pineconeSearch(
  *   4. Re-rank with a light BOOK_PRIORITY boost + topic-type boost.
  */
 export async function searchRelevantTeachings(
-  query: string,
+  rawQuery: string,
   topK: number = DEFAULT_TOP_K,
   userLang: 'zh' | 'en' | 'id' = 'zh',
+  ctx?: RetrievalContext,
 ): Promise<RetrievedPassage[]> {
-  if (!query || query.trim().length === 0) return [];
+  if (!rawQuery || rawQuery.trim().length === 0) return [];
 
   try {
+    // Retrieval query = the visitor's turn, with the previous visitor turn
+    // prepended for short follow-ups (see RetrievalContext). Topic detection
+    // runs on the same text, so 「没有学过」 after 「念什么经好」 still routes
+    // to the 功课 baseline; the triage marker forces it regardless.
+    const query = buildRetrievalQuery(rawQuery, ctx);
     const topics = detectTopics(query);
+    if (isBeginnerTriageFollowup(ctx) && !topics.includes('homework_baseline')) {
+      topics.push('homework_baseline');
+    }
+    const beginnerTurn =
+      topics.includes('homework_baseline') || topics.includes('little_house_baseline');
 
     // Language filter strategy:
     // - zh users: NO filter. The 13,856 legacy zh chunks have no `language`
@@ -311,16 +400,29 @@ export async function searchRelevantTeachings(
       queries.push(pineconeSearch(query, 4, { type: { $eq: CANONICAL_TYPE } }));
     }
     // 功课 baseline (08-29): for 功课-shaped questions, guarantee the general
-    // daily-功课 counts from 佛学问答175问 (the 通则 source the prompt names
-    // for universal 遍数) are in context. Without this, a 失眠 question
+    // daily-功课 counts are in context. Without this, a 失眠 question
     // retrieves only 疾病百科/例说 case chunks and the verbatim guard — which
     // only allows counts present in the retrieved text — leaves the reply
-    // with no 遍数 to give. Fixed query text (not the visitor's), zh-only
-    // content, deliberately not language-filtered (same as canonical). Two
-    // chunks, so the topical source keeps a slot in the 3-entry sources list.
+    // with no 遍数 to give. Fixed query text (not the visitor's). 入门手册
+    // first (3 chunks: p23 一般初学者功课 / p24 / p29), 175问 second (1 chunk).
     if (topics.includes('homework_baseline')) {
+      if (userLang === 'zh') {
+        queries.push(
+          pineconeSearch(HOMEWORK_BASELINE_QUERY, 3, { book: { $eq: HOMEWORK_BASELINE_BOOK } }),
+          pineconeSearch(HOMEWORK_BASELINE_QUERY_2, 1, { book: { $eq: HOMEWORK_BASELINE_BOOK_2 } })
+        );
+      } else {
+        queries.push(
+          pineconeSearch(HOMEWORK_BASELINE_QUERY_EN, 3, { book: { $eq: HOMEWORK_BASELINE_BOOK_EN } })
+        );
+      }
+    }
+    // 小房子 baseline: the recitation guide's own how-to chunks.
+    if (topics.includes('little_house_baseline')) {
       queries.push(
-        pineconeSearch(HOMEWORK_BASELINE_QUERY, 2, { book: { $eq: HOMEWORK_BASELINE_BOOK } })
+        userLang === 'zh'
+          ? pineconeSearch(LITTLE_HOUSE_BASELINE_QUERY, 2, { book: { $eq: LITTLE_HOUSE_BASELINE_BOOK } })
+          : pineconeSearch(LITTLE_HOUSE_BASELINE_QUERY_EN, 2, { book: { $eq: LITTLE_HOUSE_BASELINE_BOOK_EN } })
       );
     }
 
@@ -355,6 +457,9 @@ export async function searchRelevantTeachings(
 
     console.log('[vector-search]', {
       userLang,
+      topics,
+      contextual: query !== rawQuery.trim(),
+      triageFollowup: isBeginnerTriageFollowup(ctx),
       primaryCount: primaryResults.length,
       avgPrimaryScore: avgPrimaryScore?.toFixed(3),
       fallbackTriggered,
@@ -378,6 +483,7 @@ export async function searchRelevantTeachings(
       .map((p) => {
         let boost = (BOOK_PRIORITY[p.book] || 0) * 0.01;
         if (p.type === CANONICAL_TYPE) boost += CANONICAL_BOOST;
+        if (beginnerTurn && BEGINNER_BOOKS.has(p.book)) boost += BEGINNER_BOOK_BOOST;
         for (const topic of topics) {
           if (p.type && TOPIC_TYPE_BOOST[topic][p.type]) {
             boost += TOPIC_TYPE_BOOST[topic][p.type];
