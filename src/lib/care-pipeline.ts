@@ -33,6 +33,7 @@ import {
 } from './verbatim-guard';
 import { wisdomEntryIdsInPassages, incrementWisdomUseCounts } from './wisdom-sync';
 import { writeAudit } from './audit';
+import { detectCrisisKeywords, matchedCrisisKeywords } from './crisis-keywords';
 
 // Fast retry (brief "别再把访客弄丢" §3, sync side): the SDK retries 408/409/429/
 // 5xx and connection errors with exponential backoff (~0.5 s → 1 s → …,
@@ -579,15 +580,64 @@ export function replyActivatesCrisisProtocol(text: string): boolean {
 // classifier misses it, and re-tagging on a later calm message can't erase a
 // protocol activation earlier in the same transcript. Crisis conversations are
 // thereby excluded from the nightly review pass (eligibility: crisis_flag=false).
+// Org-configured crisis keywords (设置 → inbox.crisis_keywords), merged with the
+// built-in list. Fail-safe: [] when unreadable.
+async function loadOrgCrisisKeywords(): Promise<string[]> {
+  if (!supabaseAdmin) return [];
+  try {
+    const { data } = await supabaseAdmin.from('org_settings').select('value').eq('key', 'inbox.crisis_keywords').maybeSingle();
+    const v = data?.value;
+    return Array.isArray(v) ? (v as unknown[]).filter((s): s is string => typeof s === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+// Keyword crisis floor over the VISITOR turns — mechanical, no model. Used by
+// classifyAndSaveCategory and, on its own, by the generation-failure path
+// (where the classifier never runs). Returns the keywords that fired.
+export async function visitorCrisisKeywords(messages: CareMessage[]): Promise<string[]> {
+  const extra = await loadOrgCrisisKeywords();
+  const hits = new Set<string>();
+  for (const m of messages) {
+    if (m.role !== 'user') continue;
+    for (const k of matchedCrisisKeywords(m.content, extra)) hits.add(k);
+  }
+  return [...hits];
+}
+
+// Set crisis_flag from keywords alone (failure path: the reply never came, so
+// classifyAndSaveCategory is not called — the flag must still land so the
+// conversation sorts to the top of the inbox). Never throws.
+export async function flagCrisisByKeywords(conversationId: string, messages: CareMessage[]): Promise<boolean> {
+  if (!supabaseAdmin) return false;
+  try {
+    const hits = await visitorCrisisKeywords(messages);
+    if (hits.length === 0) return false;
+    await supabaseAdmin.from('conversations').update({ crisis_flag: true }).eq('id', conversationId);
+    console.error(`[classify] conversation=${conversationId} crisis_flag=true by keywords ${JSON.stringify(hits)} (no classifier run)`);
+    return true;
+  } catch (e) {
+    console.error('[classify] keyword crisis flag failed:', e);
+    return false;
+  }
+}
+
 export async function classifyAndSaveCategory(
   conversationId: string,
   messages: CareMessage[]
 ): Promise<void> {
   if (!supabaseAdmin) return;
   try {
-    const mechanicalCrisis = messages.some(
-      (m) => m.role === 'assistant' && replyActivatesCrisisProtocol(m.content)
-    );
+    // Mechanical floor: the reply handed out a hotline, OR the visitor used a
+    // crisis keyword (轻生/不想活/…). The classifier can only ADD to this.
+    const keywordHits = await visitorCrisisKeywords(messages);
+    const mechanicalCrisis =
+      keywordHits.length > 0 ||
+      messages.some((m) => m.role === 'assistant' && replyActivatesCrisisProtocol(m.content));
+    if (keywordHits.length > 0) {
+      console.error(`[classify] conversation=${conversationId} crisis keywords ${JSON.stringify(keywordHits)}`);
+    }
     const tag = await classifyConversation(messages);
     if (tag) {
       await supabaseAdmin
