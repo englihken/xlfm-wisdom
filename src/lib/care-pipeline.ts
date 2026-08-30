@@ -205,6 +205,7 @@ export async function generateGuardedReplyText(params: {
     if (wisdomIds.length > 0) void incrementWisdomUseCounts(supabaseAdmin, wisdomIds);
   }
 
+  let modelCalls = 0;
   const callModel = async (extraSystem?: string): Promise<Anthropic.Message> => {
     const system = [
       ...buildSystemBlocks(language, contextBlock),
@@ -212,13 +213,32 @@ export async function generateGuardedReplyText(params: {
     ];
     // Streamed under the hood (large max_tokens + thinking would risk HTTP
     // timeouts on a blocking call); the caller still receives the full message.
+    const attempt = ++modelCalls;
+    const t0 = Date.now();
+    let ttfbMs = -1;
+    let firstTextMs = -1;
     const stream = anthropic.messages.stream({
       model: REPLY_MODEL,
       max_tokens: REPLY_MAX_TOKENS,
       system,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     });
-    return stream.finalMessage();
+    stream.on('streamEvent', (ev) => {
+      if (ttfbMs < 0 && ev.type === 'message_start') ttfbMs = Date.now() - t0;
+    });
+    stream.on('text', () => {
+      if (firstTextMs < 0) firstTextMs = Date.now() - t0;
+    });
+    const msg = await stream.finalMessage();
+    // Latency breakdown (入门轮 brief problem 3): time-to-first-byte, time to
+    // the first visible text (thinking sits in between), total, and the
+    // prompt-cache split — cache_read ≈ the ~2,860-line system prompt when
+    // the 5-minute ephemeral cache hits, cache_creation when it missed.
+    const u = msg.usage as Anthropic.Usage & { cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null };
+    console.log(
+      `[care-pipeline] timing conversation=${convId} attempt=${attempt} ttfb_ms=${ttfbMs} first_text_ms=${firstTextMs} total_ms=${Date.now() - t0} input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_create=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens} stop=${msg.stop_reason}`
+    );
+    return msg;
   };
 
   const textOf = (result: Anthropic.Message): string =>
@@ -395,9 +415,19 @@ export function buildSystemBlocks(
 
 // Deduplicate retrieved passages by book+page into the capped source list the UI
 // and dashboard render. Extracted verbatim from the web route's Step 5.
-export function buildSources(passages: RetrievedPassage[]): CareSource[] {
+//
+// `replyText` (08-30): books the reply itself cites (《白话佛法视频开示（第三册）》
+// in the prose) are listed FIRST, so the 参考开示 footer always includes what
+// the reader will try to look up — production showed a reply citing 视频开示
+// while the top-3 footer listed only 例说 + 解答来信疑惑 (the cited chunk was
+// retrieved, just outside the 3 slots).
+export function buildSources(passages: RetrievedPassage[], replyText?: string): CareSource[] {
+  const cited = replyText ? replyText.replace(/\s+/g, '') : '';
+  const ordered = cited
+    ? [...passages].sort((a, b) => Number(cited.includes(b.book)) - Number(cited.includes(a.book)))
+    : passages;
   const sourcesMap = new Map<string, CareSource>();
-  for (const p of passages) {
+  for (const p of ordered) {
     // Pageless sources (组织审定, 解答来信疑惑, 法会弟子提问) dedupe by excerpt
     // (= doc/post title) so two different letters posts stay distinct entries.
     const key = `${p.book}:${p.page_start ?? p.excerpt ?? 0}`;
@@ -445,7 +475,7 @@ export async function generateReply(
     conversationId: opts.conversationId,
   });
 
-  return { fullText, sources: refused ? [] : buildSources(passages) };
+  return { fullText, sources: refused ? [] : buildSources(passages, fullText) };
 }
 
 // ── Conversation categorisation (cheap, post-reply) ───────────────────────────

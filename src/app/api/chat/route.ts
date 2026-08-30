@@ -347,7 +347,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Step 5: Build rich sources — deduplicate by book+page combo (shared helper).
-    const sources = refused ? [] : buildSources(passages);
+    const sources = refused ? [] : buildSources(passages, fullText);
 
     // Step 6: Emit the SSE events the existing frontend already understands.
     const encoder = new TextEncoder();

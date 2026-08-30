@@ -363,9 +363,13 @@ export function chooseGuardTail(stripped: string, violations: GuardViolation[]):
 // backstop: when the reply states at least one count, blanket-refusal
 // sentences are removed. Returns the removed sentences for logging.
 // Shapes seen in production: 「查不到相关原文」「查不到适用于每一个人的通用数字」
-// 「查不到统一的标准说法」「不敢乱给数字」「不敢随意告诉您数字」「不方便乱给」.
+// 「查不到统一的标准说法」「不敢乱给数字」「不敢随意告诉您数字」「不方便乱给」,
+// and (08-30, after the 查不到 wording was closed) 「这次的资料里没有写明具体
+// 数字，你可以照官方功课说明来做 🔗」 — a refusal by another name. The scoped
+// single-figure note 「X这一项的遍数本次资料中没有写明」 (unit BEFORE the
+// verb) deliberately does not match.
 const BLANKET_REFUSAL_RE =
-  /查不到[^。！？!?\n]{0,24}(原文|数字|遍数|张数|标准|说法)|(不敢|不方便|不便)(乱|随意)?(给|告诉|报|说)[^。！？!?\n]{0,12}(数字|遍数|张数)|不(敢|方便|便)乱(给|说|报)/;
+  /查不到[^。！？!?\n]{0,24}(原文|数字|遍数|张数|标准|说法)|(不敢|不方便|不便)(乱|随意)?(给|告诉|报|说)[^。！？!?\n]{0,12}(数字|遍数|张数)|不(敢|方便|便)乱(给|说|报)|(资料|原文|开示|段落|这次)[^。！？!?\n]{0,12}(没有写明|没写明|没有提到|未提及|找不到)[^。！？!?\n]{0,12}(数字|遍数|张数)/;
 
 export function scrubContradictoryRefusal(text: string): { text: string; removed: string[] } {
   if (extractNumberTokens(text).length === 0) return { text, removed: [] };
