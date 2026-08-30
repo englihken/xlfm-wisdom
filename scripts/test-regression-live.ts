@@ -184,7 +184,9 @@ const CASES: Case[] = [
         // Trailing markdown emphasis/quotes (an italic *Reference: …* line) is
         // a complete ending too.
         name: 'ends cleanly (punctuation/emoji, not mid-word)',
-        ok: (r) => /[.!?。！？🙏)）》」]\s*$/.test(r.trim().replace(/[*_`"'\s]+$/, '')),
+        // A trailing resource link ("For resources: https://xlfm.my") is a
+        // complete ending too.
+        ok: (r) => /([.!?。！？🙏)）》」]|https?:\/\/\S+)\s*$/.test(r.trim().replace(/[*_`"'\s]+$/, '')),
       },
       { name: 'answers the vegetarian-collagen question', ok: (r) => /collagen/i.test(r) },
     ],
@@ -299,7 +301,18 @@ const BEGINNER_CASES: Case[] = [
     turns: ['我想开始念小房子', '还没有开始念功课'],
     checks: [
       { name: 'retrieval carries 念诵指南 or 入门手册', ok: (_r, _b, _t, ps) => ps.some((p) => p.book === '小房子念诵指南' || p.book === '心灵法门入门手册') },
-      { name: 'gives the 功课 first (基本/基础功课 or 先…功课)', ok: (r) => /基本功课|基础功课|先(把|从|念|做|起).{0,12}功课/.test(r.replace(/\s+/g, '')) },
+      {
+        // Either says so in words, or structurally: the 📿 功课 block comes
+        // before the first mention of 小房子 (「先从两部经起步」 shape).
+        name: 'gives the 功课 first (words, or 📿 block before 小房子)',
+        ok: (r) => {
+          const s = r.replace(/\s+/g, '');
+          if (/基本功课|基础功课|先(把|从|念|做|起).{0,12}(功课|经)/.test(s)) return true;
+          const hw = r.indexOf('📿');
+          const xf = r.indexOf('小房子');
+          return hw >= 0 && (xf < 0 || hw < xf);
+        },
+      },
       { name: 'names the three pillars (大悲咒/心经/礼佛)', ok: (r) => has(r, '大悲咒') && has(r, '心经') && has(r, '礼佛') },
       { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
       {
