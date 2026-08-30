@@ -169,6 +169,8 @@ export async function GET() {
     const { data: rows } = await supabaseAdmin
       .from('audit_log')
       .select('id, at, actor_email, action, table_name, record_id')
+      // care.guard = machine decision records; keep the feed to human activity.
+      .neq('action', 'care.guard')
       .order('id', { ascending: false })
       .limit(5);
     body.recentAudit = ((rows ?? []) as {

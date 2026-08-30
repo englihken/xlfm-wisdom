@@ -2830,9 +2830,9 @@ const GROUNDING_HARD_RULES = `
 【硬性规则 · 引文与数字（最高优先级）】
 1. 绝不断言存在某段"师父开示/台长开示"，除非该内容逐字出现在本次提供的检索段落中。引用（"> " 引文块）必须逐字照抄检索段落，不得改写、拼接、节选后重组，更不得把提问者（听众/访客）的话转述成师父的开示。
 2. 绝不给出任何遍数或张数（如 N遍、N张），除非该数字确实出现在本次检索段落中，或是访客自己说出的数字。不得凭记忆、常识或推断补数字。
-3. 检索段落中若包含【组织审定】内容，其中的遍数/张数就是唯一标准答案：直接给出该数字即可，绝不要提及、对比或罗列其他来源中的不同数字（包括旧版书籍的说法、问答记录里听众/同修自己提到的数字）。不要写"资料有新旧两个版本"这类对比。
-4. 如果访客问的具体遍数/张数在检索段落中查不到，直接说明"目前查不到相关原文"，并建议咨询就近共修会义工——宁可说查不到，也绝不编造。
-(These are hard rules: never assert a quoted teaching exists or state any 遍数/张数 count unless it appears verbatim in the retrieved passages for THIS reply, or in the visitor's own words. When an 【组织审定】 passage is present, its numbers are the ONLY numbers to state — never mention conflicting figures from other sources. If the number is not there, say 目前查不到相关原文 and refer to the local 共修会.)`;
+3. 检索段落中若包含【组织审定】内容，凡属其涵盖的主题（礼佛大忏悔文的遍数、特殊日子的小房子张数等），遍数/张数一律以【组织审定】为唯一标准答案：直接给出该数字即可，绝不要提及、对比或罗列其他来源中的不同数字（包括旧版书籍的说法、问答记录里听众/同修自己提到的数字）。不要写"资料有新旧两个版本"这类对比。其他经文（大悲咒、心经、往生咒、解结咒等）的功课遍数，只要确实写在检索到的书籍/问答段落中，就应当正常给出并注明出处——不要因为有【组织审定】段落就把其他有依据的数字都删掉。
+4. 如果访客问的某个具体遍数/张数在检索段落中确实查不到，只针对该项说明"这一项的遍数本次资料中没有写明"，并建议咨询就近共修会义工——宁可说没有，也绝不编造。只有在整个回答没有任何可依据的遍数/张数时，才写"目前查不到相关原文"。已经给出有依据的数字之后，绝不再附加"查不到相关原文／不敢乱给数字"之类的笼统免责——那会与前文自相矛盾。
+(These are hard rules: never assert a quoted teaching exists or state any 遍数/张数 count unless it appears verbatim in the retrieved passages for THIS reply, or in the visitor's own words. A count that appears in ANY retrieved passage — book, 组织审定, letters, 问答 — is legitimate; on the 组织审定 doc's own subject (礼佛大忏悔文 counts, special-day 小房子 counts) its numbers are the ONLY numbers to state and conflicting figures from other sources are never mentioned. If one specific figure is missing, say so about that figure only; write 目前查不到相关原文 only when NO figure is grounded, and never append it after grounded numbers.)`;
 
 // Rules for the lujunhong2or.com site-QA corpus — FOUR sources: 解答来信疑惑 /
 // 法会弟子提问 (Phase A) and 玄艺问答 / 玄艺综述 radio transcripts (Phase B).
@@ -2848,7 +2848,7 @@ const LETTERS_SOURCE_RULES = `
    - 《玄艺问答》：写《玄艺问答》（YYYY年M月D日节目），节目日期取自检索段落标题。
    - 《玄艺综述》：写《玄艺综述》（YYYY年M月D日节目）。
    任何一处标题里没有日期就直接省略日期，绝不推算、绝不编造。
-2. 个案 ≠ 通则（重要）：这四类内容都是台长针对某一位同修/听众的具体情况所作的开示。转述时要用"台长对类似情况的开示（某年某月某日）"的方式呈现，并说明"情况因人而异"。绝不可把台长给某个人的具体数字（如给某位同修的某某张小房子、某某遍经文）当作对所有人适用的通用上限或标准答案。通用的遍数/张数标准只能来自【组织审定】内容或《佛学问答》等通则性来源。
+2. 个案 ≠ 通则（重要）：这四类内容都是台长针对某一位同修/听众的具体情况所作的开示。转述时要用"台长对类似情况的开示（某年某月某日）"的方式呈现，并说明"情况因人而异"。绝不可把台长给某个人的具体数字（如给某位同修的某某张小房子、某某遍经文）当作对所有人适用的通用上限或标准答案。通用的遍数/张数标准只能来自【组织审定】内容或《佛学问答》等通则性来源。案例书（《心灵法门例说》《疾病百科》中的同修实例等）里的遍数/张数同理：可以给出（例如"台长对类似情况的开示：每天大悲咒7遍、心经7遍…情况因人而异"），但要标明是个案，不可写成通用上限。
 3. 若同一问题同时检索到【组织审定】段落和网站问答段落，遍数/张数一律以【组织审定】为准（见上方硬性规则第3条）；网站问答内容只可用于补充台长处理类似情况的思路，不可用于提供数字。
 4. 《玄艺综述》特别规则：其中的图腾开示是台长当年对具体听众的历史个案记录。你没有任何神通，绝不可暗示自己能"看图腾"、看前世、看灵性，也绝不可把某个案例的图腾判读套用到眼前的访客身上（现有的图腾请求拒绝规则继续有效）。这类案例只能用来说明"台长当年如何处理类似情况"，并引导访客念经修心。`;
 

@@ -8,6 +8,8 @@ import {
   extractNumberTokens,
   normalizeForGuard,
   chooseGuardTail,
+  scrubContradictoryRefusal,
+  hasBlanketRefusal,
 } from '../src/lib/verbatim-guard';
 
 let passed = 0;
@@ -30,6 +32,11 @@ const CHUNK_JINJI =
 const CHUNK_CANONICAL =
   '【组织审定 · 礼佛大忏悔文特殊日子遍数表】\n正常的初一十五，一天不超过21遍。一些佛菩萨诞辰日可以不超过49遍；从年三十到年初一这两天一共可以念诵87遍《礼佛大忏悔文》。';
 const CHUNKS = [CHUNK_JINJI, CHUNK_CANONICAL];
+// An ordinary book chunk (疾病百科 shape) whose counts are NOT in the canonical
+// doc — the 08-29 regression: these were stripped whenever a canonical chunk
+// was also retrieved.
+const CHUNK_BOOK =
+  '【疾病百科（一）】失眠：可以每天念《心经》3遍、《往生咒》27遍，同时配合小房子给自己的要经者。';
 
 console.log('— number token extraction —');
 assert(
@@ -111,13 +118,69 @@ console.log('— numbers check —');
   assert('visitor text cannot ground a quote', v.some((x) => x.type === 'quote'), v);
 }
 
-console.log('— canonical-strict mode —');
+console.log('— canonical-scoped mode (08-29: 组织审定 wins on ITS subject only) —');
 {
   const opts = { canonicalTexts: [CHUNK_CANONICAL] };
-  // 13遍 exists only in the ordinary 锦集 chunk (听众 question) → in canonical
-  // mode, prose use of it is REJECTED (the 29cfd74c "旧版写13遍" loophole).
-  const v = checkDraft('早期旧版写的是一天不超过13遍。', CHUNKS, [], opts);
-  assert('ordinary-chunk-only number rejected', v.some((x) => x.type === 'number' && x.text === '13遍'), v);
+  // 13遍 exists only in the ordinary 锦集 chunk (听众 question). In a paragraph
+  // on the canonical subject (礼佛 / 初一十五) its prose use is REJECTED — the
+  // 29cfd74c "旧版写13遍" loophole — with the canonical_conflict reason.
+  const v = checkDraft('初一十五的礼佛大忏悔文，早期旧版写的是一天不超过13遍。', CHUNKS, [], opts);
+  assert('ordinary-chunk-only number rejected on canonical subject', v.some((x) => x.type === 'number' && x.text === '13遍'), v);
+  assert('…with reason number_canonical_conflict', v.some((x) => x.reason === 'number_canonical_conflict'), v);
+
+  // Scope is the PARAGRAPH: a keyword-free second sentence cannot smuggle it.
+  const v2 = checkDraft('初一十五礼佛大忏悔文按组织审定一天不超过21遍。早期旧版写的是13遍。', CHUNKS, [], opts);
+  assert('keyword-free sentence in a 礼佛 paragraph still rejected', v2.some((x) => x.text === '13遍'), v2);
+
+  // THE 08-29 FIX: a book-only number on ANOTHER subject (心经/往生咒 for 失眠)
+  // is legitimate even though a canonical chunk is present. Before the fix,
+  // every prose number had to come from 组织审定 and this was stripped.
+  const chunksWithBook = [...CHUNKS, CHUNK_BOOK];
+  const v3 = checkDraft('失眠的话可以每天念《心经》3遍、《往生咒》27遍，配合小房子。', chunksWithBook, [], opts);
+  assert('book-only numbers on a non-canonical subject pass with canonical present', v3.length === 0, v3);
+
+  // Same book number, but placed on the canonical subject → conflict.
+  const v4 = checkDraft('初一十五的礼佛大忏悔文可以念27遍。', chunksWithBook, [], opts);
+  assert('book-only number on the canonical subject rejected', v4.some((x) => x.text === '27遍' && x.reason === 'number_canonical_conflict'), v4);
+
+  // A number in NO chunk is rejected everywhere, with its own reason.
+  const v5 = checkDraft('每天念大悲咒108遍。', chunksWithBook, [], opts);
+  assert('absent number → number_not_in_sources', v5.some((x) => x.text === '108遍' && x.reason === 'number_not_in_sources'), v5);
+
+  // False positives (review 08-29): everyday words that share characters with
+  // the canonical day-words must NOT mark a paragraph as canonical-subject.
+  const fp = (draft: string) => checkDraft(draft, chunksWithBook, [], opts);
+  assert('「孩子读初一」 (Form 1) + book 遍数 passes', fp('孩子读初一，学业压力大，可以每天念《心经》3遍帮助开智慧。').length === 0, fp('孩子读初一，学业压力大，可以每天念《心经》3遍帮助开智慧。'));
+  assert('「我怀孕了」 + book 遍数 passes', fp('我怀孕了可以念大悲咒吗？可以的，孕妇每天念《心经》3遍很好。').length === 0, fp('我怀孕了可以念大悲咒吗？可以的，孕妇每天念《心经》3遍很好。'));
+  assert('圣诞节 (Christmas) + book 遍数 passes', fp('圣诞节假期在家，每天念《往生咒》27遍也可以。').length === 0);
+  assert('十五岁 + book 遍数 passes', fp('十五岁的孩子每天念《心经》3遍就够了。').length === 0);
+  assert('十五分钟 + book 遍数 passes', fp('每天花十五分钟念《往生咒》27遍。').length === 0);
+  // Trigger without an anchor: 元旦 + 心经 count is NOT the doc's subject.
+  assert('元旦 + 心经 count (no 礼佛/小房子 anchor) passes', fp('元旦放假可以多念《心经》3遍。').length === 0);
+  // Real canonical subject still strict.
+  const still = fp('初一十五礼佛大忏悔文一天可以念13遍。');
+  assert('「初一十五礼佛大忏悔文」 + non-canonical 13遍 still rejected', still.some((x) => x.text === '13遍' && x.reason === 'number_canonical_conflict'), still);
+  const anchorOnly = fp('礼佛大忏悔文平时一天不超过13遍。');
+  assert('bare 礼佛 paragraph (trigger = anchor) still strict', anchorOnly.some((x) => x.text === '13遍'), anchorOnly);
+  const zhang = fp('清明节给亡人的小房子可以烧27张。');
+  assert('清明 + 小房子 N张 (book-only 27张 absent everywhere) flagged', zhang.some((x) => x.text === '27张'), zhang);
+
+  // Block-scoped anchor (review 08-29 #2): a bulleted list inherits the 礼佛
+  // anchor from its introducing line; a separate block does not.
+  const listReply =
+    '《礼佛大忏悔文》的遍数：\n- 平时初一、十五：13遍\n- 佛菩萨诞辰日：49遍\n\n失眠可以念《心经》3遍。\n\n孩子读初一，学业压力大，可以每天念《心经》3遍帮助开智慧。';
+  const vl = fp(listReply);
+  assert('list item 「平时初一、十五：13遍」 under a 礼佛 heading → number_canonical_conflict',
+    vl.some((x) => x.text === '13遍' && x.reason === 'number_canonical_conflict'), vl);
+  assert('canonical 49遍 in the same list passes', !vl.some((x) => x.text === '49遍'), vl);
+  assert('separate block 「失眠可以念《心经》3遍」 passes', !vl.some((x) => x.text === '3遍'), vl);
+  assert('「孩子读初一…3遍」 block still passes', vl.length === 1, vl);
+  const strippedList = stripViolations(listReply, vl);
+  assert('strip removes only the 13遍 item', !strippedList.includes('13遍') && strippedList.includes('49遍') && strippedList.includes('失眠可以念《心经》3遍') && strippedList.includes('孩子读初一'), strippedList);
+  // Trigger stays per line: a 心经 item inside the 礼佛 block is not swept up.
+  const mixed = fp('功课建议（含礼佛大忏悔文）：\n- 《心经》每天3遍\n- 《礼佛大忏悔文》初一十五13遍');
+  assert('心经 item in a 礼佛 block passes (no trigger on its line)', !mixed.some((x) => x.text === '3遍'), mixed);
+  assert('礼佛 item in the same block still rejected', mixed.some((x) => x.text === '13遍'), mixed);
 
   // Canonical numbers pass in prose.
   assert(
@@ -190,6 +253,60 @@ console.log('— post-strip tail decision (08-16 contradiction bug) —');
   const stripped = stripViolations(draft, v);
   assert('no numbers survive', extractNumberTokens(stripped).length === 0, stripped);
   assert('all-numbers strip → tail blanket', chooseGuardTail(stripped, v) === 'blanket');
+}
+
+console.log('— canonical-conflict stripping is paragraph-scoped —');
+{
+  const opts = { canonicalTexts: [CHUNK_CANONICAL] };
+  const chunksWithBook = [...CHUNKS, CHUNK_BOOK];
+  const draft =
+    '失眠可以每天念《心经》3遍、《往生咒》27遍。\n\n初一十五的礼佛大忏悔文可以念27遍。平时也可以多念。\n\n祝您早日安眠 🙏';
+  const v = checkDraft(draft, chunksWithBook, [], opts);
+  const stripped = stripViolations(draft, v);
+  assert('礼佛 sentence with the conflicting 27遍 removed', !stripped.includes('礼佛大忏悔文可以念27遍'), stripped);
+  assert('same 27遍 in the 往生咒 paragraph kept', stripped.includes('《往生咒》27遍'), stripped);
+  assert('rest of the 礼佛 paragraph kept', stripped.includes('平时也可以多念'), stripped);
+  assert('tail partial (grounded counts remain)', chooseGuardTail(stripped, v) === 'partial');
+}
+
+console.log('— contradiction scrub (08-29: 查不到 next to grounded counts) —');
+{
+  // Production chip-2 shape: 功课 list + 「关于每天各念多少遍，我这边查不到相关原文，不敢乱给数字。」
+  const text =
+    '📿 《心经》每天3遍\n祈求：「请大慈大悲观世音菩萨保佑我开智慧」\n\n关于每天各念多少遍，我这边查不到相关原文，不敢乱给数字。建议你联系就近的共修会义工确认：\n📞 总会 +603-6257 3811\n\n坚持念下去 🙏';
+  const r = scrubContradictoryRefusal(text);
+  assert('blanket refusal sentence removed', !r.text.includes('查不到相关原文'), r.text);
+  assert('removed sentence reported', r.removed.length === 1 && r.removed[0].includes('不敢乱给数字'), r.removed);
+  assert('grounded count kept', r.text.includes('每天3遍'), r.text);
+  assert('following advice sentence kept', r.text.includes('建议你联系就近的共修会义工'), r.text);
+}
+{
+  // Production 失眠 shape (08-29 run): 「查不到适用于每一个人的通用数字…我不方便乱给」.
+  const text =
+    '📿 《心经》7遍\n\n关于**具体遍数**——目前我在师父的开示原文里查不到适用于每一个人的通用数字，师父给同修的遍数都是看各人情况定的，我不方便乱给。建议你联系就近的共修会义工。';
+  const r = scrubContradictoryRefusal(text);
+  assert('通用数字 variant removed', !r.text.includes('查不到适用于'), r.text);
+  assert('7遍 kept', r.text.includes('7遍'), r.text);
+}
+{
+  // NO counts in the reply → the refusal is the honest answer; untouched.
+  const text = '这个问题的具体遍数，我目前查不到相关原文，不敢随意告诉您数字。建议咨询就近共修会的义工 🙏';
+  const r = scrubContradictoryRefusal(text);
+  assert('refusal kept when no counts stated', r.text === text && r.removed.length === 0, r);
+  assert('hasBlanketRefusal detects it', hasBlanketRefusal(text));
+}
+{
+  // Blockquote lines are never scrubbed (they are verbatim source text).
+  const text = '> 这种情况查不到原文的，要靠自己修\n\n每天心经7遍。';
+  const r = scrubContradictoryRefusal(text);
+  assert('quote line untouched', r.text.includes('> 这种情况查不到原文的'), r.text);
+}
+{
+  // Scoped omission phrasing (the prompt's replacement for one missing figure)
+  // is NOT a blanket refusal and survives.
+  const text = '每天心经7遍。礼佛大忏悔文这一项的遍数本次资料中没有写明，建议咨询共修会义工。';
+  const r = scrubContradictoryRefusal(text);
+  assert('scoped 没有写明 note kept', r.removed.length === 0 && r.text === text, r);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

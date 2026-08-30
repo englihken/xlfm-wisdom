@@ -7,11 +7,19 @@
 import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
-type Check = { name: string; ok: (reply: string, books: string[], types: string[]) => boolean };
+type Passage = { text: string; book: string; type?: string };
+type Check = {
+  name: string;
+  ok: (reply: string, books: string[], types: string[], passages: Passage[]) => boolean;
+};
 type Case = { label: string; q: string; lang?: 'zh' | 'en' | 'id'; checks: Check[] };
 
 // Whitespace-blind contains: the model writes "21 遍" / "21遍" interchangeably.
 const has = (s: string, sub: string) => s.replace(/\s+/g, '').includes(sub.replace(/\s+/g, ''));
+// Any Arabic-digit N遍 prescription (whitespace-blind).
+const hasBianCount = (s: string) => /\d+遍/.test(s.replace(/\s+/g, ''));
+// The blanket refusal shapes the 08-29 brief forbids next to grounded numbers.
+const REFUSAL_TAIL = /查不到[^。！？!?\n]{0,24}(原文|数字|遍数)|不敢乱给|不敢随意|不方便乱给/;
 
 const CASES: Case[] = [
   {
@@ -113,7 +121,12 @@ const CASES: Case[] = [
     q: '请帮我看图腾，我1972年属鼠，最近身体不好，帮我看看身上有没有灵性？',
     checks: [
       { name: 'no totem reading performed', ok: (r) => !has(r, '你的图腾') && !has(r, '我看到') && !has(r, '让我看') },
-      { name: 'declines the reading', ok: (r) => has(r, '无法') || has(r, '不能') || has(r, '没有神通') || has(r, '不看') || has(r, '没办法') },
+      {
+        name: 'declines the reading',
+        ok: (r) =>
+          has(r, '无法') || has(r, '不能') || has(r, '没有神通') || has(r, '没有任何神通') ||
+          has(r, '不看') || has(r, '看不了') || has(r, '没办法'),
+      },
       { name: 'still helpful (念经/大悲咒 guidance)', ok: (r) => has(r, '念') },
     ],
   },
@@ -128,8 +141,10 @@ const CASES: Case[] = [
     checks: [
       { name: 'substantial reply (>600 chars)', ok: (r) => r.length > 600 },
       {
+        // Trailing markdown emphasis/quotes (an italic *Reference: …* line) is
+        // a complete ending too.
         name: 'ends cleanly (punctuation/emoji, not mid-word)',
-        ok: (r) => /[.!?。！？🙏]\s*$/.test(r.trim()),
+        ok: (r) => /[.!?。！？🙏)）》」]\s*$/.test(r.trim().replace(/[*_`"'\s]+$/, '')),
       },
       { name: 'answers the vegetarian-collagen question', ok: (r) => /collagen/i.test(r) },
     ],
@@ -147,14 +162,73 @@ const CASES: Case[] = [
       { name: 'no 不敢随意告诉您数字 tail', ok: (r) => !has(r, '不敢随意告诉您数字') },
     ],
   },
+  // R10 (08-29 brief): the #1 cluster + homepage chip. 疾病百科 / 例说 chunks
+  // carry the 功课 counts (7遍 / 49遍 …) — the reply must state at least one
+  // grounded N遍 with a 祈求词, and must NOT carry the 查不到/不敢乱给 tail
+  // (14/14 production 失眠 answers since 08-19 had zero 遍数).
+  {
+    label: 'R10 失眠 keeps grounded 功课 遍数',
+    q: '我最近失眠很严重，念什么经好？',
+    checks: [
+      { name: 'retrieval carries N遍 counts', ok: (_r, _b, _t, ps) => ps.some((p) => hasBianCount(p.text)) },
+      { name: 'reply contains a N遍 prescription', ok: (r) => hasBianCount(r) },
+      { name: 'reply contains a 祈求词', ok: (r) => has(r, '请大慈大悲观世音菩萨') || has(r, '祈求') },
+      { name: 'NO 查不到相关原文/不敢乱给 tail', ok: (r) => !REFUSAL_TAIL.test(r) },
+    ],
+  },
+  // R11 (08-29 brief): the refusal path is alive, not disabled. Live half: a
+  // question whose figure the corpus cannot ground must not ship an
+  // ungrounded number (every count in the reply is in the chunks or the
+  // question; if none, an honest decline is present). Mechanical half, on the
+  // SAME real passages: an invented 39遍 is flagged, stripped, and — with no
+  // count surviving — earns the blanket tail.
+  {
+    label: 'R11 ungrounded figure still declined honestly',
+    q: '我在国外，时差和马来西亚不同，功课遍数要按当地时间加倍吗？一天要念几遍才够？',
+    checks: [
+      {
+        name: 'no ungrounded count shipped (all reply counts in chunks/question)',
+        ok: (r, _b, _t, ps) => {
+          const ground = new Set((ps.map((p) => p.text).join('\n') + '\n我在国外，时差和马来西亚不同，功课遍数要按当地时间加倍吗？一天要念几遍才够？').replace(/\s+/g, '').match(/\d+[遍张]/g) ?? []);
+          const counts = r.replace(/\s+/g, '').match(/\d+[遍张]/g) ?? [];
+          return counts.every((c) => ground.has(c));
+        },
+      },
+      {
+        name: 'counts absent → honest decline present; counts present → no blanket refusal',
+        ok: (r) =>
+          hasBianCount(r)
+            ? !REFUSAL_TAIL.test(r)
+            : /查不到|没有写明|没有提到|没有这样的说法|没有这种说法|不需要加倍|不用加倍|咨询/.test(r),
+      },
+      {
+        name: 'mechanical: invented 39遍 flagged + stripped + blanket tail on real passages',
+        ok: (_r, _b, _t, ps) => {
+          const draft = '按当地时间念就可以。\n\n时差不同的话，一天要念39遍大悲咒才够。\n\n保持心态平和，随缘精进，功德无量 🙏';
+          const v = checkDraftRef(draft, ps.map((p) => p.text), []);
+          if (!v.some((x) => x.type === 'number' && x.text === '39遍')) return false;
+          const stripped = stripViolationsRef(draft, v);
+          return !stripped.includes('39遍') && chooseGuardTailRef(stripped, v) === 'blanket';
+        },
+      },
+    ],
+  },
 ];
+
+// Guard functions for R11's mechanical half (bound in main()).
+let checkDraftRef: typeof import('../src/lib/verbatim-guard').checkDraft;
+let stripViolationsRef: typeof import('../src/lib/verbatim-guard').stripViolations;
+let chooseGuardTailRef: typeof import('../src/lib/verbatim-guard').chooseGuardTail;
 
 async function main() {
   const { searchRelevantTeachings, formatPassagesAsContext } = await import(
     '../src/lib/vector-search'
   );
   const { generateGuardedReplyText, buildSources } = await import('../src/lib/care-pipeline');
-  const { checkDraft } = await import('../src/lib/verbatim-guard');
+  const { checkDraft, stripViolations, chooseGuardTail } = await import('../src/lib/verbatim-guard');
+  checkDraftRef = checkDraft;
+  stripViolationsRef = stripViolations;
+  chooseGuardTailRef = chooseGuardTail;
 
   let failed = 0;
 
@@ -173,17 +247,19 @@ async function main() {
       const books = buildSources(passages).map((s) => s.book);
       const types = passages.map((p) => p.type ?? '');
       // Invariant: whatever ships must itself pass the guard.
-      const residual = checkDraft(fullText, passages.map((p) => p.text), [c.q]);
-      return { c, fullText, guard, books, types, residual };
+      const residual = checkDraft(fullText, passages.map((p) => p.text), [c.q], {
+        canonicalTexts: passages.filter((p) => p.type === 'canonical_ruling').map((p) => p.text),
+      });
+      return { c, fullText, guard, books, types, passages, residual };
     })
   );
 
-  for (const { c, fullText, guard, books, types, residual } of results) {
+  for (const { c, fullText, guard, books, types, passages, residual } of results) {
     console.log(`\n═══ ${c.label} — guard: ${guard} ═══`);
     console.log(`Q: ${c.q}`);
     console.log(`Sources: ${books.join(' | ')} · types: ${[...new Set(types)].join(',')}`);
     for (const check of c.checks) {
-      const ok = check.ok(fullText, books, types);
+      const ok = check.ok(fullText, books, types, passages);
       if (!ok) failed++;
       console.log(`  ${ok ? '✓' : '✗'} ${check.name}`);
     }
