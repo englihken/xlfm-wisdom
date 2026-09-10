@@ -93,3 +93,17 @@ SSE `type:'stage'`：`retrieving`（检索前）→ `drafting`（第一次模型
 ## 不在本批
 
 系统提示词矛盾清单（另开）；F01 数字护栏第二批（先写负例测试）；EN/ID chip 的 `homework_baseline` 关键词覆盖（会让 EN/ID chip 也走 low 档，需要另议）。
+
+### 7.1 部署
+
+`017c4da Merge branch 'fix/guard-grounded-numbers'` → main → Vercel。上线判定：`POST /api/chat` 收到坏 JSON 从 500 变成 `400 {"error":"Invalid JSON"}`（新路由才有）。
+
+### 7.2 生产实测（2026-09-11 00:2x MYT，Chrome，真实访客路径，xlfm-wisdom.vercel.app/qa）
+
+| 场景 | 结果 |
+|---|---|
+| chip 未命中（首次点「失眠」） | 阶段标签「检索台长开示中…」0.01 s → 「撰写中…」4.1 s；回复 22.9 s 出现；`/api/chat` 总耗时 24.5 s；回复出现后输入框立即可用 |
+| chip 命中（新对话再点同一 chip，两次） | 回复 2.2 s / 2.2 s 出现，`/api/chat` 2.6 s / 3.5 s（含 contact 查找、conversation + 两条 messages 写入）；发送键在回复出现后 0.5 s 内可用 |
+| 新对话不串 | 发问「我和先生经常吵架…」→ 3.5 s 后（撰写中）点「新对话」→ 页面清空 → 点 chip → 命中回复 2.2 s；再等 30 s，旧回复（先生/婚姻/吵架）**没有**出现在新对话，气泡只有 2 个，输入框可用 |
+
+命中延迟没有做到 brief 写的 <1 s：路径上还有 4 次 Supabase 往返（contact 查找 + 更新、conversation 创建、user 消息、assistant 消息 + last_message_at）串行发生，加上 Vercel 函数启动。把这些写入并行化 / 合并成一次 RPC 可以再压，但那会动 persistInbound 的所有权检查顺序，留给下一批。
