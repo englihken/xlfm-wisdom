@@ -24,6 +24,7 @@ import { supabaseAdmin } from './supabase';
 import { generateReply, type CareMessage, type Language } from './care-pipeline';
 import { classifyAnthropicError, type ReplyErrorKind } from './ops-alerts';
 import { writeAudit } from './audit';
+import { isAiDraftEnabled } from './org-settings';
 import Anthropic from '@anthropic-ai/sdk';
 
 export const RETRY_BACKOFF_MS = [60_000, 300_000, 1_800_000, 7_200_000] as const;
@@ -59,7 +60,7 @@ async function canaryOk(): Promise<boolean> {
   }
 }
 
-export type RecoveryOutcome = 'recovered' | 'already_answered' | 'handed_off' | 'retry_later' | 'quota_wait' | 'skipped';
+export type RecoveryOutcome = 'recovered' | 'already_answered' | 'handed_off' | 'retry_later' | 'quota_wait' | 'ai_disabled' | 'skipped';
 
 // Regenerate the missing reply for one conversation. Returns what happened.
 async function recoverConversation(row: FailedReplyRow): Promise<{ outcome: RecoveryOutcome; kind?: ReplyErrorKind; detail?: string }> {
@@ -87,13 +88,40 @@ async function recoverConversation(row: FailedReplyRow): Promise<{ outcome: Reco
   // sit unsent in the DB, so hand those to a volunteer (the reply UI sends).
   if (conv.channel === 'whatsapp') return { outcome: 'handed_off', detail: 'whatsapp channel' };
 
+  // Audit F06: the AI-draft master switch applies to recovery too. Off → the
+  // row stays queued (no attempt burned) and the conversation waits for a human.
+  if (!(await isAiDraftEnabled())) return { outcome: 'ai_disabled' };
+
   const history: CareMessage[] = all
     .filter((m) => m.content && m.content.trim().length > 0)
     .map((m) => ({ role: m.role === 'user' ? ('user' as const) : ('assistant' as const), content: m.content }));
   const language = ((conv.language as string) || 'zh') as Language;
+  const lastMessageAt = all[all.length - 1].created_at;
 
   try {
     const { fullText, sources } = await generateReply(history, language, { conversationId: row.conversation_id });
+    // Re-check before inserting (F06): generation took 30–120 s, during which
+    // a volunteer may have taken over or the visitor may have written again.
+    // Either way this reply answers a thread that moved on — drop it.
+    const { data: convNow } = await db
+      .from('conversations')
+      .select('status')
+      .eq('id', row.conversation_id)
+      .maybeSingle();
+    if (convNow?.status === 'volunteer_handling') return { outcome: 'handed_off', detail: 'volunteer took over during recovery' };
+    const { data: newer } = await db
+      .from('messages')
+      .select('role')
+      .eq('conversation_id', row.conversation_id)
+      .gt('created_at', lastMessageAt)
+      .limit(5);
+    const newerRoles = (newer ?? []).map((m) => m.role as string);
+    if (newerRoles.some((r) => r === 'assistant' || r === 'volunteer')) return { outcome: 'already_answered' };
+    if (newerRoles.length > 0) {
+      // The visitor wrote again; that turn has its own reply path (and its own
+      // failed_replies row if it failed). This stale reply must not be inserted.
+      return { outcome: 'skipped', detail: 'newer visitor message arrived during recovery' };
+    }
     const { error: insErr } = await db.from('messages').insert({
       conversation_id: row.conversation_id,
       role: 'assistant',
@@ -199,6 +227,15 @@ export async function processFailedReplies(opts: {
       run.quotaWaiting++;
       quotaGateOpen = false;
       continue;
+    }
+    if (result.outcome === 'ai_disabled') {
+      // AI drafting is switched off (F06): un-claim the row exactly as it was
+      // and stop — every other row would answer the same. Nothing is lost:
+      // the rows replay when the switch comes back on.
+      await db.from('failed_replies').update({ status: row.status, attempts: row.attempts, last_attempt_at: row.last_attempt_at }).eq('id', row.id);
+      run.attempted--;
+      console.log('[reply-recovery] ai draft disabled — leaving the queue untouched');
+      break;
     }
     if (result.outcome === 'handed_off' || result.outcome === 'skipped' || attemptsNow >= MAX_ATTEMPTS) {
       await db.from('failed_replies').update({

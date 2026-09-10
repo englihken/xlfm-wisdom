@@ -29,11 +29,16 @@ export const runtime = 'nodejs';
 // Use the Fluid-compute ceiling so the inline recovery is never cut off.
 export const maxDuration = 300;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const conversationId = url.searchParams.get('conversationId');
   const browserId = url.searchParams.get('browserId');
   const after = url.searchParams.get('after');
+  // Composite cursor (created_at, id): with `afterId` the row AT `after` is
+  // excluded by id, so equal timestamps neither re-deliver nor skip a row.
+  const afterId = url.searchParams.get('afterId') || null;
 
   if (!conversationId || !browserId) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
@@ -86,8 +91,13 @@ export async function GET(req: Request) {
     .select('id, role, content, created_at')
     .eq('conversation_id', conversationId)
     .in('role', ['volunteer', 'assistant'])
-    .order('created_at', { ascending: true });
-  if (after) query = query.gt('created_at', after);
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true });
+  if (after && afterId && UUID_RE.test(afterId)) {
+    query = query.or(`created_at.gt.${after},and(created_at.eq.${after},id.gt.${afterId})`);
+  } else if (after) {
+    query = query.gt('created_at', after);
+  }
 
   const { data: messages, error: msgError } = await query;
   if (msgError) {

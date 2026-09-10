@@ -7,40 +7,25 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles } from 'lucide-react';
 import { MasterMarkdown, MessageSources, type Source } from '@/components/assistant-message';
+import { QUICK_QUESTIONS } from '@/lib/quick-questions';
 
+// Stable per-message ids (09-10 §1): every stream callback addresses ITS
+// message by id, never "the last item of the array", so a reply that arrives
+// after the visitor started a new conversation can't land in the wrong thread.
 interface Message {
+  id: string;
   role: 'user' | 'assistant' | 'volunteer';
   content: string;
   sources?: Source[];
   streaming?: boolean;
+  // Progress hint while streaming (server `stage` events, 09-10 §4).
+  stage?: ReplyStage;
 }
 
-const QUICK_QUESTIONS = {
-  zh: [
-    '我最近失眠很严重，念什么经好？',
-    '和家人一直吵架，我可以先学什么？',
-    '工作一直不顺，是不是有业障？',
-    '孩子不听话，我应该如何面对自己的情绪？',
-    '刚开始接触心灵法门，第一步应该做什么？',
-    '家人生病了，我应该为他念什么经？',
-  ],
-  en: [
-    'I have severe insomnia, which sutras should I recite?',
-    'I keep arguing with family, what can I start learning?',
-    'Work has been going badly, is it karma?',
-    'My child is rebellious, how should I handle my emotions?',
-    'I am new to 心灵法门, what is the first step?',
-    'My family member is ill, what should I recite for them?',
-  ],
-  id: [
-    'Saya sulit tidur, sutra apa yang harus saya baca?',
-    'Saya selalu bertengkar dengan keluarga, apa yang harus saya pelajari?',
-    'Pekerjaan saya tidak lancar, apakah ini karma?',
-    'Anak saya nakal, bagaimana mengatasi emosi saya?',
-    'Saya baru mengenal 心灵法门, apa langkah pertama?',
-    'Keluarga saya sakit, apa yang harus saya baca untuk mereka?',
-  ],
-};
+type ReplyStage = 'retrieving' | 'drafting' | 'verifying';
+
+const newId = (): string =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
 
 const TRANSLATIONS = {
   zh: {
@@ -50,6 +35,9 @@ const TRANSLATIONS = {
     free: '一切完全免费，无需注册',
     placeholder: '请输入您想问的问题...',
     sending: '正在思考...',
+    stageRetrieving: '检索台长开示中…',
+    stageDrafting: '撰写中…',
+    stageVerifying: '核对原文中…',
     quickTitle: '或从这些常见问题开始：',
     sourcesTitle: '参考开示：',
     volunteerLabel: '义工回复 🙏',
@@ -84,6 +72,9 @@ const TRANSLATIONS = {
     free: 'Completely free, no registration required',
     placeholder: 'Type your question...',
     sending: 'Thinking...',
+    stageRetrieving: 'Searching Master Lu’s teachings…',
+    stageDrafting: 'Writing…',
+    stageVerifying: 'Checking against the source texts…',
     quickTitle: 'Or start with these common questions:',
     sourcesTitle: 'References:',
     volunteerLabel: 'Volunteer reply 🙏',
@@ -118,6 +109,9 @@ const TRANSLATIONS = {
     free: 'Sepenuhnya gratis, tanpa pendaftaran',
     placeholder: 'Ketik pertanyaan Anda...',
     sending: 'Memikirkan...',
+    stageRetrieving: 'Mencari ajaran Master Lu…',
+    stageDrafting: 'Menulis…',
+    stageVerifying: 'Memeriksa teks sumber…',
     quickTitle: 'Atau mulai dengan pertanyaan umum ini:',
     sourcesTitle: 'Referensi:',
     volunteerLabel: 'Balasan sukarelawan 🙏',
@@ -151,6 +145,22 @@ function isNearBottom(): boolean {
   return window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 150;
 }
 
+// Same honest wording as the server's failure path (GENERATION_FAILED_REPLY).
+function failureText(language: 'zh' | 'en' | 'id'): string {
+  return language === 'zh'
+    ? '不好意思，系统这会儿有点问题，没能马上回你 🙏 你的问题我们已经记下来了，义工会尽快跟进。如果方便，可以留个联系方式。'
+    : language === 'id'
+      ? 'Maaf, sistem sedang bermasalah dan belum bisa membalas sekarang 🙏 Pertanyaan Anda sudah kami catat dan relawan akan segera menindaklanjuti. Jika berkenan, tinggalkan kontak Anda.'
+      : "Sorry — the system is having a problem right now and could not answer you immediately 🙏 Your question has been recorded and a volunteer will follow up soon. If convenient, please leave a way to contact you.";
+}
+
+function stageLabel(t: { stageRetrieving: string; stageDrafting: string; stageVerifying: string; sending: string }, stage?: ReplyStage): string {
+  if (stage === 'retrieving') return t.stageRetrieving;
+  if (stage === 'drafting') return t.stageDrafting;
+  if (stage === 'verifying') return t.stageVerifying;
+  return t.sending;
+}
+
 export default function QAPage() {
   const [language, setLanguage] = useState<'zh' | 'en' | 'id'>('zh');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -168,9 +178,21 @@ export default function QAPage() {
   const wasAtBottomRef = useRef(true);
   const latestUserMessageRef = useRef<HTMLDivElement | null>(null);
   const browserIdRef = useRef<string | null>(null);
-  // ISO timestamp of the newest volunteer reply we've already shown — the poll's
-  // `after` cursor. Null until the conversation exists (then set to "now").
-  const afterRef = useRef<string | null>(null);
+  // Cursor of the newest reply we've already shown — (created_at, id) so two
+  // rows with the same timestamp can't be skipped or re-shown. Null until the
+  // conversation exists (then seeded to "now").
+  const afterRef = useRef<{ createdAt: string; id: string | null } | null>(null);
+  // The in-flight turn: its AbortController and requestId. A new conversation
+  // aborts the fetch, and every callback from an older request is dropped by
+  // requestId, so a late reply never lands in the new thread (09-10 §1).
+  const inFlightRef = useRef<{ requestId: number; controller: AbortController } | null>(null);
+  const requestSeqRef = useRef(0);
+  // Single-flight poll: the next tick is skipped while the previous request is
+  // still out, and while a turn is streaming (its reply is delivered by the
+  // stream, and `persisted` moves the cursor past it).
+  const pollBusyRef = useRef(false);
+  const isLoadingRef = useRef(false);
+  isLoadingRef.current = isLoading;
 
   const t = TRANSLATIONS[language];
 
@@ -204,6 +226,14 @@ export default function QAPage() {
       );
       if (!confirmed) return;
     }
+    // Abort the in-flight turn: its fetch is cancelled and any callback that
+    // still fires is dropped by requestId (the server finishes the reply and
+    // persists it into the OLD conversation, where it belongs).
+    if (inFlightRef.current) {
+      inFlightRef.current.controller.abort();
+      inFlightRef.current = null;
+    }
+    requestSeqRef.current++;
     setMessages([]);
     setInput('');
     setIsLoading(false);
@@ -247,15 +277,22 @@ export default function QAPage() {
     const browserId = browserIdRef.current;
     if (!browserId) return;
     // Seed the cursor to "now" on first attach so we only surface fresh replies.
-    if (afterRef.current === null) afterRef.current = new Date().toISOString();
+    if (afterRef.current === null) afterRef.current = { createdAt: new Date().toISOString(), id: null };
 
     let cancelled = false;
     const poll = async () => {
+      // Single flight: never stack a second request on a slow one (a recovery
+      // regeneration inside /api/chat/updates can take a minute), and never
+      // poll while our own turn is streaming.
+      if (pollBusyRef.current || isLoadingRef.current) return;
+      pollBusyRef.current = true;
       try {
+        const cursor = afterRef.current;
         const params = new URLSearchParams({
           conversationId,
           browserId,
-          after: afterRef.current ?? '',
+          after: cursor?.createdAt ?? '',
+          afterId: cursor?.id ?? '',
         });
         const res = await fetch(`/api/chat/updates?${params.toString()}`);
         if (!res.ok || cancelled) return;
@@ -264,18 +301,23 @@ export default function QAPage() {
         setVolunteerHandling(Boolean(json.handling));
         const incoming: { id: string; role?: string; content: string; created_at: string }[] = json.messages ?? [];
         if (incoming.length > 0) {
-          afterRef.current = incoming[incoming.length - 1].created_at;
+          const last = incoming[incoming.length - 1];
+          afterRef.current = { createdAt: last.created_at, id: last.id };
           wasAtBottomRef.current = isNearBottom();
           setMessages((prev) => {
             // Recovered AI replies (role assistant) arrive here after a generation
             // failure. Skip one that exactly matches the last bubble we already
             // show — a stale client whose `after` cursor predates the live reply.
             const lastShown = [...prev].reverse().find((m) => m.role !== 'user')?.content;
-            const fresh = incoming.filter((m) => !(m.role === 'assistant' && m.content === lastShown));
+            const shownIds = new Set(prev.map((m) => m.id));
+            const fresh = incoming.filter(
+              (m) => !shownIds.has(m.id) && !(m.role === 'assistant' && m.content === lastShown)
+            );
             if (fresh.length === 0) return prev;
             return [
               ...prev,
               ...fresh.map((m) => ({
+                id: m.id,
                 role: (m.role === 'assistant' ? 'assistant' : 'volunteer') as 'assistant' | 'volunteer',
                 content: m.content,
               })),
@@ -284,6 +326,8 @@ export default function QAPage() {
         }
       } catch {
         /* transient — the next tick retries */
+      } finally {
+        pollBusyRef.current = false;
       }
     };
     const interval = setInterval(poll, 8000);
@@ -296,8 +340,15 @@ export default function QAPage() {
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: text };
-    setMessages((prev) => [...prev, userMessage]);
+    const requestId = ++requestSeqRef.current;
+    const controller = new AbortController();
+    inFlightRef.current = { requestId, controller };
+    // Callbacks from an older request (aborted by 新对话) must not touch state.
+    const live = () => inFlightRef.current?.requestId === requestId;
+
+    const userMessage: Message = { id: newId(), role: 'user', content: text };
+    const replyId = newId();
+    setMessages((prev) => [...prev, userMessage, { id: replyId, role: 'assistant', content: '', streaming: true, stage: 'retrieving' }]);
     setInput('');
     setIsLoading(true);
 
@@ -310,7 +361,22 @@ export default function QAPage() {
       }
     }, 100);
 
-    setMessages((prev) => [...prev, { role: 'assistant', content: '', streaming: true }]);
+    // Update THIS turn's reply bubble by id — never "the last item".
+    const patchReply = (patch: Partial<Message> | ((m: Message) => Message)) => {
+      if (!live()) return;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === replyId ? (typeof patch === 'function' ? patch(m) : { ...m, ...patch }) : m))
+      );
+    };
+    // The send key is enabled the moment [DONE] arrives (or the turn fails) —
+    // not when the connection closes.
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      if (inFlightRef.current?.requestId === requestId) inFlightRef.current = null;
+      if (live() || requestSeqRef.current === requestId) setIsLoading(false);
+    };
 
     try {
       const response = await fetch('/api/chat', {
@@ -323,6 +389,7 @@ export default function QAPage() {
           conversationId,
           browserId: browserIdRef.current,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok || !response.body) {
@@ -336,6 +403,11 @@ export default function QAPage() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (!live()) {
+          // 新对话 while streaming: stop reading; the server finishes on its own.
+          reader.cancel().catch(() => {});
+          break;
+        }
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
@@ -345,58 +417,37 @@ export default function QAPage() {
           if (!line.startsWith('data: ')) continue;
           const data = line.slice(6).trim();
           if (data === '[DONE]') {
-              // Stream complete — mark message as no longer streaming
-              setMessages((prev) => {
-                const updated = [...prev];
-                const lastIdx = updated.length - 1;
-                updated[lastIdx] = { ...updated[lastIdx], streaming: false };
-                return updated;
-              });
-              continue;
-            }
+            // Stream complete — the reply is final; free the input right away.
+            patchReply({ streaming: false, stage: undefined });
+            finish();
+            continue;
+          }
 
           try {
             const parsed = JSON.parse(data);
 
-            if (parsed.type === 'conversation') {
-              if (parsed.conversationId) setConversationId(parsed.conversationId);
+            if (parsed.type === 'stage') {
+              patchReply({ stage: parsed.stage as ReplyStage });
+            } else if (parsed.type === 'conversation') {
+              if (parsed.conversationId && live()) setConversationId(parsed.conversationId);
             } else if (parsed.type === 'volunteer_handling') {
               // A human has taken over — no AI text is coming. Drop the empty
               // assistant placeholder and show the honest indicator. The poll will
               // surface the volunteer's reply.
-              setVolunteerHandling(true);
-              setMessages((prev) => {
-                const updated = [...prev];
-                const lastIdx = updated.length - 1;
-                if (updated[lastIdx]?.role === 'assistant' && updated[lastIdx].content === '') {
-                  updated.pop();
-                }
-                return updated;
-              });
+              if (live()) {
+                setVolunteerHandling(true);
+                setMessages((prev) => prev.filter((m) => !(m.id === replyId && m.content === '')));
+              }
             } else if (parsed.type === 'persisted') {
               // The live reply is now stored with this timestamp; start the
               // late-reply poll strictly after it so it is never re-shown.
-              if (parsed.createdAt) afterRef.current = parsed.createdAt;
+              if (parsed.createdAt && live()) afterRef.current = { createdAt: parsed.createdAt, id: null };
             } else if (parsed.type === 'sources') {
-              setMessages((prev) => {
-                const updated = [...prev];
-                const lastIdx = updated.length - 1;
-                updated[lastIdx] = {
-                  ...updated[lastIdx],
-                  sources: parsed.sources,
-                };
-                return updated;
-              });
+              patchReply({ sources: parsed.sources });
             } else if (parsed.type === 'text') {
-              setMessages((prev) => {
-                const updated = [...prev];
-                const lastIdx = updated.length - 1;
-                updated[lastIdx] = {
-                  ...updated[lastIdx],
-                  content: updated[lastIdx].content + parsed.text,
-                };
-                return updated;
-              });
+              patchReply((m) => ({ ...m, content: m.content + parsed.text }));
+            } else if (parsed.type === 'error') {
+              patchReply((m) => (m.content ? m : { ...m, content: failureText(language) }));
             }
           } catch (e) {
             console.error('Parse error:', e);
@@ -404,25 +455,16 @@ export default function QAPage() {
         }
       }
     } catch (error) {
+      if ((error as { name?: string })?.name === 'AbortError' || !live()) {
+        // Aborted by 新对话 — nothing to show, nothing to reset.
+        return;
+      }
       console.error('Chat error:', error);
-      setMessages((prev) => {
-        const updated = [...prev];
-        const lastIdx = updated.length - 1;
-        updated[lastIdx] = {
-          role: 'assistant',
-          // Network-level failure (the server never answered). The server-side
-          // failure path sends the same honest wording as a normal text event.
-          content:
-            language === 'zh'
-              ? '不好意思，系统这会儿有点问题，没能马上回你 🙏 你的问题我们已经记下来了，义工会尽快跟进。如果方便，可以留个联系方式。'
-              : language === 'id'
-                ? 'Maaf, sistem sedang bermasalah dan belum bisa membalas sekarang 🙏 Pertanyaan Anda sudah kami catat dan relawan akan segera menindaklanjuti. Jika berkenan, tinggalkan kontak Anda.'
-                : "Sorry — the system is having a problem right now and could not answer you immediately 🙏 Your question has been recorded and a volunteer will follow up soon. If convenient, please leave a way to contact you.",
-        };
-        return updated;
-      });
+      // Network-level failure (the server never answered). The server-side
+      // failure path sends the same honest wording as a normal text event.
+      patchReply({ content: failureText(language), streaming: false, stage: undefined });
     } finally {
-      setIsLoading(false);
+      finish();
     }
   };
 
@@ -607,7 +649,7 @@ export default function QAPage() {
               );
               return (
               <div
-                key={idx}
+                key={msg.id}
                 ref={isLatestUser ? latestUserMessageRef : null}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
@@ -668,7 +710,7 @@ export default function QAPage() {
                       <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                       <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
-                    <span className="text-sm">{t.sending}</span>
+                    <span className="text-sm">{stageLabel(t, messages[messages.length - 1]?.stage)}</span>
                   </div>
                 </div>
               </div>

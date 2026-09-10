@@ -128,26 +128,39 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '所选记录均不可对账（须为已核实的转账）', rejected }, { status: 400 });
   }
 
+  // Validate the optional posting account BEFORE any row changes state (audit
+  // F02): a bad id must not leave rows reconciled with nothing posted.
+  const accountId = typeof body?.account_id === 'string' ? body.account_id : '';
+  if (accountId && !UUID_RE.test(accountId)) return NextResponse.json({ error: '账户无效' }, { status: 400 });
+
   const nowIso = new Date().toISOString();
+  // Compare-and-set (F02): only rows STILL 'verified' flip — two HQ users
+  // reconciling the same selection can't both "win", and only what this
+  // update actually changed is posted below.
   const { data: updated, error } = await supabaseAdmin!
     .from('registrations')
     .update({ payment_status: 'reconciled', payment_reconciled_by: me.id, payment_reconciled_at: nowIso, updated_at: nowIso, updated_by: me.id })
     .in('id', rows.map((r) => r.id))
+    .eq('payment_status', 'verified')
     .select('id');
   if (error) {
     console.error('[reconcile] update failed:', error);
     return NextResponse.json({ error: '对账失败，请重试' }, { status: 500 });
   }
+  const updatedIds = new Set(((updated ?? []) as { id: string }[]).map((u) => u.id));
+  const reconciledRows = rows.filter((r) => updatedIds.has(r.id));
+  const lostRace = rows.length - reconciledRows.length;
+  if (reconciledRows.length === 0) {
+    return NextResponse.json({ error: '所选记录已被他人对账', rejected: rejected + lostRace }, { status: 409 });
+  }
 
-  const batchCents = sumCents(rows.map((r) => r.paid_amount ?? 0));
+  const batchCents = sumCents(reconciledRows.map((r) => r.paid_amount ?? 0));
   let txn: { id: string; amount: number; reference: string | null } | null = null;
 
   // Optional batch posting. Deliberately AFTER the status update: if the ledger
   // insert fails, the rows are still correctly reconciled and HQ can post again
   // for the remainder — the reverse order could reconcile nothing but post money.
-  const accountId = typeof body?.account_id === 'string' ? body.account_id : '';
   if (accountId) {
-    if (!UUID_RE.test(accountId)) return NextResponse.json({ error: '账户无效' }, { status: 400 });
     const { data: account } = await supabaseAdmin!
       .from('finance_accounts')
       .select('id, centre_id, is_active, centre:centres!centre_id ( code )')
@@ -162,7 +175,7 @@ export async function POST(req: Request) {
       .select('id').eq('kind', 'income').eq('grp', 'event').eq('is_active', true).limit(1).maybeSingle();
     if (!cat) return NextResponse.json({ error: '找不到「活动收入」类别', reconciled: updated?.length ?? 0 }, { status: 400 });
 
-    const { data: ev } = await supabaseAdmin!.from('events').select('code, title').eq('id', rows[0].event_id).maybeSingle();
+    const { data: ev } = await supabaseAdmin!.from('events').select('code, title').eq('id', reconciledRows[0].event_id).maybeSingle();
     const day = todayMYT();
     const ref = `${ev?.code ?? 'EVENT'}/对账/${day}`;
     const { data: t, error: txnErr } = await supabaseAdmin!
@@ -174,7 +187,7 @@ export async function POST(req: Request) {
         category_id: cat.id,
         account_id: accountId,
         amount: fromCents(batchCents),
-        description: `活动转账对账 · ${ev?.title ?? ''}（${rows.length} 笔）`,
+        description: `活动转账对账 · ${ev?.title ?? ''}（${reconciledRows.length} 笔）`,
         reference: ref,
         entered_by: me.id,
       })
@@ -183,7 +196,7 @@ export async function POST(req: Request) {
     if (txnErr || !t) {
       console.error('[reconcile] ledger insert failed:', txnErr);
       return NextResponse.json(
-        { reconciled: updated?.length ?? 0, rejected, txn: null, warning: '已对账，但入账失败，请稍后手动入账' },
+        { reconciled: updated?.length ?? 0, rejected: rejected + lostRace, txn: null, warning: '已对账，但入账失败，请稍后手动入账' },
         { status: 200 }
       );
     }
@@ -196,15 +209,15 @@ export async function POST(req: Request) {
     module: 'finance',
     action: 'reg.pay_reconcile',
     tableName: 'registrations',
-    recordId: rows[0].event_id, // batch, recorded against the event
+    recordId: reconciledRows[0].event_id, // batch, recorded against the event
     after: {
-      event_id: rows[0].event_id,
+      event_id: reconciledRows[0].event_id,
       reconciled: updated?.length ?? 0,
-      rejected,
+      rejected: rejected + lostRace,
       amount: fromCents(batchCents),
       finance_txn_id: txn?.id ?? null,
     },
   });
 
-  return NextResponse.json({ reconciled: updated?.length ?? 0, rejected, amount: fromCents(batchCents), txn });
+  return NextResponse.json({ reconciled: updated?.length ?? 0, rejected: rejected + lostRace, amount: fromCents(batchCents), txn });
 }

@@ -29,6 +29,7 @@ import {
 } from '@/lib/care-review';
 import { checkAnthropicHealth } from '@/lib/ops-alerts';
 import { processFailedReplies } from '@/lib/reply-recovery';
+import { refreshChipAnswers } from '@/lib/chip-answers';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -92,10 +93,22 @@ export async function GET(req: Request) {
     health = { error: e instanceof Error ? e.message : String(e) };
   }
 
+  // ── Chip cache refresh (09-10 §2): regenerate the 18 cached homepage
+  // answers so tomorrow's chip clicks are all served in <1 s. Force-all,
+  // oldest first, bounded; runs before the review pass because visitors
+  // notice a missed chip and nobody notices a review landing a night late.
+  let chipRefresh: Awaited<ReturnType<typeof refreshChipAnswers>> | { error: string } | null = null;
+  try {
+    chipRefresh = await refreshChipAnswers({ force: true, budgetMs: 150_000, concurrency: 6 });
+  } catch (e) {
+    console.error('[cron/review] chip refresh failed:', e);
+    chipRefresh = { error: e instanceof Error ? e.message : String(e) };
+  }
+
   // ── Dead-letter sweep (§3): retry due failed replies within a bounded budget.
   let recovery: Awaited<ReturnType<typeof processFailedReplies>> | { error: string } | null = null;
   try {
-    recovery = await processFailedReplies({ limit: 10, budgetMs: 120_000 });
+    recovery = await processFailedReplies({ limit: 10, budgetMs: Math.max(30_000, Math.min(120_000, timeLeft() - 120_000)) });
   } catch (e) {
     console.error('[cron/review] recovery sweep failed:', e);
     recovery = { error: e instanceof Error ? e.message : String(e) };
@@ -192,6 +205,7 @@ export async function GET(req: Request) {
     alertEmail: email,
     health,
     recovery,
+    chipRefresh,
   };
   // One-line JSON result, same convention as the summarize cron.
   console.log('[cron/review]', JSON.stringify(summary));
