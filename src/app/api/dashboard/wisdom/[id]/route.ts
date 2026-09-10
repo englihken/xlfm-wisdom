@@ -19,6 +19,7 @@ import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
 import { upsertWisdomRecord, deleteWisdomRecord, type WisdomEntryForSync } from '@/lib/wisdom-sync';
+import { invalidateChipAnswers } from '@/lib/chip-answers';
 
 export const runtime = 'nodejs';
 
@@ -153,6 +154,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       before: { status: entry.status },
       after: { status: 'approved', pinecone_id: `wisdom_${id}` },
     });
+    // The corpus just changed: every cached homepage chip answer is stale
+    // (09-10 §2). Regenerated on the next click / nightly refresh.
+    await invalidateChipAnswers(`wisdom_approved ${id}`);
     return NextResponse.json({ ok: true, entry: updated });
   }
 

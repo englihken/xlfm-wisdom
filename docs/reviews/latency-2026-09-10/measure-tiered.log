@@ -1,0 +1,48 @@
+◇ injected env (6) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+
+=== per turn (model=claude-opus-5 effort=tiered) ===
+
+和家人一直吵架，… / 和家人一直吵架，我可以先学什么？  [effort=low]
+  wall=19931ms  pinecone: wall=2737ms parallel=3 per_query={"homework_175问":2448,"homework_入门手册":2496,"general":2736}
+  model#1: ttfb=1941ms first_text=8133ms total=17183ms | input=5132 cache_read=0 cache_create=49276 output=791 → cache MISS(create)
+
+和家人一直吵架，… / 没有念过  [effort=low]
+  wall=9425ms  pinecone: wall=1529ms parallel=3 per_query={"homework_175问":1196,"homework_入门手册":1246,"general":1529}
+  model#1: ttfb=1419ms first_text=2125ms total=7891ms | input=5311 cache_read=49276 cache_create=0 output=481 → cache HIT
+
+我和先生经常吵架… / 我和先生经常吵架，感觉婚姻快走不下去了，怎么办？  [effort=medium]
+  wall=49702ms  pinecone: wall=1479ms parallel=2 per_query={"general":1366,"marriage":1479}
+  model#1: ttfb=1477ms first_text=1477ms total=13871ms | input=5471 cache_read=0 cache_create=49276 output=748 → cache MISS(create)
+  model#2: ttfb=1961ms first_text=21667ms total=34346ms | input=6064 cache_read=49276 cache_create=0 output=1963 → cache HIT
+
+初一十五礼佛大忏… / 初一十五礼佛大忏悔文可以念多少遍？  [effort=high]
+  wall=46049ms  pinecone: wall=1357ms parallel=4 per_query={"homework_175问":1180,"general":1215,"homework_入门手册":1267,"canonical":1356}
+  model#1: ttfb=1828ms first_text=1829ms total=15357ms | input=5165 cache_read=49276 cache_create=0 output=847 → cache HIT
+  model#2: ttfb=1334ms first_text=21717ms total=29332ms | input=5716 cache_read=49276 cache_create=0 output=1665 → cache HIT
+
+我最近失眠很严重… / 我最近失眠很严重，念什么经好？  [effort=low]
+  wall=24697ms  pinecone: wall=1420ms parallel=4 per_query={"health":1170,"homework_175问":1195,"homework_入门手册":1245,"general":1419}
+  model#1: ttfb=1751ms first_text=13390ms total=23271ms | input=6186 cache_read=49276 cache_create=0 output=1153 → cache HIT
+
+我最近失眠很严重… / 没有学过  [effort=low]
+  wall=10342ms  pinecone: wall=1437ms parallel=4 per_query={"health":1072,"homework_175问":1113,"homework_入门手册":1119,"general":1437}
+  model#1: ttfb=2081ms first_text=2893ms total=8902ms | input=6696 cache_read=49276 cache_create=0 output=435 → cache HIT
+
+家人生病了，我应… / 家人生病了，我应该为他念什么经？  [effort=low]
+  wall=19055ms  pinecone: wall=1337ms parallel=4 per_query={"health":1095,"homework_175问":1123,"general":1327,"homework_入门手册":1337}
+  model#1: ttfb=1493ms first_text=8720ms total=17716ms | input=6302 cache_read=49276 cache_create=0 output=900 → cache HIT
+
+家人生病了，我应… / 我们都没念过经  [effort=low]
+  wall=15323ms  pinecone: wall=1347ms parallel=4 per_query={"homework_175问":1076,"homework_入门手册":1108,"health":1115,"general":1347}
+  model#1: ttfb=1493ms first_text=4405ms total=13972ms | input=7014 cache_read=49276 cache_create=0 output=654 → cache HIT
+
+=== summary ===
+model=claude-opus-5 effort=tiered turns=8 model_calls=10 (calls/turn=1.25; retries=2)
+pinecone wall avg=1580ms max=2737ms
+anthropic ttfb avg=1678ms first_text avg=8636ms p50=8133ms p90=21717ms total avg=18184ms max=34346ms
+prompt cache: hits=8/10 (first call of a cold run is the expected miss) · cached prefix ≈ 49276 tokens · uncached input avg=5906 · output avg=964 tokens
+turn wall avg=24316ms p50=19931ms p90=49702ms max=49702ms
+  tier low: calls=6 first_text avg=6611ms total avg=14823ms output avg=736 cache hits=5/6
+  tier medium: calls=2 first_text avg=11572ms total avg=24109ms output avg=1356 cache hits=1/2
+  tier high: calls=2 first_text avg=11773ms total avg=22345ms output avg=1256 cache hits=2/2

@@ -14,6 +14,9 @@ import { getSystemPrompt } from './system-prompt';
 import {
   searchRelevantTeachings,
   formatPassagesAsContext,
+  detectTopics,
+  buildRetrievalQuery,
+  isBeginnerTriageFollowup,
   type RetrievedPassage,
   type RetrievalContext,
 } from './vector-search';
@@ -45,8 +48,56 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY!, maxRet
 // Opus 5 runs with adaptive thinking ON by default, and thinking tokens count
 // against max_tokens — so the budget is far above the ~2000-token visible reply
 // we actually expect, or thinking would truncate the answer mid-sentence.
-export const REPLY_MODEL = 'claude-opus-5';
+// REPLY_MODEL is overridable by env for measurement only (brief 09-10 §6:
+// Sonnet vs Opus A/B on the same regression suite). The default stays Opus 5
+// until Ken decides otherwise from the numbers.
+export const DEFAULT_REPLY_MODEL = 'claude-opus-5';
+export const REPLY_MODEL = process.env.REPLY_MODEL?.trim() || DEFAULT_REPLY_MODEL;
 export const REPLY_MAX_TOKENS = 8000;
+
+// ── Thinking effort by turn type (brief 09-10 §3; the 08-30 §6 plan) ─────────
+// Thinking was the largest latency item (6–31 s per call). Routine 功课 turns
+// need little of it; doctrinal-number and crisis turns need all of it.
+//   low    — homework_baseline / little_house_baseline / 分诊跟进 (the answer is
+//            a fixed 功课 block copied from the baseline chunks)
+//   high   — canonical_ritual_numbers / karma_warning / crisis keyword hit
+//   medium — everything else
+// How the tier is sent matters for the prompt cache (measured 09-10 with
+// scripts/measure-latency.ts): a TOP-LEVEL `output_config.effort` gives every
+// tier its own cached copy of the ~49k-token system prefix on Opus 5 (the
+// first low / medium / high call each paid a cache write). The per-message
+// form — an effort-only `role: 'system'` message inside `messages`, beta
+// `mid-conversation-output-config-2026-07-01` — shares ONE cached prefix
+// across tiers (probe: low created, high + medium both read 49,276 tokens).
+// Opus 5 uses the per-message form; any other model (the Sonnet A/B) gets the
+// top-level form; a 400 on the beta falls back to top-level automatically.
+export type ReplyEffort = 'low' | 'medium' | 'high';
+const EFFORT_BETA = 'mid-conversation-output-config-2026-07-01';
+let perMessageEffortSupported = REPLY_MODEL === 'claude-opus-5';
+
+export function chooseReplyEffort(params: {
+  message: string;
+  messages: CareMessage[];
+  ctx?: RetrievalContext;
+}): ReplyEffort {
+  const visitorTurns = params.messages.filter((m) => m.role === 'user').map((m) => m.content);
+  if (!visitorTurns.includes(params.message)) visitorTurns.push(params.message);
+  if (visitorTurns.some((t) => detectCrisisKeywords(t))) return 'high';
+  const topics = detectTopics(buildRetrievalQuery(params.message, params.ctx));
+  if (topics.includes('canonical_ritual_numbers') || topics.includes('karma_warning')) return 'high';
+  if (
+    topics.includes('homework_baseline') ||
+    topics.includes('little_house_baseline') ||
+    isBeginnerTriageFollowup(params.ctx)
+  ) {
+    return 'low';
+  }
+  return 'medium';
+}
+
+// Progress stages surfaced to the visitor while the reply is being produced
+// (brief 09-10 §4). Purely informational — no generation logic keys off them.
+export type ReplyStage = 'retrieving' | 'drafting' | 'verifying';
 // The post-reply categorisation is a one-label task visitors never see — the
 // cheapest model is plenty.
 const CLASSIFY_MODEL = 'claude-haiku-4-5';
@@ -199,9 +250,20 @@ export async function generateGuardedReplyText(params: {
   passages: RetrievedPassage[];
   contextBlock: string;
   conversationId?: string | null;
-}): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome }> {
-  const { messages, language, passages, contextBlock } = params;
+  // Thinking tier for this turn (see chooseReplyEffort). Omitted → the API
+  // default (high), which is what production ran before 09-10.
+  effort?: ReplyEffort;
+  onStage?: (stage: ReplyStage) => void;
+}): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome; modelCalls: number }> {
+  const { messages, language, passages, contextBlock, effort } = params;
   const convId = params.conversationId ?? 'unknown';
+  const stage = (s: ReplyStage) => {
+    try {
+      params.onStage?.(s);
+    } catch {
+      /* a UI hint must never break generation */
+    }
+  };
 
   // 智库 use_count (P2 §3): a wisdom_ chunk in this reply's retrieved passages
   // counts as a use. Fire-and-forget, service role, never blocks the reply.
@@ -219,29 +281,68 @@ export async function generateGuardedReplyText(params: {
     // Streamed under the hood (large max_tokens + thinking would risk HTTP
     // timeouts on a blocking call); the caller still receives the full message.
     const attempt = ++modelCalls;
+    stage(attempt === 1 ? 'drafting' : 'verifying');
     const t0 = Date.now();
     let ttfbMs = -1;
     let firstTextMs = -1;
-    const stream = anthropic.messages.stream({
-      model: REPLY_MODEL,
-      max_tokens: REPLY_MAX_TOKENS,
-      system,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    });
-    stream.on('streamEvent', (ev) => {
-      if (ttfbMs < 0 && ev.type === 'message_start') ttfbMs = Date.now() - t0;
-    });
-    stream.on('text', () => {
-      if (firstTextMs < 0) firstTextMs = Date.now() - t0;
-    });
-    const msg = await stream.finalMessage();
+    const turnMessages = messages.map((m) => ({ role: m.role, content: m.content }));
+    const onEvents = (stream: { on: (ev: 'streamEvent' | 'text', cb: (e: { type: string }) => void) => unknown }) => {
+      stream.on('streamEvent', (ev) => {
+        if (ttfbMs < 0 && ev.type === 'message_start') ttfbMs = Date.now() - t0;
+      });
+      stream.on('text', () => {
+        if (firstTextMs < 0) firstTextMs = Date.now() - t0;
+      });
+    };
+    const topLevel = () => {
+      const stream = anthropic.messages.stream({
+        model: REPLY_MODEL,
+        max_tokens: REPLY_MAX_TOKENS,
+        ...(effort ? { output_config: { effort } } : {}),
+        system,
+        messages: turnMessages,
+      });
+      onEvents(stream);
+      return stream.finalMessage();
+    };
+    let effortMode: 'per_message' | 'top_level' | 'none' = effort ? (perMessageEffortSupported ? 'per_message' : 'top_level') : 'none';
+    let msg: Anthropic.Message;
+    if (effort && perMessageEffortSupported) {
+      try {
+        const stream = anthropic.beta.messages.stream({
+          model: REPLY_MODEL,
+          max_tokens: REPLY_MAX_TOKENS,
+          betas: [EFFORT_BETA],
+          system: system as Anthropic.Beta.BetaTextBlockParam[],
+          messages: [
+            { role: 'system', content: [], output_config: { effort } } as unknown as Anthropic.Beta.BetaMessageParam,
+            ...turnMessages,
+          ],
+        });
+        onEvents(stream);
+        msg = (await stream.finalMessage()) as unknown as Anthropic.Message;
+      } catch (e) {
+        // The beta was withdrawn or is not enabled for this key: fall back to
+        // the top-level form for the rest of this process and retry now.
+        if (e instanceof Anthropic.BadRequestError && /anthropic-beta|output_config|role 'system'|per-turn effort/i.test(e.message)) {
+          console.error(`[care-pipeline] per-message effort rejected (${e.message.slice(0, 120)}) — falling back to top-level output_config.effort`);
+          perMessageEffortSupported = false;
+          effortMode = 'top_level';
+          msg = await topLevel();
+        } else {
+          throw e;
+        }
+      }
+    } else {
+      msg = await topLevel();
+    }
     // Latency breakdown (入门轮 brief problem 3): time-to-first-byte, time to
     // the first visible text (thinking sits in between), total, and the
     // prompt-cache split — cache_read ≈ the ~2,860-line system prompt when
-    // the 5-minute ephemeral cache hits, cache_creation when it missed.
+    // the 1-hour ephemeral cache hits, cache_creation when it missed.
     const u = msg.usage as Anthropic.Usage & { cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null };
     console.log(
-      `[care-pipeline] timing conversation=${convId} attempt=${attempt} ttfb_ms=${ttfbMs} first_text_ms=${firstTextMs} total_ms=${Date.now() - t0} input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_create=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens} stop=${msg.stop_reason}`
+      `[care-pipeline] timing conversation=${convId} model=${REPLY_MODEL} effort=${effort ?? 'default'} effort_mode=${effortMode} attempt=${attempt} ttfb_ms=${ttfbMs} first_text_ms=${firstTextMs} total_ms=${Date.now() - t0} input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_create=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens} stop=${msg.stop_reason}`
     );
     return msg;
   };
@@ -291,7 +392,7 @@ export async function generateGuardedReplyText(params: {
     text: string,
     guard: GuardOutcome,
     tail?: GuardTail | 'safe-reply'
-  ): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome }> => {
+  ): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome; modelCalls: number }> => {
     const scrub = scrubContradictoryRefusal(text);
     decision.outcome = guard;
     decision.tail = tail;
@@ -307,13 +408,13 @@ export async function generateGuardedReplyText(params: {
       );
     }
     await logGuardDecision(convId, decision);
-    return { fullText: scrub.text, refused: false, guard };
+    return { fullText: scrub.text, refused: false, guard, modelCalls };
   };
 
   let result = await callModel();
   if (result.stop_reason === 'refusal') {
     console.warn('[care-pipeline] model refused; sending hand-off reply');
-    return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'clean' };
+    return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'clean', modelCalls };
   }
   // Observability only (P2 §5): REPLY_MAX_TOKENS=8000 is ~4x the longest reply
   // seen in production, but a genuine cap hit should never again be diagnosable
@@ -323,6 +424,7 @@ export async function generateGuardedReplyText(params: {
   }
 
   let draft = textOf(result);
+  stage('verifying');
   let violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);
   if (violations.length === 0) return finish(draft, 'clean');
   recordViolations(1, violations);
@@ -331,7 +433,7 @@ export async function generateGuardedReplyText(params: {
   result = await callModel(buildRetryInstruction(violations));
   if (result.stop_reason === 'refusal') {
     console.warn('[care-pipeline] model refused on guard retry; sending hand-off reply');
-    return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'passed_after_retry' };
+    return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'passed_after_retry', modelCalls };
   }
   draft = textOf(result);
   violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);
@@ -352,7 +454,7 @@ export async function generateGuardedReplyText(params: {
     result = await callModel(buildOverStripInstruction(violations, decision.chunkTokens));
     if (result.stop_reason === 'refusal') {
       console.warn('[care-pipeline] model refused on over-strip retry; sending hand-off reply');
-      return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'stripped' };
+      return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'stripped', modelCalls };
     }
     draft = textOf(result);
     violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);
@@ -468,13 +570,9 @@ export async function generateReply(
 ): Promise<{ fullText: string; sources: CareSource[] }> {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   const query = lastUser?.content ?? '';
+  const ctx = retrievalContextFrom(messages.slice(0, -1));
 
-  const passages = await searchRelevantTeachings(
-    query,
-    undefined,
-    language,
-    retrievalContextFrom(messages.slice(0, -1))
-  );
+  const passages = await searchRelevantTeachings(query, undefined, language, ctx);
   const contextBlock = formatPassagesAsContext(passages);
 
   const { fullText, refused } = await generateGuardedReplyText({
@@ -483,6 +581,7 @@ export async function generateReply(
     passages,
     contextBlock,
     conversationId: opts.conversationId,
+    effort: chooseReplyEffort({ message: query, messages, ctx }),
   });
 
   return { fullText, sources: refused ? [] : buildSources(passages, fullText) };

@@ -19,7 +19,26 @@ const pinecone = new Pinecone({
 });
 
 const indexName = process.env.PINECONE_INDEX_NAME!;
-const index = pinecone.index(indexName);
+// (the SDK index handle is not used: queries go through the REST search endpoint below)
+
+// Shape of one hit from the Pinecone records search endpoint (fields = the
+// metadata written by the upload scripts).
+type PineconeHit = {
+  _id: string;
+  _score?: number;
+  fields?: Partial<{
+    text: string;
+    chunk_text: string;
+    book: string;
+    type: string;
+    categories: string;
+    chunk_index: number;
+    page_start: number;
+    page_end: number;
+    excerpt: string;
+    language: 'zh' | 'en' | 'id';
+  }>;
+};
 
 // Cache the index host URL for REST fallback
 let cachedHost: string | null = null;
@@ -200,6 +219,10 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
     '新手', '第一次念', '没念过', '没有念过', '从零开始', '怎么开始', '从哪里开始',
     'beginner', 'just started', 'never chanted', 'never recited', 'how to start',
     'pemula', 'baru mulai', 'belum pernah',
+    // Audit F09: "what is 心灵法门 / introduce it" is a first-step question —
+    // without the baseline the reply could not state any 功课.
+    '什么是心灵法门', '心灵法门是什么', '介绍一下',
+    'what is Guan Yin Citta', 'apa itu',
   ],
   // 小房子 questions → 《小房子念诵指南》 baseline (see LITTLE_HOUSE_BASELINE_*).
   little_house_baseline: [
@@ -300,7 +323,7 @@ async function pineconeSearch(
   const data = await response.json();
   const hits = data?.result?.hits || [];
 
-  return hits.map((hit: any) => ({
+  return hits.map((hit: PineconeHit) => ({
     id: hit._id,
     score: hit._score || 0,
     // Upload scripts write the passage under `text`; keep chunk_text as a

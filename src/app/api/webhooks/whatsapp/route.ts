@@ -344,13 +344,17 @@ async function findOrCreateConversation(
 async function loadHistory(conversationId: string): Promise<CareMessage[]> {
   if (!supabaseAdmin) return [];
   try {
+    // The NEWEST HISTORY_LIMIT turns (audit F12: ascending+limit returned the
+    // OLDEST 20, so a long thread's recent context was never sent to Claude).
+    // Fetched newest-first, then reversed back into chronological order.
     const { data } = await supabaseAdmin
       .from('messages')
       .select('role, content')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(HISTORY_LIMIT);
     return (data ?? [])
+      .reverse()
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content ?? '' }));
   } catch (e) {
