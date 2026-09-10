@@ -1,0 +1,158 @@
+◇ injected env (6) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · 2 case(s) · all parallel
+Running: R1b, R13
+[vector-search] timing parallel=4 wall_ms=2229 per_query={"general":2145,"canonical":2146,"homework_入门手册":2226,"homework_175问":2229}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=3018 per_query={"little_house":2145,"general":3018}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1b violation=number attempt=1 reason=number_not_in_sources text="10遍"
+[verbatim-guard] conversation=regression-test:R1b decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"number","text":"10遍","reason":"number_not_in_sources"}],"chunkTokens":["87遍","49遍","79遍","9遍","12遍","81遍","27遍","21遍","49张","69张","78张","21张","3遍","84遍","7遍","1遍","108遍","3张"],"replyTokens":["49遍","49张"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="2张"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="1遍"
+[verbatim-guard] conversation=regression-test:R13 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R13 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"1张","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"2张","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"1遍","reason":"number_not_in_sources"}],"chunkTokens":["7张","3张","21张","10张","9张","1000张"],"replyTokens":["7张","3张","21张"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[vector-search] timing parallel=4 wall_ms=1455 per_query={"homework_175问":1186,"little_house":1196,"homework_入门手册":1247,"general":1455}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 decision={"outcome":"passed_after_retry","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"1张","reason":"number_not_in_sources"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张","7张"],"replyTokens":["7遍","1遍","3遍","49遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+
+═══ R1b 观音圣诞 — guard: passed_after_retry ═══
+Q: 观音菩萨圣诞礼佛可以念几遍？
+Sources: 组织审定 | 心灵法门入门手册 | 心灵法门入门手册 · types: canonical_ruling,beginner_guide,qa_collection,letter_qa
+  ✓ says 49遍
+  ✓ NEVER 13遍
+  ✓ cites 组织审定
+  ✓ final text passes guard (0 residual)
+--- reply ---
+观世音菩萨圣诞（农历二月十九），《礼佛大忏悔文》可以念 **49 遍** 🙏
+
+另外两个观音日子也是一样：
+- 六月十九 观世音菩萨成道日 —— 49 遍
+- 九月十九 观世音菩萨出家日 —— 49 遍
+
+念之前祈求：
+"请大慈大悲的观世音菩萨保佑我 XXX（自己名字），帮助我忏悔和消除身上的业障"
+
+几点要注意：
+
+**1. 量力而行**
+49 遍是这一天的上限，不是硬性指标。初学者可以先从少量念起，配合小房子一起消业，比硬撑遍数更稳妥。宁可少念坚持，不要多念激活了业障反而不舒服。
+
+**2. 最好当天念**
+当天在菩萨面前现场忏悔，效果最好。
+
+**3. 没有佛台的话**
+必须先上心香跟菩萨祈求之后才能念。如果当天分几次念完，每次念之前都要先上心香。也可以到有佛台的同修家里，或附近寺庙的观世音菩萨像前磕头跪拜之后，再到其他地方念诵。
+
+**4. 时间**
+晚上 10 点以后不宜念《礼佛大忏悔文》。
+
+**5. 小房子**
+佛诞日烧送小房子也很好。这一天自己的几种小房子（自己的要经者、流产孩子、梦见的亡人、房子的要经者）加起来不超过 49 张；给其他人的小房子可以单独计算。
+
+参考：《组织审定 · 礼佛大忏悔文特殊日子遍数表》
+
+请问你平时功课里有在念《礼佛大忏悔文》吗？这样我可以帮你看看这一天怎么安排比较合适 🙏
+
+═══ R13 小房子 → 还没有开始念功课 — guard: passed_after_retry ═══
+访客：我想开始念小房子
+AI：很好 🙏 愿意开始念小房子，这是很重要的一步。
+
+台长在《佛学问答175问》里回答过一模一样的问题：
+
+> 初学者在开始念功课的同时，就可以开始念诵小房子，可以先为自己的要经者念7张小房子。
+
+**起步这样做：**
+
+📿 **先给自己的要经者念 7 张**
+敬赠处写：`XXX（你自己的名字）的要经者`
+落款写：`X…
+访客：还没有开始念功课
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,xiaofangzi_guide,qa_collection,counseling_manual,case_studies,fahui_qa,buddhist_basics
+Last-turn retrieval (ALL 10): 心灵法门入门手册 p23 | 小房子念诵指南 p38 | 心灵法门入门手册 p36 | 小房子念诵指南 p22 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 弘法度人辅导手册 p67 | 心灵法门例说 p334 | 法会弟子提问 | 佛学常识开示锦集（第一册） p132
+  ✓ retrieval carries 念诵指南 or 入门手册
+  ✓ gives the 功课 first (words, or 📿 block before 小房子)
+  ✓ names the three pillars (大悲咒/心经/礼佛)
+  ✓ at least one N遍
+  ✓ 小房子 can start once 功课 has begun (not "wait until stable")
+  ✓ cites 念诵指南 or 入门手册 (reply or sources)
+  ✓ no 查不到相关原文 / 不敢乱说
+  ✓ no 「资料里没有写明具体数字」 (new refusal phrasing)
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏 功课是根本，先把这个起来。
+
+**每天的功课（《心灵法门入门手册》）：**
+
+📿 **《大悲咒》7 遍**
+念之前说："请大慈大悲观世音菩萨保佑我 XXX（你的全名）身体健康、平平安安"
+
+📿 **《心经》7 遍**
+念之前说："请大慈大悲观世音菩萨保佑我 XXX（你的全名）开智慧，头脑清醒冷静，去除烦恼"
+（晚上 10 点以后不念）
+
+📿 **《礼佛大忏悔文》1–3 遍左右**
+念之前说："请大慈大悲观世音菩萨保佑我 XXX（你的全名），帮助我忏悔和消除身上的业障"
+（先从 1 遍开始，晚上 10 点以后不念）
+
+📿 **《往生咒》21 或 49 遍**
+念之前说："请大慈大悲观世音菩萨保佑我 XXX（你的全名），帮助我超度因我而死去的小灵性，帮助我消除孽障"
+
+刚开始不熟的话，台长开示过初学者可以**先从少量念起**——大悲咒、心经先各念 3 遍，念顺了再加到 7 遍，礼佛就从 1 遍起。
+
+**不会念字没关系**，有教念视频可以跟着念：
+🔗 https://xinlingfamen.info/jingwen/
+
+**关于小房子：** 台长在法会开示里讲得很清楚 ——
+
+> 只要念小房子的人，一定必须要做功课，哪怕再少也是功课。
+
+意思是功课一开始（哪怕才念几天），就可以同时开始念小房子了，不用等到很熟练。所以你**先把功课念起来，几天后就可以着手给自己的要经者念小房子**。
+
+先做这一步就好，不要给自己压力。每天坚持比念得多重要 🙏
+
+如果想有人陪你一起念、或者拿实体经书，可以联系就近的共修会义工：https://xlfm.my/contact-us
+
+南无大慈大悲观世音菩萨 🙏
+
+=== timing / cost · model=claude-opus-5 ===
+  R1b 观音圣诞                                 turns=1 wall/turn=40123ms calls=2 effort=default out_tokens=2096 cost=$0.156
+  R13 小房子 → 还没有开始念功课                       turns=2 wall/turn=66819ms calls=4 effort=default out_tokens=7182 cost=$0.397
+turn wall p50=66819ms p90=66819ms avg=53471ms · first_text avg=17761ms · calls/turn=2.00 · cache hits=6/6
+cost: total=$0.553 · per turn=$0.1844 (3 turns)
+checks: 13/13 passed · cases: 2/2 fully green
+
+ALL PASS

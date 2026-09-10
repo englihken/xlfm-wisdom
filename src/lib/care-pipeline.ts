@@ -62,11 +62,18 @@ export const REPLY_MAX_TOKENS = 8000;
 //            a fixed 功课 block copied from the baseline chunks)
 //   high   — canonical_ritual_numbers / karma_warning / crisis keyword hit
 //   medium — everything else
-// `output_config.effort` is a request parameter, not part of the system
-// prefix, so switching tiers between turns leaves the 1h-cached system block
-// intact (measured in scripts/measure-latency.ts: cache_read stays non-zero
-// across tier changes).
+// How the tier is sent matters for the prompt cache (measured 09-10 with
+// scripts/measure-latency.ts): a TOP-LEVEL `output_config.effort` gives every
+// tier its own cached copy of the ~49k-token system prefix on Opus 5 (the
+// first low / medium / high call each paid a cache write). The per-message
+// form — an effort-only `role: 'system'` message inside `messages`, beta
+// `mid-conversation-output-config-2026-07-01` — shares ONE cached prefix
+// across tiers (probe: low created, high + medium both read 49,276 tokens).
+// Opus 5 uses the per-message form; any other model (the Sonnet A/B) gets the
+// top-level form; a 400 on the beta falls back to top-level automatically.
 export type ReplyEffort = 'low' | 'medium' | 'high';
+const EFFORT_BETA = 'mid-conversation-output-config-2026-07-01';
+let perMessageEffortSupported = REPLY_MODEL === 'claude-opus-5';
 
 export function chooseReplyEffort(params: {
   message: string;
@@ -278,27 +285,64 @@ export async function generateGuardedReplyText(params: {
     const t0 = Date.now();
     let ttfbMs = -1;
     let firstTextMs = -1;
-    const stream = anthropic.messages.stream({
-      model: REPLY_MODEL,
-      max_tokens: REPLY_MAX_TOKENS,
-      ...(effort ? { output_config: { effort } } : {}),
-      system,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    });
-    stream.on('streamEvent', (ev) => {
-      if (ttfbMs < 0 && ev.type === 'message_start') ttfbMs = Date.now() - t0;
-    });
-    stream.on('text', () => {
-      if (firstTextMs < 0) firstTextMs = Date.now() - t0;
-    });
-    const msg = await stream.finalMessage();
+    const turnMessages = messages.map((m) => ({ role: m.role, content: m.content }));
+    const onEvents = (stream: { on: (ev: 'streamEvent' | 'text', cb: (e: { type: string }) => void) => unknown }) => {
+      stream.on('streamEvent', (ev) => {
+        if (ttfbMs < 0 && ev.type === 'message_start') ttfbMs = Date.now() - t0;
+      });
+      stream.on('text', () => {
+        if (firstTextMs < 0) firstTextMs = Date.now() - t0;
+      });
+    };
+    const topLevel = () => {
+      const stream = anthropic.messages.stream({
+        model: REPLY_MODEL,
+        max_tokens: REPLY_MAX_TOKENS,
+        ...(effort ? { output_config: { effort } } : {}),
+        system,
+        messages: turnMessages,
+      });
+      onEvents(stream);
+      return stream.finalMessage();
+    };
+    let effortMode: 'per_message' | 'top_level' | 'none' = effort ? (perMessageEffortSupported ? 'per_message' : 'top_level') : 'none';
+    let msg: Anthropic.Message;
+    if (effort && perMessageEffortSupported) {
+      try {
+        const stream = anthropic.beta.messages.stream({
+          model: REPLY_MODEL,
+          max_tokens: REPLY_MAX_TOKENS,
+          betas: [EFFORT_BETA],
+          system: system as Anthropic.Beta.BetaTextBlockParam[],
+          messages: [
+            { role: 'system', content: [], output_config: { effort } } as unknown as Anthropic.Beta.BetaMessageParam,
+            ...turnMessages,
+          ],
+        });
+        onEvents(stream);
+        msg = (await stream.finalMessage()) as unknown as Anthropic.Message;
+      } catch (e) {
+        // The beta was withdrawn or is not enabled for this key: fall back to
+        // the top-level form for the rest of this process and retry now.
+        if (e instanceof Anthropic.BadRequestError && /anthropic-beta|output_config|role 'system'|per-turn effort/i.test(e.message)) {
+          console.error(`[care-pipeline] per-message effort rejected (${e.message.slice(0, 120)}) — falling back to top-level output_config.effort`);
+          perMessageEffortSupported = false;
+          effortMode = 'top_level';
+          msg = await topLevel();
+        } else {
+          throw e;
+        }
+      }
+    } else {
+      msg = await topLevel();
+    }
     // Latency breakdown (入门轮 brief problem 3): time-to-first-byte, time to
     // the first visible text (thinking sits in between), total, and the
     // prompt-cache split — cache_read ≈ the ~2,860-line system prompt when
-    // the 5-minute ephemeral cache hits, cache_creation when it missed.
+    // the 1-hour ephemeral cache hits, cache_creation when it missed.
     const u = msg.usage as Anthropic.Usage & { cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null };
     console.log(
-      `[care-pipeline] timing conversation=${convId} model=${REPLY_MODEL} effort=${effort ?? 'default'} attempt=${attempt} ttfb_ms=${ttfbMs} first_text_ms=${firstTextMs} total_ms=${Date.now() - t0} input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_create=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens} stop=${msg.stop_reason}`
+      `[care-pipeline] timing conversation=${convId} model=${REPLY_MODEL} effort=${effort ?? 'default'} effort_mode=${effortMode} attempt=${attempt} ttfb_ms=${ttfbMs} first_text_ms=${firstTextMs} total_ms=${Date.now() - t0} input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_create=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens} stop=${msg.stop_reason}`
     );
     return msg;
   };

@@ -307,7 +307,7 @@ const BEGINNER_CASES: Case[] = [
         name: 'gives the 功课 first (words, or 📿 block before 小房子)',
         ok: (r) => {
           const s = r.replace(/\s+/g, '');
-          if (/基本功课|基础功课|先(把|从|念|做|起).{0,12}(功课|经)/.test(s)) return true;
+          if (/基本功课|基础功课|从功课开始|先(把|从|念|做|起).{0,12}(功课|经)/.test(s)) return true;
           const hw = r.indexOf('📿');
           const xf = r.indexOf('小房子');
           return hw >= 0 && (xf < 0 || hw < xf);
@@ -358,11 +358,76 @@ let checkDraftRef: typeof import('../src/lib/verbatim-guard').checkDraft;
 let stripViolationsRef: typeof import('../src/lib/verbatim-guard').stripViolations;
 let chooseGuardTailRef: typeof import('../src/lib/verbatim-guard').chooseGuardTail;
 
+// ── Timing / cost capture (brief 09-10 §6 A/B) ───────────────────────────────
+// The pipeline logs one `[care-pipeline] timing conversation=<label> …` line
+// per model call; we attribute it to the case by label and price it.
+type CallStat = { effort: string; firstText: number; total: number; input: number; cacheRead: number; cacheCreate: number; output: number };
+type CaseStat = { label: string; turns: number; wallMs: number; calls: CallStat[] };
+const stats = new Map<string, CaseStat>();
+// Chips whose reply carried a scoped 「没有写明遍数」 line (reported, not failed).
+const scopedNoNumber: string[] = [];
+// USD per MTok: input / output / cache read / 1h cache write.
+const PRICING: Record<string, [number, number, number, number]> = {
+  'claude-opus-5': [5, 25, 0.5, 10],
+  'claude-sonnet-4-6': [3, 15, 0.3, 6],
+  'claude-sonnet-5': [2, 10, 0.2, 4],
+};
+const costUsd = (model: string, c: CallStat) => {
+  const p = PRICING[model] ?? PRICING['claude-opus-5'];
+  return (c.input * p[0] + c.output * p[1] + c.cacheRead * p[2] + c.cacheCreate * p[3]) / 1e6;
+};
+const pct = (xs: number[], p: number) => {
+  if (xs.length === 0) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
+};
+
+// The 18 homepage chips (6 × zh/en/id) as light cases: a usable, guard-clean
+// answer with no blanket refusal. `--chips` adds them to the run.
+function chipCases(QQ: Record<'zh' | 'en' | 'id', readonly string[]>): Case[] {
+  const out: Case[] = [];
+  for (const lang of ['zh', 'en', 'id'] as const) {
+    QQ[lang].forEach((q, i) => {
+      out.push({
+        label: `CHIP${i + 1}-${lang} ${q.slice(0, 18)}`,
+        q,
+        lang,
+        checks: [
+          { name: 'non-trivial reply (≥120 chars)', ok: (r) => r.replace(/\s+/g, '').length >= 120 },
+          { name: 'no blanket refusal tail', ok: (r) => !REFUSAL_TAIL.test(r) },
+          // A SCOPED 「本次资料没有写明遍数」 line is the honest shape when no
+          // baseline chunk was retrieved (the R11 rule) — counted, not failed.
+          { name: 'scoped 没有写明遍数 line (info only)', ok: (r) => { if (NEW_REFUSAL.test(r.replace(/\s+/g, ''))) scopedNoNumber.push(`CHIP${i + 1}-${lang}`); return true; } },
+          { name: 'not the safety hand-off', ok: (r) => !/不方便回答|not able to answer|tidak dapat menjawab/.test(r) },
+        ],
+      });
+    });
+  }
+  return out;
+}
+
 async function main() {
   const { searchRelevantTeachings, formatPassagesAsContext } = await import(
     '../src/lib/vector-search'
   );
-  const { generateGuardedReplyText, buildSources } = await import('../src/lib/care-pipeline');
+  const { generateGuardedReplyText, buildSources, chooseReplyEffort, REPLY_MODEL } = await import('../src/lib/care-pipeline');
+  const { QUICK_QUESTIONS } = await import('../src/lib/quick-questions');
+
+  // Attribute the pipeline's timing lines to cases (see stats above).
+  const origLog = console.log;
+  console.log = (...a: unknown[]) => {
+    const s = a.map(String).join(' ');
+    if (s.startsWith('[care-pipeline] timing')) {
+      const label = (s.match(/conversation=(\S+)/) ?? [])[1] ?? '';
+      const st = stats.get(label);
+      if (st) {
+        const g = (k: string) => Number((s.match(new RegExp(`${k}=(-?\\d+)`)) ?? [])[1] ?? -1);
+        st.calls.push({ effort: (s.match(/effort=(\w+)/) ?? [])[1] ?? '?', firstText: g('first_text_ms'), total: g('total_ms'), input: g('input'), cacheRead: g('cache_read'), cacheCreate: g('cache_create'), output: g('output') });
+      }
+      return;
+    }
+    origLog(...a);
+  };
   const { checkDraft, stripViolations, chooseGuardTail } = await import('../src/lib/verbatim-guard');
   checkDraftRef = checkDraft;
   stripViolationsRef = stripViolations;
@@ -399,8 +464,13 @@ async function main() {
     let fullText = '';
     let guard = '';
     const transcript: string[] = [];
+    const convLabel = `regression-test:${c.label.split(' ')[0]}`;
+    const stat: CaseStat = { label: c.label, turns: 0, wallMs: 0, calls: [] };
+    stats.set(convLabel, stat);
     for (const turn of turns) {
-      passages = await searchRelevantTeachings(turn, undefined, lang, retrievalContextFrom(messages));
+      const t0 = Date.now();
+      const ctx = retrievalContextFrom(messages);
+      passages = await searchRelevantTeachings(turn, undefined, lang, ctx);
       const contextBlock = formatPassagesAsContext(passages);
       messages.push({ role: 'user', content: turn });
       const out = await generateGuardedReplyText({
@@ -408,11 +478,15 @@ async function main() {
         language: lang,
         passages,
         contextBlock,
-        conversationId: 'regression-test',
+        conversationId: convLabel,
+        // Same tiering as production (09-10 §3) — the suite must stay green with it.
+        effort: process.env.EFFORT_TIERS === 'off' ? undefined : chooseReplyEffort({ message: turn, messages, ctx }),
       });
       fullText = out.fullText;
       guard = out.guard;
       messages.push({ role: 'assistant', content: fullText });
+      stat.turns++;
+      stat.wallMs += Date.now() - t0;
       transcript.push(`访客：${turn}`, `AI：${fullText.length > 160 && turn !== turns[turns.length - 1] ? fullText.slice(0, 160) + '…' : fullText}`);
     }
     const books = buildSources(passages, fullText).map((s) => s.book);
@@ -436,11 +510,34 @@ async function main() {
         .map((s) => s.trim())
         .filter(Boolean)
     : null;
-  const selected = [...CASES, ...BEGINNER_CASES, CRISIS_CASE].filter(
+  const withChips = process.argv.includes('--chips');
+  const chipsOnly = process.argv.includes('--chips-only');
+  const concArg = process.argv.indexOf('--concurrency');
+  const concurrency = concArg >= 0 ? Math.max(1, parseInt(process.argv[concArg + 1] ?? '0', 10) || 0) : 0;
+  const pool: Case[] = chipsOnly
+    ? chipCases(QUICK_QUESTIONS)
+    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
+  const selected = pool.filter(
     (c) => !only || only.some((id) => c.label.startsWith(id + ' ') || c.label.startsWith(id))
   );
-  if (only) console.log(`Running ${selected.length} case(s): ${selected.map((c) => c.label.split(' ')[0]).join(', ')}`);
-  const results = await Promise.all(selected.map(runCase));
+  console.log(`model=${REPLY_MODEL} · ${selected.length} case(s)${concurrency ? ` · concurrency=${concurrency}` : ' · all parallel'}`);
+  if (only) console.log(`Running: ${selected.map((c) => c.label.split(' ')[0]).join(', ')}`);
+  // Optional bounded concurrency (--concurrency N): fairer latency numbers for
+  // the A/B than firing 30+ Opus calls at once into the rate limit.
+  const results: Awaited<ReturnType<typeof runCase>>[] = new Array(selected.length);
+  if (concurrency > 0) {
+    let next = 0;
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, selected.length) }, async () => {
+        while (next < selected.length) {
+          const i = next++;
+          results[i] = await runCase(selected[i]);
+        }
+      })
+    );
+  } else {
+    (await Promise.all(selected.map(runCase))).forEach((r, i) => (results[i] = r));
+  }
   // R15: the classifier's own verdict on the live transcript (keywords are
   // OR-ed with it in classifyAndSaveCategory; here we record it for the check).
   const crisisResult = results.find((r) => r.c === CRISIS_CASE);
@@ -477,6 +574,25 @@ async function main() {
     console.log(`  ${residualOk ? '✓' : '✗'} final text passes guard (${residual.length} residual)`);
     console.log(`--- reply ---\n${fullText}`);
   }
+
+  // ── Timing / cost table (09-10 §6) ─────────────────────────────────────────
+  const caseStats = [...stats.values()].filter((s) => s.turns > 0);
+  const turnWalls = caseStats.map((s) => s.wallMs / s.turns);
+  const allCalls = caseStats.flatMap((s) => s.calls);
+  const totalTurns = caseStats.reduce((a, s) => a + s.turns, 0);
+  const totalCost = allCalls.reduce((a, c) => a + costUsd(REPLY_MODEL, c), 0);
+  const avg = (xs: number[]) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0);
+  console.log(`\n=== timing / cost · model=${REPLY_MODEL} ===`);
+  for (const s of caseStats) {
+    const cost = s.calls.reduce((a, c) => a + costUsd(REPLY_MODEL, c), 0);
+    console.log(`  ${s.label.padEnd(40)} turns=${s.turns} wall/turn=${Math.round(s.wallMs / s.turns)}ms calls=${s.calls.length} effort=${[...new Set(s.calls.map((c) => c.effort))].join('/')} out_tokens=${s.calls.reduce((a, c) => a + c.output, 0)} cost=$${cost.toFixed(3)}`);
+  }
+  console.log(`turn wall p50=${pct(turnWalls, 50)}ms p90=${pct(turnWalls, 90)}ms avg=${avg(turnWalls)}ms · first_text avg=${avg(allCalls.map((c) => c.firstText))}ms · calls/turn=${(allCalls.length / Math.max(1, totalTurns)).toFixed(2)} · cache hits=${allCalls.filter((c) => c.cacheRead > 0).length}/${allCalls.length}`);
+  console.log(`cost: total=$${totalCost.toFixed(3)} · per turn=$${(totalCost / Math.max(1, totalTurns)).toFixed(4)} (${totalTurns} turns)`);
+  const passedChecks = results.reduce((a, r) => a + r.c.checks.filter((ch) => ch.ok(r.fullText, r.books, r.types, r.passages)).length + (r.residual.length === 0 ? 1 : 0), 0);
+  const totalChecks = results.reduce((a, r) => a + r.c.checks.length + 1, 0);
+  if (scopedNoNumber.length) console.log(`chips with a scoped 没有写明遍数 line: ${[...new Set(scopedNoNumber)].join(', ')}`);
+  console.log(`checks: ${passedChecks}/${totalChecks} passed · cases: ${results.filter((r) => r.c.checks.every((ch) => ch.ok(r.fullText, r.books, r.types, r.passages)) && r.residual.length === 0).length}/${results.length} fully green`);
 
   console.log(`\n${failed === 0 ? 'ALL PASS' : `${failed} CHECKS FAILED`}`);
   if (failed > 0) process.exit(1);

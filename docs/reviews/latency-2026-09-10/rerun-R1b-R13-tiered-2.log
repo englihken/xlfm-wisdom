@@ -1,0 +1,153 @@
+◇ injected env (6) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · 2 case(s) · all parallel
+Running: R1b, R13
+[vector-search] timing parallel=4 wall_ms=2159 per_query={"canonical":2006,"homework_入门手册":2008,"general":2011,"homework_175问":2159}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=2243 per_query={"little_house":2031,"general":2243}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1b violation=quote attempt=1 reason=quote_not_verbatim text="\"请大慈大悲观世音菩萨保佑我 XXX（姓名），帮助我忏悔和消除身上的业障\""
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="27遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="49遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="84遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="87遍"
+[verbatim-guard] conversation=regression-test:R1b decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"\"请大慈大悲观世音菩萨保佑我 XXX（姓名），帮助我忏悔和消除身上的业障\"","reason":"quote_not_verbatim"}],"chunkTokens":["87遍","49遍","79遍","9遍","12遍","81遍","27遍","21遍","49张","69张","78张","21张","3遍","84遍","7遍","1遍","108遍","3张"],"replyTokens":["49遍","49张","69张"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="1遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R13 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"1张","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"27遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"49遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"84遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"87遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"1遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"1张","reason":"number_not_in_sources"}],"chunkTokens":["7张","3张","21张","10张","9张","1000张"],"replyTokens":["7张","3张","9张"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[vector-search] timing parallel=4 wall_ms=1326 per_query={"homework_入门手册":1163,"little_house":1194,"homework_175问":1271,"general":1326}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+
+═══ R1b 观音圣诞 — guard: passed_after_retry ═══
+Q: 观音菩萨圣诞礼佛可以念几遍？
+Sources: 佛学问答175问 | 佛学问答175问 | 组织审定 · types: canonical_ruling,beginner_guide,qa_collection,letter_qa
+  ✓ says 49遍
+  ✓ NEVER 13遍
+  ✓ cites 组织审定
+  ✓ final text passes guard (0 residual)
+--- reply ---
+观世音菩萨圣诞是很殊胜的日子 🙏
+
+**二月十九日 观世音菩萨圣诞 —— 可以念 49 遍《礼佛大忏悔文》**
+
+同样是 49 遍的还有：
+- 六月十九日 观世音菩萨成道日
+- 九月十九日 观世音菩萨出家日
+
+念之前，先跟菩萨祈求，说明自己的名字，求菩萨慈悲，帮助自己忏悔消除身上的业障。
+
+几点要注意的：
+
+📌 **如果家里没有佛台**：要先上心香跟菩萨祈求之后才能念。如果当天分几次念完，每次念之前都要先上心香。
+
+📌 **如果分多次念不完**：可以用预先念好的自修经文当天烧送（自修经文的《礼佛大忏悔文》必须有佛台上香之后才能烧送；没有佛台不能烧送自修经文的礼佛大忏悔文）。所烧送的遍数不得超过当天应该念诵的遍数。
+
+📌 **初学者量力而行**：礼佛会激活业障，如果你才刚开始念经、还没有小房子配合，不要勉强冲 49 遍。少念几遍、诚心忏悔，比硬撑念完更重要。等以后有小房子配合了，再慢慢增加。
+
+📌 **小房子配合**：佛诞日多念礼佛的同时，可以多烧送小房子。观世音菩萨圣诞属于上面提到的佛诞日，自己的几种小房子（自己要经者、流产孩子、梦见的亡人、自己名字房子要经者）加起来不超过 49 张；特殊情况最多 69 张；给其他人的小房子可以单独计算。
+
+参考：《佛学问答175问》第161问
+
+请问你平时功课里有在念《礼佛大忏悔文》吗？这样我可以给你更合适的建议 🙏
+
+═══ R13 小房子 → 还没有开始念功课 — guard: clean ═══
+访客：我想开始念小房子
+AI：你愿意开始念小房子，这是很好的一步 🙏
+
+先问你一句：**你现在有在做每天的功课吗？**（就是《大悲咒》《心经》《礼佛大忏悔文》）
+
+因为台长开示得很清楚——
+
+> 初学者 在开始念功课的同时， 就可以开始念诵小房子
+
+也就是说，**只要功课已经开始念了（哪怕才念几天），就可以开始念小房子，不用等到很熟练**。但如果…
+访客：还没有开始念功课
+Sources: 心灵法门入门手册 | 小房子念诵指南 | 心灵法门入门手册 · types: beginner_guide,xiaofangzi_guide,qa_collection,counseling_manual,case_studies,fahui_qa,buddhist_basics
+Last-turn retrieval (ALL 10): 心灵法门入门手册 p23 | 小房子念诵指南 p38 | 心灵法门入门手册 p36 | 小房子念诵指南 p22 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 弘法度人辅导手册 p67 | 心灵法门例说 p334 | 法会弟子提问 | 佛学常识开示锦集（第一册） p132
+  ✓ retrieval carries 念诵指南 or 入门手册
+  ✓ gives the 功课 first (words, or 📿 block before 小房子)
+  ✓ names the three pillars (大悲咒/心经/礼佛)
+  ✓ at least one N遍
+  ✓ 小房子 can start once 功课 has begun (not "wait until stable")
+  ✓ cites 念诵指南 or 入门手册 (reply or sources)
+  ✓ no 查不到相关原文 / 不敢乱说
+  ✓ no 「资料里没有写明具体数字」 (new refusal phrasing)
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，那我们就从今天开始 🙏
+
+小房子先放一放——台长的规矩很清楚：功课要先起来，功课是基本功，打好了小房子才有能量。
+
+**你从今天开始念这两部就好：**
+
+📿 **《大悲咒》每天 3 遍**
+念之前先说：
+「请大慈大悲观世音菩萨保佑我 XXX（说自己的名字）身体健康、心情平静」
+
+📿 **《心经》每天 3 遍**
+念之前先说：
+「请大慈大悲观世音菩萨保佑我 XXX（说自己的名字）开智慧，头脑清醒冷静，去除烦恼」
+
+⏰ 《心经》晚上 10 点以后不要念。
+
+**不会念字没关系，跟着教念视频念就好：**
+🔗 https://xinlingfamen.info/jingwen/
+
+**几个小提醒：**
+- 每念一遍要念全名：《大悲咒》念「千手千眼无碍大悲心陀罗尼」，《心经》念「般若波罗蜜多心经」
+- 每天坚持比念得多重要
+- 先这两部，念顺了我们再加《礼佛大忏悔文》和《往生咒》，不要一次上太多
+
+念顺了之后，遍数可以加到各 7 遍——那是台长开示的一般功课标准：
+
+> 每天 念 《大悲咒》 7 遍、 《心经》 7 遍
+
+功课一开始念了，就可以着手小房子，不用等很久。你先把这两部念起来，过几天回来告诉我情况，我再教你下一步 🙏
+
+如果想有人当面陪你、教你念，可以联系就近共修会：
+🌐 https://xlfm.my/contact-us
+📞 总会 +603-6257 3811
+
+南无大慈大悲观世音菩萨 🙏
+
+=== timing / cost · model=claude-opus-5 ===
+  R1b 观音圣诞                                 turns=1 wall/turn=28437ms calls=2 effort=high out_tokens=1336 cost=$0.137
+  R13 小房子 → 还没有开始念功课                       turns=2 wall/turn=28503ms calls=3 effort=low out_tokens=2527 cost=$0.224
+turn wall p50=28502.5ms p90=28502.5ms avg=28470ms · first_text avg=2351ms · calls/turn=1.67 · cache hits=5/5
+cost: total=$0.361 · per turn=$0.1203 (3 turns)
+checks: 13/13 passed · cases: 2/2 fully green
+
+ALL PASS

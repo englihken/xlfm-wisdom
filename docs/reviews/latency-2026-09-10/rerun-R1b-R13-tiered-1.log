@@ -1,0 +1,161 @@
+◇ injected env (6) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · 2 case(s) · all parallel
+Running: R1b, R13
+[vector-search] timing parallel=4 wall_ms=2175 per_query={"general":2105,"homework_175问":2107,"homework_入门手册":2147,"canonical":2174}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=2296 per_query={"little_house":2102,"general":2296}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1b violation=number attempt=1 reason=number_canonical_conflict text="1遍"
+[verbatim-guard] conversation=regression-test:R1b violation=number attempt=1 reason=number_canonical_conflict text="3遍"
+[verbatim-guard] conversation=regression-test:R1b violation=number attempt=1 reason=number_canonical_conflict text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="1遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="27遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="49遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="84遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="87遍"
+[verbatim-guard] conversation=regression-test:R1b decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"number","text":"1遍","reason":"number_canonical_conflict"},{"attempt":1,"type":"number","text":"3遍","reason":"number_canonical_conflict"},{"attempt":1,"type":"number","text":"7遍","reason":"number_canonical_conflict"}],"chunkTokens":["87遍","49遍","79遍","9遍","12遍","81遍","27遍","21遍","49张","69张","78张","21张","3遍","84遍","7遍","1遍","108遍","3张"],"replyTokens":["49遍","27遍","49张","69张"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[verbatim-guard] conversation=regression-test:R13 violation=quote attempt=2 reason=quote_not_verbatim text="初学者 在开始念功课的同时， 就可以开始念诵小房子，可以 先 为自己的要经者念7张 ，并且根据自己的情况坚持念诵。一般情况下，在坚持功课的同时，可以结合每周3张左右小房子给自己的要经者保平安"
+[verbatim-guard] conversation=regression-test:R13 violation=quote attempt=2 reason=quote_not_verbatim text="功课和小房子要分开，功课不能点到小房子上去。"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R13 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"1遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"1张","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"27遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"49遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"84遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"87遍","reason":"number_not_in_sources"},{"attempt":2,"type":"quote","text":"初学者 在开始念功课的同时， 就可以开始念诵小房子，可以 先 为自己的要经者念7张 ，并且根据自己的情况坚持念诵。一般情况下，在坚持功课的同时，可以结合每周3张左右小房子给自己的要经者保平安","reason":"quote_not_verbatim"},{"attempt":2,"type":"quote","text":"功课和小房子要分开，功课不能点到小房子上去。","reason":"quote_not_verbatim"},{"attempt":2,"type":"number","text":"1张","reason":"number_not_in_sources"}],"chunkTokens":["7张","3张","21张","10张","9张","1000张"],"replyTokens":["7张","3张"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[vector-search] timing parallel=4 wall_ms=1395 per_query={"homework_175问":1155,"homework_入门手册":1177,"little_house":1208,"general":1395}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+
+═══ R1b 观音圣诞 — guard: passed_after_retry ═══
+Q: 观音菩萨圣诞礼佛可以念几遍？
+Sources: 组织审定 | 心灵法门入门手册 | 心灵法门入门手册 · types: canonical_ruling,beginner_guide,qa_collection,letter_qa
+  ✓ says 49遍
+  ✓ NEVER 13遍
+  ✓ cites 组织审定
+  ✓ final text passes guard (0 residual)
+--- reply ---
+观世音菩萨圣诞是很殊胜的日子 🙏
+
+按【组织审定】的开示，二月十九日 观世音菩萨圣诞 —— 可以念诵《礼佛大忏悔文》**49遍**。
+
+（另外两个观世音菩萨的重要日子也是一样：六月十九日成道日 49遍、九月十九日出家日 49遍。）
+
+几个要注意的地方：
+
+**关于当天念不完：**
+> 《礼佛大忏悔文》最好当天念诵，现场跟菩萨忏悔，效果最好。如果当天实在无法念完的话，可以使用预先念好的自修经文当天烧送的方法。
+
+大的佛诞日可以采用27遍及以下遍数的自修经文版本，提前念好，当天来不及就拿出来烧送，其余的遍数当天补念完成。
+
+**关于烧送自修经文：**
+> 自修经文的《礼佛大忏悔文》，必须有佛台上香之后才能烧送；如果没有供奉佛台，不能烧送自修经文的礼佛大忏悔文。
+
+**没有佛台怎么念：**
+> 家中没有设立佛台的话，必须要先上心香跟菩萨祈求之后才能以此方法念诵《礼佛大忏悔文》，也可以到设有佛台的同修家中或者附近寺庙的观世音菩萨像前磕头跪拜之后即可在其他地方念诵。
+
+**小房子方面：**
+这天自己的几种小房子（自己要经者、流产孩子、梦见的亡人、自己名字房子要经者）加起来不超过49张；特殊情况可以最多69张；给其他人的小房子可以单独计算。
+
+最后一句提醒：如果你平时功课里的礼佛遍数还不多，佛诞日一下念到49遍可能会激活业障。**量力而行，配合多念小房子**，这是最稳的做法。宁可少念坚持，不要多念之后身体不舒服 🙏
+
+请问你平时功课里的《礼佛大忏悔文》是念几遍的？我可以帮你看看当天怎么安排比较稳。
+
+═══ R13 小房子 → 还没有开始念功课 — guard: clean ═══
+访客：我想开始念小房子
+AI：很好，愿意开始念小房子，这是很有心的一步 🙏
+
+先问你一句：**你现在有在做每天的功课吗（《大悲咒》《心经》《礼佛大忏悔文》）？** 这一步不能跳——打好基本功，小房子才有能量。
+
+所以你可以这样起步：
+
+**第一步：先为自己的要经者念**
+- 小房子抬头（敬赠处）写：**敬赠（你的名字）的要经者**
+- 落款写：*…
+访客：还没有开始念功课
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,xiaofangzi_guide,qa_collection,counseling_manual,case_studies,fahui_qa,buddhist_basics
+Last-turn retrieval (ALL 10): 心灵法门入门手册 p23 | 小房子念诵指南 p38 | 心灵法门入门手册 p36 | 小房子念诵指南 p22 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 弘法度人辅导手册 p67 | 心灵法门例说 p334 | 法会弟子提问 | 佛学常识开示锦集（第一册） p132
+  ✓ retrieval carries 念诵指南 or 入门手册
+  ✓ gives the 功课 first (words, or 📿 block before 小房子)
+  ✓ names the three pillars (大悲咒/心经/礼佛)
+  ✓ at least one N遍
+  ✓ 小房子 can start once 功课 has begun (not "wait until stable")
+  ✓ cites 念诵指南 or 入门手册 (reply or sources)
+  ✓ no 查不到相关原文 / 不敢乱说
+  ✓ no 「资料里没有写明具体数字」 (new refusal phrasing)
+  ✓ final text passes guard (0 residual)
+--- reply ---
+那我们先把功课起来 🙏 这一步不能跳——**打好基本功，小房子才有能量和效果。**
+
+完全没念过的，先从这两部开始，很简单：
+
+📿 **《大悲咒》每天 3 遍**
+念之前说：
+"请大慈大悲观世音菩萨保佑我（说自己的全名）身体健康，心情平静"
+
+📿 **《心经》每天 3 遍**
+念之前说：
+"请大慈大悲观世音菩萨保佑我（说自己的全名）开智慧，头脑清醒冷静，去除烦恼"
+（《心经》晚上 10 点以后不念）
+
+**每念一遍要念经文全名：**
+- 《大悲咒》→ 念《千手千眼无碍大悲心陀罗尼》
+- 《心经》→ 念《般若波罗蜜多心经》
+
+**不会念没关系**，有教念视频，跟着念就行：
+🔗 https://xinlingfamen.info/jingwen/
+
+先这两部，念顺了我们再加。等你念得顺了，可以加到《大悲咒》7 遍、《心经》7 遍，然后再加《礼佛大忏悔文》（从 1 遍开始，不要多）和《往生咒》21 遍。
+
+**关于小房子：**
+只要你开始做功课了——哪怕才念几天——就可以开始念小房子，不用等到很熟练。台长开示：只要开始做功课，就可以念诵小房子。
+
+不过《法会弟子提问》里台长讲得很清楚：
+
+> 只要念小房子的人，一定必须要做功课，哪怕再少也是功课
+
+所以顺序是：**先起功课 → 然后小房子跟上。**
+
+你先念几天，有什么不顺的告诉我，我帮你调 🙏
+
+如果想有人陪你一起念，也可以联系就近的共修会：https://xlfm.my/contact-us
+
+参考：《心灵法门入门手册》、《法会弟子提问》
+
+=== timing / cost · model=claude-opus-5 ===
+  R1b 观音圣诞                                 turns=1 wall/turn=30335ms calls=2 effort=high out_tokens=1378 cost=$0.139
+  R13 小房子 → 还没有开始念功课                       turns=2 wall/turn=28958ms calls=3 effort=low out_tokens=2633 cost=$0.226
+turn wall p50=30335ms p90=30335ms avg=29646ms · first_text avg=3028ms · calls/turn=1.67 · cache hits=5/5
+cost: total=$0.365 · per turn=$0.1216 (3 turns)
+checks: 13/13 passed · cases: 2/2 fully green
+
+ALL PASS
