@@ -341,6 +341,7 @@ async function handleTurn(
   const { message, conversation = [], language = 'zh', conversationId, browserId } = body;
 
   emit({ type: 'stage', stage: 'retrieving' satisfies ReplyStage });
+  const turnStart = Date.now();
 
   const history: CareMessage[] = conversation
     .filter((msg) => msg.content && msg.content.trim().length > 0)
@@ -459,7 +460,7 @@ async function handleTurn(
 
   if (chipHit) {
     const ageMin = Math.round((Date.now() - new Date(chipHit.generatedAt).getTime()) / 60_000);
-    console.log(`[chat] chip cache hit key=${chipHit.chipKey} lang=${chipHit.language} age_min=${ageMin} model=${chipHit.model}`);
+    console.log(`[chat] chip cache hit key=${chipHit.chipKey} lang=${chipHit.language} age_min=${ageMin} model=${chipHit.model} storage_ms=${Date.now() - turnStart}`);
     fullText = chipHit.answerText;
     sources = chipHit.sources;
   } else {
