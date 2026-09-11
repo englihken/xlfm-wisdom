@@ -46,14 +46,15 @@ export default function MasterLuSection() {
         {/* The quote, set like a piece of calligraphy: serif, corner brackets,
             hairline attribution. */}
         <figure className="mt-14 text-center">
+          {/* Verified verbatim (docs/site-quotes.json): 2014 年 6 月香港弘法解答会（3）台长语. */}
           <blockquote className="font-serif text-xl sm:text-2xl text-quote-ink leading-loose">
-            「台长非常非常地爱你们，
+            「好好相信观世音菩萨，
             <br className="sm:hidden" />
-            希望你们每个人都要想通。」
+            你们的明天一定会更美。」
           </blockquote>
           <figcaption className="mt-5 flex items-center justify-center gap-3 text-sm text-label">
             <span className="block w-8 h-px bg-gold-border" aria-hidden />
-            卢军宏台长
+            卢军宏台长 · 2014 年 6 月香港弘法解答会（3）台长语
             <span className="block w-8 h-px bg-gold-border" aria-hidden />
           </figcaption>
         </figure>

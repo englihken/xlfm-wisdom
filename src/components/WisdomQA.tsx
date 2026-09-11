@@ -70,8 +70,9 @@ export default function WisdomQA() {
               <p className="quote-card-body text-sm">
                 一个人如果心静不下来，什么事情都求不到的。求菩萨的时候要完全心静，菩萨才能听到你的声音。
               </p>
+              {/* Verified verbatim (docs/site-quotes.json): 《玄艺综述》2015 年 5 月 23 日. */}
               <p className="text-xs text-label mt-3">
-                来源：卢台长精彩节目摘录 · 玄学问答 2015年5月22日 · 师父原话，未经修改
+                来源：《玄艺综述》2015 年 5 月 23 日 · 卢台长精彩节目摘录（东方台 2015 年 7 月 19 日发布） · 师父原话，未经修改
               </p>
             </div>
 

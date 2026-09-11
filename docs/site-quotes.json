@@ -1,0 +1,47 @@
+{
+  "_readme": "Every sentence on the public site that is attributed to 卢军宏台长 / 台长 / 师父 must appear here VERBATIM before it ships. The architect verifies against the corpus (content/books/ + corpus-sources/lujunhong2or/); this register is the only thing scripts/check-site-quotes.ts accepts. Add a sentence only after the architect has verified it. Brief: docs/briefs/2026-09-11-homepage-quotes.md.",
+  "quotes": [
+    {
+      "id": "hero",
+      "placement": "Hero 主标语（Design v2 导入时才上线；现线上 Hero 无署名引言）",
+      "text": "不要着急，有菩萨在，什么都不怕。",
+      "attribution": "卢军宏台长",
+      "source": "《吃素•戒杀•放生》第 90 页（2012 年 6 月 10 日《玄艺问答》）",
+      "verified_by": "architect",
+      "verified_on": "2026-09-11"
+    },
+    {
+      "id": "master-lu-section",
+      "placement": "认识心灵法门 MasterLuSection.tsx",
+      "text": "好好相信观世音菩萨，你们的明天一定会更美。",
+      "attribution": "卢军宏台长",
+      "source": "2014 年 6 月香港弘法解答会（3）台长语",
+      "verified_by": "architect",
+      "verified_on": "2026-09-11"
+    },
+    {
+      "id": "baihua-fofa",
+      "placement": "白话佛法 BaihuaFofa.tsx",
+      "text": "想得通就是开悟，没有烦恼的人就是有智慧。",
+      "attribution": "卢军宏台长",
+      "source": "2012 年 11 月 11 日悉尼法会（东方台记录）",
+      "verified_by": "architect",
+      "verified_on": "2026-09-11"
+    },
+    {
+      "id": "wisdom-qa",
+      "placement": "智慧问答 WisdomQA.tsx",
+      "text": "一个人如果心静不下来，什么事情都求不到的。求菩萨的时候要完全心静，菩萨才能听到你的声音。",
+      "attribution": "师父原话，未经修改",
+      "source": "《玄艺综述》2015 年 5 月 23 日 · 卢台长精彩节目摘录（东方台 2015 年 7 月 19 日发布）",
+      "verified_by": "architect",
+      "verified_on": "2026-09-11"
+    }
+  ],
+  "not_a_quote": [
+    {
+      "text": "让世界充满观世音菩萨慈悲的爱",
+      "note": "出自《白话佛法》前言（编者口吻），可作宗旨式 tagline 署「《白话佛法》前言」，不能署「—— 卢军宏台长」"
+    }
+  ]
+}

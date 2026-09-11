@@ -72,10 +72,11 @@ export default function BaihuaFofa() {
                 <p className="text-sm text-ink-body leading-loose mb-4">
                   学佛不是学道理，而是学会用佛法的智慧来看清自己的内心，改变自己的习气。
                 </p>
+                {/* Verified verbatim (docs/site-quotes.json): 2012 年 11 月 11 日悉尼法会. */}
                 <p className="font-serif text-quote-ink leading-loose">
-                  「想得通就是开悟，没有烦恼就是有智慧。」
+                  「想得通就是开悟，没有烦恼的人就是有智慧。」
                 </p>
-                <p className="text-xs text-label mt-2">—— 卢军宏台长</p>
+                <p className="text-xs text-label mt-2">—— 卢军宏台长 2012 年 11 月 11 日悉尼法会</p>
               </div>
             </div>
           </div>

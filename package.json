@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint && tsx scripts/check-site-quotes.ts",
     "upload:wave1": "tsx scripts/upload-wave1.ts",
     "upload:wave1-v2": "tsx scripts/upload-wave1-v2.ts",
     "upload:wave2": "tsx scripts/upload-wave2.ts",
