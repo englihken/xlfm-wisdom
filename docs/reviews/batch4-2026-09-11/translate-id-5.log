@@ -1,0 +1,34 @@
+◇ injected env (6) from .env.local // tip: ⌘ enable debugging { debug: true }
+[id] tiers: 7794 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · line count 193 ≠ 323 (attempt 1) — retrying
+  · chunk 1/2 done
+  ✓ tiers in 356 s · lines 401/401
+[id] practice: 7658 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · chunk 1/2 done
+  ✓ practice in 146 s · lines 365/365
+[id] xiaofangzi: 4138 chars · 1 chunk(s)
+  · chunk 1/1 done
+  ✓ xiaofangzi in 123 s · lines 229/229
+[id] relationships: 5612 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · line count 52 ≠ 356 (attempt 1) — retrying
+  · chunk 1/2 done
+  ✓ relationships in 313 s · lines 363/363
+[id] crisis: 3322 chars · 1 chunk(s)
+  · chunk 1/1 done
+  ✓ crisis in 107 s · lines 224/224
+[id] altar: 1684 chars · 1 chunk(s)
+  · chunk 1/1 done
+  ✓ altar in 36 s · lines 112/112
+[id] sources: 2199 chars · 1 chunk(s)
+  · chunk 1/1 done
+  ✓ sources in 94 s · lines 59/59
+[id] misc: 9397 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · line count 343 ≠ 365 (attempt 1) — retrying
+  · line count 293 ≠ 365 — splitting 365 lines at 177
+  · chunk 1/2 done
+  ✓ misc in 521 s · lines 585/585
+EXIT=0

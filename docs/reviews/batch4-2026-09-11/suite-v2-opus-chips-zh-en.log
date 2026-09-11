@@ -1,0 +1,688 @@
+◇ injected env (6) from .env.local // tip: ⌘ override existing { override: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · prompt=v2 · 12 case(s) · concurrency=3
+Running: CHIP1-zh, CHIP2-zh, CHIP3-zh, CHIP4-zh, CHIP5-zh, CHIP6-zh, CHIP1-en, CHIP2-en, CHIP3-en, CHIP4-en, CHIP5-en, CHIP6-en
+[vector-search] timing parallel=1 wall_ms=4057 per_query={"general":4056}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'karma_debt' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=4387 per_query={"homework_175问":4094,"homework_入门手册":4102,"health":4306,"general":4385}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health', 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 19,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=4573 per_query={"homework_175问":3944,"homework_入门手册":4259,"general":4573}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:CHIP1-zh violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP1-zh violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP3-zh violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:CHIP3-zh violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:CHIP3-zh violation=number attempt=1 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh violation=number attempt=1 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:CHIP1-zh violation=number attempt=2 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:CHIP1-zh violation=number attempt=2 reason=number_not_in_sources text="49遍"
+[verbatim-guard] conversation=regression-test:CHIP1-zh stripped tail=partial
+[verbatim-guard] conversation=regression-test:CHIP1-zh decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"49遍","reason":"number_not_in_sources"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张"],"replyTokens":["3遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[verbatim-guard] conversation=regression-test:CHIP3-zh decision={"outcome":"passed_after_retry","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"21遍","reason":"number_not_in_sources"}],"chunkTokens":[],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=1 wall_ms=1796 per_query={"general":1796}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'children' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=2110 per_query={"homework_入门手册":1760,"homework_175问":1827,"general":2110}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:CHIP2-zh violation=number attempt=2 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh violation=number attempt=2 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh violation=number attempt=2 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh violation=number attempt=2 reason=number_not_in_sources text="108遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh violation=number attempt=2 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh over-stripped (祈求词 without 经名) — regenerating
+[verbatim-guard] conversation=regression-test:CHIP4-zh violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:CHIP4-zh violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:CHIP4-zh violation=number attempt=1 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh violation=number attempt=3 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh violation=number attempt=3 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh violation=number attempt=3 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh violation=number attempt=3 reason=number_not_in_sources text="108遍"
+[verbatim-guard] conversation=regression-test:CHIP2-zh stripped tail=partial
+[verbatim-guard] conversation=regression-test:CHIP2-zh decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"21遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"108遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"21遍","reason":"number_not_in_sources"},{"attempt":3,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":3,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":3,"type":"number","text":"21遍","reason":"number_not_in_sources"},{"attempt":3,"type":"number","text":"108遍","reason":"number_not_in_sources"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张"],"replyTokens":["1遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"overStripRegen":true,"tail":"partial"}
+[vector-search] timing parallel=4 wall_ms=2039 per_query={"health":1203,"homework_175问":1736,"homework_入门手册":1787,"general":2039}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health', 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 19,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=1745 per_query={"general":388,"homework_en":1745}
+[vector-search] {
+  userLang: 'en',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 13,
+  avgPrimaryScore: '0.874',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:CHIP1-en violation=quote attempt=1 reason=quote_not_verbatim text="Every day, recite the Great Compassion Mantra (Ta Pei Chou) 7 times, the Heart Sutra (Hsin Ching) 7 times, the Eighty-eight Buddhas Great Repentance (Li Fo Ta Chan Hui Wen) 3 to 7 times, and the Cundi Dharani (Chun Ti Shen Chou) 21 times."
+[verbatim-guard] conversation=regression-test:CHIP6-zh violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP6-zh violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP4-zh violation=number attempt=2 reason=number_case_generalized text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP4-zh violation=number attempt=2 reason=number_case_generalized text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP4-zh violation=number attempt=2 reason=number_case_generalized text="3遍"
+[verbatim-guard] conversation=regression-test:CHIP4-zh violation=number attempt=2 reason=number_case_generalized text="49遍"
+[verbatim-guard] conversation=regression-test:CHIP4-zh stripped tail=blanket
+[verbatim-guard] conversation=regression-test:CHIP4-zh decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"21遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"7遍","reason":"number_case_generalized"},{"attempt":2,"type":"number","text":"7遍","reason":"number_case_generalized"},{"attempt":2,"type":"number","text":"3遍","reason":"number_case_generalized"},{"attempt":2,"type":"number","text":"49遍","reason":"number_case_generalized"}],"chunkTokens":["3遍","7遍","49遍","21张"],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":true,"tail":"blanket"}
+[vector-search] timing parallel=1 wall_ms=2148 per_query={"general":2147}
+[vector-search] {
+  userLang: 'en',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: '0.795',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:CHIP1-en decision={"outcome":"passed_after_retry","canonicalPresent":false,"violations":[{"attempt":1,"type":"quote","text":"Every day, recite the Great Compassion Mantra (Ta Pei Chou) 7 times, the Heart Sutra (Hsin Ching) 7 times, the Eighty-eight Buddhas Great Repentance (Li Fo Ta Chan Hui Wen) 3 to 7 times, and the Cundi Dharani (Chun Ti Shen Chou) 21 times.","reason":"quote_not_verbatim"}],"chunkTokens":[],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=1 wall_ms=2134 per_query={"general":2134}
+[vector-search] {
+  userLang: 'en',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: '0.808',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:CHIP6-zh violation=quote attempt=2 reason=quote_not_verbatim text="你只要给他念7遍礼佛大忏悔文，每天给他念21遍大悲咒，因为大悲咒是求观世音菩萨来给他治病，念小房子是给他还债，念礼佛大忏悔文就相当于一个人做错事情了，嘴巴不停地说\"对不起啊，我做错了，我再不做了\"，然后你要赔偿吧，实际行动就是小房子"
+[verbatim-guard] conversation=regression-test:CHIP6-zh violation=number attempt=2 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:CHIP6-zh violation=number attempt=2 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:CHIP6-zh stripped tail=partial
+[verbatim-guard] conversation=regression-test:CHIP6-zh decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"quote","text":"你只要给他念7遍礼佛大忏悔文，每天给他念21遍大悲咒，因为大悲咒是求观世音菩萨来给他治病，念小房子是给他还债，念礼佛大忏悔文就相当于一个人做错事情了，嘴巴不停地说\"对不起啊，我做错了，我再不做了\"，然后你要赔偿吧，实际行动就是小房子","reason":"quote_not_verbatim"},{"attempt":2,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"21遍","reason":"number_not_in_sources"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张","300张","7张"],"replyTokens":["1遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[vector-search] timing parallel=1 wall_ms=394 per_query={"general":394}
+[vector-search] {
+  userLang: 'en',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: '0.799',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:CHIP2-en violation=quote attempt=1 reason=quote_not_verbatim text="You should recite the Heart Sutra at least 7 times per day for him, and sincerely ask Guan Yin Bodhisattva to protect and bless him (you should state his full name) and help him to gain wisdom so that he will not cause trouble for you. The recitation of the Heart Sutra can also repay your karmic debts to him, as well as transform and resolve negative karmic ties."
+[vector-search] timing parallel=2 wall_ms=2156 per_query={"homework_en":1802,"general":2156}
+[vector-search] {
+  userLang: 'en',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 13,
+  avgPrimaryScore: '0.853',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=479 per_query={"general":376,"homework_en":479}
+[vector-search] {
+  userLang: 'en',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 13,
+  avgPrimaryScore: '0.867',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:CHIP2-en decision={"outcome":"passed_after_retry","canonicalPresent":false,"violations":[{"attempt":1,"type":"quote","text":"You should recite the Heart Sutra at least 7 times per day for him, and sincerely ask Guan Yin Bodhisattva to protect and bless him (you should state his full name) and help him to gain wisdom so that he will not cause trouble for you. The recitation of the Heart Sutra can also repay your karmic debts to him, as well as transform and resolve negative karmic ties.","reason":"quote_not_verbatim"}],"chunkTokens":[],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false}
+
+═══ CHIP1-zh 我最近失眠很严重，念什么经好？ — guard: stripped ═══
+Q: 我最近失眠很严重，念什么经好？
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,case_studies,disease_encyclopedia
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+失眠很难受，晚上睡不着，白天整个人都撑不住 🙏
+
+可以先把功课念起来：
+
+📿 《大悲咒》每天三遍
+祈求："请大慈大悲观世音菩萨保佑我XXX（名字）身体健康"
+
+📿 《心经》每天三遍
+祈求："请大慈大悲观世音菩萨保佑我XXX（名字）开智慧，头脑清醒冷静，去除烦恼"
+（晚上10点以后、雷雨天不念）
+
+祈求："请大慈大悲观世音菩萨保佑我XXX（名字）忏悔消除业障"
+（晚上10点以后不念）
+
+祈求："请大慈大悲观世音菩萨帮助我XXX（名字）超度因我而受害的小灵性"
+
+师父对类似失眠的情况，常教人多念《心经》《往生咒》，再配合小房子——不过那是针对具体同修的开示，情况因人而异，先把功课稳定下来最要紧。
+
+经文不会念没关系，有教念视频可以跟着念：
+🔗 https://xinlingfamen.info/jingwen/
+
+坚持念下去，心静了，睡眠自然会慢慢转好 🙏
+
+你之前有念过经吗？
+
+参考：《心灵法门入门手册》、《疾病百科（一）》
+
+补充说明：个别涉及遍数／张数的细节因暂未能核对到原文，已略去未写；以上写出的数字均出自检索到的官方资料。如需进一步确认，请咨询就近共修会的义工 🙏
+
+═══ CHIP2-zh 和家人一直吵架，我可以先学什么？ — guard: stripped ═══
+Q: 和家人一直吵架，我可以先学什么？
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,teaching,core_wisdom,radio_teaching,disciple_teaching
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+家人一直吵架，心里一定很累 🙏
+
+先从最简单的两部开始，别求多，先求每天都念得上：
+
+祈求："请大慈大悲观世音菩萨保佑我XXX（自己名字）身体健康、平平安安"
+
+祈求："请大慈大悲观世音菩萨保佑我XXX开智慧，头脑清醒冷静，去除烦恼"
+（晚上 10 点以后不念）
+
+祈求："请大慈大悲观世音菩萨化解我XXX与YYY（家人名字）的恶缘"
+
+念顺了以后，可以再加：
+
+📿 《礼佛大忏悔文》每天 1 遍起（初学者先从少量念起，晚上 10 点以后不念）
+祈求："请大慈大悲观世音菩萨保佑我XXX，帮助我忏悔消除业障"
+
+经文不会念没关系，跟着教念视频念就好：
+🔗 https://xinlingfamen.info/jingwen/
+
+台长在《白话佛法》里讲过这样一段，很实在：
+
+> 比方说，夫妻吵架，先不要去想自己老公不好的地方，停止念头，就针对现在不开心的事情想想算了，如果你越往前想，你会把你老公今天跟你吵架之前很多不开心的
+
+先把念头停住，再把功课念起来，家里的气自然会松一些。
+
+想有人陪你一起念，也可以联系就近的共修会 🙏
+🌐 https://xlfm.my/contact-us
+
+参考：《心灵法门入门手册》、《白话佛法（第十册）》
+
+补充说明：个别涉及遍数／张数的细节因暂未能核对到原文，已略去未写；以上写出的数字均出自检索到的官方资料。如需进一步确认，请咨询就近共修会的义工 🙏
+
+═══ CHIP3-zh 工作一直不顺，是不是有业障？ — guard: passed_after_retry ═══
+Q: 工作一直不顺，是不是有业障？
+Sources: 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 · types: buddhist_basics,letter_qa,core_wisdom,disease_encyclopedia
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+工作不顺这么久，心里一定很累 🙏
+
+台长在《解答来信疑惑》里，回答过一位同修同样的困扰——那位同修从 2012 年开始工作，一直不顺，后来把参加法会一半的功德求观世音菩萨帮忙安排工作，没多久就找到了一份如意的工作。
+
+台长的开示里有几点，对你现在的情况很有帮助：
+
+**第一，先看看自己有没有懒散或不认真的习气。**
+
+台长在《解答来信疑惑（二百九十四）》里说，做事不用心有两种原因——一种是上辈子的根基，一种是这辈子从小养成的习惯。对什么事情都无所谓，长大后做事不认真，这就会造成新业的产生。
+
+所以工作不顺，有可能是过去的业障，也有可能是自己的态度还需要调整。
+
+**第二，换了工作刚开始累，是正常的。**
+
+台长对那位同修说过一句很实在的话——刚换工作当然累，因为懒散惯了；现在哪份工作是容易的、钱是好赚的？坚持一段时间适应一下，人就会慢慢适应。
+
+不要一遇到辛苦就想走，那样换几次还是一样。
+
+**第三，用佛法的方法去改变。**
+
+工作的事情，可以在念经的时候跟菩萨祈求：
+
+📿 念《大悲咒》时，祈求："请大慈大悲观世音菩萨保佑我（姓名）身体健康，增强功力"
+
+📿 念《心经》时，祈求："请大慈大悲观世音菩萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼"（晚上 10 点以后不念）
+
+📿 念《准提神咒》，祈求："请大慈大悲观世音菩萨保佑我（姓名）事业顺利"
+
+另外，台长在上面那个案例里教的方法也可以参考——把自己所做功德的一部分，求菩萨帮助安排一份合适的工作。这需要平时先有积累，多念经、多放生、多做善事。
+
+坚持念下去，心先稳了，工作的路自然会慢慢清楚 🙏
+
+想再给你更贴切的建议——你之前有念过经吗？
+
+参考：《解答来信疑惑（第二百三十一篇）》《解答来信疑惑（第二百九十四篇）》
+
+═══ CHIP4-zh 孩子不听话，我应该如何面对自己的情绪 — guard: stripped ═══
+Q: 孩子不听话，我应该如何面对自己的情绪？
+Sources: 玄艺问答 | 解答来信疑惑 | 白话佛法广播讲座（第一册） · types: video_teaching,case_qa,disciple_teaching,ethics_guide,letter_qa,radio_teaching
+  ✓ non-trivial reply (≥120 chars)
+  ✗ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+孩子不听话的时候，最难受的往往不是孩子，是自己那股压不住的火 🙏
+
+师父在《白话佛法广播讲座（第一册）》里开示过：
+
+> 你首先可以想想，这孩子或许心里有压力，或许在单位或者学校受到了很大的压力，所以回家后和妈妈不合。如果你这样想的话，你心里就舒服了。
+
+师父接着说的那句很重要——**不要拿别人的错误来惩罚自己**。孩子一句话让你气得吃不下、睡不着，最后伤的是自己的身体。
+
+在《解答来信疑惑》里，师父对一位天天打骂孩子的同修是这样开示的：
+
+> 要动之以情晓之以理，不是打骂行的，要跟孩子好好讲，而且冰冻三尺非一日之寒，孩子今天不听你的，就是父母长期没有树立好的榜样，只能先改变自己，慢慢的来，慢慢化解。
+
+所以师父教的方向是——**先改变自己的情绪，孩子才慢慢转**。不是先去改孩子。
+
+台长对一位为孩子烦恼、和先生常吵架的母亲的开示是（情况因人而异，不是每个人都照这个数）：
+
+祈求："请大慈大悲观世音菩萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼"
+（晚上 10 点以后不念）
+
+祈求："请大慈大悲观世音菩萨保佑我（姓名）身体健康，增强功力"
+
+祈求："请大慈大悲观世音菩萨保佑我（姓名）忏悔消除业障"
+（晚上 10 点以后不念）
+
+祈求："请大慈大悲观世音菩萨保佑我（姓名）消灾吉祥，平安顺利"
+
+心经也可以为孩子念，念之前报孩子的名字，求菩萨帮他开智慧。
+
+坚持念下去，先稳住自己的心，家里的气氛会慢慢不一样 🙏
+
+请问你之前有念过经吗？这样我可以给你更适合的起步方式。
+
+参考：《白话佛法广播讲座（第一册）》、《解答来信疑惑（第一百六十五篇）》、《玄艺问答》（2012年7月29日节目）
+
+关于具体的遍数／张数，我目前查不到相关原文，不敢随意告诉您数字。建议咨询就近共修会的义工，以官方资料为准 🙏
+
+═══ CHIP5-zh 刚开始接触心灵法门，第一步应该做什么 — guard: clean ═══
+Q: 刚开始接触心灵法门，第一步应该做什么？
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,counseling_manual,core_wisdom,buddhist_basics
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+很好的开始 🙏 你愿意来了解，就是一份缘分。
+
+第一步其实很简单 —— **先把功课念起来。**
+
+如果你完全没念过经，就从这两部开始：
+
+📿 **《大悲咒》每天 3 遍**
+念之前说："请大慈大悲观世音菩萨保佑我XXX（自己名字）身体健康，增强功力"
+
+📿 **《心经》每天 3 遍**
+念之前说："请大慈大悲观世音菩萨保佑我XXX（自己名字）开智慧，头脑清醒冷静，去除烦恼"
+（晚上 10 点以后不念）
+
+经文不会念没关系，有教念视频可以跟着念：
+🔗 https://xinlingfamen.info/jingwen/
+
+先这两部，念顺了我们再加《礼佛大忏悔文》和《往生咒》。**宁可少念坚持，不要多念放弃** —— 每天坚持比念多重要。
+
+想要经书或实体资料，全马 33 个共修会都可以免费结缘，一切法宝永远免费：
+🔗 https://xlfm.my/contact-us
+
+想再问你一句：**你之前有念过经吗？还是完全第一次接触？**
+
+这样我可以给你更适合的下一步 🙏
+
+═══ CHIP6-zh 家人生病了，我应该为他念什么经？ — guard: stripped ═══
+Q: 家人生病了，我应该为他念什么经？
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,disease_encyclopedia,fahui_qa
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+家人生病，心里最着急的就是我们自己 🙏
+
+台长教的方法，是「念经＋许愿＋放生」三样一起用。
+
+**为家人念经的时候，一定要报出他的名字**，这样经文才送得到他身上。
+
+📿 《大悲咒》——求菩萨保佑他身体健康
+祈求：「请大慈大悲观世音菩萨保佑我家人XXX（名字）身体健康，医治他的疾病，早日恢复健康」
+
+📿 《心经》——开智慧、去烦恼（晚上10点后不念）
+祈求：「请大慈大悲观世音菩萨保佑我家人XXX（名字）开智慧，头脑清醒冷静」
+
+📿 《礼佛大忏悔文》——忏悔消业（初学者先从1遍开始，晚上10点后不念）
+祈求：「请大慈大悲观世音菩萨保佑我家人XXX（名字），帮助他忏悔和消除身上的业障」
+
+（这是台长对某位同修具体情况的开示，情况因人而异，遍数可以按自己能力来。）
+
+另外两件事也很重要：
+
+🐟 **放生** —— 台长常说，放生对病人是最直接的，能消灾延寿。放生时祈求：「请大慈大悲的观世音菩萨保佑我家人XXX消灾延寿」
+
+🏠 **小房子** —— 敬赠「XXX（家人名字）的要经者」，帮他还债。这是真正化解业障病的关键。
+
+⚠️ 提醒一句：**念经是辅助，医院的治疗不能停**。台长从来不反对看医生，身心一起抓才好得快。
+
+还有一点很重要——**帮家人念，自己也要同时念自己的功课和小房子**。自己都欠着债去帮别人还，反而不稳。
+
+想问一下：**你之前有念过经吗？**
+这样我可以给你更合适的起步方式 🙏
+
+参考：《疾病百科（一）》、《心灵法门入门手册》
+
+补充说明：个别涉及遍数／张数的细节因暂未能核对到原文，已略去未写；以上写出的数字均出自检索到的官方资料。如需进一步确认，请咨询就近共修会的义工 🙏
+
+═══ CHIP1-en I have severe inso — guard: passed_after_retry ═══
+Q: I have severe insomnia, which sutras should I recite?
+Sources: Heart Dharma Intro (EN) | Heart Dharma Intro (EN) | Heart Dharma Intro (EN) · types: introduction,qa_general,qa_metaphysics
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Not being able to sleep night after night really wears a person down 🙏 Let me give you something you can start with tonight.
+
+If you have never recited before, start simple:
+
+📿 **Great Compassion Mantra (大悲咒) 3 times a day**
+Before reciting, say: "May the Great Merciful and Great Compassionate Guan Yin Bodhisattva protect and bless me, *(your full name)*, grant me good health and a peaceful mind."
+
+📿 **Heart Sutra (心经) 3 times a day**
+Before reciting, say: "May the Great Merciful and Great Compassionate Guan Yin Bodhisattva protect and bless me, *(your full name)*, grant me wisdom, a clear and calm mind, and remove my afflictions."
+
+⚠️ One important timing point from Master Lu's teachings:
+
+> The Heart Sutra and the Amitabha Pure Land Rebirth Mantra can be recited until 10pm during good weather conditions. If it is cloudy or rainy, you can recite them during the daytime.
+
+So do your Heart Sutra recitation in the daytime or early evening, not late at night.
+
+Once these two become fluent for you, the standard daily recitation taught by Master Lu is Great Compassion Mantra 7 times, Heart Sutra 7 times, Eighty-eight Buddhas Great Repentance 3 to 7 times, and Cundi Dharani 21 times. For the Eighty-eight Buddhas Great Repentance, beginners should start from just 1 time and increase slowly.
+
+Also, please do keep working with your doctor if the insomnia is severe — Guan Yin Citta cultivates both body and mind; chanting supports, it does not replace medical care.
+
+May I ask — **have you recited sutras before, or is this completely new to you?** That way I can give you the right next step 🙏
+
+If you'd like someone to recite together with you, you can contact the nearest Dharma practice centre: https://xlfm.my/contact-us
+
+Chanting tutorial videos (you can chant along even if you can't read the characters): https://xinlingfamen.info/jingwen/
+
+*Reference: Buddhism Q&A; Introduction to the Guan Yin Citta Dharma Door*
+
+═══ CHIP2-en I keep arguing wit — guard: passed_after_retry ═══
+Q: I keep arguing with family, what can I start learning?
+Sources: Heart Dharma Intro (EN) | Metaphysics Q&A Vol 1 (EN) | Metaphysics Q&A Vol 3 (EN) · types: introduction,qa_metaphysics,qa_general
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Arguing at home every day really wears the heart down 🙏
+
+Master Lu gave this teaching in Metaphysics Q&A Vol. 3:
+
+> To a certain extent, interpersonal conflicts are the result of negative karmic ties from your previous lives. These conflicts can include: having someone refusing to return owed money to you, being involved in lawsuits, being oppressed by your boss, being alienated by your colleagues, and experiencing disagreements with your neighbour, etc. These conflicts can be resolved by performing recitations.
+
+So the way out is not to win the argument, but to dissolve the knot.
+
+You can start like this:
+
+📿 **Great Compassion Mantra (大悲咒) 3–7 times daily**
+Before reciting say: "May the Greatly Merciful and Greatly Compassionate Guan Yin Bodhisattva bless me, [your full name], with good health and strengthened spiritual power"
+
+📿 **Heart Sutra (心经) 3–7 times daily**
+Before reciting say: "May the Greatly Merciful and Greatly Compassionate Guan Yin Bodhisattva bless me, [your full name], to gain wisdom, keep a clear and calm mind, and remove afflictions"
+⚠️ Don't recite after 10 pm
+
+📿 **Mantra to Untie Karmic Knots (解结咒) 21–49 times daily**
+Before reciting say: "May the Greatly Merciful and Greatly Compassionate Guan Yin Bodhisattva help me, [your full name], resolve the negative karmic ties with [family member's full name]"
+(Master Lu's guidance for a similar situation was at least 49 times a day — Metaphysics Q&A Vol. 3. Situations differ from person to person, so if 49 is too many at the start, 21 is fine.)
+
+You can also recite the **Heart Sutra for your family member** (Master Lu's guidance: at least 7 times per day for each family member), praying: "May the Greatly Merciful and Greatly Compassionate Guan Yin Bodhisattva protect [family member's full name] and help [him/her] to gain wisdom." Master Lu also reminded us it's best not to tell them you are reciting for them, so they don't feel uncomfortable and create karma of speech.
+
+Keep reciting — don't wait to see results before you believe. Don't know the sutras yet? You can chant along with the tutorial videos here: 🔗 https://xinlingfamen.info/jingwen/
+
+May I ask — have you recited sutras before, or is this completely new to you? Then I can tell you what to add next 🙏
+
+Reference: Metaphysics Q&A Vol. 3 (Q116, Q127), Metaphysics Q&A Vol. 1 (Q006)
+
+═══ CHIP3-en Work has been goin — guard: clean ═══
+Q: Work has been going badly, is it karma?
+Sources: Buddhism Q&A (EN) | Metaphysics Q&A Vol 1 (EN) | Heart Dharma Intro (EN) · types: qa_general,qa_metaphysics,introduction
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Work not going smoothly really does wear a person down 🙏
+
+Master Lu explained this in Metaphysics Q&A Vol. 2:
+
+> If a person has many black energy patches and the colour is very dark, then it means that this person has committed many wrongdoings in the past and present lives. The more black energy patches there are on the body, the more unpleasant experiences with health, career and relationships this person would be having.
+
+So yes — obstacles at work often do have karmic obstacles behind them. But please don't take that as bad news. Karmic obstacles can be eliminated; that's exactly what this Dharma door is for. What we can't change is only what we refuse to work on.
+
+You can start with this daily:
+
+📿 **Great Compassion Mantra** 3–7 times
+Before reciting say: "May the greatly merciful and greatly compassionate Guan Yin Bodhisattva bless me, [your full name], with good health and strengthened spiritual power."
+
+📿 **Heart Sutra** 3–7 times
+Before reciting say: "May the greatly merciful and greatly compassionate Guan Yin Bodhisattva bless me, [your full name], to open up wisdom, keep a clear and calm mind, and remove afflictions."
+(Not after 10pm)
+
+📿 **Eighty-Eight Buddhas Great Repentance** 1 time (start with 1 only)
+Before reciting say: "May the greatly merciful and greatly compassionate Guan Yin Bodhisattva bless me, [your full name], to repent and eliminate my karmic obstacles."
+(Not after 10pm)
+
+📿 **Cundi Mantra** 21 times — for career matters
+Before reciting say: "May the greatly merciful and greatly compassionate Guan Yin Bodhisattva bless me, [your full name], so that my wishes come true and my work goes smoothly."
+
+If you're not sure how to pronounce them, there are chant-along videos here:
+🔗 https://xinlingfamen.info/jingwen/
+
+Keep reciting steadily — don't watch the calendar, watch your own consistency. The Bodhisattva will help at the right time.
+
+May I ask — have you recited sutras before, or is this completely new to you? That way I can suggest the right starting point for you 🙏
+
+Reference: Metaphysics Q&A Vol. 2
+
+═══ CHIP4-en My child is rebell — guard: clean ═══
+Q: My child is rebellious, how should I handle my emotions?
+Sources: Metaphysics Q&A Vol 3 (EN) | Buddhism Q&A (EN) | Metaphysics Q&A Vol 3 (EN) · types: qa_metaphysics,qa_general
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Being a parent and having to hold your own emotions steady at the same time — that really isn't easy 🙏
+
+Master Lu gave this teaching in Buddhism Q&A:
+
+> There are many possible reasons for children to misbehave. First, you should not use an adult's way of thinking to restrain the innocent and playful nature of children.
+
+> Generally, if a child does not like to study or listen to you, you can recite the Heart Sutra for the child and pray to Guan Yin Bodhisattva to grant the child wisdom. If a child is having conflicts with their parents or family members, it may be due to karmic conflicts from previous lives, or the child may have come to collect karmic debts from the parents. Therefore, you need to recite the Mantra to Untie Karmic Knots.
+
+So the way Master Lu teaches us is — steady your own heart first, and use the Buddha-Dharma to untie the knot, not to fight it out at home.
+
+**For yourself:**
+
+📿 Great Compassion Mantra (大悲咒) 3–7 times a day
+Prayer: "May the greatly merciful and greatly compassionate Guan Yin Bodhisattva bless me (your full name) with good health and strengthen my spiritual power"
+
+📿 Heart Sutra (心经) 3–7 times a day — this is the one that settles your emotions
+Prayer: "May the greatly merciful and greatly compassionate Guan Yin Bodhisattva bless me (your full name) to open up wisdom, to have a clear and calm mind, and to remove afflictions"
+⚠️ Not after 10 pm
+
+📿 Karmic-Knot-Untying Mantra (解结咒) 21–49 times a day
+Prayer: "May the greatly merciful and greatly compassionate Guan Yin Bodhisattva help me (your full name) resolve the bad karmic affinity with (your child's name)"
+
+**For your child** (recited by you, stating the child's name):
+
+📿 Heart Sutra (心经) — Master Lu says the more the better, to help the child gain wisdom and become more cooperative
+Prayer: "May the greatly merciful and greatly compassionate Guan Yin Bodhisattva bless (child's full name) to open up wisdom"
+
+📿 Great Compassion Mantra (大悲咒) — for a child who is hard to discipline, Master Lu says to **keep it to 7 times per day** (reciting a large number may increase their spiritual power and make them even harder to discipline)
+
+Keep reciting steadily. When your own heart becomes calm first, the atmosphere at home changes with it 🙏
+
+May I ask — have you recited sutras before, or is this new to you? That way I can tell you where to start.
+
+Reference: *Buddhism Q&A* (Q114, Q127), *Metaphysics Q&A Vol. 3*
+
+═══ CHIP5-en I am new to 心灵法门,  — guard: clean ═══
+Q: I am new to 心灵法门, what is the first step?
+Sources: Heart Dharma Intro (EN) | Heart Dharma Intro (EN) | Heart Dharma Intro (EN) · types: introduction,qa_metaphysics
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Welcome 🙏 The first step is very simple — start reciting a little every day.
+
+Let's begin with just these two:
+
+📿 **Great Compassion Mantra (大悲咒)** — 3 times a day
+Before reciting, say:
+"May the Greatly Merciful and Greatly Compassionate Guan Yin Bodhisattva bless me, [your full name], with good health and a peaceful mind"
+
+📿 **Heart Sutra (心经)** — 3 times a day
+Before reciting, say:
+"May the Greatly Merciful and Greatly Compassionate Guan Yin Bodhisattva bless me, [your full name], to open up wisdom and remove afflictions"
+⚠️ Please don't recite the Heart Sutra after 10 pm.
+
+Start with just these two. Once you're comfortable with them, we can add the **Eighty-Eight Buddhas Great Repentance (礼佛大忏悔文)** — starting from 1 time only.
+
+It's completely fine if you can't read the Chinese characters — there are recite-along teaching videos:
+🔗 https://xinlingfamen.info/jingwen/
+
+Master Lu's teaching in 《心灵法门入门手册》(Guan Yin Citta Beginner's Handbook) is that persisting daily matters far more than reciting a lot. Better to recite less and keep going, than recite a lot and stop.
+
+May I ask — have you recited sutras before, or is this completely new to you? That way I can suggest the right next step for you.
+
+If you'd like someone to recite together with you, or to collect free scripture books, you can contact the nearest Dharma practice centre 🙏
+🌐 https://xlfm.my/contact-us
+
+Reference: 《心灵法门入门手册》(Guan Yin Citta Beginner's Handbook)
+
+═══ CHIP6-en My family member i — guard: clean ═══
+Q: My family member is ill, what should I recite for them?
+Sources: Heart Dharma Intro (EN) | Heart Dharma Intro (EN) | Heart Dharma Intro (EN) · types: introduction,qa_metaphysics,qa_general
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+It must be worrying to see a family member unwell 🙏 Let me help you.
+
+**First — please keep working with the doctors.** Guan Yin Citta cultivates both body and mind; recitation supports medical treatment, it doesn't replace it.
+
+Master Lu gives this teaching in Metaphysics Q&A:
+
+> "For patients, it is best to recite the Great Compassion Mantra (Ta Pei Chou) as much as possible for as long as possible. Because patients would be physically weak, they should only recite the Great Compassion Mantra."
+
+**If your family member is able to recite themselves:**
+
+📿 Great Compassion Mantra — as many as they can manage
+Prayer: "May the Great Merciful and Great Compassionate Guan Yin Bodhisattva protect and bless me, [their full name], grant me good health and cure my illness in [part of body]."
+
+**If you are reciting on their behalf** (you must state their name for it to reach them):
+
+📿 Great Compassion Mantra 7 times daily — for their health, and to strengthen your own energy
+Prayer: "May the Great Merciful and Great Compassionate Guan Yin Bodhisattva protect and bless my [relationship], [their full name], grant them good health and cure their illness."
+
+📿 Heart Sutra 7 times daily — to open wisdom, remove afflictions
+Prayer: "May the Great Merciful and Great Compassionate Guan Yin Bodhisattva protect and bless me, [your full name], grant me wisdom and a calm, clear mind."
+(Not after 10 pm; and never recite the Heart Sutra *for the patient* while they are physically weak — that one is for you.)
+
+📿 Eighty-eight Buddhas Great Repentance — start with 1 time a day
+Prayer: "May the Great Merciful and Great Compassionate Guan Yin Bodhisattva protect and bless me, [your full name], help me to repent and eliminate my karmic obstacles."
+(Not after 10 pm. Start at 1 — don't rush this one higher.)
+
+If you can't read the characters yet, chant along with the videos here:
+🔗 https://xinlingfamen.info/jingwen/
+
+One question so I can guide you more accurately:
+
+**Have you recited sutras before, or is this completely new to you?**
+
+If you've already been reciting for a while, I can also explain Little Houses — that's the deeper tool Master Lu taught for this kind of situation 🙏
+
+Reference: Metaphysics Q&A Vol. 2 & 3; Introduction to the Guan Yin Citta Dharma Door
+
+=== timing / cost · model=claude-opus-5 ===
+  CHIP1-zh 我最近失眠很严重，念什么经好？                 turns=1 wall/turn=32823ms calls=2 effort=low out_tokens=1486 cost=$0.151
+  CHIP2-zh 和家人一直吵架，我可以先学什么？                turns=1 wall/turn=50742ms calls=3 effort=low out_tokens=2362 cost=$0.215
+  CHIP3-zh 工作一直不顺，是不是有业障？                  turns=1 wall/turn=33459ms calls=2 effort=medium out_tokens=1345 cost=$0.117
+  CHIP4-zh 孩子不听话，我应该如何面对自己的情绪              turns=1 wall/turn=40282ms calls=2 effort=medium out_tokens=2309 cost=$0.141
+  CHIP5-zh 刚开始接触心灵法门，第一步应该做什么              turns=1 wall/turn=15806ms calls=1 effort=low out_tokens=548 cost=$0.062
+  CHIP6-zh 家人生病了，我应该为他念什么经？                turns=1 wall/turn=36899ms calls=2 effort=low out_tokens=1874 cost=$0.162
+  CHIP1-en I have severe inso              turns=1 wall/turn=31305ms calls=2 effort=low out_tokens=2005 cost=$0.195
+  CHIP2-en I keep arguing wit              turns=1 wall/turn=43499ms calls=2 effort=medium out_tokens=2777 cost=$0.194
+  CHIP3-en Work has been goin              turns=1 wall/turn=21258ms calls=1 effort=medium out_tokens=1413 cost=$0.097
+  CHIP4-en My child is rebell              turns=1 wall/turn=20626ms calls=1 effort=medium out_tokens=1658 cost=$0.102
+  CHIP5-en I am new to 心灵法门,               turns=1 wall/turn=12778ms calls=1 effort=low out_tokens=645 cost=$0.083
+  CHIP6-en My family member i              turns=1 wall/turn=15821ms calls=1 effort=low out_tokens=1058 cost=$0.093
+turn wall p50=32823ms p90=43499ms avg=29608ms · first_text avg=5715ms · calls/turn=1.67 · cache hits=20/20
+cost: total=$1.611 · per turn=$0.1343 (12 turns)
+checks: 59/60 passed · cases: 11/12 fully green
+
+1 CHECKS FAILED
+EXIT=1

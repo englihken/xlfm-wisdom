@@ -1,0 +1,26 @@
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+[id] tiers: 7794 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · line count 136 ≠ 324 (attempt 1) — retrying
+  · line count 294 ≠ 324 — splitting 324 lines at 157
+  · line count 166 ≠ 167 (attempt 1) — retrying
+  · line count 166 ≠ 167 — splitting 167 lines at 72
+  · line count 71 ≠ 72 (attempt 1) — retrying
+  · line count 71 ≠ 72 — splitting 72 lines at 36
+  · line count 35 ≠ 36 (attempt 1) — retrying
+  · line count 35 ≠ 36 — splitting 36 lines at 17
+  · line count 16 ≠ 17 (attempt 1) — retrying
+  · line count 16 ≠ 17 — splitting 17 lines at 6
+  · line count 5 ≠ 6 (attempt 1) — retrying
+Error: line count mismatch after retries: got 5, want 6
+    at translateChunk (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:83:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async translateChunk (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:79:17)
+    at async translateChunk (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:79:17)
+    at async translateChunk (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:79:17)
+    at async translateChunk (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:79:17)
+    at async translateChunk (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:80:17)
+    at async <anonymous> (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:111:28)
+    at async Promise.all (index 0)
+    at async main (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:107:7)
+EXIT=1

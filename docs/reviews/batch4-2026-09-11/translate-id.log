@@ -1,0 +1,18 @@
+◇ injected env (6) from .env.local // tip: ⌘ override existing { override: true }
+[id] core: 8938 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · line count 262 ≠ 282 (attempt 1) — retrying
+  · line count 275 ≠ 282 (attempt 2) — retrying
+  · chunk 1/2 done
+  ✓ core in 503 s · lines 388/388
+[id] tiers: 7794 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · line count 256 ≠ 324 (attempt 1) — retrying
+  · line count 160 ≠ 324 (attempt 2) — retrying
+Error: line count mismatch after 3 attempts: got 323, want 324
+    at translateChunk (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:72:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async <anonymous> (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:100:28)
+    at async Promise.all (index 0)
+    at async main (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\prompt-v2-translate.ts:96:7)
+EXIT=1
