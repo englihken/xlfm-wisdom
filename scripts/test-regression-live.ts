@@ -428,7 +428,8 @@ const BATCH4_CASES: Case[] = [
     lang: 'en',
     checks: [
       { name: 'names at least one sutra/mantra', ok: (r) => /(Great Compassion Mantra|Heart Sutra|大悲咒|心经|Da Bei Zhou|Xin Jing)/i.test(r) },
-      { name: 'gives a count (N times / N遍)', ok: (r) => /\b\d+\s*(times|x\b|遍)/i.test(r) },
+      // 「× 3」 / 「x3」 / 「3 times」 / 「3遍」 all count (Sonnet writes 「Great Compassion Mantra × 3」).
+      { name: 'gives a count (N times / × N / N遍)', ok: (r) => /\b\d+\s*(times|x\b|遍)|[×x]\s*\d+/i.test(r) },
       { name: 'AND asks the triage question in the same reply', ok: (r) => /[^.!?\n]*(before|new to|experience|practi[sc]ed|chanted|recited|familiar)[^.!?\n]*\?/i.test(r) },
       { name: 'no generic 「I dedicate all merits」 closing', ok: (r) => !/dedicate all (my )?merits? to all sentient beings/i.test(r) },
     ],
