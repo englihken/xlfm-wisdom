@@ -10,7 +10,7 @@
 | 按档覆盖 | `REPLY_MODEL_HIGH`（缺省＝`REPLY_MODEL`），`replyModelFor(effort)`：high 档（组织审定数字／因果警示／危机关键词）单独指定模型。per-message effort 形式改成按模型判断（只有 Opus 5 走 beta），所以 high 指回 Opus 时它仍共用一份缓存前缀 |
 | 引用日期软检查 | `citationsMissingDate()`：回复里凡一行引了 解答来信疑惑／玄艺问答／玄艺综述／玄学问答／精彩节目摘录 却没有「开示于…」「YYYY年M月D日」「节目日期」→ 首稿之后带〔引用格式提醒〕重生成一次，再进护栏；最终文本仍缺 → 放行、不 strip、不加尾巴，打 `citation_no_date`：`messages.flags`（migration 048，已 apply）+ `audit_log` action `care.citation_no_date` + 日志 `[care-pipeline] … citation_no_date after retry` |
 | 回归脚本 | 案例头显示 `flags=`；R19 checker 认「× N」（上一批已改） |
-| **brief 之外**：家暴走危机底线 | `crisis-keywords.ts` 加家暴词（中／英／马来），理由见 §2 第 1 点；效果：快速通道热线先出、effort=high、`crisis_flag=true` |
+| **brief 之外**：家暴走危机底线 | `crisis-keywords.ts` 加家暴词（中／英／马来），理由见 §2 第 1 点；效果：快速通道热线先出、effort=high、`crisis_flag=true`。**追加（架构师）**：裸的「被打」「动手打」「hit me」改成具体形（被他打／被老公打／被打了／被打得…、动手打我／动手打人、he hit me／husband hit me），反例（被打扰／被打断／被打击／动手打扫／打我电话／打麻将／打坐／hit me up）进 `scripts/test-crisis-keywords.ts`：43/43 |
 
 ## 2. Sonnet 收口全套（切换后的默认配置：Sonnet 4.6 + v2 overlay + 引用日期软检查）
 
