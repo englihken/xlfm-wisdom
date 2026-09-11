@@ -1,0 +1,96 @@
+◇ injected env (6) from .env.local // tip: ⌘ override existing { override: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · prompt=v2 · 1 case(s) · concurrency=1
+Running: R18
+[vector-search] timing parallel=3 wall_ms=3263 per_query={"homework_入门手册":2726,"homework_175问":2777,"general":3262}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R18 violation=quote attempt=1 reason=quote_not_verbatim text="比方说，夫妻吵架，先不要去想自己老公不好的地方，停止念头，就针对现在不开心的事情想想算了，如果你越往前想，你会把你老公今天跟你吵架之前很多不开心的（事情都想起来）"
+[verbatim-guard] conversation=regression-test:R18 violation=number attempt=1 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:R18 violation=number attempt=2 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R18 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R18 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"quote","text":"比方说，夫妻吵架，先不要去想自己老公不好的地方，停止念头，就针对现在不开心的事情想想算了，如果你越往前想，你会把你老公今天跟你吵架之前很多不开心的（事情都想起来）","reason":"quote_not_verbatim"},{"attempt":1,"type":"number","text":"21遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"7遍","reason":"number_not_in_sources"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张"],"replyTokens":["3遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[vector-search] timing parallel=3 wall_ms=2273 per_query={"homework_入门手册":1980,"homework_175问":2010,"general":2273}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R18 violation=number attempt=1 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:R18 scrubbed contradictory refusal: ["（遍数这一项我这边资料没有写明具体数字，可以问就近共修会义工，他们会告诉你）"]
+[verbatim-guard] conversation=regression-test:R18 decision={"outcome":"passed_after_retry","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"21遍","reason":"number_not_in_sources"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张"],"replyTokens":["3遍","1遍"],"scrubbed":["（遍数这一项我这边资料没有写明具体数字，可以问就近共修会义工，他们会告诉你）"],"refusalWithCountsAvailable":false}
+
+═══ R18 关系类×分档 (吵架 → 没有念过) — guard: passed_after_retry ═══
+访客：和家人一直吵架，我可以先学什么？
+AI：家里天天吵，真的很累人 🙏
+
+先从最基础的两部经开始，很简单：
+
+📿 《大悲咒》每天 3 遍
+念之前说："请大慈大悲观世音菩萨保佑我XXX（自己名字）身体健康、平平安安"
+
+📿 《心经》每天 3 遍
+念之前说："请大慈大悲观世音菩萨保佑我XXX（自己名字）开智慧，头脑清醒冷静，去除烦恼"
+（晚上 10 点以后、大…
+访客：没有念过
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,core_wisdom,teaching,radio_teaching,fahui_qa
+Last-turn retrieval (ALL 10): 心灵法门入门手册 p23 | 心灵法门入门手册 p36 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 白话佛法（第十册） p226 | 白话佛法（第九册） p74 | 玄艺综述 | 白话佛法（第九册） p140 | 白话佛法广播讲座（第一册） p141 | 法会弟子提问
+  ✗ contains 《大悲咒》《心经》《解结咒》 each with a count
+  ✓ 《礼佛大忏悔文》 NOT given as this round's 功课 (no 📿 line / no count)
+  ✓ 四段结构: ≥2 plain paragraphs before the 📿 block, block present, closing after it
+  ✓ contains 祈求词
+  ✓ no 查不到相关原文 / 没有写明具体数字
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏
+
+先这样，很简单：
+
+📿 《大悲咒》每天 3 遍
+念之前说："请大慈大悲观世音菩萨保佑我XXX（自己名字）身体健康、平平安安"
+
+📿 《心经》每天 3 遍
+念之前说："请大慈大悲观世音菩萨保佑我XXX（自己名字）开智慧，头脑清醒冷静，去除烦恼"
+（晚上 10 点以后、大雨雷电交加时不念《心经》）
+
+📿 《解结咒》—— 这是化解冤结的，专门对你和家人的情况
+念之前说："请大慈大悲观世音菩萨化解我XXX与YYY（家人名字）的恶缘"
+
+经文不会念完全没关系，有教念视频，跟着念就行：
+🔗 https://xinlingfamen.info/jingwen/
+
+注意几点：
+- 每念一遍要念经文全名——《大悲咒》念《千手千眼无碍大悲心陀罗尼》，《心经》念《般若波罗蜜多心经》
+- 祈求的事情不要超过三件，太多就贪心了
+- 每天坚持比念多重要。先这两部念顺了，我们再加《礼佛大忏悔文》
+
+台长开示里讲过，家人不同意你学佛、或者和家人有冤结，先念《解结咒》化解，再念《心经》给对方，求菩萨让他开智慧。
+
+想有人陪你一起念，可以联系就近的共修会：
+🔗 https://xlfm.my/contact-us
+
+先念起来 🙏
+
+参考：《心灵法门入门手册》、《法会弟子提问》
+
+=== timing / cost · model=claude-opus-5 ===
+  R18 关系类×分档 (吵架 → 没有念过)                   turns=2 wall/turn=25203ms calls=4 effort=low out_tokens=2198 cost=$0.265
+turn wall p50=25203ms p90=25203ms avg=25203ms · first_text avg=2032ms · calls/turn=2.00 · cache hits=4/4
+cost: total=$0.265 · per turn=$0.1326 (2 turns)
+checks: 5/6 passed · cases: 0/1 fully green
+
+1 CHECKS FAILED
+EXIT=1

@@ -1,0 +1,155 @@
+◇ injected env (6) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 41 case(s) · concurrency=4
+[vector-search] timing parallel=4 wall_ms=3202 per_query={"homework_175问":2993,"canonical":3026,"general":3033,"homework_入门手册":3201}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=3313 per_query={"canonical":2991,"general":3180,"homework_入门手册":3199,"homework_175问":3313}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=3454 per_query={"canonical":3033,"homework_入门手册":3182,"homework_175问":3196,"general":3454}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=3468 per_query={"homework_175问":3068,"homework_入门手册":3148,"canonical":3185,"general":3468}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1c violation=quote attempt=1 reason=quote_not_verbatim text="【地藏王菩萨圣诞日特例】给亡人以及自己要经者的小房子，分别不超过 **78张**；给其他人的小房子可以单独计算。"
+[verbatim-guard] conversation=regression-test:R1b violation=quote attempt=1 reason=quote_not_verbatim text="**观世音菩萨圣诞 — 49遍《礼佛大忏悔文》**"
+[vector-search] timing parallel=1 wall_ms=2179 per_query={"general":2179}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'children', 'practice_method' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=1948 per_query={"general":1948}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1c decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"【地藏王菩萨圣诞日特例】给亡人以及自己要经者的小房子，分别不超过 **78张**；给其他人的小房子可以单独计算。","reason":"quote_not_verbatim"}],"chunkTokens":["9遍","12遍","81遍","27遍","21遍","49张","69张","78张","21张","87遍","49遍","79遍","3遍","84遍","7遍","1遍","108遍","3张"],"replyTokens":["79遍","78张","49张"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=4 wall_ms=1825 per_query={"general":373,"canonical":420,"homework_175问":1743,"homework_入门手册":1825}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1b decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"**观世音菩萨圣诞 — 49遍《礼佛大忏悔文》**","reason":"quote_not_verbatim"}],"chunkTokens":["87遍","49遍","79遍","9遍","12遍","81遍","27遍","21遍","49张","69张","78张","21张","3遍","84遍","7遍","1遍","108遍","3张"],"replyTokens":["49遍","49张","69张","21遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[verbatim-guard] conversation=regression-test:R2 violation=quote attempt=1 reason=quote_not_verbatim text="\"请大慈大悲观世音菩萨帮助我（孩子名字）与（对方名字）化解恶缘\""
+[verbatim-guard] conversation=regression-test:R2 violation=quote attempt=1 reason=quote_not_verbatim text="\"请大慈大悲观世音菩萨帮助我（孩子名字）化解冤结\""
+[vector-search] timing parallel=2 wall_ms=2117 per_query={"canonical":1768,"general":2117}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'canonical_ritual_numbers' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=2105 per_query={"health":1757,"general":2105}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 15,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=2212 per_query={"general":2212}
+[vector-search] {
+  userLang: 'en',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: '0.813',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R2 decision={"outcome":"passed_after_retry","canonicalPresent":false,"violations":[{"attempt":1,"type":"quote","text":"\"请大慈大悲观世音菩萨帮助我（孩子名字）与（对方名字）化解恶缘\"","reason":"quote_not_verbatim"},{"attempt":1,"type":"quote","text":"\"请大慈大悲观世音菩萨帮助我（孩子名字）化解冤结\"","reason":"quote_not_verbatim"}],"chunkTokens":["21遍","7张","49遍","27遍","78遍","17遍","1000张","3遍","500遍","120张","21张","30张","13张","49张","1遍","7遍","100遍","4张","5遍","2张","3张"],"replyTokens":["27遍","49遍","11遍","17遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=4 wall_ms=1851 per_query={"general":397,"homework_入门手册":1832,"canonical":1844,"homework_175问":1851}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}

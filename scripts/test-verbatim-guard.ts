@@ -2,6 +2,7 @@
 // Unit tests for the anti-fabrication guard (regression brief R3).
 //   npx tsx scripts/test-verbatim-guard.ts
 
+import { extractNumberPairs } from '../src/lib/verbatim-guard-pairs';
 import {
   checkDraft,
   stripViolations,
@@ -401,6 +402,31 @@ console.log('— F01 negatives (batch 2 §1): (subject, count) pairs + sentence 
   // Full-width and 張 variants still tokenize into pairs.
   const n13 = checkDraft('建议念《礼佛大忏悔文》４９遍。', ['【疾病百科】《往生咒》每天49遍。'], []);
   assert('fullwidth ４９遍 still checked as a 礼佛 pair', wrongSubject(n13, '礼佛', '49遍'), n13);
+
+  // N9 (batch 4 addendum, R18 root cause): enumerations with ONE trailing unit
+  // — 《入门手册》 p29 「《解结咒》21、27、49、78 或 108 遍」 — must yield a pair
+  // per number, not just (解结咒, 108遍).
+
+  const e1 = extractNumberPairs('《解结咒》21、27、49、78 或 108 遍');
+  assert('N9 「《解结咒》21、27、49、78 或 108 遍」 → five 解结咒 pairs', e1.length === 5 && ['21遍', '27遍', '49遍', '78遍', '108遍'].every((t) => e1.some((p) => p.subject === '解结咒' && p.token === t)), e1);
+  const e2 = extractNumberPairs('《心经》7、9、11、21、27 或 49 遍分别给自己和对方');
+  assert('N9 「《心经》7、9、11、21、27 或 49 遍」 → six pairs, all 心经', e2.length === 6 && e2.every((p) => p.subject === '心经'), e2);
+  const e3 = extractNumberPairs('念 21 张小房子、7 遍心经');
+  assert('N9 「念 21 张小房子、7 遍心经」 stays two separate pairs', e3.length === 2 && e3.some((p) => p.token === '21张' && p.subject === '小房子') && e3.some((p) => p.token === '7遍' && p.subject === '心经'), e3);
+  const e4 = extractNumberPairs('《解结咒》二十一、二十七或四十九遍');
+  assert('N9 Chinese-numeral enumeration → three 解结咒 pairs', e4.length === 3 && ['21遍', '27遍', '49遍'].every((t) => e4.some((p) => p.subject === '解结咒' && p.token === t)), e4);
+  const MANUAL29 = '【心灵法门入门手册】求化解冤结：《解结咒》21、27、49、78 或 108 遍。';
+  const n9e = checkDraft('📿 《解结咒》每天 21 遍', [MANUAL29], []);
+  assert('N9 draft 「《解结咒》每天 21 遍」 is grounded by the enumeration source', n9e.length === 0, n9e);
+  const n9f = checkDraft('📿 《解结咒》每天 33 遍', [MANUAL29], []);
+  assert('N9 …but 33遍 (not in the enumeration) is still rejected', wrongSubject(n9f, '解结咒', '33遍'), n9f);
+  // The REAL p29 chunk shape (PDF line breaks inside the enumeration).
+  const P29 = '②求化解冤结  求大慈大悲观世音菩萨化解我\n\nXXX\n\n与\n\nYYY\n\n的恶缘。  念 《大悲咒》 7\n\n遍、 《心经》 7 、 9 、 11 、 21 、 27\n\n或\n\n49  遍分别给自己和对方、礼佛大忏悔文\n\n3\n\n遍、 《解结咒》 21 、  27 、 49 、 78\n\n或\n\n108\n\n遍， 还要配合小房子 （给自己的要经者）  每周\n\n3\n\n张以上';
+  const e5 = extractNumberPairs(P29);
+  assert('N9 PDF-broken p29 → (解结咒, 21/27/49/78/108遍)', ['21遍', '27遍', '49遍', '78遍', '108遍'].every((t) => e5.some((p) => p.subject === '解结咒' && p.token === t)), e5);
+  assert('N9 PDF-broken p29 → (心经, 7…49遍) and (大悲咒, 7遍)', e5.some((p) => p.subject === '心经' && p.token === '49遍') && e5.some((p) => p.subject === '大悲咒' && p.token === '7遍'), e5);
+  const n9g = checkDraft('📿 《解结咒》每天 21 遍', [P29], []);
+  assert('N9 draft 「《解结咒》每天 21 遍」 grounded by the PDF-broken p29 chunk', n9g.length === 0, n9g);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
