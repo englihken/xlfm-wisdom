@@ -1,0 +1,29 @@
+warming 18 chips against https://xlfm-wisdom.vercel.app · concurrency 3
+✓ zh family_conflict      24.2s 2423 bytes · stages retrieving>drafting>verifying>verifying
+✓ zh work_karma           37.2s 4027 bytes · stages retrieving>drafting>verifying>verifying
+✓ zh insomnia             38.3s 3122 bytes · stages retrieving>drafting>verifying>verifying
+✓ zh child_emotions       38.3s 3663 bytes · stages retrieving>drafting>verifying>verifying
+✓ zh beginner_first_step  36.6s 2580 bytes · stages retrieving>drafting>verifying>verifying
+✓ zh family_illness       36.0s 2858 bytes · stages retrieving>drafting>verifying>verifying
+✓ en insomnia             18.3s 3044 bytes · stages retrieving>drafting>verifying
+✓ en family_conflict      15.5s 1741 bytes · stages retrieving>drafting>verifying
+✓ en child_emotions       24.9s 3225 bytes · stages retrieving>drafting>verifying
+✓ en beginner_first_step  17.3s 3158 bytes · stages retrieving>drafting>verifying
+✓ en work_karma           40.3s 2015 bytes · stages retrieving>drafting>verifying>verifying
+✓ en family_illness       17.3s 2970 bytes · stages retrieving>drafting>verifying
+✓ id insomnia             23.5s 3149 bytes · stages retrieving>drafting>verifying
+✓ id family_conflict      21.4s 3084 bytes · stages retrieving>drafting>verifying
+✓ id beginner_first_step  18.5s 2771 bytes · stages retrieving>drafting>verifying
+✓ id work_karma           35.0s 3846 bytes · stages retrieving>drafting>verifying
+✓ id child_emotions       41.3s 3484 bytes · stages retrieving>drafting>verifying
+✓ id family_illness       49.5s 3432 bytes · stages retrieving>drafting>verifying>verifying
+done: 18/18 ok
+EXIT=0
+warming 2 chips against https://xlfm-wisdom.vercel.app · concurrency 2
+✓ zh insomnia             12.3s 2068 bytes · stages retrieving>drafting>verifying
+✓ zh family_conflict      28.5s 2741 bytes · stages retrieving>drafting>verifying>verifying
+done: 2/2 ok
+✓ zh family_conflict      25.4s 2331 bytes · stages retrieving>drafting>verifying>verifying
+✓ zh family_conflict      28.7s 2763 bytes · stages retrieving>drafting>verifying>verifying
+✓ zh family_conflict      25.6s 2119 bytes · stages retrieving>drafting>verifying>verifying
+✓ zh family_conflict      0.5s 1989 bytes · stages retrieving
