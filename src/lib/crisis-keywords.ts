@@ -23,10 +23,14 @@ export const CRISIS_KEYWORDS: readonly string[] = [
   // the 功课 block before the safety resources in 2 of 3 runs. The crisis
   // floor makes safety-first structural — the fast lane prints the hotlines
   // before any model text — and lifts the turn to effort=high. Phrases are
-  // kept specific (「打我电话」 must not fire).
-  '家暴', '家庭暴力', '施暴', '被打', '动手打', '他打我', '老公打我', '丈夫打我', '喝酒就打', '打得我',
-  'domestic violence', 'beats me', 'hits me', 'hit me',
-  'kdrt', 'dipukul suami', 'pukul saya', 'memukul saya',
+  // kept specific: bare 「被打」 would fire on 被打扰／被打断／被打击, bare
+  // 「动手打」 on 动手打扫, bare "hit me" on "hit me up" — those are the
+  // counter-examples in scripts/test-crisis-keywords.ts.
+  '家暴', '家庭暴力', '施暴',
+  '被他打', '被老公打', '被丈夫打', '被老婆打', '被家人打', '被父母打', '被打了', '被打得', '被打伤', '被打到',
+  '动手打我', '动手打人', '他打我', '她打我', '老公打我', '丈夫打我', '老婆打我', '喝酒就打', '打得我',
+  'domestic violence', 'beats me', 'hits me', 'he hit me', 'she hit me', 'husband hit me', 'wife hit me',
+  'kdrt', 'dipukul suami', 'dipukul isteri', 'pukul saya', 'memukul saya',
 ];
 
 function normalize(s: string): string {
