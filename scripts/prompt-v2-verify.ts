@@ -98,6 +98,24 @@ const NEW_LINES: { text: string; c: string; why: string }[] = [
   { text: '| 关系类 | 四段结构，功课块按分档 |', c: 'C7', why: '长度表' },
   // C8 结构（章节标题只是搬家）
   { text: '### 📜 2010 年之前案例里的经文组合（era 规则）', c: 'C8', why: 'LETTERS 第 6 条搬到 xiaofangzi 模块时的小标题' },
+  // ── 增补（docs/briefs/2026-09-11-batch-4-addendum.md）──
+  { text: '**"老公出轨了，我该怎么办？"（访客已经说过没念过经——「没念过」档的写法）**', c: 'addendum-A6', why: 'L1870 第二个示例改写成「没念过」档' },
+  { text: '> 📿 《大悲咒》每天 3 遍', c: 'addendum-A6', why: '没念过档功课块（祈求词行照 v1 L1788/1791/1799 原文，自动追溯）' },
+  { text: '> 📿 《心经》每天 3 遍（晚上 10 点后不念）', c: 'addendum-A6', why: '没念过档功课块' },
+  { text: '> 📿 《解结咒》每天 21 遍', c: 'addendum-A6', why: '没念过档功课块' },
+  { text: '（下面这个完整示例是「已在修」档的第 4 段写法；「常见场景」的第一例是「没念过」档的写法；「念顺了」档按上面的分档替换第 4 段）', c: 'addendum-A6', why: 'C2 标注句改为两档各一例' },
+  { text: '- **初学者** → 首轮功课从《大悲咒》《心经》入手；《礼佛大忏悔文》作为第三支柱在念顺后加入', c: 'addendum-B1', why: 'L77' },
+  { text: '- 初学者首轮功课从《大悲咒》《心经》入手；礼佛作为第三支柱在念顺后加入', c: 'addendum-B1', why: 'L180' },
+  { text: '- **标准入门功课（已在修／念顺档）：初学者只教三大支柱**（大悲咒 + 心经 + 礼佛大忏悔文 + 日常 21 遍往生咒）', c: 'addendum-B1', why: 'L636 前加标注' },
+  { text: '**4. 三大支柱（介绍时三部都要提到；首轮功课可以只开两部）：**', c: 'addendum-B1', why: 'L1311' },
+  { text: '- **不开礼佛** (介绍时可以点名；太难,会吓跑)', c: 'addendum-B1', why: 'L2123' },
+  { text: '5. 「提」和「开」是两回事：介绍三大支柱时三部都要点名（一句话即可：《礼佛大忏悔文》是第三支柱，大悲咒、心经念顺之后加入，遍数与时间按《佛学问答》161／组织审定）。**Tier 0 首轮开功课只开大悲咒 3 + 心经 3**；关系类加《解结咒》21（见关系类模块的分档）。', c: 'addendum-B1', why: '架构师给的那句话，放在入门轮硬性规则第 5 条' },
+  { text: "     comfortable with these two — there's no fixed timeline — you can add the Repentance Mantra.", c: 'addendum-B2', why: 'L2697 删「(1-2 weeks)」' },
+  { text: '- 回复语言＝界面语言（zh/en/id 由拼装决定）', c: 'addendum-B3', why: 'L921–923 语言切换改写' },
+  { text: '- 用户偶尔夹别的语言，可用那种语言问候一句，然后回到界面语言', c: 'addendum-B3', why: 'L921–923 语言切换改写' },
+  { text: '**用户："我老公外遇，我想离婚（我平时有念经）"**', c: 'addendum-B4', why: 'L1116 示例用户句加「（我平时有念经）」' },
+  { text: '2. **首轮：同一条回复里给暂定功课，并问有没有念过经** (决定 Tier)', c: 'addendum-B5', why: 'L2539' },
+  { text: '- 家暴走危机四步：首轮只给安全资源＋一句菩萨圣号；功课等对方安全后、主动再问时再谈', c: 'addendum-B6', why: '第十部分家暴条目加一句' },
 ];
 const newIndex = new Map(NEW_LINES.map((n) => [norm(n.text), n]));
 
@@ -131,6 +149,19 @@ const DELETED: { from: number; to: number; c: string; why: string }[] = [
   { from: 931, to: 935, c: 'C7', why: '「结构（回答长度控制）」四行（进表；L931 标题与 L935「不要每次都写长文」保留）' },
   { from: 1634, to: 1634, c: 'C2', why: '「关系类案件 MANDATORY 回应模板（强制遵守）」标题（改名）' },
   { from: 1356, to: 1356, c: 'C1', why: '「小房子念诵指南 —— 在用户熟悉经文后才教（通常两周后）」（保留书名）' },
+  // ── 增补 ──
+  { from: 77, to: 77, c: 'addendum-B1', why: '「不要一开始就教礼佛」旧文' },
+  { from: 180, to: 180, c: 'addendum-B1', why: '「初学者先不要念」旧文' },
+  { from: 636, to: 636, c: 'addendum-B1', why: '加标注后的旧行' },
+  { from: 921, to: 923, c: 'addendum-B3', why: '语言切换三行（改为回复语言＝界面语言）' },
+  { from: 1116, to: 1116, c: 'addendum-B4', why: '示例用户句（加「我平时有念经」）' },
+  { from: 1311, to: 1311, c: 'addendum-B1', why: '「必须全部提到，不能只提两部」' },
+  { from: 1870, to: 1870, c: 'addendum-A6', why: '第二个示例标题（改写为没念过档）' },
+  { from: 1877, to: 1880, c: 'addendum-A6', why: '第二个示例的四部功课块（改为 3+3+解结咒 21，礼佛不在本轮）' },
+  { from: 1884, to: 1884, c: 'addendum-A6', why: '「你之前有念过经吗？」——访客已说过没念过，示例里不再问（同文另有两处保留）' },
+  { from: 2123, to: 2123, c: 'addendum-B1', why: '「不提礼佛」→「不开礼佛」' },
+  { from: 2539, to: 2539, c: 'addendum-B5', why: '「先问有没有念过经」' },
+  { from: 2697, to: 2697, c: 'addendum-B2', why: '「(1-2 weeks)」' },
   // 结构：分隔线、第二十五部分标题（内容已拆入各模块）、EN/ID 包装（C8 assemble）
   { from: 2656, to: 2656, c: '结构', why: '第二十五部分标题（其内容按 C8 拆入 core/tiers/practice/sources）' },
   { from: 2817, to: 2819, c: '结构', why: '结尾分隔线「（结束）」' },

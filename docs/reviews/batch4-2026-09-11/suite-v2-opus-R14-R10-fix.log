@@ -1,0 +1,129 @@
+◇ injected env (6) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · prompt=v2 · 2 case(s) · concurrency=2
+Running: R10, R14
+[vector-search] timing parallel=4 wall_ms=3472 per_query={"homework_175问":3172,"health":3175,"homework_入门手册":3181,"general":3471}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health', 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 19,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=3574 per_query={"homework_入门手册":2998,"homework_175问":3180,"general":3574}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=2324 per_query={"homework_175问":1998,"homework_入门手册":2209,"general":2324}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+
+═══ R10 失眠 keeps grounded 功课 遍数 — guard: clean ═══
+Q: 我最近失眠很严重，念什么经好？
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,case_studies,disease_encyclopedia
+  ✓ retrieval carries N遍 counts
+  ✓ reply contains a N遍 prescription
+  ✓ reply contains a 祈求词
+  ✓ NO 查不到相关原文/不敢乱给 tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+失眠的时候人特别累，心也静不下来，我理解 🙏
+
+先问你一句：**你之前有念过经吗？**
+
+在你回答之前，可以先这样开始——
+
+📿 **《大悲咒》每天 3 遍**
+念之前祈求："请大慈大悲观世音菩萨保佑我 XXX（自己名字）身体健康，增强功力"
+
+📿 **《心经》每天 3 遍**
+念之前祈求："请大慈大悲观世音菩萨保佑我 XXX 开智慧，头脑清醒冷静，去除烦恼"
+⚠️ 晚上 10 点以后不念
+
+📿 **《往生咒》21 遍**
+念之前祈求："请大慈大悲观世音菩萨保佑我 XXX，帮助我超度因我而死去的小灵性"
+⚠️ 晚上 10 点以后不念
+
+睡眠不好，台长在开示里多次提到多念《心经》和《往生咒》。《心经》让脑子静下来，《往生咒》超度小灵性。
+
+经文不会念没关系，有教念视频可以跟着念：
+🔗 https://xinlingfamen.info/jingwen/
+
+念顺了我们再加《礼佛大忏悔文》。
+
+你告诉我有没有念过经，我再给你更合适的遍数 🙏
+
+═══ R14 入门轮 简单直接 (吵架 → 没有念过) — guard: clean ═══
+访客：和家人一直吵架，我可以先学什么？
+AI：家人天天吵架，住在一个屋子里躲都躲不开，真的很累 🙏
+
+师父在《白话佛法（第十册）》里说过：
+
+> 比方说，夫妻吵架，先不要去想自己老公不好的地方，停止念头，就针对现在不开心的事情想想算了，如果你越往前想，你会把你老公今天跟你吵架之前很多不开心的……
+
+意思是：念头一往回翻旧账，火就越烧越大。先把念头停住，这是第一步…
+访客：没有念过
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,core_wisdom,teaching,radio_teaching,fahui_qa
+Last-turn retrieval (ALL 10): 心灵法门入门手册 p23 | 心灵法门入门手册 p36 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 白话佛法（第十册） p226 | 白话佛法（第九册） p74 | 玄艺综述 | 白话佛法（第九册） p140 | 白话佛法广播讲座（第一册） p141 | 法会弟子提问
+  ✓ contains 《大悲咒》《心经》《解结咒》
+  ✓ at least one N遍
+  ✓ no 「资料里没有写明」 / 「没有写明具体数字」
+  ✓ xlfm.my/chant not a substitute for counts (link ok only with counts)
+  ✓ body (minus 功课 block) ≤ 400 chars
+  ✓ ≤1 开示 quote, and after the 功课
+  ✓ contains 祈求词
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏
+
+先这样，很简单，每天三样：
+
+📿 《大悲咒》每天 3 遍
+念之前说："请大慈大悲观世音菩萨保佑我XXX（自己名字）身体健康，增强功力"
+
+📿 《心经》每天 3 遍
+念之前说："请大慈大悲观世音菩萨保佑我XXX（自己名字）开智慧，头脑清醒冷静，去除烦恼"
+（晚上 10 点以后不念）
+
+📿 《解结咒》每天 21 遍
+念之前说："请大慈大悲观世音菩萨帮助我XXX（自己名字）与YYY（家人名字）化解恶缘"
+
+几个小提醒：
+- 经文不会念没关系，跟着教念视频念就行：🔗 https://xinlingfamen.info/jingwen/
+- 每念一遍要念全名：《大悲咒》念《千手千眼无碍大悲心陀罗尼》，《心经》念《般若波罗蜜多心经》
+- 祈求词要报出自己的名字，帮家人的话也要报出对方名字
+- 每天念比念多重要，先把习惯养起来
+
+这三部念顺了，我们再加《礼佛大忏悔文》，那是第三根支柱，忏悔消业用的，到时候从 1 遍开始慢慢来，不急。
+
+先念着，吵架的时候提醒自己一句：念头停住，不翻旧账 🙏
+
+有什么不懂的随时问我。
+
+=== timing / cost · model=claude-opus-5 ===
+  R10 失眠 keeps grounded 功课 遍数              turns=1 wall/turn=13205ms calls=1 effort=low out_tokens=449 cost=$0.067
+  R14 入门轮 简单直接 (吵架 → 没有念过)                 turns=2 wall/turn=13783ms calls=2 effort=low out_tokens=1048 cost=$0.128
+turn wall p50=13782.5ms p90=13782.5ms avg=13494ms · first_text avg=1669ms · calls/turn=1.00 · cache hits=3/3
+cost: total=$0.195 · per turn=$0.0651 (3 turns)
+checks: 13/13 passed · cases: 2/2 fully green
+
+ALL PASS
+EXIT=0

@@ -90,20 +90,35 @@ function cnToInt(s: string): number {
   return total + num;
 }
 
+// Batch 4 addendum (R18): the corpus also writes ENUMERATIONS with one unit at
+// the end — 《入门手册》 p29 「《解结咒》21、27、49、78 或 108 遍」 — which the old
+// regex reduced to a single (解结咒, 108遍) pair, so a grounded 「21 遍」 was
+// judged number_not_in_sources. Every number in an enumeration now emits its
+// own token (same start/end span). Ranges (21-49遍) are unchanged. A
+// 「、」-list is only an enumeration when the separators are list separators
+// (、 ， , /) or 或 — 「念 21 张小房子、7 遍心经」 has its unit right after 21, so
+// it never joins the next number.
+const ENUM_SEP = '[、，,/]';
 function tokensAt(norm: string): TokenAt[] {
   const out: TokenAt[] = [];
-  const re = /(\d+)(?:[-–—~～至到](\d+))?(遍|张)/g;
+  const re = new RegExp(`(\\d+)((?:\\s*${ENUM_SEP}\\s*\\d+)*)(?:\\s*或\\s*(\\d+))?(?:[-–—~～至到](\\d+))?(遍|张)`, 'g');
   let m: RegExpExecArray | null;
   while ((m = re.exec(norm)) !== null) {
-    const unit = m[3] as '遍' | '张';
-    out.push({ token: m[1] + unit, start: m.index, end: m.index + m[0].length, unit });
-    if (m[2]) out.push({ token: m[2] + unit, start: m.index, end: m.index + m[0].length, unit });
+    const unit = m[5] as '遍' | '张';
+    const span = { start: m.index, end: m.index + m[0].length, unit };
+    out.push({ token: m[1] + unit, ...span });
+    for (const n of m[2].match(/\d+/g) ?? []) out.push({ token: n + unit, ...span });
+    if (m[3]) out.push({ token: m[3] + unit, ...span });
+    if (m[4]) out.push({ token: m[4] + unit, ...span });
   }
-  const reCn = new RegExp(`(${CN_NUM_CLASS}+)(?:[-–—~～至到](${CN_NUM_CLASS}+))?(遍|张)`, 'g');
+  const reCn = new RegExp(`(${CN_NUM_CLASS}+)((?:\\s*${ENUM_SEP}\\s*${CN_NUM_CLASS}+)*)(?:\\s*或\\s*(${CN_NUM_CLASS}+))?(?:[-–—~～至到](${CN_NUM_CLASS}+))?(遍|张)`, 'g');
   while ((m = reCn.exec(norm)) !== null) {
-    const unit = m[3] as '遍' | '张';
-    out.push({ token: cnToInt(m[1]) + unit, start: m.index, end: m.index + m[0].length, unit });
-    if (m[2]) out.push({ token: cnToInt(m[2]) + unit, start: m.index, end: m.index + m[0].length, unit });
+    const unit = m[5] as '遍' | '张';
+    const span = { start: m.index, end: m.index + m[0].length, unit };
+    out.push({ token: cnToInt(m[1]) + unit, ...span });
+    for (const n of m[2].match(new RegExp(`${CN_NUM_CLASS}+`, 'g')) ?? []) out.push({ token: cnToInt(n) + unit, ...span });
+    if (m[3]) out.push({ token: cnToInt(m[3]) + unit, ...span });
+    if (m[4]) out.push({ token: cnToInt(m[4]) + unit, ...span });
   }
   return out.sort((a, c) => a.start - c.start);
 }
@@ -134,10 +149,29 @@ export type LocatedPair = NumberPair & {
   mood: SentenceMood;
 };
 
+// PDF-extracted chunks break a count across lines — 《入门手册》 p29 is stored as
+// 「《解结咒》 21 、 27 、 49 、 78\n\n或\n\n108\n\n遍，」 — so line-based extraction
+// never sees the unit on the same line as the numbers and no pair is formed
+// (R18 root cause #2, batch 4 addendum). Re-join a number with a following
+// separator / 或 / unit / range dash, and a separator with a following number,
+// when only whitespace and newlines lie between them.
+const NUM = `(?:\\d+|${CN_NUM_CLASS}+)`;
+const JOIN_AFTER_NUM = new RegExp(`(${NUM})[ \\t]*\\n+[ \\t]*(?=(?:或|[、，,/]|遍|张|張|[-–—~～至到]))`, 'g');
+const JOIN_BEFORE_NUM = new RegExp(`((?:或|[、，,/]|[-–—~～至到]))[ \\t]*\\n+[ \\t]*(?=${NUM})`, 'g');
+export function joinBrokenEnumerations(text: string): string {
+  let prev = '';
+  let cur = text;
+  while (cur !== prev) {
+    prev = cur;
+    cur = cur.replace(JOIN_AFTER_NUM, '$1 ').replace(JOIN_BEFORE_NUM, '$1 ');
+  }
+  return cur;
+}
+
 /** Same as extractNumberPairs, with the line / sentence / mood of every pair. */
 export function extractNumberPairsByLine(text: string): LocatedPair[] {
   const out: LocatedPair[] = [];
-  const lines = text.split('\n');
+  const lines = joinBrokenEnumerations(text).split('\n');
   let i = 0;
   while (i < lines.length) {
     if (lines[i].trim() === '') { i++; continue; }

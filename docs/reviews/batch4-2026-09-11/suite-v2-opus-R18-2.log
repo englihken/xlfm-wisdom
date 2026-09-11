@@ -1,0 +1,98 @@
+◇ injected env (6) from .env.local // tip: ⌘ enable debugging { debug: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · prompt=v2 · 1 case(s) · concurrency=1
+Running: R18
+[vector-search] timing parallel=3 wall_ms=3536 per_query={"homework_入门手册":3184,"homework_175问":3247,"general":3536}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R18 violation=number attempt=1 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:R18 violation=quote attempt=2 reason=quote_not_verbatim text="没有“我”，怎么跟人家吵架？你连“我”都没有了，跟谁吵架啊？所以，无我就没有争斗。"
+[verbatim-guard] conversation=regression-test:R18 stripped tail=none
+[verbatim-guard] conversation=regression-test:R18 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"21遍","reason":"number_not_in_sources"},{"attempt":2,"type":"quote","text":"没有“我”，怎么跟人家吵架？你连“我”都没有了，跟谁吵架啊？所以，无我就没有争斗。","reason":"quote_not_verbatim"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张"],"replyTokens":["3遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"none"}
+[vector-search] timing parallel=3 wall_ms=2560 per_query={"homework_入门手册":2222,"homework_175问":2225,"general":2560}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R18 violation=number attempt=1 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:R18 violation=number attempt=2 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:R18 violation=number attempt=2 reason=number_not_in_sources text="27遍"
+[verbatim-guard] conversation=regression-test:R18 violation=number attempt=2 reason=number_not_in_sources text="49遍"
+[verbatim-guard] conversation=regression-test:R18 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R18 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"21遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"21遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"27遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"49遍","reason":"number_not_in_sources"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张"],"replyTokens":["3遍","1遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+
+═══ R18 关系类×分档 (吵架 → 没有念过) — guard: stripped ═══
+访客：和家人一直吵架，我可以先学什么？
+AI：家里天天吵，心最累 🙏
+
+不是要你忍着，是先让自己的心稳下来——心一稳，家里的火气自然小一半。
+
+先问你一句：**你之前有念过经吗？**
+
+在你回答之前，可以先这样开始（很简单，不难）：
+
+📿 **《大悲咒》每天 3 遍**
+念之前说："请大慈大悲观世音菩萨保佑我（姓名）身体健康，增强功力"
+
+📿 **《心经》每…
+访客：没有念过
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,core_wisdom,teaching,radio_teaching,fahui_qa
+Last-turn retrieval (ALL 10): 心灵法门入门手册 p23 | 心灵法门入门手册 p36 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 白话佛法（第十册） p226 | 白话佛法（第九册） p74 | 玄艺综述 | 白话佛法（第九册） p140 | 白话佛法广播讲座（第一册） p141 | 法会弟子提问
+  ✗ contains 《大悲咒》《心经》《解结咒》 each with a count
+  ✓ 《礼佛大忏悔文》 NOT given as this round's 功课 (no 📿 line / no count)
+  ✓ 四段结构: ≥2 plain paragraphs before the 📿 block, block present, closing after it
+  ✓ contains 祈求词
+  ✓ no 查不到相关原文 / 没有写明具体数字
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏
+
+**每天这样念：**
+
+📿 **《大悲咒》3 遍**
+念之前说："请大慈大悲观世音菩萨保佑我（姓名）身体健康，增强功力"
+
+📿 **《心经》3 遍**
+念之前说："请大慈大悲观世音菩萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼"
+（晚上 10 点以后不念）
+
+念之前说："请大慈大悲观世音菩萨化解我（姓名）与（家人姓名）的恶缘"
+
+**几个小提醒：**
+- 每念一遍要念全名：《大悲咒》念《千手千眼无碍大悲心陀罗尼》，《心经》念《般若波罗蜜多心经》
+- 经文不会念没关系，跟着教念视频念：🔗 https://xinlingfamen.info/jingwen/
+- 每天坚持比念多重要。先这三部，念顺了我们再加《礼佛大忏悔文》（它是第三支柱，消业障用的，到时候从 1 遍开始）
+
+台长在开示里讲过，家人不同意、跟家人吵，先念《解结咒》化解冤结，再念《心经》给对方，求菩萨让他开智慧——情况因人而异，但方向是这样。
+
+不用说教，不用讲道理给家人听。你自己安安静静念下去，心先软，家里的气就慢慢转了 🙏
+
+想有人陪你一起念，可以联系就近的共修会：
+🌐 https://xlfm.my/contact-us
+
+参考：《心灵法门入门手册》
+
+补充说明：个别涉及遍数／张数的细节因暂未能核对到原文，已略去未写；以上写出的数字均出自检索到的官方资料。如需进一步确认，请咨询就近共修会的义工 🙏
+
+=== timing / cost · model=claude-opus-5 ===
+  R18 关系类×分档 (吵架 → 没有念过)                   turns=2 wall/turn=32076ms calls=4 effort=low out_tokens=2545 cost=$0.272
+turn wall p50=32075.5ms p90=32075.5ms avg=32076ms · first_text avg=4617ms · calls/turn=2.00 · cache hits=4/4
+cost: total=$0.272 · per turn=$0.1359 (2 turns)
+checks: 5/6 passed · cases: 0/1 fully green
+
+1 CHECKS FAILED
+EXIT=1
