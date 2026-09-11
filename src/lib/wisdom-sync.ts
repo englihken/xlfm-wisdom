@@ -99,6 +99,25 @@ export async function deleteWisdomRecord(entryId: string): Promise<void> {
   }
 }
 
+/**
+ * Does the wisdom_ record for this entry currently exist in Pinecone?
+ * (Batch 3 §3: the 智库 page shows 「已同步 Pinecone」 only when the record is
+ * really there, not merely because status='approved'.) Uses GET /vectors/fetch
+ * — the same host + API version as the writes above.
+ */
+export async function wisdomRecordExists(entryId: string): Promise<boolean> {
+  const host = await getHost();
+  const params = new URLSearchParams({ ids: wisdomRecordId(entryId), namespace: NAMESPACE });
+  const response = await fetch(`https://${host}/vectors/fetch?${params}`, {
+    headers: { 'Api-Key': process.env.PINECONE_API_KEY!, 'X-Pinecone-API-Version': '2025-01' },
+  });
+  if (!response.ok) {
+    throw new Error(`wisdom fetch failed: ${response.status} ${await response.text()}`);
+  }
+  const json = (await response.json()) as { vectors?: Record<string, unknown> };
+  return Boolean(json.vectors && wisdomRecordId(entryId) in json.vectors);
+}
+
 // ── use_count (P2 §3) ────────────────────────────────────────────────────────
 
 const WISDOM_ID_PREFIX = 'wisdom_';

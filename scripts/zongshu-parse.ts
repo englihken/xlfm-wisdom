@@ -38,6 +38,10 @@ export interface ZsChunk extends QaChunk {
   case_kind: CaseKind;
   editor_note?: string;
   original_date?: string;
+  // Batch 3 §1: pre-2010 cases predate the standardized 小房子 — historical record only.
+  era?: 'pre_xiaofangzi' | 'standard';
+  /** G book series name (通灵实例解说 / 活在新空间) for per-series reporting. */
+  subseries?: string;
 }
 
 export interface ZsPostParse {
@@ -47,6 +51,8 @@ export interface ZsPostParse {
   warnings: string[];
   /** Why a family-A..D/F post produced no chunk (never silent). */
   zeroReason?: string;
+  /** Expected zero-chunk posts (a book's 本书说明/目录 page) — not an error. */
+  skippedReason?: 'front_matter';
 }
 
 // ── Normalization ────────────────────────────────────────────────────────────
@@ -78,7 +84,20 @@ const A_START = /^(?:答|卢?台长答?|师父答?)\s*[0-9一二三四五六七�
 const EDITOR_START = /^【?(东方台)?(秘书处)?编者按】?\s*[：:]?/;
 const LIANGXIAO_NOTE = /\(\s*良宵(注|评注|按)\s*[：:]?([^()]*)\)/g;
 // 「090317星期二,5点到6点,玄艺综述看图腾节目:问:…」 or a bare 「090220」 line.
-const DATE_PREFIX = /^(\d{2})(\d{2})(\d{2})(?:\s*星期[一二三四五六日天]?[^问答]{0,40}?)?(?=(\((?:男|女)听众\))?\s*问\s*[：:]|$)/;
+// Batch 3: a YYMMDD at the head of a segment (optionally after a 《…》 label:
+// 「《重点导读案例1》:090912星期六下午5点到6点,在录音35分到38分之间。…」) sets the
+// date; the weekday/time-slot description up to the next 问 is stripped.
+const DATE_PREFIX = /^(?:《[^》]{1,20}》\s*[：:]?\s*)?(\d{2})(\d{2})(\d{2})(?!\d)/;
+const DATE_TAIL = /^\s*(?:星期[一二三四五六日天]?)?[^问答]{0,60}?(?=(\((?:男|女)听众\))?\s*问\s*[：:])|^\s*星期[一二三四五六日天]?[,，]?/;
+// 「15-18问:」 — a program time range with no date: strip it, keep the current date.
+const TIME_RANGE_PREFIX = /^\d{1,3}\s*[-–]\s*\d{1,3}\s*(分)?[,，]?\s*(?=(\((?:男|女)听众\))?\s*问\s*[：:])/;
+// A date / time-range that sits at the END of the previous segment (the split
+// happened at the 问 marker right after it) — moved to the head of the 问 segment.
+const TRAILING_PREFIX = /(?:(?:《[^》]{1,20}》\s*[：:]?\s*)?\d{6}(?:星期[一二三四五六日天]?[^问答。！？]{0,60})?|\d{1,3}\s*[-–]\s*\d{1,3}\s*(分)?[,，]?)\s*$/;
+// Unbracketed 「良宵评注:…」 / 「良宵添注:…」 runs to the end of its segment.
+const LIANGXIAO_TAIL = /\s*良宵(评注|添注|注|按)\s*[：:][\s\S]*$/;
+// A 良宵 book's own front matter (本书说明 / 目录 / 资料来源) — no exchanges by design.
+const FRONT_MATTER_RE = /本书说明|本册说明|目录[：:]|资料来源[：:]|整理编写|收听、记录|几点说明/;
 const TOTEM_RE = /看了图腾后答|看图腾|图腾/;
 
 // ── Classification ───────────────────────────────────────────────────────────
@@ -159,7 +178,12 @@ interface Exchange {
   date?: string;
 }
 
-function parseQaPost(post: WpPost, family: 'B' | 'D'): ZsPostParse {
+function eraOf(date?: string): 'pre_xiaofangzi' | 'standard' | undefined {
+  if (!date) return undefined;
+  return date < '2010-01-01' ? 'pre_xiaofangzi' : 'standard';
+}
+
+function parseQaPost(post: WpPost, family: 'B' | 'D' | 'G', subseries?: string): ZsPostParse {
   const title = postTitle(post);
   const warnings: string[] = [];
   const { note: editorNote, rest } = splitEditorNote(postLines(post));
@@ -182,6 +206,15 @@ function parseQaPost(post: WpPost, family: 'B' | 'D'): ZsPostParse {
     }
     for (const b of boundaries) { parts.push(s.slice(cursor, b).trim()); cursor = b; }
     parts.push(s.slice(cursor).trim());
+    // A date/time prefix left dangling at the end of the previous part belongs
+    // to the 问 that follows it (「…比以前好多了。15-18问:…」 → 「15-18」 moves).
+    for (let i = 1; i < parts.length; i++) {
+      const m = parts[i - 1].match(TRAILING_PREFIX);
+      if (m && Q_START.test(parts[i])) {
+        parts[i] = `${m[0].trim()}${parts[i]}`;
+        parts[i - 1] = parts[i - 1].slice(0, m.index).trim();
+      }
+    }
     segments.push(...parts.filter((p) => p !== ''));
     s = '';
   }
@@ -189,7 +222,7 @@ function parseQaPost(post: WpPost, family: 'B' | 'D'): ZsPostParse {
   const exchanges: Exchange[] = [];
   let cur: Exchange | null = null;
   const preamble: string[] = [];
-  let currentDate: string | undefined = family === 'D' ? undefined : extractDateLoose(post.title.rendered) ?? undefined;
+  let currentDate: string | undefined = family === 'D' || family === 'G' ? undefined : extractDateLoose(post.title.rendered) ?? undefined;
   let pendingHeading: string | null = null;
 
   const close = () => {
@@ -200,18 +233,35 @@ function parseQaPost(post: WpPost, family: 'B' | 'D'): ZsPostParse {
 
   for (let seg of segments) {
     if (seg === '') { continue; }
-    // D: date prefix on the segment (090317星期二,5点到6点,玄艺综述看图腾节目:)
-    if (family === 'D') {
+    // D/G: date prefix on the segment (090317星期二,5点到6点,玄艺综述看图腾节目: /
+    // 《重点导读案例1》:090912星期六… / bare 090220), or a time range 「15-18问:」.
+    if (family === 'D' || family === 'G') {
       const d = seg.match(DATE_PREFIX);
       if (d) {
         currentDate = ymd(d[1], d[2], d[3]);
-        seg = seg.slice(d[0].length).trim();
+        seg = seg.slice(d[0].length).replace(DATE_TAIL, '').trim();
         if (seg === '') continue;
+        // Date line followed by 良宵's own narration (「…由于台长疏忽,本次节目只有
+        // 最后八分钟录音…」) rather than a 问: editorial, not part of an answer.
+        if (!Q_START.test(seg) && !A_START.test(seg) && !TIME_RANGE_PREFIX.test(seg)) {
+          if (cur) cur.notes.push(seg);
+          else preamble.push(seg);
+          continue;
+        }
       }
+      const tr = seg.match(TIME_RANGE_PREFIX);
+      if (tr) seg = seg.slice(tr[0].length).trim();
     }
-    // Pull 良宵注 out of the segment (D; harmless elsewhere).
+    // Pull 良宵注 out of the segment (D/G; harmless elsewhere): bracketed
+    // 「（良宵注：…）」 anywhere, and an unbracketed 「良宵评注:…」 tail.
     const notes: string[] = [];
-    seg = seg.replace(LIANGXIAO_NOTE, (_, __, body) => { notes.push(String(body).trim()); return ''; }).replace(/\s{2,}/g, ' ').trim();
+    seg = seg.replace(LIANGXIAO_NOTE, (_, __, body) => { notes.push(String(body).trim()); return ''; });
+    const tail = seg.match(LIANGXIAO_TAIL);
+    if (tail && tail.index !== undefined && tail.index > 0) {
+      notes.push(tail[0].replace(/^\s*良宵(评注|添注|注|按)\s*[：:]/, '').trim());
+      seg = seg.slice(0, tail.index);
+    }
+    seg = seg.replace(/\s{2,}/g, ' ').trim();
 
     if (Q_START.test(seg)) {
       if (cur && cur.hasAnswer) close();
@@ -241,7 +291,17 @@ function parseQaPost(post: WpPost, family: 'B' | 'D'): ZsPostParse {
   const preambleNote = preamble.join('\n').trim();
   const noteParts = [editorNote, preambleNote].filter(Boolean) as string[];
   if (exchanges.length === 0) {
-    return { family, chunks: [], warnings, zeroReason: `no 问↔答 exchange after segmentation (${segments.filter(Boolean).length} segments, preamble ${preambleNote.length} chars)` };
+    const frontMatter = family === 'G' && (FRONT_MATTER_RE.test(preambleNote) || /\(1\)$/.test(title));
+    return {
+      family,
+      subseries,
+      chunks: [],
+      warnings,
+      ...(frontMatter ? { skippedReason: 'front_matter' as const } : {}),
+      zeroReason: frontMatter
+        ? 'front matter (本书说明/目录/听众感悟) — no exchange by design'
+        : `no 问↔答 exchange after segmentation (${segments.filter(Boolean).length} segments, preamble ${preambleNote.length} chars)`,
+    };
   }
   const chunks: ZsChunk[] = exchanges.map((e, i) => {
     const answerText = e.turns.filter((t) => A_START.test(t)).join('\n');
@@ -258,9 +318,11 @@ function parseQaPost(post: WpPost, family: 'B' | 'D'): ZsPostParse {
       case_kind: caseKind(answerText),
       ...(note ? { editor_note: note } : {}),
       ...(e.date ? { original_date: e.date } : {}),
+      ...(eraOf(e.date) ? { era: eraOf(e.date) } : {}),
+      ...(subseries ? { subseries } : {}),
     };
   });
-  return { family, chunks, warnings };
+  return { family, subseries, chunks, warnings };
 }
 
 // ── Family A / C: transcript parser over normalized lines ───────────────────
@@ -306,6 +368,7 @@ function parseDialoguePost(post: WpPost, family: 'A' | 'C'): ZsPostParse {
         case_kind: caseKind(answerText),
         ...(note ? { editor_note: note } : {}),
         ...(date ? { original_date: date } : {}),
+        ...(eraOf(date) ? { era: eraOf(date) } : {}),
       };
     }),
   };
@@ -355,6 +418,7 @@ function parseTeachingPost(post: WpPost): ZsPostParse {
       case_kind: 'teaching' as const,
       ...(note ? { editor_note: note } : {}),
       ...(date ? { original_date: date } : {}),
+      ...(eraOf(date) ? { era: eraOf(date) } : {}),
     })),
   };
 }
@@ -375,6 +439,8 @@ export function parseZongshuPost(post: WpPost): ZsPostParse {
     case 'E':
       return { family, subseries, chunks: [], warnings: [], zeroReason: 'testimonial — not uploaded by design' };
     default:
+      // Batch 3 §1: 通灵实例解说 / 活在新空间 approved → the B/D parser; the rest of G stays held.
+      if (subseries === '通灵实例解说' || subseries === '活在新空间') return parseQaPost(post, 'G', subseries);
       return { family: 'G', subseries, chunks: [], warnings: [], zeroReason: `held for review (${subseries})` };
   }
 }

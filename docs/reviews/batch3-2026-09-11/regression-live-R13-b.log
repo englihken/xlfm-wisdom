@@ -1,0 +1,128 @@
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · 1 case(s) · concurrency=1
+Running: R13
+[vector-search] timing parallel=2 wall_ms=2545 per_query={"little_house":2017,"general":2544}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="27遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="49遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="84遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="87遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="1遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R13 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"1张","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"27遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"49遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"84遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"87遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"1遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"1张","reason":"number_not_in_sources"}],"chunkTokens":["7张","3张","21张","10张","9张","1000张"],"replyTokens":["7张","3张"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[vector-search] timing parallel=4 wall_ms=1502 per_query={"homework_入门手册":1196,"little_house":1198,"homework_175问":1205,"general":1501}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R13 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R13 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"3遍","reason":"number_not_in_sources"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张","7张"],"replyTokens":["3遍","1遍","21遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+
+═══ R13 小房子 → 还没有开始念功课 — guard: stripped ═══
+访客：我想开始念小房子
+AI：你愿意开始念小房子，这是很好的发心 🙏
+
+先问你一下：**你现在有在做每天的功课吗？**（比如《大悲咒》《心经》《礼佛大忏悔文》）
+
+因为台长在《佛学问答175问》里是这样开示的：
+
+> 初学者 在开始念功课的同时， 就可以开始念诵小房子
+
+所以门槛不是「功课熟不熟」，而是「有没有开始做功课」。只要功课已经起来了，哪…
+访客：还没有开始念功课
+Sources: 心灵法门入门手册 | 小房子念诵指南 | 心灵法门入门手册 · types: beginner_guide,xiaofangzi_guide,qa_collection,counseling_manual,case_studies,fahui_qa,buddhist_basics
+Last-turn retrieval (ALL 10): 心灵法门入门手册 p23 | 小房子念诵指南 p38 | 心灵法门入门手册 p36 | 小房子念诵指南 p22 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 弘法度人辅导手册 p67 | 心灵法门例说 p334 | 法会弟子提问 | 佛学常识开示锦集（第一册） p132
+  ✓ retrieval carries 念诵指南 or 入门手册
+  ✓ gives the 功课 first (words, or 📿 block before 小房子)
+  ✓ names the three pillars (大悲咒/心经/礼佛)
+  ✓ at least one N遍
+  ✓ 小房子 can start once 功课 has begun (not "wait until stable")
+  ✓ cites 念诵指南 or 入门手册 (reply or sources)
+  ✓ no 查不到相关原文 / 不敢乱说
+  ✓ no 「资料里没有写明具体数字」 (new refusal phrasing)
+  ✓ final text passes guard (0 residual)
+--- reply ---
+好，那我们从功课开始 🙏 这一步不能跳，功课就像每天吃饭，小房子是后面的事。
+
+**先从这两部开始，很简单：**
+
+📿 **《大悲咒》每天 3 遍**
+念之前说：
+"请大慈大悲观世音菩萨保佑我 XXX（你的名字）身体健康，增强功力"
+
+📿 **《心经》每天 3 遍**
+念之前说：
+"请大慈大悲观世音菩萨保佑我 XXX（你的名字）开智慧，头脑清醒冷静，去除烦恼"
+⚠️ 晚上 10 点以后不念《心经》
+
+**每念一遍要念经文全称：**
+- 《大悲咒》念《千手千眼无碍大悲心陀罗尼》
+- 《心经》念《般若波罗蜜多心经》
+
+不会念没关系，跟着教念视频念就好：
+🔗 https://xinlingfamen.info/jingwen/
+
+---
+
+**念顺了之后（大概一两个星期），可以加到：**
+
+**再稳定一点，加上：**
+"请大慈大悲观世音菩萨保佑我 XXX，帮助我忏悔和消除身上的业障"
+⚠️ 从 1 遍开始，不要一下子念多。礼佛会把业障激活出来忏悔，念太多而没有小房子配合，身体可能会不舒服。
+⚠️ 晚上 10 点以后不念
+
+📿 《往生咒》21 遍
+⚠️ 晚上 10 点以后不念
+
+---
+
+**关于小房子：**
+
+功课一开始念（哪怕才念几天），就可以开始念小房子了，不用等到很熟练。不过建议你先把《大悲咒》《心经》念顺，因为小房子里面就是这几部经，念熟了念小房子会快很多。
+
+到时候先给**自己的要经者**念，敬赠处写「XXX（你的名字）的要经者」。
+
+---
+
+先这两部，念顺了我们再加 🙏
+
+想有人陪你一起念，或者要拿实体经书，可以联系就近的共修会：
+📞 总会 +603-6257 3811
+🌐 https://xlfm.my/contact-us
+
+念了几天之后，随时回来跟我说 🙏
+
+补充说明：个别涉及遍数／张数的细节因暂未能核对到原文，已略去未写；以上写出的数字均出自检索到的官方资料。如需进一步确认，请咨询就近共修会的义工 🙏
+
+=== timing / cost · model=claude-opus-5 ===
+  R13 小房子 → 还没有开始念功课                       turns=2 wall/turn=40465ms calls=4 effort=low out_tokens=3766 cost=$0.315
+turn wall p50=40465ms p90=40465ms avg=40465ms · first_text avg=4407ms · calls/turn=2.00 · cache hits=4/4
+cost: total=$0.315 · per turn=$0.1577 (2 turns)
+checks: 9/9 passed · cases: 1/1 fully green
+
+ALL PASS
+EXIT=0

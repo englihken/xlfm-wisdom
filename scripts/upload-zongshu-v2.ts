@@ -57,15 +57,24 @@ async function existingIds(prefix: string): Promise<Set<string>> {
   return ids;
 }
 
-const FAMILY_LABEL: Record<Family, string> = {
+// Report rows. G1/G2 are the two 良宵 book series approved in batch 3 (parsed
+// with the B/D parser); G is what is still held.
+type StatKey = Family | 'G1' | 'G2';
+const STAT_KEYS: StatKey[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G1', 'G2', 'G'];
+const UPLOADED: StatKey[] = ['A', 'B', 'C', 'D', 'F', 'G1', 'G2'];
+const FAMILY_LABEL: Record<StatKey, string> = {
   A: 'A 听众：/台长：',
   B: 'B 问：…答：',
   C: 'C 卢台长：/听 众：',
   D: 'D 《图腾世界》',
   E: 'E 同修分享／反馈（不上传）',
   F: 'F 开示／解答会记录（teaching）',
-  G: 'G 待批（未解析）',
+  G1: 'G1 《通灵实例解说》',
+  G2: 'G2 《活在新空间》',
+  G: 'G 其余（纪实／标记不完整，不上传）',
 };
+const statKeyOf = (family: Family, subseries?: string): StatKey =>
+  family === 'G' && subseries === '通灵实例解说' ? 'G1' : family === 'G' && subseries === '活在新空间' ? 'G2' : family;
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
@@ -79,28 +88,29 @@ async function main() {
   const posts = all.filter((p) => !crossFiled.has(p.id));
   console.log(`zongshu posts: ${all.length} · cross-filed (letters/fahui/wenda precedence) skipped: ${all.length - posts.length} · to classify: ${posts.length}`);
 
-  type Stat = { posts: number; chunks: number; inLib: number; zero: { id: number; title: string; reason: string }[]; samples: ZsChunk[]; totem: number; warnings: string[] };
-  const stats: Record<Family, Stat> = Object.fromEntries((['A', 'B', 'C', 'D', 'E', 'F', 'G'] as Family[]).map((f) => [f, { posts: 0, chunks: 0, inLib: 0, zero: [], samples: [], totem: 0, warnings: [] }])) as Record<Family, Stat>;
+  type Stat = { posts: number; chunks: number; inLib: number; zero: { id: number; title: string; reason: string }[]; frontMatter: { id: number; title: string }[]; samples: ZsChunk[]; totem: number; pre2010: number; warnings: string[] };
+  const stats: Record<StatKey, Stat> = Object.fromEntries(STAT_KEYS.map((f) => [f, { posts: 0, chunks: 0, inLib: 0, zero: [], frontMatter: [], samples: [], totem: 0, pre2010: 0, warnings: [] }])) as Record<StatKey, Stat>;
   const held: Record<string, WpPost[]> = {};
   const records: ZsChunk[] = [];
-  const perPostFamily = new Map<number, Family>();
 
   for (const post of posts) {
     const r = parseZongshuPost(post);
-    const st = stats[r.family];
+    const key = statKeyOf(r.family, r.subseries);
+    const st = stats[key];
     st.posts++;
-    perPostFamily.set(post.id, r.family);
     st.warnings.push(...r.warnings);
-    if (r.family === 'G' || r.family === 'E') {
+    if (!UPLOADED.includes(key)) {
       (held[r.subseries ?? r.family] ??= []).push(post);
       continue;
     }
     if (r.chunks.length === 0) {
-      st.zero.push({ id: post.id, title: postTitle(post), reason: r.zeroReason ?? 'unknown' });
+      if (r.skippedReason === 'front_matter') st.frontMatter.push({ id: post.id, title: postTitle(post) });
+      else st.zero.push({ id: post.id, title: postTitle(post), reason: r.zeroReason ?? 'unknown' });
       continue;
     }
     st.chunks += r.chunks.length;
     st.totem += r.chunks.filter((c) => c.case_kind === 'totem_reading').length;
+    st.pre2010 += r.chunks.filter((c) => c.era === 'pre_xiaofangzi').length;
     if (st.samples.length < 3) st.samples.push(r.chunks[0]);
     records.push(...r.chunks);
   }
@@ -110,22 +120,29 @@ async function main() {
   const fresh = records.filter((c) => !existing.has(c.id));
   const skippedExisting = records.length - fresh.length;
   const existingPosts = new Set([...existing].map((id) => Number(id.split('_')[1])));
-  for (const c of records) if (existing.has(c.id)) stats[c.family].inLib++;
+  for (const c of records) if (existing.has(c.id)) stats[statKeyOf(c.family, c.subseries)].inLib++;
+  // Batch 3 §1: `era` is new metadata — existing pre-2010 chunks (图腾世界, 2008-09
+  // 预测实例) get it via /vectors/update (no re-embedding), new ones carry it.
+  const eraBackfill = records.filter((c) => existing.has(c.id) && c.era);
 
   // ── Report ────────────────────────────────────────────────────────────────
   const lines: string[] = [];
   lines.push(`# 玄艺综述 解析报告（${new Date().toISOString().slice(0, 10)}）`, '');
   lines.push(`快照 \`zongshu-20260815.json\`：${all.length} 篇；letters/fahui/wenda 已收录的交叉发布 ${all.length - posts.length} 篇跳过；分类 ${posts.length} 篇。Pinecone 中已有 \`zongshu_\` id ${existing.size} 条（${existingPosts.size} 篇），本次**不动**；新 id ${fresh.length} 条。`, '');
-  lines.push('| 家族 | 篇数 | 解析出对/块数 | 图腾类 | 零对篇数 | 已在库块（不动） | 新增块 |', '|---|---|---|---|---|---|---|');
-  for (const f of ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as Family[]) {
+  lines.push('| 家族 | 篇数 | 解析出对/块数 | 图腾类 | pre-2010 块 | 零对篇数 | front_matter 篇 | 已在库块（不动） | 新增块 |', '|---|---|---|---|---|---|---|---|---|');
+  for (const f of STAT_KEYS) {
     const st = stats[f];
-    const held = f === 'E' || f === 'G';
-    lines.push(`| ${FAMILY_LABEL[f]} | ${st.posts} | ${held ? '—' : st.chunks} | ${held ? '—' : st.totem} | ${held ? '—' : st.zero.length} | ${held ? '—' : st.inLib} | ${held ? '—' : st.chunks - st.inLib} |`);
+    const held = !UPLOADED.includes(f);
+    const d = (v: number | string) => (held ? '—' : v);
+    lines.push(`| ${FAMILY_LABEL[f]} | ${st.posts} | ${d(st.chunks)} | ${d(st.totem)} | ${d(st.pre2010)} | ${d(st.zero.length)} | ${d(st.frontMatter.length)} | ${d(st.inLib)} | ${d(st.chunks - st.inLib)} |`);
   }
-  lines.push('', `已在库的 ${skippedExisting} 条 id 被跳过（旧的不动）；本次新增 ${fresh.length} 条。`, '');
-  for (const f of ['A', 'B', 'C', 'D', 'F'] as Family[]) {
+  lines.push('', `已在库的 ${skippedExisting} 条 id 被跳过（旧的不动）；本次新增 ${fresh.length} 条；已在库需补 era 的 ${eraBackfill.length} 条。`, '');
+  for (const f of UPLOADED) {
     const st = stats[f];
     lines.push(`## ${FAMILY_LABEL[f]} — ${st.posts} 篇 / ${st.chunks} 块`, '');
+    if (st.frontMatter.length) {
+      lines.push(`front_matter（${st.frontMatter.length}，不算零对）：${st.frontMatter.map((z) => `${z.id}「${z.title.slice(0, 30)}」`).join('、')}`, '');
+    }
     if (st.zero.length) {
       lines.push(`零对篇（${st.zero.length}）：`);
       for (const z of st.zero.slice(0, 40)) lines.push(`- ${z.id} 「${z.title.slice(0, 50)}」 — ${z.reason}`);
@@ -172,11 +189,26 @@ async function main() {
       url: post.link,
       wp_date: post.date,
       ...(c.original_date ? { original_date: c.original_date } : {}),
+      ...(c.era ? { era: c.era } : {}),
       ...(c.editor_note ? { editor_note: c.editor_note } : {}),
       chunk_index: c.index,
       excerpt: postTitle(post),
     };
   });
+
+  // era backfill on existing records (metadata only, no re-embedding).
+  let eraUpdated = 0;
+  for (const c of eraBackfill) {
+    const r = await fetch(`https://${host}/vectors/update`, {
+      method: 'POST',
+      headers: { 'Api-Key': process.env.PINECONE_API_KEY!, 'Content-Type': 'application/json', 'X-Pinecone-API-Version': '2025-01' },
+      body: JSON.stringify({ id: c.id, namespace: NAMESPACE, setMetadata: { era: c.era, ...(c.original_date ? { original_date: c.original_date } : {}) } }),
+    });
+    if (!r.ok) throw new Error(`era update ${c.id} failed: ${r.status} ${await r.text()}`);
+    eraUpdated++;
+    if (eraUpdated % 50 === 0) console.log(`  · era backfilled ${eraUpdated}/${eraBackfill.length}`);
+  }
+  console.log(`  ✓ era backfilled on ${eraUpdated} existing records`);
   // The integrated-inference embedder is capped at 1M tokens/minute; a 429
   // (RESOURCE_EXHAUSTED) on a batch is waited out and retried, never skipped.
   for (let i = 0; i < payload.length; i += BATCH_SIZE) {

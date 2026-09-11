@@ -1,0 +1,159 @@
+◇ injected env (6) from .env.local // tip: ⌘ override existing { override: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · 2 case(s) · concurrency=2
+Running: R8, R13
+[vector-search] timing parallel=1 wall_ms=2442 per_query={"general":2441}
+[vector-search] {
+  userLang: 'en',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: '0.813',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=2460 per_query={"little_house":2189,"general":2460}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 violation=quote attempt=2 reason=quote_not_verbatim text="功课和小房子要分开，功课不能点到小房子上去。"
+[verbatim-guard] conversation=regression-test:R13 violation=quote attempt=2 reason=quote_not_verbatim text="\"有所贪求而念小房子，这就是着魔。还债也要量力而行，有些债真不是一下子还完的，还要靠放生、许愿一起，才能成就此功德。"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R13 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R13 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"1张","reason":"number_not_in_sources"},{"attempt":2,"type":"quote","text":"功课和小房子要分开，功课不能点到小房子上去。","reason":"quote_not_verbatim"},{"attempt":2,"type":"quote","text":"\"有所贪求而念小房子，这就是着魔。还债也要量力而行，有些债真不是一下子还完的，还要靠放生、许愿一起，才能成就此功德。","reason":"quote_not_verbatim"},{"attempt":2,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"3遍","reason":"number_not_in_sources"}],"chunkTokens":["7张","3张","21张","10张","9张","1000张"],"replyTokens":["7张"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[vector-search] timing parallel=4 wall_ms=2057 per_query={"little_house":1286,"homework_入门手册":1336,"homework_175问":1849,"general":2057}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=quote attempt=2 reason=quote_not_verbatim text="功课就如每天需要吃饭一样重要，就像日常支出的开销，小房子就如还房贷或者欠款。做功课的经文遍数不能算在\"小房子\"的经文里，要分开祈求和另外计算经文的遍数。"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="49遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=2 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R13 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"quote","text":"功课就如每天需要吃饭一样重要，就像日常支出的开销，小房子就如还房贷或者欠款。做功课的经文遍数不能算在\"小房子\"的经文里，要分开祈求和另外计算经文的遍数。","reason":"quote_not_verbatim"},{"attempt":2,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"49遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"1张","reason":"number_not_in_sources"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张","7张"],"replyTokens":["3遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+
+═══ R8 EN reply complete (collagen/vegetarian) — guard: clean ═══
+Q: I have spondylosis and osteoporosis and my doctor requires me to take collagen as part of treatment. But I have been a vegetarian for 14 years. Can I take normal collagen?
+Sources: Metaphysics Q&A Vol 3 (EN) | Buddhism Q&A (EN) | Metaphysics Q&A Vol 3 (EN) · types: qa_metaphysics,qa_general,introduction
+  ✓ substantial reply (>600 chars)
+  ✓ ends cleanly (punctuation/emoji, not mid-word)
+  ✓ answers the vegetarian-collagen question
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Fourteen years of vegetarian practice — that's a beautiful foundation, and I understand the conflict you're feeling right now. 🙏
+
+Master Lu addressed this exact situation in *Buddhism Q&A*:
+
+> When you consume any medicine or health supplements that contain ingredients such as gelatine or fish oil, if your body does not reject the taste, then perhaps you have not reached the level where you are completely observing your precepts. However, it would still be best to avoid consuming such products as they contain animal by-products.
+
+So Master Lu's guidance leans toward **avoiding animal-derived collagen where possible**, but he is not harsh about it. What he emphasises most is your **intention** — whether you are seeking it out for enjoyment, or taking it reluctantly because of a genuine medical need.
+
+A few practical steps:
+
+**1. Ask your doctor about alternatives first.**
+There are plant-based options and nutrients that support collagen formation — vitamin C, soy protein, calcium, and other supplements. Master Lu strongly recommended soy products for vegetarians because they're high in protein. Ask your doctor whether these can meet your treatment needs. If a genuine vegetarian option exists, take that.
+
+**2. If your doctor says there is truly no substitute:**
+Master Lu's way in "no choice" situations is to speak to Guan Yin Bodhisattva in your heart before taking it — something simple and sincere, such as:
+
+*"Greatly Merciful and Greatly Compassionate Guan Yin Bodhisattva, please forgive me, [your full name]. I am taking this only because of my illness and my doctor's instruction. I do not wish to break my vegetarian practice."*
+
+Keep looking for a plant-based replacement in the meantime. Reluctance and repentance are very different from indulgence.
+
+**3. Treat body and spirit together.**
+Master Lu always taught us to cooperate fully with doctors — Buddhism clears the spiritual obstacles, medicine treats the physical body. Both hands together. Please don't stop your treatment.
+
+Alongside your treatment, reciting the **Great Compassion Mantra** is the sutra for health and energy, and praying:
+
+*"May the Greatly Merciful and Greatly Compassionate Guan Yin Bodhisattva bless me, [your full name], with good health and heal my spine and bones."*
+
+May I ask — are you already doing a daily recitation practice? If you tell me where you're at, I can suggest a practice that suits your situation properly rather than guessing. 🙏
+
+All Guan Yin Citta materials are free of charge. Scripture resources: https://xlfm.my/jingwen
+Chanting guide videos: https://xinlingfamen.info/jingwen/
+
+═══ R13 小房子 → 还没有开始念功课 — guard: stripped ═══
+访客：我想开始念小房子
+AI：想开始念小房子，这个发心很好 🙏
+
+先问你一句：**你现在有在做每天的功课吗？**（《大悲咒》《心经》《礼佛大忏悔文》这些）
+
+台长开示过，小房子的门槛不是"功课念得熟不熟"，而是"有没有开始做功课"：
+
+> 初学者在开始念功课的同时，就可以开始念诵小房子，可以先为自己的要经者念7张小房子，并且根据自己的情况坚持念诵…
+访客：还没有开始念功课
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,xiaofangzi_guide,qa_collection,counseling_manual,case_studies,fahui_qa,buddhist_basics
+Last-turn retrieval (ALL 10): 心灵法门入门手册 p23 | 小房子念诵指南 p38 | 心灵法门入门手册 p36 | 小房子念诵指南 p22 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 弘法度人辅导手册 p67 | 心灵法门例说 p334 | 法会弟子提问 | 佛学常识开示锦集（第一册） p132
+  ✓ retrieval carries 念诵指南 or 入门手册
+  ✓ gives the 功课 first (words, or 📿 block before 小房子)
+  ✗ names the three pillars (大悲咒/心经/礼佛)
+  ✓ at least one N遍
+  ✓ 小房子 can start once 功课 has begun (not "wait until stable")
+  ✓ cites 念诵指南 or 入门手册 (reply or sources)
+  ✓ no 查不到相关原文 / 不敢乱说
+  ✓ no 「资料里没有写明具体数字」 (new refusal phrasing)
+  ✓ final text passes guard (0 residual)
+--- reply ---
+好，那我们就从最简单的开始 🙏
+
+先这两部，每天念：
+
+📿 **《大悲咒》每天 3 遍**
+念之前说："请大慈大悲观世音菩萨保佑我（自己全名）身体健康，心情平静"
+
+📿 **《心经》每天 3 遍**
+念之前说："请大慈大悲观世音菩萨保佑我（自己全名）开智慧，去除烦恼"
+（晚上 10 点以后不念）
+
+经文不会念没关系，跟着教念视频一句一句念就好：
+🔗 https://xinlingfamen.info/jingwen/
+
+关于小房子——你只要**开始念功课了**，就可以同时开始念小房子，不用等到很熟练。台长开示过，初学者在开始念功课的同时就可以为自己的要经者念小房子。
+
+所以顺序是这样：
+
+**今天／明天** → 开始念《大悲咒》3 遍、《心经》3 遍
+
+—— 《心灵法门入门手册》
+
+先把功课念起来，这是最重要的一步。念了几天之后来告诉我，我再教你小房子怎么填、怎么念、怎么烧送 🙏
+
+如果想有人当面陪你念、教你一次，可以联系就近的共修会：
+🌐 https://xlfm.my/contact-us
+📞 总会 +603-6257 3811
+
+一切经书、小房子都是免费结缘的，台长定的规矩 🙏
+
+补充说明：个别涉及遍数／张数的细节因暂未能核对到原文，已略去未写；以上写出的数字均出自检索到的官方资料。如需进一步确认，请咨询就近共修会的义工 🙏
+
+=== timing / cost · model=claude-opus-5 ===
+  R8 EN reply complete (collagen/vegetarian) turns=1 wall/turn=29575ms calls=1 effort=medium out_tokens=1850 cost=$0.100
+  R13 小房子 → 还没有开始念功课                       turns=2 wall/turn=39809ms calls=4 effort=low out_tokens=3913 cost=$0.318
+turn wall p50=39809ms p90=39809ms avg=34692ms · first_text avg=5350ms · calls/turn=1.67 · cache hits=5/5
+cost: total=$0.418 · per turn=$0.1392 (3 turns)
+checks: 12/13 passed · cases: 1/2 fully green
+
+1 CHECKS FAILED
+EXIT=1

@@ -370,6 +370,29 @@ const appliesTotemToVisitor = (r: string): boolean =>
     .replace(/[ \t]+/g, '')
     .split(/(?<=[。！？!?\n])/)
     .some((sen) => TOTEM_APPLIED_RE.test(sen) && !TOTEM_DISCLAIMER_RE.test(sen));
+// R17 (batch 3 §1): 小房子 composition. Pre-2010 玄艺综述 cases carry the
+// pre-standardization combination (27 大悲咒 / 48 心经 / 78 往生咒 / 84 七佛);
+// the reply must give today's 27/49/84/87 or cite 《念诵指南》, never 48/78, and
+// may only NARRATE a pre_xiaofangzi case if one was retrieved.
+const XFZ_CASE: Case = {
+  label: 'R17 小房子经文组合（历史组合不外泄）',
+  q: '小房子的经文组合是什么？每种经文各念多少遍？',
+  checks: [
+    { name: 'gives today\'s composition (27/49/84/87) or cites 念诵指南', ok: (r, books) => (has(r, '27遍') && has(r, '49遍') && has(r, '84遍') && has(r, '87遍')) || has(r, '念诵指南') || books.includes('小房子念诵指南') },
+    { name: 'NEVER 48遍心经 / 78遍往生咒 as current practice', ok: (r) => !/心经[^。！？\n]{0,6}48遍|48遍[^。！？\n]{0,6}心经|往生咒[^。！？\n]{0,6}78遍|78遍[^。！？\n]{0,6}往生咒/.test(r.replace(/\s+/g, '')) },
+    {
+      name: 'a retrieved pre_xiaofangzi case (if any) is only narrated',
+      ok: (r, _b, _t, ps) => {
+        const pre = ps.filter((p) => (p as { original_date?: string }).original_date && (p as { original_date?: string }).original_date! < '2010-01-01');
+        if (pre.length === 0) return true;
+        const s = r.replace(/\s+/g, '');
+        // Historical numbers may appear only in a narrating sentence.
+        return s.split(/(?<=[。！？!?\n])/).every((sen) => !/48遍|78遍/.test(sen) || /当年|台长曾|那位听众|历史|以前|早期|之前/.test(sen));
+      },
+    },
+  ],
+};
+
 const TOTEM_CASE: Case = {
   label: 'R16 梦见蛇 → 图腾案例不套访客',
   q: '我昨晚梦见一条蛇缠在我身上，醒来后一直很不舒服，是不是身上有灵性？',
@@ -553,7 +576,7 @@ async function main() {
   const concurrency = concArg >= 0 ? Math.max(1, parseInt(process.argv[concArg + 1] ?? '0', 10) || 0) : 0;
   const pool: Case[] = chipsOnly
     ? chipCases(QUICK_QUESTIONS)
-    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, TOTEM_CASE, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
+    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, TOTEM_CASE, XFZ_CASE, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
   const selected = pool.filter(
     (c) => !only || only.some((id) => c.label.startsWith(id + ' ') || c.label.startsWith(id))
   );
