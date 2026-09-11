@@ -18,13 +18,46 @@ import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { writeAudit } from '@/lib/audit';
-import { upsertWisdomRecord, deleteWisdomRecord, type WisdomEntryForSync } from '@/lib/wisdom-sync';
+import {
+  upsertWisdomRecord,
+  deleteWisdomRecord,
+  wisdomRecordExists,
+  type WisdomEntryForSync,
+} from '@/lib/wisdom-sync';
 import { invalidateChipAnswers } from '@/lib/chip-answers';
 
 export const runtime = 'nodejs';
 
 const FIELD_MAX = { canonical_question: 500, variants: 1000, keywords: 500, answer_guidance: 8000 };
 const LANGS = ['zh', 'en', 'id'];
+
+// GET (care ≥ view) — one entry + whether its Pinecone record really exists
+// (batch 3 §3: the 智库 detail page's 「已同步 Pinecone」 badge is fact, not
+// inferred from status). pineconeSynced is null when Pinecone is unreachable.
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const access = await requireModuleAccess('care', 'view');
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.status === 401 ? 'Unauthorized' : 'Forbidden' },
+      { status: access.status }
+    );
+  }
+  if (!supabaseAdmin) return NextResponse.json({ error: 'Storage unavailable' }, { status: 503 });
+  const { data: entry, error } = await supabaseAdmin.from('wisdom_entries').select('*').eq('id', id).maybeSingle();
+  if (error) {
+    console.error('[dashboard/wisdom] fetch failed:', error);
+    return NextResponse.json({ error: 'Failed to load entry' }, { status: 500 });
+  }
+  if (!entry) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  let pineconeSynced: boolean | null = null;
+  try {
+    pineconeSynced = await wisdomRecordExists(id);
+  } catch (e) {
+    console.error('[dashboard/wisdom] pinecone fetch failed:', e);
+  }
+  return NextResponse.json({ entry, pineconeSynced });
+}
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

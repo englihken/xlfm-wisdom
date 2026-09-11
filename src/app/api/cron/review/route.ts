@@ -97,6 +97,15 @@ export async function GET(req: Request) {
   // answers so tomorrow's chip clicks are all served in <1 s. Force-all,
   // oldest first, bounded; runs before the review pass because visitors
   // notice a missed chip and nobody notices a review landing a night late.
+  // ── Rate-limit counters older than a day (batch 3 §2): rate_limits_prune().
+  let rateLimitPruned: number | { error: string } | null = null;
+  try {
+    const { data, error } = await db.rpc('rate_limits_prune', { p_older_than: '1 day' });
+    rateLimitPruned = error ? { error: error.message } : Number(data ?? 0);
+  } catch (e) {
+    rateLimitPruned = { error: e instanceof Error ? e.message : String(e) };
+  }
+
   let chipRefresh: Awaited<ReturnType<typeof refreshChipAnswers>> | { error: string } | null = null;
   try {
     chipRefresh = await refreshChipAnswers({ force: true, budgetMs: 150_000, concurrency: 6 });
@@ -206,6 +215,7 @@ export async function GET(req: Request) {
     health,
     recovery,
     chipRefresh,
+    rateLimitPruned,
   };
   // One-line JSON result, same convention as the summarize cron.
   console.log('[cron/review]', JSON.stringify(summary));

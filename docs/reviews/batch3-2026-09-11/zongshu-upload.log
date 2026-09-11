@@ -1,0 +1,72 @@
+◇ injected env (6) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+zongshu posts: 1388 · cross-filed (letters/fahui/wenda precedence) skipped: 442 · to classify: 946
+# 玄艺综述 解析报告（2026-09-11）
+
+快照 `zongshu-20260815.json`：1388 篇；letters/fahui/wenda 已收录的交叉发布 442 篇跳过；分类 946 篇。Pinecone 中已有 `zongshu_` id 3497 条（557 篇），本次**不动**；新 id 539 条。
+
+| 家族 | 篇数 | 解析出对/块数 | 图腾类 | pre-2010 块 | 零对篇数 | front_matter 篇 | 已在库块（不动） | 新增块 |
+|---|---|---|---|---|---|---|---|---|
+| A 听众：/台长： | 14 | 39 | 1 | 0 | 0 | 0 | 39 | 0 |
+| B 问：…答： | 24 | 140 | 32 | 0 | 0 | 0 | 140 | 0 |
+| C 卢台长：/听 众： | 70 | 317 | 22 | 0 | 0 | 0 | 317 | 0 |
+| D 《图腾世界》 | 34 | 235 | 42 | 217 | 7 | 0 | 235 | 0 |
+| E 同修分享／反馈（不上传） | 79 | — | — | — | — | — | — | — |
+| F 开示／解答会记录（teaching） | 411 | 2225 | 0 | 0 | 0 | 0 | 2225 | 0 |
+| G1 《通灵实例解说》 | 41 | 333 | 54 | 139 | 1 | 0 | 2 | 331 |
+| G2 《活在新空间》 | 23 | 215 | 34 | 20 | 0 | 0 | 7 | 208 |
+
+report → docs/reviews/batch3-2026-09-11/zongshu-parse-report.md
+  · era backfilled 50/2159
+  · era backfilled 100/2159
+  · era backfilled 150/2159
+  · era backfilled 200/2159
+  · era backfilled 250/2159
+  · era backfilled 300/2159
+  · era backfilled 350/2159
+  · era backfilled 400/2159
+  · era backfilled 450/2159
+  · era backfilled 500/2159
+  · era backfilled 550/2159
+  · era backfilled 600/2159
+  · era backfilled 650/2159
+  · era backfilled 700/2159
+  · era backfilled 750/2159
+  · era backfilled 800/2159
+  · era backfilled 850/2159
+  · era backfilled 900/2159
+  · era backfilled 950/2159
+  · era backfilled 1000/2159
+  · era backfilled 1050/2159
+  · era backfilled 1100/2159
+  · era backfilled 1150/2159
+  · era backfilled 1200/2159
+  · era backfilled 1250/2159
+  · era backfilled 1300/2159
+  · era backfilled 1350/2159
+  · era backfilled 1400/2159
+  · era backfilled 1450/2159
+  · era backfilled 1500/2159
+  · era backfilled 1550/2159
+  · era backfilled 1600/2159
+  · era backfilled 1650/2159
+  · era backfilled 1700/2159
+  · era backfilled 1750/2159
+  · era backfilled 1800/2159
+  · era backfilled 1850/2159
+  · era backfilled 1900/2159
+  · era backfilled 1950/2159
+  · era backfilled 2000/2159
+  · era backfilled 2050/2159
+  · era backfilled 2100/2159
+  · era backfilled 2150/2159
+  ✓ era backfilled on 2159 existing records
+  ✓ upserted 90/539
+  ✓ upserted 180/539
+  ✓ upserted 270/539
+  ✓ upserted 360/539
+  ✓ upserted 450/539
+  ✓ upserted 539/539
+
+✓ Upserted 539 new 玄艺综述 records (case_qa/teaching, no ranking boost)
+EXIT=0

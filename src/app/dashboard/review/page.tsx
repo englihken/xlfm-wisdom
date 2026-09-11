@@ -627,10 +627,13 @@ export default function ReviewPage() {
                     {count !== null && <span className="ml-1 text-ink-faint">({count})</span>}
                   </button>
                 ))}
+                <Link href="/dashboard/wisdom" className="ml-auto text-xs text-accent-deep hover:underline">
+                  {t('wisdom.openPage')}
+                </Link>
                 {canEdit && (
                   <button
                     onClick={() => setWisdomForm({ ...EMPTY_WISDOM_FORM })}
-                    className="ml-auto px-3 py-1 rounded-full text-xs bg-accent/10 text-accent-deep font-medium hover:bg-accent/20"
+                    className="px-3 py-1 rounded-full text-xs bg-accent/10 text-accent-deep font-medium hover:bg-accent/20"
                   >
                     {t('wisdom.new')}
                   </button>
