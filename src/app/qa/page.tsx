@@ -384,7 +384,12 @@ export default function QAPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          conversation: messages.map((m) => ({ role: m.role, content: m.content })),
+          // F03: the server accepts only user/assistant — a volunteer's reply is
+          // assistant-side context (same mapping the server used to do).
+          conversation: messages
+            .filter((m) => m.content.trim() !== '')
+            .slice(-20)
+            .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content })),
           language,
           conversationId,
           browserId: browserIdRef.current,
@@ -392,6 +397,13 @@ export default function QAPage() {
         signal: controller.signal,
       });
 
+      if (response.status === 429) {
+        // F03 rate limit: show the server's honest sentence, not the outage text.
+        const j = (await response.json().catch(() => null)) as { message?: string } | null;
+        patchReply({ content: j?.message ?? failureText(language), streaming: false, stage: undefined });
+        finish();
+        return;
+      }
       if (!response.ok || !response.body) {
         throw new Error('Failed to connect to AI');
       }

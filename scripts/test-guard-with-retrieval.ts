@@ -45,14 +45,23 @@ async function main() {
     // The production first draft used memory 功课 numbers → still flagged (rule 2 stays strict).
     const memoryDraft = '📿 《心经》每天3遍\n📿 《大悲咒》每天21遍\n祈求：请大慈大悲观世音菩萨保佑我（姓名）睡眠安稳';
     const v1 = checkDraft(memoryDraft, texts, [q], { canonicalTexts: canon });
-    assert('memory numbers 3遍/21遍 still flagged as number_not_in_sources',
-      v1.some((x) => x.text === '3遍' && x.reason === 'number_not_in_sources') && v1.some((x) => x.text === '21遍'), v1);
+    // F01: the check is (subject, count)-bound now — 「《大悲咒》21遍」 is flagged
+    // unless a chunk pairs 大悲咒 with 21遍; 「《心经》3遍」 may legitimately be
+    // grounded (疾病百科 states it). At least one memory pair must be caught.
+    assert('memory 功课 pairs still flagged as number_not_in_sources',
+      v1.some((x) => x.reason === 'number_not_in_sources'), v1);
 
     // A draft that uses the counts the chunks actually state → clean.
-    const bian = chunkTokens.filter((t) => t.endsWith('遍'));
-    const groundedDraft = `📿 《心经》${bian[0]}\n祈求：请大慈大悲观世音菩萨保佑我（姓名）睡眠安稳，头脑清醒冷静${bian[1] ? `\n📿 《往生咒》${bian[1]}` : ''}`;
+    // F01: a grounded draft must reuse the chunks' own (subject, count) PAIRS,
+    // not attach an arbitrary chunk count to 《心经》.
+    const { extractNumberPairs } = await import('../src/lib/verbatim-guard-pairs');
+    const pairs = extractNumberPairs(texts.join('\n\n')).filter((p) => p.subject && p.token.endsWith('遍'));
+    const p0 = pairs[0];
+    const p1 = pairs.find((p) => p.subject !== p0?.subject);
+    const bian = [p0 ? `《${p0.subject}》${p0.token}` : '', p1 ? `《${p1.subject}》${p1.token}` : ''];
+    const groundedDraft = `📿 ${bian[0]}\n祈求：请大慈大悲观世音菩萨保佑我（姓名）睡眠安稳，头脑清醒冷静${bian[1] ? `\n📿 ${bian[1]}` : ''}`;
     const v2 = checkDraft(groundedDraft, texts, [q], { canonicalTexts: canon });
-    assert(`draft using the chunks' own counts (${bian.slice(0, 2).join(', ')}) passes clean`, v2.length === 0, v2);
+    assert(`draft using the chunks' own pairs (${bian.filter(Boolean).join(', ')}) passes clean`, v2.length === 0, v2);
 
     // The actual production reply tail (08-29 before-run) is scrubbed once counts exist.
     const prodTail = '关于**具体遍数**——目前我在师父的开示原文里查不到适用于每一个人的通用数字，师父给同修的遍数都是看各人情况定的，我不方便乱给。建议你联系就近的共修会义工，他们会根据你的实际情况给你合适的功课：';

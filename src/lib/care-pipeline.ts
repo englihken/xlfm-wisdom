@@ -98,6 +98,20 @@ export function chooseReplyEffort(params: {
 // Progress stages surfaced to the visitor while the reply is being produced
 // (brief 09-10 §4). Purely informational — no generation logic keys off them.
 export type ReplyStage = 'retrieving' | 'drafting' | 'verifying';
+
+// F07 crisis fast lane (batch 2 §4): sent as the FIRST text block, before
+// retrieval, when the visitor's turn carries a crisis keyword. Wording is the
+// hotline block of the prompt's 危机四步 template (第十部分) plus one sentence
+// of companionship; the full guarded reply follows as a second block.
+export const CRISIS_FAST_LANE: Record<Language, string> = {
+  zh: '我在这里，先陪你一下 🙏 如果你现在很难受、有伤害自己的念头，请先打这个电话：\n📞 Befrienders KL：03-7627 2929（24 小时免费，不评判你）\n📞 Talian Kasih：15999\n他们会陪你说话。先打电话，下面我再慢慢跟你说。',
+  en: "I'm here with you 🙏 If you are in pain right now or having thoughts of hurting yourself, please call first:\n📞 Befrienders KL: 03-7627 2929 (24 hours, free, no judgement)\n📞 Talian Kasih: 15999\nThey will stay on the line with you. Call first — the rest of my reply follows below.",
+  id: 'Saya di sini menemani Anda 🙏 Jika saat ini Anda sangat tertekan atau berpikir untuk menyakiti diri sendiri, tolong telepon dulu:\n📞 Befrienders KL: 03-7627 2929 (24 jam, gratis, tanpa menghakimi)\n📞 Talian Kasih: 15999\nMereka akan menemani Anda berbicara. Telepon dulu — jawaban lengkap saya menyusul di bawah.',
+};
+
+export function crisisFastLaneText(language: Language): string {
+  return CRISIS_FAST_LANE[language] ?? CRISIS_FAST_LANE.zh;
+}
 // The post-reply categorisation is a one-label task visitors never see — the
 // cheapest model is plenty.
 const CLASSIFY_MODEL = 'claude-haiku-4-5';
@@ -157,8 +171,17 @@ function buildRetryInstruction(violations: GuardViolation[]): string {
         `- 引文「${shown}」不是检索段落的逐字原文：引文块（"> "）必须逐字照抄检索段落；做不到就改为不带引文块的转述，或删去。`
       );
     } else if (v.reason === 'number_not_in_sources') {
+      const bound = v.subject ? `「${v.subject} ${v.text}」这一组合` : `数字「${v.text}」`;
       lines.push(
-        `- 数字「${v.text}」在本次检索段落和访客原话中都不存在：删去它，或改用检索段落中确实写明的遍数/张数。`
+        `- ${bound}在本次检索段落和访客原话中都不存在（数字必须和它所属的经文/小房子一起出现在同一来源里，别的经文的遍数不能挪用）：删去它，或改用检索段落中确实为该经文写明的遍数/张数。`
+      );
+    } else if (v.reason === 'number_visitor_as_advice') {
+      lines.push(
+        `- 数字「${v.subject ? `${v.subject} ` : ''}${v.text}」只出现在访客自己的话里，检索段落里没有：可以用"你说的/你念的N遍"的方式引用访客的话，但不能把它写成建议（"建议/每天念/可以念N遍"）。`
+      );
+    } else if (v.reason === 'number_case_generalized') {
+      lines.push(
+        `- 数字「${v.subject ? `${v.subject} ` : ''}${v.text}」只出现在台长给某位听众/同修的个案记录里：只能以"台长曾对一位同修/听众说…情况因人而异"的方式转述，不能写成给访客的建议或通用标准。`
       );
     } else {
       lines.push(
@@ -363,7 +386,10 @@ export async function generateGuardedReplyText(params: {
   const canonicalTexts = passages
     .filter((p) => p.type === 'canonical_ruling')
     .map((p) => p.text);
-  const guardOpts = { canonicalTexts };
+  // F01: case records (玄艺综述 / 玄艺问答) ground a count only when the
+  // sentence narrates the case — never as advice.
+  const caseTexts = passages.filter((p) => p.type === 'case_qa').map((p) => p.text);
+  const guardOpts = { canonicalTexts, caseTexts };
 
   const decision: GuardDecisionLog = {
     outcome: 'clean',
@@ -486,6 +512,11 @@ export type CareSource = {
   page_end?: number;
   excerpt?: string;
   count: number;
+  // Website sources only (batch 2 §6): clickable link + the 开示/节目 date.
+  url?: string;
+  post_title?: string;
+  original_date?: string;
+  wp_date?: string;
 };
 
 // ── Retrieval + prompt assembly (shared by stream + non-stream) ───────────────
@@ -553,6 +584,10 @@ export function buildSources(passages: RetrievedPassage[], replyText?: string): 
         page_end: p.page_end,
         excerpt: p.excerpt,
         count: 1,
+        ...(p.url ? { url: p.url } : {}),
+        ...(p.post_title ? { post_title: p.post_title } : {}),
+        ...(p.original_date ? { original_date: p.original_date } : {}),
+        ...(p.wp_date ? { wp_date: p.wp_date } : {}),
       });
     }
   }

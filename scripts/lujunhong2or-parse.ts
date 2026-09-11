@@ -222,7 +222,8 @@ export function parsePost(post: WpPost, kind: SourceKind): PostParse {
 // with a 台长-side turn are unparseable (e.g. 秘书处 letters where the answerer
 // is the secretariat, NOT 台长 — those must not be attributed to 台长).
 
-const T_Q_RE = /^(男|女)?听众[A-Za-z0-9甲乙丙丁]{0,3}\s*[：:]/;
+// 听\s*众: the 2011 精彩灵验对话摘录 posts write 「听 众:」 with a space (batch 2 §2 C).
+const T_Q_RE = /^(男|女)?听\s*众[A-Za-z0-9甲乙丙丁]{0,3}\s*[：:]/;
 const T_A_RE = /^(卢?台\s*长|师父)(答|开示)?\s*[：:]/;
 // Enumerated variants: "1．问：…" / "12、问：…" (玄艺问答 2010-11 web edits)
 const NUM_Q_RE = /^[0-9０-９]{1,3}\s*[．.、）)]\s*问\s*[：:]/;
@@ -253,6 +254,13 @@ export function extractDateLoose(title: string): string | null {
 export function parseTranscriptPost(post: WpPost, kind: SourceKind): PostParse {
   const title = decodeEntities(post.title.rendered).trim();
   const lines = htmlToLines(post.content.rendered);
+  return parseTranscriptLines(post.id, title, lines, kind);
+}
+
+/** Transcript parser over pre-rendered lines (batch 2 §2: the 玄艺综述 parser
+ *  normalizes lines and strips the 编者按 block before handing them here). */
+export function parseTranscriptLines(postId: number, title: string, lines: string[], kind: string): PostParse {
+  const post = { id: postId };
   const warnings: string[] = [];
 
   interface Exchange {

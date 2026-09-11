@@ -353,5 +353,55 @@ console.log('— over-strip detection (conv c47ffe52: 祈求词 without 经名) 
   assert('stripping ungrounded 功课 lines reproduces the gutted shape', isOverStripped(stripped), stripped);
 }
 
+
+console.log('— F01 negatives (batch 2 §1): (subject, count) pairs + sentence mood, all fail-closed —');
+{
+  const wrongSubject = (v: ReturnType<typeof checkDraft>, subject: string, token: string) =>
+    v.some((x) => x.type === 'number' && x.text === token && x.subject === subject);
+  // N1 — source 往生咒49遍 / draft 礼佛49遍 → violation (number not bound to its sutra)
+  const n1 = checkDraft('建议每天念《礼佛大忏悔文》49遍。', ['【疾病百科】失眠：《往生咒》每天49遍。'], []);
+  assert('N1 往生咒49遍 does not ground 礼佛49遍', wrongSubject(n1, '礼佛', '49遍') && n1[0].reason === 'number_not_in_sources', n1);
+  // N2 — no source / visitor 999遍 / draft advises 999遍 → violation
+  const n2 = checkDraft('建议每天念《礼佛大忏悔文》999遍。', [], ['可以念999遍吗？']);
+  assert('N2 visitor 999遍 turned into advice is rejected', n2.some((x) => x.text === '999遍' && x.reason === 'number_visitor_as_advice'), n2);
+  // N3 — visitor 「我一直念21遍心经，可以吗」 / draft quotes it → OK
+  const n3 = checkDraft('你念的21遍是可以的，贵在坚持。', [], ['我一直念21遍心经，可以吗']);
+  assert('N3 quoting the visitor\'s 21遍 passes', n3.length === 0, n3);
+  // N4 — same visitor / draft 「建议你每天念21遍」 / no source → violation
+  const n4 = checkDraft('建议你每天念21遍。', [], ['我一直念21遍心经，可以吗']);
+  assert('N4 advising the visitor\'s 21遍 without a source is rejected', n4.some((x) => x.text === '21遍' && x.reason === 'number_visitor_as_advice'), n4);
+  // N5 — case source 「某同修给亡人念了200张」 / draft advises 200张 → violation
+  const CASE = '【玄艺综述】听众：我给亡人念了200张小房子。台长：难怪呢，他在下面很自由。';
+  const n5 = checkDraft('你可以给亡人念200张小房子。', [CASE], [], { caseTexts: [CASE] });
+  assert('N5 case number generalized into advice is rejected', n5.some((x) => x.text === '200张' && x.reason === 'number_case_generalized'), n5);
+  // N6 — same source / draft narrates the case → OK
+  const n6 = checkDraft('台长曾对一位同修说，她念了200张小房子之后亡人在下面很自由。', [CASE], [], { caseTexts: [CASE] });
+  assert('N6 narrating the case\'s 200张 passes', n6.length === 0, n6);
+  // N7 — source 入门手册 大悲咒7遍、心经7遍 / draft same → OK
+  const MANUAL = '【心灵法门入门手册】一般初学者功课：每天念《大悲咒》7遍、《心经》7遍、礼佛大忏悔文1-3遍左右。';
+  const n7 = checkDraft('📿 《大悲咒》每天7遍\n📿 《心经》每天7遍', [MANUAL], []);
+  assert('N7 大悲咒7遍、心经7遍 grounded by the manual', n7.length === 0, n7);
+  // N8 — same source / draft adds 礼佛7遍 → violation (礼佛 source says 1-3)
+  const n8 = checkDraft('📿 《大悲咒》每天7遍\n📿 《心经》每天7遍\n📿 《礼佛大忏悔文》每天7遍', [MANUAL], []);
+  assert('N8 礼佛7遍 (source says 1-3遍) is rejected', wrongSubject(n8, '礼佛', '7遍'), n8);
+  assert('N8 …and 大悲咒/心经 7遍 are NOT flagged', !n8.some((x) => x.subject === '大悲咒' || x.subject === '心经'), n8);
+  // Stripping is pair-scoped: only the 礼佛 line goes.
+  const stripped8 = stripViolations('📿 《大悲咒》每天7遍\n📿 《心经》每天7遍\n📿 《礼佛大忏悔文》每天7遍', n8);
+  assert('N8 strip removes only the 礼佛 line', stripped8.includes('《大悲咒》每天7遍') && stripped8.includes('《心经》每天7遍') && !stripped8.includes('礼佛'), stripped8);
+  // Subject binding variants that must still ground.
+  const n9 = checkDraft('每天三遍《心经》就可以。', ['入门手册：三遍《心经》，三遍《大悲咒》。'], []);
+  assert('subject AFTER the count (三遍《心经》) binds', n9.length === 0, n9);
+  const n10 = checkDraft('《礼佛大忏悔文》的遍数：\n- 平时每天：1-3遍', [MANUAL], []);
+  assert('block-level subject fallback (礼佛…\n- 1-3遍) binds', n10.length === 0, n10);
+  const n11 = checkDraft('每天念 21 遍。', ['佛学问答：《往生咒》每天21遍。'], []);
+  assert('bare draft count grounded by any source count (status quo)', n11.length === 0, n11);
+  // Narration lead-in governs the list that follows it in the same block.
+  const n12 = checkDraft('台长曾对一位同修这样开示：\n- 给亡人念200张小房子', [CASE], [], { caseTexts: [CASE] });
+  assert('narration lead-in covers the following list line', n12.length === 0, n12);
+  // Full-width and 張 variants still tokenize into pairs.
+  const n13 = checkDraft('建议念《礼佛大忏悔文》４９遍。', ['【疾病百科】《往生咒》每天49遍。'], []);
+  assert('fullwidth ４９遍 still checked as a 礼佛 pair', wrongSubject(n13, '礼佛', '49遍'), n13);
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

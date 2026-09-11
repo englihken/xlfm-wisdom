@@ -37,6 +37,10 @@ type PineconeHit = {
     page_end: number;
     excerpt: string;
     language: 'zh' | 'en' | 'id';
+    url: string;
+    post_title: string;
+    original_date: string;
+    wp_date: string;
   }>;
 };
 
@@ -65,6 +69,12 @@ export interface RetrievedPassage {
   // Explicit language tag on new uploads. Absent on legacy zh chunks (Option B
   // backfill: untagged → treat as zh by default).
   language?: 'zh' | 'en' | 'id';
+  // Website sources (lujunhong2or): link + 开示/节目 date, surfaced in the
+  // 参考开示 footer as a clickable link (batch 2 §6). Absent on book chunks.
+  url?: string;
+  post_title?: string;
+  original_date?: string;
+  wp_date?: string;
   // True when this chunk came back via the cross-language fallback path
   // (en/id user, primary lang-filtered results were weak, no-filter retry
   // surfaced this chunk). Internal only — used for logging.
@@ -219,6 +229,10 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
     '新手', '第一次念', '没念过', '没有念过', '从零开始', '怎么开始', '从哪里开始',
     'beginner', 'just started', 'never chanted', 'never recited', 'how to start',
     'pemula', 'baru mulai', 'belum pernah',
+    // Batch 2 §6: the EN/ID homepage chips ran at medium effort because none
+    // of these matched — 「which sutras should I recite」 is a 功课 question.
+    'what should i chant', 'what should i recite', 'which sutras', 'how do i start', 'first step',
+    'apa yang harus', 'bagaimana mulai', 'langkah pertama', 'sutra apa',
     // Audit F09: "what is 心灵法门 / introduce it" is a first-step question —
     // without the baseline the reply could not state any 功课.
     '什么是心灵法门', '心灵法门是什么', '介绍一下',
@@ -277,7 +291,9 @@ const TOPIC_TYPE_BOOST: Record<Topic, Record<string, number>> = {
 export function detectTopics(query: string): Topic[] {
   const detected: Topic[] = [];
   for (const topic of Object.keys(TOPIC_KEYWORDS) as Topic[]) {
-    if (TOPIC_KEYWORDS[topic].some((kw) => query.includes(kw))) {
+    // Case-insensitive so 「What should I chant」 matches the lowercase EN/ID keywords.
+    const q = query.toLowerCase();
+    if (TOPIC_KEYWORDS[topic].some((kw) => q.includes(kw.toLowerCase()))) {
       detected.push(topic);
     }
   }
@@ -337,6 +353,10 @@ async function pineconeSearch(
     page_end: hit.fields?.page_end,
     excerpt: hit.fields?.excerpt,
     language: hit.fields?.language,
+    url: hit.fields?.url,
+    post_title: hit.fields?.post_title,
+    original_date: hit.fields?.original_date,
+    wp_date: hit.fields?.wp_date,
   }));
 }
 
