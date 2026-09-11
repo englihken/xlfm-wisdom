@@ -1,0 +1,49 @@
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+zongshu posts: 1388 · cross-filed (letters/fahui/wenda precedence) skipped: 442 · to classify: 946
+# 玄艺综述 解析报告（2026-09-11）
+
+快照 `zongshu-20260815.json`：1388 篇；letters/fahui/wenda 已收录的交叉发布 442 篇跳过；分类 946 篇。Pinecone 中已有 `zongshu_` id 919 条（122 篇），本次**不动**；新 id 2578 条。
+
+| 家族 | 篇数 | 解析出对/块数 | 图腾类 | 零对篇数 | 已在库块（不动） | 新增块 |
+|---|---|---|---|---|---|---|
+| A 听众：/台长： | 14 | 39 | 1 | 0 | 39 | 0 |
+| B 问：…答： | 24 | 229 | 39 | 0 | 156 | 73 |
+| C 卢台长：/听 众： | 70 | 317 | 22 | 0 | 256 | 61 |
+| D 《图腾世界》 | 34 | 235 | 63 | 7 | 11 | 224 |
+| E 同修分享／反馈（不上传） | 79 | — | — | — | — | — |
+| F 开示／解答会记录（teaching） | 411 | 2225 | 0 | 0 | 5 | 2220 |
+| G 待批（未解析） | 314 | — | — | — | — | — |
+
+
+report → docs/reviews/batch2-2026-09-11/zongshu-parse-report.md
+  ✓ upserted 90/2578
+  ✓ upserted 180/2578
+  ✓ upserted 270/2578
+  ✓ upserted 360/2578
+  ✓ upserted 450/2578
+  ✓ upserted 540/2578
+  ✓ upserted 630/2578
+  ✓ upserted 720/2578
+  ✓ upserted 810/2578
+  ✓ upserted 900/2578
+  ✓ upserted 990/2578
+  ✓ upserted 1080/2578
+  ✓ upserted 1170/2578
+  ✓ upserted 1260/2578
+  ✓ upserted 1350/2578
+  ✓ upserted 1440/2578
+  ✓ upserted 1530/2578
+  ✓ upserted 1620/2578
+  ✓ upserted 1710/2578
+  ✓ upserted 1800/2578
+  ✓ upserted 1890/2578
+  ✓ upserted 1980/2578
+  ✓ upserted 2070/2578
+  ✓ upserted 2160/2578
+  ✓ upserted 2250/2578
+  ✓ upserted 2340/2578
+Error: upsert batch @2340 failed: 429 {"error":{"code":"RESOURCE_EXHAUSTED","message":"{\"error\":{\"code\":\"RESOURCE_EXHAUSTED\",\"message\":\"Request failed. You've reached the max tokens per minute (1000000) for model 'multilingual-e5-large' and input_type 'passage' for the current project. To increase this limit, contact Pinecone Support (https://support.pinecone.io).\"},\"status\":429}"},"status":429}
+    at main (C:\Users\Ken\GitHub\xlfm-wisdom\scripts\upload-zongshu-v2.ts:187:29)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+EXIT=1

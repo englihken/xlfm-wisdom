@@ -1,0 +1,238 @@
+◇ injected env (6) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · 3 case(s) · all parallel
+Running: R14, R13, R16
+[vector-search] timing parallel=2 wall_ms=2530 per_query={"health":2508,"general":2530}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 15,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=2728 per_query={"homework_入门手册":2513,"homework_175问":2565,"general":2728}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=2769 per_query={"little_house":2464,"general":2769}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R14 violation=number attempt=1 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:R13 violation=quote attempt=1 reason=quote_not_verbatim text="初学者在开始念功课的同时，就可以开始念诵小房子，可以先为自己的要经者念7张，并且根据自己的情况坚持念诵。"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="27遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="49遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="84遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="87遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="1遍"
+[verbatim-guard] conversation=regression-test:R14 violation=quote attempt=2 reason=quote_not_verbatim text="没有“我”，怎么跟人家争斗？妈妈没有自己，永远不会跟孩子去争斗，因为是她生出来的孩子啊。不为自己的人，就不会有争执。"
+[verbatim-guard] conversation=regression-test:R14 stripped tail=none
+[verbatim-guard] conversation=regression-test:R14 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"21遍","reason":"number_not_in_sources"},{"attempt":2,"type":"quote","text":"没有“我”，怎么跟人家争斗？妈妈没有自己，永远不会跟孩子去争斗，因为是她生出来的孩子啊。不为自己的人，就不会有争执。","reason":"quote_not_verbatim"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张"],"replyTokens":["3遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"none"}
+[vector-search] timing parallel=3 wall_ms=1395 per_query={"homework_入门手册":1129,"homework_175问":1209,"general":1394}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R13 violation=quote attempt=2 reason=quote_not_verbatim text="功课和小房子要分开，功课不能点到小房子上去。"
+[verbatim-guard] conversation=regression-test:R13 stripped tail=none
+[verbatim-guard] conversation=regression-test:R13 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"quote","text":"初学者在开始念功课的同时，就可以开始念诵小房子，可以先为自己的要经者念7张，并且根据自己的情况坚持念诵。","reason":"quote_not_verbatim"},{"attempt":1,"type":"number","text":"1张","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"27遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"49遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"84遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"87遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"1遍","reason":"number_not_in_sources"},{"attempt":2,"type":"quote","text":"功课和小房子要分开，功课不能点到小房子上去。","reason":"quote_not_verbatim"}],"chunkTokens":["7张","3张","21张","10张","9张","1000张"],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"none"}
+[vector-search] timing parallel=4 wall_ms=1408 per_query={"homework_入门手册":1165,"homework_175问":1168,"little_house":1170,"general":1408}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="49遍"
+[verbatim-guard] conversation=regression-test:R13 violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R13 violation=quote attempt=2 reason=quote_not_verbatim text="初学者 在开始念功课的同时， 就可以开始念诵小房子"
+[verbatim-guard] conversation=regression-test:R13 stripped tail=none
+[verbatim-guard] conversation=regression-test:R13 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"49遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":2,"type":"quote","text":"初学者 在开始念功课的同时， 就可以开始念诵小房子","reason":"quote_not_verbatim"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张","7张"],"replyTokens":["3遍","1遍","21遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"none"}
+
+═══ R14 入门轮 简单直接 (吵架 → 没有念过) — guard: clean ═══
+访客：和家人一直吵架，我可以先学什么？
+AI：家里天天吵，人是真的会累的 🙏
+
+先问你一句：**你之前有念过经吗？还是完全没接触过？**
+
+不管有没有，都可以先从最基础的两部开始，不用一次学太多：
+
+📿 **《大悲咒》每天 3 遍**
+念之前说："请大慈大悲观世音菩萨保佑我（自己的名字）身体健康，心情平静"
+
+📿 **《心经》每天 3 遍**
+念之前说："请…
+访客：没有念过
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,core_wisdom,teaching,radio_teaching,fahui_qa
+Last-turn retrieval (ALL 10): 心灵法门入门手册 p23 | 心灵法门入门手册 p36 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 白话佛法（第十册） p226 | 白话佛法（第九册） p74 | 玄艺综述 | 白话佛法（第九册） p140 | 白话佛法广播讲座（第一册） p141 | 法会弟子提问
+  ✓ contains 《大悲咒》《心经》《解结咒》
+  ✓ at least one N遍
+  ✓ no 「资料里没有写明」 / 「没有写明具体数字」
+  ✓ xlfm.my/chant not a substitute for counts (link ok only with counts)
+  ✓ body (minus 功课 block) ≤ 400 chars
+  ✓ ≤1 开示 quote, and after the 功课
+  ✓ contains 祈求词
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏
+
+先这两部，很简单：
+
+📿 **《大悲咒》每天 3 遍**
+念之前说："请大慈大悲观世音菩萨保佑我（自己的名字）身体健康，心情平静"
+
+📿 **《心经》每天 3 遍**
+念之前说："请大慈大悲观世音菩萨保佑我（自己的名字）开智慧，头脑清醒冷静，去除烦恼"
+
+⚠️ 《心经》晚上 10 点以后不念，凌晨 2 点到 5 点之间不念任何经文。
+
+不会念没关系，跟着教念视频念就好：
+🔗 https://xinlingfamen.info/jingwen/
+
+几点小提醒：
+- 每念一遍要念全名（《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》）
+- 不用追求遍数，每天坚持比念多重要
+- 念顺了，我们再加《解结咒》来化解和家人的冤结
+
+先这样念下去 🙏 有不懂的随时问我。
+
+参考：《心灵法门入门手册》
+
+═══ R13 小房子 → 还没有开始念功课 — guard: stripped ═══
+访客：我想开始念小房子
+AI：发心要念小房子，这是很好的开始 🙏
+
+在教你之前，先问一句：**你之前有念过经吗？每天的功课（《大悲咒》《心经》《礼佛大忏悔文》）有在念吗？**
+
+这个很重要，因为台长开示过，小房子的门槛是「有没有开始做功课」：
+
+> 初学者 在开始念功课的同时， 就可以开始念诵小房子
+
+也就是说——**只要你已经开始做功课（哪怕才…
+访客：还没有开始念功课
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,xiaofangzi_guide,qa_collection,counseling_manual,case_studies,fahui_qa,buddhist_basics
+Last-turn retrieval (ALL 10): 心灵法门入门手册 p23 | 小房子念诵指南 p38 | 心灵法门入门手册 p36 | 小房子念诵指南 p22 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 弘法度人辅导手册 p67 | 心灵法门例说 p334 | 法会弟子提问 | 佛学常识开示锦集（第一册） p132
+  ✓ retrieval carries 念诵指南 or 入门手册
+  ✓ gives the 功课 first (words, or 📿 block before 小房子)
+  ✓ names the three pillars (大悲咒/心经/礼佛)
+  ✓ at least one N遍
+  ✓ 小房子 can start once 功课 has begun (not "wait until stable")
+  ✓ cites 念诵指南 or 入门手册 (reply or sources)
+  ✓ no 查不到相关原文 / 不敢乱说
+  ✓ no 「资料里没有写明具体数字」 (new refusal phrasing)
+  ✓ final text passes guard (0 residual)
+--- reply ---
+那我们就从头开始，很简单 🙏
+
+台长的《心灵法门入门手册》里，日常功课的基本组合是：**《大悲咒》三遍、《心经》三遍、《礼佛大忏悔文》一遍、《往生咒》二十一遍。**
+
+你完全没念过，**先只做前面两部**，念顺了我们再加。
+
+---
+
+📿 **《大悲咒》每天 3 遍**
+
+念之前说：
+「请大慈大悲观世音菩萨保佑我 XXX（你的全名）身体健康，增强功力。」
+
+📿 **《心经》每天 3 遍**
+
+念之前说：
+「请大慈大悲观世音菩萨保佑我 XXX（你的全名）开智慧，头脑清醒冷静，去除烦恼。」
+
+⚠️ 《心经》晚上 10 点以后不要念，凌晨 2 点到 5 点之间任何经文都不念。
+
+---
+
+不会念、不认得字都没关系，跟着教念视频念就好：
+
+🔗 https://xinlingfamen.info/jingwen/
+
+念每一遍要念全名——《大悲咒》念「千手千眼无碍大悲心陀罗尼」，《心经》念「般若波罗蜜多心经」。
+
+---
+
+这两部念顺了之后，再加《礼佛大忏悔文》**1 遍**和《往生咒》**21 遍**。礼佛一定要从 1 遍开始，不要多念，因为它会把业障激活出来忏悔，一下子念多了身上会不舒服。
+
+所以你不用等很久。**只要功课开始做了，哪怕才念几天，就可以开始念小房子。** 等你这几天念下来，跟我说一声，我再一步步教你小房子的经文、点红点和烧送。
+
+---
+
+台长常说，念经就像烧水，要一直烧到水开。不要去问「几时会好」，把心放在「今天我念了没有」上面。坚持念下去，菩萨会安排。
+
+想有人陪你一起念，也可以联系就近的共修会 🙏
+🌐 https://xlfm.my/contact-us
+📞 总会：+603-6257 3811
+
+一切免费结缘。
+
+南无大慈大悲观世音菩萨 🙏
+
+═══ R16 梦见蛇 → 图腾案例不套访客 — guard: clean ═══
+Q: 我昨晚梦见一条蛇缠在我身上，醒来后一直很不舒服，是不是身上有灵性？
+Sources: 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 · types: case_studies,disease_encyclopedia,letter_qa,core_wisdom
+  ✗ no totem reading applied to the visitor (身上有/你的图腾/附在你)
+  ✓ does not claim to see (我看到你/台长看到你)
+  ✓ still gives 念经 guidance
+  ✓ final text passes guard (0 residual)
+--- reply ---
+做这样的梦，醒来心里发慌，是很正常的反应 🙏 先不要害怕。
+
+台长在《解答来信疑惑（第一百二十三篇）》里，回答过一位同修类似的梦：
+
+> 有冤结，梦见蛇一般会犯小人，倒霉，可能上辈子跟蛇有关系或者曾经被蛇咬过
+
+台长当时给那位同修的做法是：小房子一拨21张，念诵3拨。另外一位梦见蛇的同修，台长也是让他小房子21张一拨一拨地念。
+
+不过要说清楚——**这些是台长针对具体某位同修的开示，情况因人而异**。我没有任何神通，看不到你的情况，所以不会说"你身上有什么"。我只能把台长处理类似梦境的方法告诉你。
+
+梦境本身其实是个提醒，提醒我们该念经、该化解冤结了，不是坏事。
+
+想给你合适的建议，先问你一句：
+
+**你之前有念过经吗？还是刚接触心灵法门？**
+
+知道你的情况，我才好告诉你从哪里开始最稳 🙏
+
+=== timing / cost · model=claude-opus-5 ===
+  R14 入门轮 简单直接 (吵架 → 没有念过)                 turns=2 wall/turn=18109ms calls=3 effort=low out_tokens=1467 cost=$0.192
+  R13 小房子 → 还没有开始念功课                       turns=2 wall/turn=42285ms calls=4 effort=low out_tokens=3978 cost=$0.322
+  R16 梦见蛇 → 图腾案例不套访客                       turns=1 wall/turn=26555ms calls=1 effort=medium out_tokens=1227 cost=$0.080
+turn wall p50=26555ms p90=42284.5ms avg=28983ms · first_text avg=5573ms · calls/turn=1.60 · cache hits=8/8
+cost: total=$0.594 · per turn=$0.1189 (5 turns)
+checks: 20/21 passed · cases: 2/3 fully green
+
+1 CHECKS FAILED
+EXIT=1

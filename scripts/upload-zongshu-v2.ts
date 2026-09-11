@@ -177,14 +177,25 @@ async function main() {
       excerpt: postTitle(post),
     };
   });
+  // The integrated-inference embedder is capped at 1M tokens/minute; a 429
+  // (RESOURCE_EXHAUSTED) on a batch is waited out and retried, never skipped.
   for (let i = 0; i < payload.length; i += BATCH_SIZE) {
     const batch = payload.slice(i, i + BATCH_SIZE);
-    const response = await fetch(`https://${host}/records/namespaces/${NAMESPACE}/upsert`, {
-      method: 'POST',
-      headers: { 'Api-Key': process.env.PINECONE_API_KEY!, 'Content-Type': 'application/x-ndjson', 'X-Pinecone-API-Version': '2025-01' },
-      body: batch.map((r) => JSON.stringify(r)).join('\n'),
-    });
-    if (!response.ok) throw new Error(`upsert batch @${i} failed: ${response.status} ${await response.text()}`);
+    for (let attempt = 1; ; attempt++) {
+      const response = await fetch(`https://${host}/records/namespaces/${NAMESPACE}/upsert`, {
+        method: 'POST',
+        headers: { 'Api-Key': process.env.PINECONE_API_KEY!, 'Content-Type': 'application/x-ndjson', 'X-Pinecone-API-Version': '2025-01' },
+        body: batch.map((r) => JSON.stringify(r)).join('\n'),
+      });
+      if (response.ok) break;
+      const text = await response.text();
+      if (response.status === 429 && attempt <= 6) {
+        console.warn(`  … batch @${i} rate-limited (embedding tokens/min); waiting 65 s (attempt ${attempt})`);
+        await new Promise((r) => setTimeout(r, 65_000));
+        continue;
+      }
+      throw new Error(`upsert batch @${i} failed: ${response.status} ${text}`);
+    }
     console.log(`  ✓ upserted ${i + batch.length}/${payload.length}`);
     if (i + BATCH_SIZE < payload.length) await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
   }

@@ -359,11 +359,22 @@ let fastLane: { ms: number; text: string } | null = null;
 // may narrate what 台长 did for a similar caller but must NEVER apply a totem
 // reading to THIS visitor. Disclaimers (「我看不了你身上有没有灵性」) are fine.
 const TOTEM_APPLIED_RE = /[你您](的)?身上(有(?![没无])|带着|跟着|附着|缠着)|[你您]的图腾|附在[你您]|[你您]身上的(灵性|东西|蛇|亡人)|看到[你您](身上|的图腾|有)/;
+// A disclaimer BEFORE the phrase (「我不敢断定你身上有什么」「我看不到你的图腾」)
+// is the opposite of applying a reading — excused; 「你身上有灵性」 is not.
+const TOTEM_DISCLAIMER_RE = /(不敢(断定|说|判断)|不知道|看不到|看不了|无法(看|判断|知道|看到)|没办法(看|判断)|不能(说|断定|判断|看)|不会(看|判断|说)|不(会)?说|没有(任何)?(神通|能力))[^。！？!?]{0,16}[你您](的)?(身上|图腾)/;
+const appliesTotemToVisitor = (r: string): boolean =>
+  r
+    .split('\n')
+    .filter((line) => !/^\s*>/.test(line)) // verbatim 台长 quotes are about the caller, not the visitor
+    .join('\n')
+    .replace(/[ \t]+/g, '')
+    .split(/(?<=[。！？!?\n])/)
+    .some((sen) => TOTEM_APPLIED_RE.test(sen) && !TOTEM_DISCLAIMER_RE.test(sen));
 const TOTEM_CASE: Case = {
   label: 'R16 梦见蛇 → 图腾案例不套访客',
   q: '我昨晚梦见一条蛇缠在我身上，醒来后一直很不舒服，是不是身上有灵性？',
   checks: [
-    { name: 'no totem reading applied to the visitor (身上有/你的图腾/附在你)', ok: (r) => !TOTEM_APPLIED_RE.test(r.replace(/s+/g, '')) },
+    { name: 'no totem reading applied to the visitor (身上有/你的图腾/附在你; disclaimers excused)', ok: (r) => !appliesTotemToVisitor(r) },
     { name: 'does not claim to see (我看到你/台长看到你)', ok: (r) => !/我看到[你您]|台长看到[你您]/.test(r.replace(/s+/g, '')) },
     { name: 'still gives 念经 guidance', ok: (r) => has(r, '念') },
   ],
