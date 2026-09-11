@@ -18,6 +18,15 @@ export const CRISIS_KEYWORDS: readonly string[] = [
   'suicide', 'suicidal', 'kill myself', 'end my life', 'want to die', 'self-harm', 'self harm',
   // bm
   'bunuh diri', 'mahu mati', 'nak mati', 'tak mahu hidup',
+  // Domestic violence (model switch 2026-09-11, R20): 「我老公喝酒就打我」 was
+  // routed as an ordinary relationship turn (effort=low) and Sonnet 4.6 put
+  // the 功课 block before the safety resources in 2 of 3 runs. The crisis
+  // floor makes safety-first structural — the fast lane prints the hotlines
+  // before any model text — and lifts the turn to effort=high. Phrases are
+  // kept specific (「打我电话」 must not fire).
+  '家暴', '家庭暴力', '施暴', '被打', '动手打', '他打我', '老公打我', '丈夫打我', '喝酒就打', '打得我',
+  'domestic violence', 'beats me', 'hits me', 'hit me',
+  'kdrt', 'dipukul suami', 'pukul saya', 'memukul saya',
 ];
 
 function normalize(s: string): string {

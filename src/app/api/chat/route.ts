@@ -253,6 +253,8 @@ async function persistAssistant(params: {
   conversationId: string | null;
   content: string;
   sources: unknown;
+  // Pipeline soft-check flags (migration 048): e.g. 'citation_no_date'.
+  flags?: string[];
 }): Promise<string | null> {
   if (!supabaseAdmin || !params.conversationId) return null;
   try {
@@ -263,6 +265,7 @@ async function persistAssistant(params: {
         role: 'assistant',
         content: params.content,
         sources: params.sources,
+        ...(params.flags && params.flags.length > 0 ? { flags: params.flags } : {}),
       })
       .select('created_at')
       .maybeSingle();
@@ -454,6 +457,7 @@ async function handleTurn(
   // 6b6f74ff). The client receives the text in one event.
   let fullText: string;
   let refused = false;
+  let replyFlags: string[] = [];
   let generationFailed = false;
   let sources: CareSource[] = [];
   let chipToStore: Parameters<typeof storeChipAnswer>[0] | null = null;
@@ -477,6 +481,7 @@ async function handleTurn(
       });
       fullText = out.fullText;
       refused = out.refused;
+      replyFlags = out.flags;
       if (chip) {
         chipToStore = {
           chipKey: chip.key,
@@ -522,7 +527,7 @@ async function handleTurn(
     const persistedAt = await persistChipTurn({ conversationId: convId, created, question: message, answer: storedText, sources });
     if (persistedAt) emit({ type: 'persisted', createdAt: persistedAt });
   } else if (!generationFailed) {
-    const persistedAt = await persistAssistant({ conversationId: convId, content: storedText, sources });
+    const persistedAt = await persistAssistant({ conversationId: convId, content: storedText, sources, flags: replyFlags });
     if (persistedAt) emit({ type: 'persisted', createdAt: persistedAt });
   }
 
