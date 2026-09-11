@@ -48,11 +48,16 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY!, maxRet
 // Opus 5 runs with adaptive thinking ON by default, and thinking tokens count
 // against max_tokens — so the budget is far above the ~2000-token visible reply
 // we actually expect, or thinking would truncate the answer mid-sentence.
-// REPLY_MODEL is overridable by env for measurement only (brief 09-10 §6:
-// Sonnet vs Opus A/B on the same regression suite). The default stays Opus 5
-// until Ken decides otherwise from the numbers.
-export const DEFAULT_REPLY_MODEL = 'claude-opus-5';
+// Model switch 2026-09-11 (docs/briefs/2026-09-11-model-switch.md): the default
+// reply model is Sonnet 4.6 — on the consolidated v2 prompt it passed the same
+// R1–R21 + chips suite as Opus 5 (39/41 vs 38/41) at first-token 2.9 s vs 8.7 s.
+// Rollback is one env var: REPLY_MODEL=claude-opus-5. REPLY_MODEL_HIGH (default
+// = REPLY_MODEL) overrides the model for `high`-effort turns only (canonical
+// numbers / karma warnings / crisis), so a weak high tier can go back to Opus
+// without moving everything.
+export const DEFAULT_REPLY_MODEL = 'claude-sonnet-4-6';
 export const REPLY_MODEL = process.env.REPLY_MODEL?.trim() || DEFAULT_REPLY_MODEL;
+export const REPLY_MODEL_HIGH = process.env.REPLY_MODEL_HIGH?.trim() || REPLY_MODEL;
 export const REPLY_MAX_TOKENS = 8000;
 
 // ── Thinking effort by turn type (brief 09-10 §3; the 08-30 §6 plan) ─────────
@@ -73,7 +78,37 @@ export const REPLY_MAX_TOKENS = 8000;
 // top-level form; a 400 on the beta falls back to top-level automatically.
 export type ReplyEffort = 'low' | 'medium' | 'high';
 const EFFORT_BETA = 'mid-conversation-output-config-2026-07-01';
-let perMessageEffortSupported = REPLY_MODEL === 'claude-opus-5';
+/** The model a turn of this effort tier runs on (REPLY_MODEL_HIGH for `high`). */
+export function replyModelFor(effort?: ReplyEffort): string {
+  return effort === 'high' ? REPLY_MODEL_HIGH : REPLY_MODEL;
+}
+// Per model: only Opus 5 takes the per-message effort form; a 400 on the beta
+// flips the entry to false for the rest of the process.
+const perMessageEffortSupported = new Map<string, boolean>();
+const supportsPerMessageEffort = (model: string) => perMessageEffortSupported.get(model) ?? model === 'claude-opus-5';
+
+// ── Citation date soft check (model switch §3) ───────────────────────────────
+// A website-QA citation (解答来信疑惑 / 玄艺问答 / 玄艺综述 / 玄学问答 / 精彩节目
+// 摘录) must carry its 开示/节目 date (LETTERS_SOURCE_RULES 1). When a line cites
+// one without a date the draft is regenerated ONCE with a format reminder; if
+// the date is still missing the reply ships as is — no strip, no tail — and the
+// turn is flagged `citation_no_date` (messages.flags + audit_log) so the review
+// queue and the Sonnet watch can count it.
+const WEBSITE_SOURCE_RE = /解答来信疑惑|玄艺问答|玄艺综述|玄学问答|精彩节目摘录/;
+const CITATION_DATE_RE = /开示于\s*\d{4}\s*年|\d{4}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日|\d{4}\s*年\s*\d{1,2}\s*月|\d{4}-\d{2}-\d{2}|节目日期/;
+export function citationsMissingDate(text: string): string[] {
+  const out: string[] = [];
+  for (const line of text.split('\n')) {
+    if (!WEBSITE_SOURCE_RE.test(line)) continue;
+    // Quoted passages (> …) are the visitor-facing 原话, not the citation line.
+    if (/^\s*>/.test(line) && !/参考|来源|——|—— /.test(line)) continue;
+    if (!CITATION_DATE_RE.test(line)) out.push(line.trim().slice(0, 80));
+  }
+  return out;
+}
+function buildCitationDateInstruction(missing: string[]): string {
+  return `【引用格式提醒】你的回复引用了网站问答类来源，但下面这些引用没有写开示／节目日期：\n${missing.map((m) => `- ${m}`).join('\n')}\n请按〔网站问答 来源规则〕第 1 条重写引用：《解答来信疑惑（第N篇）》（开示于YYYY年M月D日）／《玄艺问答》（YYYY年M月D日节目）／《玄艺综述》（YYYY年M月D日节目）。日期只能取自检索段落开头【…】标题里的日期；标题里没有日期就省略日期，绝不推算。其余内容保持不变——不要因此删掉已经写出的遍数、祈求词或引用本身。`;
+}
 
 export function chooseReplyEffort(params: {
   message: string;
@@ -277,9 +312,10 @@ export async function generateGuardedReplyText(params: {
   // default (high), which is what production ran before 09-10.
   effort?: ReplyEffort;
   onStage?: (stage: ReplyStage) => void;
-}): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome; modelCalls: number }> {
+}): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome; modelCalls: number; flags: string[] }> {
   const { messages, language, passages, contextBlock, effort } = params;
   const convId = params.conversationId ?? 'unknown';
+  const model = replyModelFor(effort);
   const stage = (s: ReplyStage) => {
     try {
       params.onStage?.(s);
@@ -319,7 +355,7 @@ export async function generateGuardedReplyText(params: {
     };
     const topLevel = () => {
       const stream = anthropic.messages.stream({
-        model: REPLY_MODEL,
+        model,
         max_tokens: REPLY_MAX_TOKENS,
         ...(effort ? { output_config: { effort } } : {}),
         system,
@@ -328,12 +364,12 @@ export async function generateGuardedReplyText(params: {
       onEvents(stream);
       return stream.finalMessage();
     };
-    let effortMode: 'per_message' | 'top_level' | 'none' = effort ? (perMessageEffortSupported ? 'per_message' : 'top_level') : 'none';
+    let effortMode: 'per_message' | 'top_level' | 'none' = effort ? (supportsPerMessageEffort(model) ? 'per_message' : 'top_level') : 'none';
     let msg: Anthropic.Message;
-    if (effort && perMessageEffortSupported) {
+    if (effort && supportsPerMessageEffort(model)) {
       try {
         const stream = anthropic.beta.messages.stream({
-          model: REPLY_MODEL,
+          model,
           max_tokens: REPLY_MAX_TOKENS,
           betas: [EFFORT_BETA],
           system: system as Anthropic.Beta.BetaTextBlockParam[],
@@ -349,7 +385,7 @@ export async function generateGuardedReplyText(params: {
         // the top-level form for the rest of this process and retry now.
         if (e instanceof Anthropic.BadRequestError && /anthropic-beta|output_config|role 'system'|per-turn effort/i.test(e.message)) {
           console.error(`[care-pipeline] per-message effort rejected (${e.message.slice(0, 120)}) — falling back to top-level output_config.effort`);
-          perMessageEffortSupported = false;
+          perMessageEffortSupported.set(model, false);
           effortMode = 'top_level';
           msg = await topLevel();
         } else {
@@ -365,7 +401,7 @@ export async function generateGuardedReplyText(params: {
     // the 1-hour ephemeral cache hits, cache_creation when it missed.
     const u = msg.usage as Anthropic.Usage & { cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null };
     console.log(
-      `[care-pipeline] timing conversation=${convId} model=${REPLY_MODEL} effort=${effort ?? 'default'} effort_mode=${effortMode} attempt=${attempt} ttfb_ms=${ttfbMs} first_text_ms=${firstTextMs} total_ms=${Date.now() - t0} input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_create=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens} stop=${msg.stop_reason}`
+      `[care-pipeline] timing conversation=${convId} model=${model} effort=${effort ?? 'default'} effort_mode=${effortMode} attempt=${attempt} ttfb_ms=${ttfbMs} first_text_ms=${firstTextMs} total_ms=${Date.now() - t0} input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_create=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens} stop=${msg.stop_reason}`
     );
     return msg;
   };
@@ -418,8 +454,18 @@ export async function generateGuardedReplyText(params: {
     text: string,
     guard: GuardOutcome,
     tail?: GuardTail | 'safe-reply'
-  ): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome; modelCalls: number }> => {
+  ): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome; modelCalls: number; flags: string[] }> => {
     const scrub = scrubContradictoryRefusal(text);
+    // Citation date soft check: flag only (the retry already happened on the first draft).
+    const flags: string[] = [];
+    const stillMissing = citationsMissingDate(scrub.text);
+    if (stillMissing.length > 0) {
+      flags.push('citation_no_date');
+      console.error(`[care-pipeline] conversation=${convId} citation_no_date after retry: ${JSON.stringify(stillMissing)}`);
+      if (UUID_RE.test(convId)) {
+        await writeAudit({ actorId: null, actorEmail: null, module: 'care', action: 'care.citation_no_date', tableName: 'conversations', recordId: convId, after: { missing: stillMissing, model } });
+      }
+    }
     decision.outcome = guard;
     decision.tail = tail;
     decision.scrubbed = scrub.removed;
@@ -434,13 +480,23 @@ export async function generateGuardedReplyText(params: {
       );
     }
     await logGuardDecision(convId, decision);
-    return { fullText: scrub.text, refused: false, guard, modelCalls };
+    return { fullText: scrub.text, refused: false, guard, modelCalls, flags };
   };
 
   let result = await callModel();
   if (result.stop_reason === 'refusal') {
     console.warn('[care-pipeline] model refused; sending hand-off reply');
-    return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'clean', modelCalls };
+    return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'clean', modelCalls, flags: [] };
+  }
+  // Citation date soft check: one format-reminder regeneration, before the
+  // verbatim guard looks at the draft (the guard then checks whatever came back).
+  {
+    const missing = citationsMissingDate(textOf(result));
+    if (missing.length > 0) {
+      console.error(`[care-pipeline] conversation=${convId} citation without date (${missing.length}) — regenerating once with the format reminder`);
+      const retried = await callModel(buildCitationDateInstruction(missing));
+      if (retried.stop_reason !== 'refusal') result = retried;
+    }
   }
   // Observability only (P2 §5): REPLY_MAX_TOKENS=8000 is ~4x the longest reply
   // seen in production, but a genuine cap hit should never again be diagnosable
@@ -459,7 +515,7 @@ export async function generateGuardedReplyText(params: {
   result = await callModel(buildRetryInstruction(violations));
   if (result.stop_reason === 'refusal') {
     console.warn('[care-pipeline] model refused on guard retry; sending hand-off reply');
-    return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'passed_after_retry', modelCalls };
+    return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'passed_after_retry', modelCalls, flags: [] };
   }
   draft = textOf(result);
   violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);
@@ -480,7 +536,7 @@ export async function generateGuardedReplyText(params: {
     result = await callModel(buildOverStripInstruction(violations, decision.chunkTokens));
     if (result.stop_reason === 'refusal') {
       console.warn('[care-pipeline] model refused on over-strip retry; sending hand-off reply');
-      return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'stripped', modelCalls };
+      return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'stripped', modelCalls, flags: [] };
     }
     draft = textOf(result);
     violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);

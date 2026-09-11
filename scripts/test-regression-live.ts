@@ -604,7 +604,7 @@ async function main() {
         effort: process.env.EFFORT_TIERS === 'off' ? undefined : chooseReplyEffort({ message: turn, messages, ctx }),
       });
       fullText = out.fullText;
-      guard = out.guard;
+      guard = out.flags.length > 0 ? `${out.guard} flags=${out.flags.join(',')}` : out.guard;
       messages.push({ role: 'assistant', content: fullText });
       stat.turns++;
       stat.wallMs += Date.now() - t0;

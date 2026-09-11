@@ -1,0 +1,403 @@
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 41 case(s) · concurrency=4
+[vector-search] timing parallel=4 wall_ms=3613 per_query={"general":3591,"canonical":3595,"homework_入门手册":3611,"homework_175问":3613}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=3644 per_query={"homework_入门手册":3569,"general":3607,"canonical":3634,"homework_175问":3644}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=3900 per_query={"homework_入门手册":3588,"canonical":3593,"homework_175问":3611,"general":3899}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=3910 per_query={"homework_入门手册":3595,"homework_175问":3608,"canonical":3642,"general":3910}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=2619 per_query={"general":2619}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'children', 'practice_method' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1c violation=quote attempt=1 reason=quote_not_verbatim text="【地藏王菩萨圣诞日特例】给亡人以及自己要经者的小房子，分别不超过**78张**；给其他人的小房子可以单独计算。"
+[verbatim-guard] conversation=regression-test:R1a violation=quote attempt=1 reason=quote_not_verbatim text="\"请菩萨原谅我，我明天会把这几遍念完\"——而且要说准确遍数。说清楚了，第二天才能补念；没说过，第二天就不能念。"
+[vector-search] timing parallel=1 wall_ms=4462 per_query={"general":4462}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1c decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"【地藏王菩萨圣诞日特例】给亡人以及自己要经者的小房子，分别不超过**78张**；给其他人的小房子可以单独计算。","reason":"quote_not_verbatim"}],"chunkTokens":["9遍","12遍","81遍","27遍","21遍","49张","69张","78张","21张","87遍","49遍","79遍","3遍","84遍","7遍","1遍","108遍","3张"],"replyTokens":["79遍","78张"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[verbatim-guard] conversation=regression-test:R2 violation=number attempt=1 reason=number_visitor_as_advice text="11遍"
+[vector-search] timing parallel=4 wall_ms=4448 per_query={"general":501,"homework_175问":4337,"homework_入门手册":4374,"canonical":4448}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1a decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"\"请菩萨原谅我，我明天会把这几遍念完\"——而且要说准确遍数。说清楚了，第二天才能补念；没说过，第二天就不能念。","reason":"quote_not_verbatim"}],"chunkTokens":["87遍","27遍","49遍","21遍","9遍","12遍","81遍","7遍","63遍","3遍","84遍","1遍","108遍","3张","13遍"],"replyTokens":["21遍","27遍","49遍","87遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=2 wall_ms=2478 per_query={"canonical":443,"general":2478}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'canonical_ritual_numbers' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=3474 per_query={"general":1072,"health":3474}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 15,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R2 violation=quote attempt=2 reason=quote_not_verbatim text="\"请大慈大悲观世音菩萨帮助我（孩子姓名）化解冤结\""
+[verbatim-guard] conversation=regression-test:R2 violation=quote attempt=2 reason=quote_not_verbatim text="\"请大慈大悲观世音菩萨帮助（孩子姓名）与（对方姓名）化解恶缘\""
+[verbatim-guard] conversation=regression-test:R2 violation=number attempt=2 reason=number_visitor_as_advice text="11遍"
+[verbatim-guard] conversation=regression-test:R2 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R2 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"11遍","reason":"number_visitor_as_advice"},{"attempt":2,"type":"quote","text":"\"请大慈大悲观世音菩萨帮助我（孩子姓名）化解冤结\"","reason":"quote_not_verbatim"},{"attempt":2,"type":"quote","text":"\"请大慈大悲观世音菩萨帮助（孩子姓名）与（对方姓名）化解恶缘\"","reason":"quote_not_verbatim"},{"attempt":2,"type":"number","text":"11遍","reason":"number_visitor_as_advice"}],"chunkTokens":["21遍","7张","49遍","27遍","78遍","17遍","1000张","3遍","500遍","120张","21张","30张","13张","49张","1遍","7遍","100遍","4张","5遍","2张","3张"],"replyTokens":["17遍"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[vector-search] timing parallel=1 wall_ms=2303 per_query={"general":2303}
+[vector-search] {
+  userLang: 'en',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: '0.813',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=1831 per_query={"general":668,"homework_入门手册":704,"homework_175问":1804,"canonical":1831}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R6 violation=quote attempt=1 reason=quote_not_verbatim text="有类似的说法，但是，问题是你不知道过世的亡人在哪个道。举个简单的例子，如果他已经投人了，你说送这个寒衣有什么用？如果他在天界，在阿修罗道或者已经在天界做仙人了，你说送这个寒衣（烧下去）对他有什么好处呢？这个跟烧纸钱的性质是一样的"
+[verbatim-guard] conversation=regression-test:R6 violation=quote attempt=1 reason=quote_not_verbatim text="在农历十月份，给亡人送寒衣，用现在的话讲就像到监狱里探监一样。你的亲戚，你的长辈，你都不知道他们在哪里，所以你这个叫\"乱烧\"啊。"
+[verbatim-guard] conversation=regression-test:R7 violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R7 violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R7 violation=number attempt=1 reason=number_not_in_sources text="3遍"
+[verbatim-guard] conversation=regression-test:R7 violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R7 violation=number attempt=1 reason=number_not_in_sources text="21遍"
+[verbatim-guard] conversation=regression-test:R9 violation=quote attempt=1 reason=quote_not_verbatim text="只要在初一十五的时候，本来只能念这点经了，你没念完，你只能在初一十五的时候跟菩萨说，\"请菩萨原谅我，我明天会把这几遍经念完\"，多少遍要讲清楚，一定要有个准确数字，那么你第二天才能补念，否则你没有讲过，第二天就不能念。"
+[vector-search] timing parallel=4 wall_ms=2728 per_query={"homework_175问":2202,"health":2429,"homework_入门手册":2439,"general":2728}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health', 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 19,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R9 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"只要在初一十五的时候，本来只能念这点经了，你没念完，你只能在初一十五的时候跟菩萨说，\"请菩萨原谅我，我明天会把这几遍经念完\"，多少遍要讲清楚，一定要有个准确数字，那么你第二天才能补念，否则你没有讲过，第二天就不能念。","reason":"quote_not_verbatim"}],"chunkTokens":["87遍","27遍","49遍","21遍","9遍","12遍","81遍","7遍","63遍","3遍","84遍","1遍","108遍","3张","13遍"],"replyTokens":["21遍","7遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[verbatim-guard] conversation=regression-test:R7 violation=quote attempt=2 reason=quote_not_verbatim text="身体不好，最重要的是自己念经消业障、超度小灵性，比找人\"看\"更根本。"
+[verbatim-guard] conversation=regression-test:R7 stripped tail=none
+[verbatim-guard] conversation=regression-test:R7 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"3遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"21遍","reason":"number_not_in_sources"},{"attempt":2,"type":"quote","text":"身体不好，最重要的是自己念经消业障、超度小灵性，比找人\"看\"更根本。","reason":"quote_not_verbatim"}],"chunkTokens":["81张","1遍","7遍","100张"],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"none"}
+[vector-search] timing parallel=4 wall_ms=2826 per_query={"homework_175问":2212,"homework_入门手册":2215,"canonical":2215,"general":2826}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=3655 per_query={"homework_175问":3037,"health":3254,"homework_入门手册":3654,"general":3655}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health', 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 19,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=444 per_query={"homework_入门手册":374,"general":390,"homework_175问":444}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R6 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"有类似的说法，但是，问题是你不知道过世的亡人在哪个道。举个简单的例子，如果他已经投人了，你说送这个寒衣有什么用？如果他在天界，在阿修罗道或者已经在天界做仙人了，你说送这个寒衣（烧下去）对他有什么好处呢？这个跟烧纸钱的性质是一样的","reason":"quote_not_verbatim"},{"attempt":1,"type":"quote","text":"在农历十月份，给亡人送寒衣，用现在的话讲就像到监狱里探监一样。你的亲戚，你的长辈，你都不知道他们在哪里，所以你这个叫\"乱烧\"啊。","reason":"quote_not_verbatim"}],"chunkTokens":["49张","69张","78张","21张","9遍","12遍","81遍","27遍","21遍","10遍","1张","2张"],"replyTokens":["49张"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=2 wall_ms=409 per_query={"little_house":371,"general":409}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R11 violation=number attempt=1 reason=number_canonical_conflict text="1遍"
+[verbatim-guard] conversation=regression-test:R11 violation=number attempt=1 reason=number_canonical_conflict text="3遍"
+[vector-search] timing parallel=4 wall_ms=3171 per_query={"homework_175问":2300,"homework_入门手册":2301,"little_house":2494,"general":3170}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=3517 per_query={"health":2589,"homework_175问":3200,"homework_入门手册":3201,"general":3517}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health', 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 19,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R14 violation=quote attempt=1 reason=quote_not_verbatim text="如果你越往前想，你会把很多不开心的事情叠在一起。"
+[vector-search] timing parallel=2 wall_ms=3120 per_query={"karma_warning":2503,"general":3120}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'karma_warning' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 15,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R14 decision={"outcome":"passed_after_retry","canonicalPresent":false,"violations":[{"attempt":1,"type":"quote","text":"如果你越往前想，你会把很多不开心的事情叠在一起。","reason":"quote_not_verbatim"}],"chunkTokens":["27遍","9遍","3遍","49遍","84遍","87遍","7遍","1遍","21遍","108遍","3张"],"replyTokens":["3遍","21遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=2 wall_ms=3873 per_query={"general":997,"health":3872}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 15,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=4003 per_query={"homework_入门手册":982,"general":987,"homework_175问":4003}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R11 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"number","text":"1遍","reason":"number_canonical_conflict"},{"attempt":1,"type":"number","text":"3遍","reason":"number_canonical_conflict"}],"chunkTokens":["7遍","87遍","49遍","9遍","12遍","81遍","27遍","21遍","49张","69张","78张","21张","3遍","84遍","1遍","108遍","3张"],"replyTokens":["7遍","49遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=5 wall_ms=2276 per_query={"little_house":361,"homework_175问":404,"homework_入门手册":1916,"canonical":2249,"general":2276}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'little_house_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 20,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R15 violation=quote attempt=1 reason=quote_not_verbatim text="活着消业，死了业还在。"
+[vector-search] timing parallel=3 wall_ms=2803 per_query={"homework_入门手册":2318,"homework_175问":2568,"general":2803}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[care-pipeline] conversation=regression-test:R16 citation without date (1) — regenerating once with the format reminder
+[vector-search] timing parallel=2 wall_ms=997 per_query={"homework_en":994,"general":997}
+[vector-search] {
+  userLang: 'en',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 13,
+  avgPrimaryScore: '0.831',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R15 violation=quote attempt=2 reason=quote_not_verbatim text="活着，才有机会消业。死了，业还在，而且灵魂要承受更大的痛苦。"
+[verbatim-guard] conversation=regression-test:R15 violation=quote attempt=2 reason=quote_not_verbatim text="**南无大慈大悲观世音菩萨**"
+[verbatim-guard] conversation=regression-test:R15 stripped tail=none
+[verbatim-guard] conversation=regression-test:R15 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"quote","text":"活着消业，死了业还在。","reason":"quote_not_verbatim"},{"attempt":2,"type":"quote","text":"活着，才有机会消业。死了，业还在，而且灵魂要承受更大的痛苦。","reason":"quote_not_verbatim"},{"attempt":2,"type":"quote","text":"**南无大慈大悲观世音菩萨**","reason":"quote_not_verbatim"}],"chunkTokens":["1张"],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"none"}
+[vector-search] timing parallel=4 wall_ms=3897 per_query={"marriage":572,"general":574,"homework_175问":3741,"homework_入门手册":3897}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'marriage_emotion', 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 21,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R16 violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[verbatim-guard] conversation=regression-test:R16 violation=number attempt=1 reason=number_not_in_sources text="49遍"
+[verbatim-guard] conversation=regression-test:R16 violation=number attempt=1 reason=number_not_in_sources text="7遍"
+[vector-search] timing parallel=2 wall_ms=9733 per_query={"canonical":9455,"general":9733}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'canonical_ritual_numbers' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=13122 per_query={"homework_入门手册":12786,"homework_175问":12866,"general":13122}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=11666 per_query={"general":11206,"homework_入门手册":11265,"homework_175问":11282,"health":11666}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health', 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 19,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R16 violation=number attempt=2 reason=number_not_in_sources text="63张"
+[verbatim-guard] conversation=regression-test:R16 stripped tail=partial
+[care-pipeline] conversation=regression-test:R16 citation_no_date after retry: ["——《解答来信疑惑（第二百七十七篇）》","——《解答来信疑惑（第七十七篇）》"]
+[verbatim-guard] conversation=regression-test:R16 decision={"outcome":"stripped","canonicalPresent":false,"violations":[{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"49遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"7遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"63张","reason":"number_not_in_sources"}],"chunkTokens":["21张"],"replyTokens":["21张"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[vector-search] Search failed: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted addresses: 18.214.21.43:443, 3.213.3.136:443, 3.216.15.213:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:1981:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:1947:35)
+      at process.processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+APIConnectionTimeoutError: Request timed out.
+    at Anthropic.makeRequest (C:\Users\Ken\GitHub\xlfm-wisdom\node_modules\@anthropic-ai\sdk\src\client.ts:693:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  status: undefined,
+  headers: undefined,
+  requestID: undefined,
+  error: undefined,
+  type: null
+}
+EXIT=1
