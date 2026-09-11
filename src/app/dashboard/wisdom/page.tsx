@@ -332,8 +332,8 @@ export default function WisdomPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left text-[11px] uppercase tracking-wide text-ink-faint border-b border-border">
-                        <th className="px-3 py-2 font-medium">{t('wisdom.colStatus')}</th>
-                        <th className="px-3 py-2 font-medium">{t('wisdom.colLanguage')}</th>
+                        <th className="px-3 py-2 font-medium whitespace-nowrap">{t('wisdom.colStatus')}</th>
+                        <th className="px-3 py-2 font-medium whitespace-nowrap">{t('wisdom.colLanguage')}</th>
                         <th className="px-3 py-2 font-medium">{t('wisdom.colQuestion')}</th>
                         <th className="px-3 py-2 font-medium text-right">{t('wisdom.colUseCount')}</th>
                         <th className="px-3 py-2 font-medium whitespace-nowrap">{t('wisdom.colCreated')}</th>
@@ -349,7 +349,7 @@ export default function WisdomPage() {
                           }`}
                         >
                           <td className="px-3 py-2 align-top">
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${statusCls(entry.status)}`}>
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs whitespace-nowrap ${statusCls(entry.status)}`}>
                               {statusLabel(entry.status)}
                             </span>
                           </td>
