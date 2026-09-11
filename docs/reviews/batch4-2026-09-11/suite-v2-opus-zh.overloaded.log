@@ -1,0 +1,200 @@
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · prompt=v2 · 21 case(s) · concurrency=4
+Running: R1a, R1b, R1c, R1d, R2, R4, R5, R6, R7, R9, R10, R11, R12, R14, R13, R15, R16, R17, R18, R20, R21
+[vector-search] timing parallel=4 wall_ms=2833 per_query={"homework_入门手册":2432,"general":2434,"homework_175问":2805,"canonical":2833}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=2895 per_query={"homework_175问":2423,"general":2430,"homework_入门手册":2436,"canonical":2894}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=2919 per_query={"general":2426,"homework_175问":2821,"canonical":2825,"homework_入门手册":2919}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=3086 per_query={"homework_入门手册":2828,"canonical":2937,"homework_175问":2944,"general":3085}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=1341 per_query={"general":1341}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'children', 'practice_method' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=354 per_query={"general":354}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1a violation=quote attempt=1 reason=quote_not_verbatim text="\"请大慈大悲观世音菩萨保佑我XXX，帮助我忏悔和消除身上的业障\""
+[verbatim-guard] conversation=regression-test:R1a violation=number attempt=1 reason=number_canonical_conflict text="1遍"
+[verbatim-guard] conversation=regression-test:R1a violation=number attempt=1 reason=number_canonical_conflict text="3遍"
+[vector-search] timing parallel=4 wall_ms=893 per_query={"general":391,"canonical":806,"homework_入门手册":807,"homework_175问":893}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=1300 per_query={"canonical":1061,"general":1300}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'canonical_ritual_numbers' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R2 scrubbed contradictory refusal: ["**关于七岁孩子念解结咒的具体遍数，本次资料中没有写明**，这一项我不敢乱给数字，建议你打电话问一下就近的共修会义工，他们会按孩子的实际情况给你稳妥的建议："]
+[verbatim-guard] conversation=regression-test:R2 decision={"outcome":"clean","canonicalPresent":false,"violations":[],"chunkTokens":["21遍","7张","49遍","27遍","78遍","17遍","1000张","3遍","500遍","120张","21张","30张","13张","49张","1遍","7遍","100遍","4张","5遍","2张","3张"],"replyTokens":["27遍","49遍"],"scrubbed":["**关于七岁孩子念解结咒的具体遍数，本次资料中没有写明**，这一项我不敢乱给数字，建议你打电话问一下就近的共修会义工，他们会按孩子的实际情况给你稳妥的建议："],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=2 wall_ms=1353 per_query={"health":1080,"general":1353}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 15,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=835 per_query={"canonical":314,"general":353,"homework_175问":815,"homework_入门手册":835}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R1a decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"\"请大慈大悲观世音菩萨保佑我XXX，帮助我忏悔和消除身上的业障\"","reason":"quote_not_verbatim"},{"attempt":1,"type":"number","text":"1遍","reason":"number_canonical_conflict"},{"attempt":1,"type":"number","text":"3遍","reason":"number_canonical_conflict"}],"chunkTokens":["87遍","27遍","49遍","21遍","9遍","12遍","81遍","7遍","63遍","3遍","84遍","1遍","108遍","3张","13遍"],"replyTokens":["21遍","9遍","12遍","7遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=4 wall_ms=369 per_query={"health":346,"general":361,"homework_入门手册":363,"homework_175问":369}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health', 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 19,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+APIError: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"},"request_id":"req_011CewDGULUJ5bLJQYtb2UUZ"}
+    at Stream.iterator (C:\Users\Ken\GitHub\xlfm-wisdom\node_modules\@anthropic-ai\sdk\src\core\streaming.ts:107:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async BetaMessageStream._createMessage (C:\Users\Ken\GitHub\xlfm-wisdom\node_modules\@anthropic-ai\sdk\src\lib\BetaMessageStream.ts:209:24) {
+  status: undefined,
+  headers: Headers {
+    date: 'Fri, 11 Sep 2026 06:53:57 GMT',
+    'content-type': 'text/event-stream; charset=utf-8',
+    'transfer-encoding': 'chunked',
+    connection: 'keep-alive',
+    'cache-control': 'no-cache',
+    'anthropic-ratelimit-input-tokens-limit': '10000000',
+    'anthropic-ratelimit-input-tokens-remaining': '9974000',
+    'anthropic-ratelimit-input-tokens-reset': '2026-09-11T06:53:54Z',
+    'anthropic-ratelimit-output-tokens-limit': '2000000',
+    'anthropic-ratelimit-output-tokens-remaining': '2000000',
+    'anthropic-ratelimit-output-tokens-reset': '2026-09-11T06:53:54Z',
+    'anthropic-ratelimit-requests-limit': '10000',
+    'anthropic-ratelimit-requests-remaining': '9999',
+    'anthropic-ratelimit-requests-reset': '2026-09-11T06:53:54Z',
+    'anthropic-ratelimit-tokens-limit': '12000000',
+    'anthropic-ratelimit-tokens-remaining': '11974000',
+    'anthropic-ratelimit-tokens-reset': '2026-09-11T06:53:54Z',
+    server: 'cloudflare',
+    'request-id': 'req_011CewDGULUJ5bLJQYtb2UUZ',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'anthropic-organization-id': '4e6bb007-7684-491b-ba07-0ded047bc951',
+    'anthropic-workspace-id': 'wrkspc_01F65FdgGnYu6pFTmgKvVfKN',
+    traceresponse: '00-48306858c074c5cf1c5050afacb1d4a3-d74200599f2030a9-01',
+    'content-encoding': 'gzip',
+    vary: 'Accept-Encoding',
+    'cf-cache-status': 'DYNAMIC',
+    'x-robots-tag': 'none',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    'cf-ray': 'a394c20edcb60d0a-KUL'
+  },
+  requestID: 'req_011CewDGULUJ5bLJQYtb2UUZ',
+  error: {
+    type: 'error',
+    error: { details: null, type: 'overloaded_error', message: 'Overloaded' },
+    request_id: 'req_011CewDGULUJ5bLJQYtb2UUZ'
+  },
+  type: 'overloaded_error'
+}
+EXIT=1

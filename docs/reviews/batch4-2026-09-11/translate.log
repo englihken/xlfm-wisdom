@@ -1,0 +1,47 @@
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+[en] core: 8938 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · chunk 1/2 done
+  ✓ core in 146 s · lines 388/388
+[en] tiers: 7751 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · chunk 1/2 done
+  ✓ tiers in 85 s · lines 399/399
+[en] practice: 7658 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · chunk 1/2 done
+  ✓ practice in 104 s · lines 365/365
+[en] xiaofangzi: 4138 chars · 1 chunk(s)
+  · chunk 1/1 done
+  ✓ xiaofangzi in 103 s · lines 229/229
+[en] relationships: 5583 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · chunk 1/2 done
+  ✓ relationships in 77 s · lines 363/363
+[en] crisis: 3322 chars · 1 chunk(s)
+  · chunk 1/1 done
+  ✓ crisis in 71 s · lines 224/224
+[en] altar: 1684 chars · 1 chunk(s)
+  · chunk 1/1 done
+  ✓ altar in 27 s · lines 112/112
+[en] sources: 2199 chars · 1 chunk(s)
+  · chunk 1/1 done
+  ✓ sources in 60 s · lines 59/59
+[en] misc: 9397 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · line count 354 ≠ 366 (attempt 1) — retrying
+  · chunk 1/2 done
+  ✓ misc in 306 s · lines 585/585
+Error [ERR_UNSUPPORTED_ESM_URL_SCHEME]: Only URLs with a scheme in: file, data, and node are supported by the default ESM loader. On Windows, absolute paths must be valid file:// URLs. Received protocol 'c:'
+    at throwIfUnsupportedURLScheme (node:internal/modules/esm/load:195:11)
+    at defaultLoad (node:internal/modules/esm/load:78:3)
+    at nextLoad (node:internal/modules/esm/hooks:785:28)
+    at load (file:///C:/Users/Ken/GitHub/xlfm-wisdom/node_modules/tsx/dist/esm/index.mjs?1789108813249:2:1777)
+    at nextLoad (node:internal/modules/esm/hooks:785:28)
+    at AsyncLoaderHooksOnLoaderHookWorker.load (node:internal/modules/esm/hooks:410:26)
+    at handleMessage (node:internal/modules/esm/worker:251:24)
+    at Immediate.checkForMessages (node:internal/modules/esm/worker:193:28)
+    at process.processImmediate (node:internal/timers:504:21) {
+  code: 'ERR_UNSUPPORTED_ESM_URL_SCHEME'
+}
+EXIT=1

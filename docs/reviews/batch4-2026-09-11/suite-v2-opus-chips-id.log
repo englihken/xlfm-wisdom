@@ -1,0 +1,308 @@
+◇ injected env (6) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-opus-5 · prompt=v2 · 6 case(s) · concurrency=3
+Running: CHIP1-id, CHIP2-id, CHIP3-id, CHIP4-id, CHIP5-id, CHIP6-id
+[vector-search] timing parallel=1 wall_ms=3883 per_query={"general":3883}
+[vector-search] timing parallel=2 wall_ms=3921 per_query={"homework_en":3897,"general":3921}
+[vector-search] {
+  userLang: 'id',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 3,
+  avgPrimaryScore: '0.901',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=3981 per_query={"homework_en":3886,"general":3980}
+[vector-search] {
+  userLang: 'id',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 3,
+  avgPrimaryScore: '0.901',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] {
+  userLang: 'id',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 0,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: true,
+  fallbackCount: 10
+}
+[vector-search] timing parallel=1 wall_ms=2091 per_query={"general":2091}
+[vector-search] {
+  userLang: 'id',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 0,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: true,
+  fallbackCount: 10
+}
+[vector-search] timing parallel=2 wall_ms=1982 per_query={"general":1903,"homework_en":1982}
+[vector-search] {
+  userLang: 'id',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 3,
+  avgPrimaryScore: '0.901',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=645 per_query={"general":385,"homework_en":645}
+[vector-search] {
+  userLang: 'id',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 3,
+  avgPrimaryScore: '0.901',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:CHIP6-id violation=quote attempt=1 reason=quote_not_verbatim text="The Eighty-eight Buddhas Great Repentance (Li Fo Ta Chan Hui Wen) 3 to 7 times"
+[verbatim-guard] conversation=regression-test:CHIP6-id decision={"outcome":"passed_after_retry","canonicalPresent":false,"violations":[{"attempt":1,"type":"quote","text":"The Eighty-eight Buddhas Great Repentance (Li Fo Ta Chan Hui Wen) 3 to 7 times","reason":"quote_not_verbatim"}],"chunkTokens":[],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false}
+
+═══ CHIP1-id Saya sulit tidur,  — guard: clean ═══
+Q: Saya sulit tidur, sutra apa yang harus saya baca?
+Sources: Heart Dharma Intro (EN) | Heart Dharma Intro (EN) | Heart Dharma Intro (EN) · types: introduction
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Tidak bisa tidur dengan baik itu memang menyiksa, hati jadi ikut kacau 🙏
+
+Anda bisa mulai dengan dua sutra ini dulu — sederhana dan bisa langsung dijalankan:
+
+📿 《大悲咒》(Mantra Welas Asih Agung / Da Bei Zhou) setiap hari 3 kali
+Sebelum melafal ucapkan: "请大慈大悲观世音菩萨保佑我（nama lengkap）身体健康，增强功力" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (nama) agar sehat jasmani dan bertambah kekuatan latihannya)
+
+📿 《心经》(Sutra Hati / Xin Jing) setiap hari 3 kali
+Sebelum melafal ucapkan: "请大慈大悲观世音菩萨保佑我（nama lengkap）开智慧，头脑清醒冷静，去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (nama) agar terbuka kebijaksanaannya, pikiran jernih dan tenang, terhapus kegelisahannya)
+
+⚠️ 《心经》 jangan dilafal setelah pukul 10 malam, dan jangan pada malam hari saat hujan petir. Sebaiknya dilafal pada siang atau sore hari.
+
+Kalau belum bisa membaca teksnya, tidak apa-apa — ada video panduan untuk diikuti:
+🔗 https://xinlingfamen.info/jingwen/
+
+Lafalkan dengan tekun setiap hari. Kalau nanti sudah lancar, boleh ditambah jumlahnya menjadi 7 kali 🙏
+
+Boleh saya tahu — apakah Anda sebelumnya pernah melafal sutra, atau ini baru pertama kali?
+
+═══ CHIP2-id Saya selalu berten — guard: clean ═══
+Q: Saya selalu bertengkar dengan keluarga, apa yang harus saya pelajari?
+Sources: Heart Dharma Intro (EN) | Heart Dharma Intro (EN) | Heart Dharma Intro (EN) · types: introduction
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Pertengkaran dalam keluarga itu memang melelahkan hati 🙏
+
+Dalam ajaran 心灵法门, hal seperti ini dipandang sebagai **simpul karma (冤结)** antara kita dengan orang tersebut — bukan sekadar soal siapa yang salah bicara. Jadi caranya bukan dengan berdebat menang-kalah, tetapi mengurai simpulnya dengan Buddha Dharma, dan lebih dulu menenangkan hati kita sendiri.
+
+Kamu bisa mulai melafal seperti ini:
+
+📿 **《大悲咒》(Mantra Welas Asih Agung / Da Bei Zhou) 3-7 kali setiap hari**
+Permohonan: "请大慈大悲观世音菩萨保佑我（nama lengkap）身体健康，增强功力" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (nama lengkap) agar sehat jasmani dan bertambah kekuatan latihannya)
+
+📿 **《心经》(Sutra Hati / Xin Jing) 3-7 kali setiap hari**
+Permohonan: "请大慈大悲观世音菩萨保佑我（nama lengkap）开智慧，头脑清醒冷静，去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (nama lengkap) agar terbuka kebijaksanaannya, pikiran jernih dan tenang, terhapus kegelisahannya)
+⚠️ Tidak dilafal setelah pukul 10 malam
+
+📿 **《解结咒》(Mantra Pengurai Simpul Karma / Jie Jie Zhou) 21-49 kali setiap hari** — ini obat untuk masalahmu
+Permohonan: "请大慈大悲观世音菩萨帮助我（nama lengkap）与（nama anggota keluarga）化解恶缘" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih membantu saya (nama lengkap) dengan (nama anggota keluarga) menguraikan jodoh buruk)
+
+📿 **《礼佛大忏悔文》(Mantra Pertobatan Agung / Li Fo Da Chan Hui Wen) mulai dari 1 kali setiap hari**
+Permohonan: "请大慈大悲观世音菩萨保佑我（nama lengkap）忏悔消除业障" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (nama lengkap) agar dapat bertobat dan menghapus rintangan karma)
+⚠️ Pemula jangan lebih dari 3 kali, dan tidak dilafal setelah pukul 10 malam
+
+Kalau Mantra Pengurai Simpul Karma hanya bisa dilafal untuk satu orang dulu, pilihlah yang paling sering bersinggungan denganmu. Teruslah melafal — Bodhisattva akan membantumu pada saat hatimu paling jernih 🙏
+
+Boleh saya tahu, apakah kamu sebelumnya sudah pernah melafal sutra?
+
+Kalau belum bisa membaca teks sutranya, ada video panduan ikut melafal:
+🔗 https://xinlingfamen.info/jingwen/
+
+═══ CHIP3-id Pekerjaan saya tid — guard: clean ═══
+Q: Pekerjaan saya tidak lancar, apakah ini karma?
+Sources: 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 · types: case_studies,letter_qa,golden_quote,qa_metaphysics,case_qa,marriage_case_study
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Pekerjaan yang tidak lancar memang membuat hati berat 🙏 Saya mengerti perasaanmu.
+
+Master Lu pernah menjawab pertanyaan serupa dalam 《玄艺问答》 (2012):
+
+> 事业和你的心有密切的关系，你的心还有杂念，事业一定不会顺的。
+
+(Karier sangat berkaitan erat dengan hatimu; kalau hatimu masih ada pikiran kacau, karier pasti tidak akan lancar.)
+
+Jadi Master Lu tidak menyuruh kita hanya menyalahkan "karma", tetapi mengajak membenahi hati dan tubuh kita dulu. Dalam 《解答来信疑惑（第一百零一篇）》 Master Lu juga memberi arahan untuk kasus serupa:
+
+> 工作找不到的人、倒霉了，很容易身体不好，让他要当心身体好好念诵大悲咒，找工作的事情先放一下，先念好身体。
+
+(Orang yang tidak dapat pekerjaan dan sedang sial mudah terganggu kesehatannya — jaga tubuh, tekun melafalkan Mantra Welas Asih Agung, urusan mencari kerja letakkan dulu, sehatkan diri lebih dahulu.)
+
+Kamu bisa mulai melafalkan:
+
+📿 《大悲咒》 (Mantra Welas Asih Agung) setiap hari 3–7 kali
+Permohonan: "请大慈大悲观世音菩萨保佑我（nama lengkap）身体健康，增强功力" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (nama) agar sehat jasmani dan bertambah kekuatan latihannya)
+
+📿 《心经》 (Sutra Hati) setiap hari 3–7 kali
+Permohonan: "请大慈大悲观世音菩萨保佑我（nama lengkap）开智慧，头脑清醒冷静，去除烦恼" (…agar terbuka kebijaksanaan, pikiran jernih dan tenang, kegelisahan terhapus)
+⚠️ Setelah pukul 10 malam tidak dilafalkan
+
+📿 《准提神咒》 (Mantra Cundi) setiap hari 21 kali
+Permohonan: "请大慈大悲观世音菩萨保佑我（nama lengkap）事业顺利，心想事成" (…agar karier lancar dan keinginan terwujud)
+
+Kalau belum bisa membaca teksnya, ikuti saja video panduan pelafalan ini: 🔗 https://xinlingfamen.info/jingwen/
+
+Teruslah melafalkan — jangan menunggu hasil dulu baru percaya. Bodhisattva akan membantu pada saat yang tepat 🙏
+
+Boleh saya tahu, apakah kamu sebelumnya sudah pernah melafalkan sutra? Supaya saya bisa memberi saran yang lebih pas untukmu.
+
+Rujukan: 《玄艺问答》（2012年）、《解答来信疑惑（第一百零一篇）》
+
+═══ CHIP4-id Anak saya nakal, b — guard: clean ═══
+Q: Anak saya nakal, bagaimana mengatasi emosi saya?
+Sources: 佛学问答175问 | 白话佛法广播讲座（第一册） | Metaphysics Q&A Vol 3 (EN) · types: qa_collection,qa_metaphysics,radio_teaching,video_teaching,case_qa,marriage_case_study,core_wisdom,teaching,golden_quote
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Emosi yang meledak lalu menyesal — ini benar-benar melelahkan, saya mengerti 🙏
+
+Master Lu memberikan ceramah seperti ini dalam 《白话佛法广播讲座（第一册）》(Ceramah Radio Bai Hua Fo Fa Jilid 1):
+
+> 你首先可以想想，这孩子或许心里有压力，或许在单位或者学校受到了很大的压力，所以回家后和妈妈不合。如果你这样想的话，你心里就舒服了。
+
+（"Pertama-tama kamu bisa berpikir, mungkin anak ini ada tekanan di hatinya, mungkin di sekolah ia mendapat tekanan yang besar, sehingga sepulang ke rumah tidak akur dengan ibunya. Kalau kamu berpikir begitu, hatimu akan menjadi lega."）
+
+Dan ini yang paling mengena:
+
+> 很多人很傻，整天生别人的气，拿别人的错误来惩罚自己。他做错了，你为他生气，气得吃不下饭，睡不着觉，傻不傻？
+
+（"Banyak orang itu bodoh, seharian marah pada orang lain, memakai kesalahan orang lain untuk menghukum diri sendiri. Dia yang berbuat salah, kamu yang marah sampai tidak bisa makan, tidak bisa tidur — bodoh atau tidak?"）
+
+Jadi arah yang Master Lu tunjukkan bukan "bagaimana menaklukkan anak", tetapi **menenangkan hati ibunya dulu**. Hati ibu tenang, medan magnet rumah berubah, anak pun ikut berubah.
+
+Yang bisa mulai kamu lafalkan:
+
+📿 《大悲咒》 (Mantra Welas Asih Agung) setiap hari 3 kali (kalau sudah lancar, tingkatkan ke 7 kali)
+Permohonan: "请大慈大悲观世音菩萨保佑我（nama lengkap）身体健康，增强功力" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （nama） agar sehat jasmani dan bertambah kekuatan latihannya)
+
+📿 《心经》 (Sutra Hati) setiap hari 3 kali (kalau sudah lancar, tingkatkan ke 7 kali)
+Permohonan: "请大慈大悲观世音菩萨保佑我（nama lengkap）开智慧，头脑清醒冷静，去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （nama） agar terbuka kebijaksanaannya, pikiran jernih dan tenang, terhapus kegelisahannya)
+⚠️ Setelah pukul 10 malam tidak dilafalkan
+
+📿 《心经》 (Sutra Hati) untuk anakmu, mulai 3 kali sehari
+Permohonan: "请大慈大悲观世音菩萨保佑我的孩子（nama anak）开智慧，听话懂事" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi anak saya （nama anak） agar terbuka kebijaksanaannya, menurut dan mengerti)
+
+📿 《解结咒》 (Mantra Pengurai Simpul Karma) setiap hari 21 kali
+Permohonan: "请大慈大悲观世音菩萨帮助我（nama lengkap）与（nama anak）化解恶缘" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih membantu saya （nama） dengan （nama anak） menguraikan jodoh buruk)
+
+📿 《礼佛大忏悔文》 (Mantra Pertobatan Agung) setiap hari 1 kali (pemula mulai dari 1 kali, jangan banyak-banyak)
+Permohonan: "请大慈大悲观世音菩萨保佑我（nama lengkap）忏悔消除业障" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （nama） agar dapat bertobat dan menghapus rintangan karma)
+⚠️ Setelah pukul 10 malam tidak dilafalkan
+
+Untuk masalah mudah gelisah dan marah, dalam 《佛学问答175问》 Master Lu juga memberikan arahan agar 《大悲咒》 dilafalkan 7 kali atau lebih untuk menambah energi dan menahan emosi yang tidak baik, 《心经》 21 kali atau lebih agar hati terlepas dari beban, serta 《解结咒》 21/27/49 kali untuk mengurai simpul karma — jumlah ini boleh kamu tuju perlahan setelah terbiasa, tidak usah dipaksakan sekarang.
+
+Teruslah melafalkan. Saat emosi mau meledak, tarik napas dan lafalkan dalam hati "南无大慈大悲观世音菩萨" (Namo Bodhisattva Guan Yin Yang Maha Welas Asih) beberapa kali dulu 🙏
+
+Boleh saya tahu — apakah kamu sebelumnya sudah pernah melafalkan sutra?
+
+Rujukan: 《白话佛法广播讲座（第一册）》hlm. 188、《佛学问答175问》
+
+═══ CHIP5-id Saya baru mengenal — guard: clean ═══
+Q: Saya baru mengenal 心灵法门, apa langkah pertama?
+Sources: Heart Dharma Intro (EN) | Heart Dharma Intro (EN) | Heart Dharma Intro (EN) · types: introduction
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Selamat datang 🙏 Kesediaanmu untuk datang belajar, itu sendiri sudah merupakan sebuah jodoh.
+
+Langkah pertama sangat sederhana — mulai melafal sutra. Mulailah seperti ini dulu:
+
+📿 **《大悲咒》 (Mantra Welas Asih Agung / Da Bei Zhou) setiap hari 3 kali**
+Sebelum melafal ucapkan:
+"请大慈大悲观世音菩萨保佑我(nama lengkap)身体健康" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (nama lengkap) agar sehat jasmani)
+
+📿 **《心经》 (Sutra Hati / Xin Jing) setiap hari 3 kali**
+Sebelum melafal ucapkan:
+"请大慈大悲观世音菩萨保佑我(nama lengkap)开智慧,去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (nama lengkap) agar terbuka kebijaksanaannya dan lenyap kegelisahannya)
+⚠️ Sutra Hati tidak dilafal setelah pukul 10 malam.
+
+Tidak bisa membaca huruf Mandarin pun tidak apa-apa — ada video panduan, ikuti saja membacanya:
+🔗 https://xinlingfamen.info/jingwen/
+
+Dua ini dulu. Kalau sudah lancar, nanti kita tambah. Lebih baik melafal sedikit tapi bertahan setiap hari, daripada banyak lalu berhenti 🙏
+
+Boleh saya tahu — apakah kamu pernah melafal sutra sebelumnya, atau ini benar-benar baru pertama kali? Supaya saya bisa memberi saran yang lebih sesuai untukmu.
+
+═══ CHIP6-id Keluarga saya saki — guard: passed_after_retry ═══
+Q: Keluarga saya sakit, apa yang harus saya baca untuk mereka?
+Sources: Heart Dharma Intro (EN) | Heart Dharma Intro (EN) | Heart Dharma Intro (EN) · types: introduction
+  ✓ non-trivial reply (≥120 chars)
+  ✓ no blanket refusal tail
+  ✓ scoped 没有写明遍数 line (info only)
+  ✓ not the safety hand-off
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Semoga keluargamu segera pulih 🙏 Mendampingi orang sakit itu berat, saya mengerti.
+
+Yang paling penting dulu: **pengobatan dokter tetap yang utama**, membaca sutra adalah pendamping. Master Lu selalu mengajarkan latihan tubuh dan jiwa berjalan bersama.
+
+Kalau kamu membacakan untuk keluargamu, **wajib menyebutkan namanya** saat memohon, baru sampai kepada beliau.
+
+📿 《大悲咒》 (Mantra Welas Asih Agung)
+Permohonan: "请大慈大悲观世音菩萨保佑（nama lengkap keluarga）医治他/她（bagian tubuh yang sakit）的疾病，早日恢复健康" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi （nama lengkap）, menyembuhkan penyakitnya pada （bagian tubuh）, agar segera pulih sehat)
+— Dalam materi panduan, untuk penyakit berat disebutkan 49 kali sehari. Kalau kamu belum terbiasa, mulailah dari 7 kali dulu, lalu tambah perlahan.
+
+📿 《心经》 (Sutra Hati) 7 kali
+Permohonan: "请大慈大悲观世音菩萨保佑（nama lengkap）开智慧，头脑清醒" (Mohon Bodhisattva Guan Yin melindungi （nama lengkap）, membuka kebijaksanaannya, pikiran jernih)
+⚠️ Setelah pukul 10 malam tidak dibaca; saat hujan petir juga tidak.
+
+📿 《礼佛大忏悔文》 (Mantra Pertobatan Agung) 3 kali
+Permohonan: "请大慈大悲观世音菩萨保佑（nama lengkap），帮助他/她忏悔消除身上（bagian tubuh）的业障" (Mohon Bodhisattva Guan Yin melindungi （nama lengkap）, membantunya bertobat dan menghapus rintangan karma pada （bagian tubuh）)
+⚠️ Kalau kamu baru mulai belajar, cukup 1 kali dulu untuk dirimu sendiri; jangan langsung banyak.
+⚠️ Setelah pukul 10 malam tidak dibaca.
+
+📿 《往生咒》 (Mantra Wang Sheng) — kalau keluarga atau leluhur pernah banyak melakukan pembunuhan makhluk hidup, materi panduan menyebutkan 49 atau 108 kali, untuk menyeberangkan roh-roh kecil yang tersakiti.
+
+Selain itu, melepas makhluk hidup atas nama beliau juga sangat membantu 🙏
+
+Boleh saya tahu — apakah kamu sendiri sudah pernah membaca sutra sebelumnya? Supaya saya bisa menyesuaikan jumlahnya agar tidak memberatkanmu.
+
+=== timing / cost · model=claude-opus-5 ===
+  CHIP1-id Saya sulit tidur,               turns=1 wall/turn=20835ms calls=1 effort=low out_tokens=814 cost=$0.906
+  CHIP2-id Saya selalu berten              turns=1 wall/turn=30324ms calls=1 effort=low out_tokens=1379 cost=$0.920
+  CHIP3-id Pekerjaan saya tid              turns=1 wall/turn=34683ms calls=1 effort=medium out_tokens=1816 cost=$0.935
+  CHIP4-id Anak saya nakal, b              turns=1 wall/turn=49990ms calls=1 effort=medium out_tokens=3194 cost=$0.149
+  CHIP5-id Saya baru mengenal              turns=1 wall/turn=16247ms calls=1 effort=low out_tokens=753 cost=$0.076
+  CHIP6-id Keluarga saya saki              turns=1 wall/turn=41318ms calls=2 effort=low out_tokens=2509 cost=$0.180
+turn wall p50=34683ms p90=49990ms avg=32233ms · first_text avg=10091ms · calls/turn=1.17 · cache hits=4/7
+cost: total=$3.165 · per turn=$0.5275 (6 turns)
+checks: 30/30 passed · cases: 6/6 fully green
+
+ALL PASS
+EXIT=0

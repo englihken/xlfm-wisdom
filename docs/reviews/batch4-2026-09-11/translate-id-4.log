@@ -1,0 +1,40 @@
+◇ injected env (6) from .env.local // tip: ⌘ override existing { override: true }
+[id] tiers: 7794 chars · 2 chunk(s)
+  · chunk 2/2 done
+  · line count 257 ≠ 324 (attempt 1) — retrying
+  · line count 118 ≠ 324 — splitting 324 lines at 157
+  · line count 166 ≠ 167 (attempt 1) — retrying
+  · line count 166 ≠ 167 — splitting 167 lines at 72
+  · line count 71 ≠ 72 (attempt 1) — retrying
+  · line count 71 ≠ 72 — splitting 72 lines at 36
+  · line count 35 ≠ 36 (attempt 1) — retrying
+  · line count 35 ≠ 36 — splitting 36 lines at 17
+  · line count 16 ≠ 17 (attempt 1) — retrying
+  · line count 16 ≠ 17 — splitting 17 lines at 6
+  · line count 5 ≠ 6 (attempt 1) — retrying
+  · line count 5 ≠ 6 — translating 6 lines one by one
+  · line count 10 ≠ 11 (attempt 1) — retrying
+  · line count 10 ≠ 11 — translating 11 lines one by one
+  · line count 18 ≠ 19 (attempt 1) — retrying
+  · line count 18 ≠ 19 — splitting 19 lines at 8
+  · line count 7 ≠ 8 (attempt 1) — retrying
+  · line count 7 ≠ 8 — translating 8 lines one by one
+  · line count 10 ≠ 11 (attempt 1) — retrying
+  · line count 10 ≠ 11 — translating 11 lines one by one
+  · line count 35 ≠ 36 (attempt 1) — retrying
+  · line count 35 ≠ 36 — splitting 36 lines at 9
+  · line count 8 ≠ 9 (attempt 1) — retrying
+  · line count 8 ≠ 9 — translating 9 lines one by one
+  · line count 26 ≠ 27 (attempt 1) — retrying
+  · line count 26 ≠ 27 — splitting 27 lines at 13
+  · line count 12 ≠ 13 (attempt 1) — retrying
+  · line count 12 ≠ 13 — splitting 13 lines at 6
+  · line count 5 ≠ 6 (attempt 1) — retrying
+  · line count 5 ≠ 6 — translating 6 lines one by one
+  · line count 13 ≠ 14 (attempt 1) — retrying
+  · line count 13 ≠ 14 — splitting 14 lines at 6
+  · line count 5 ≠ 6 (attempt 1) — retrying
+  · line count 5 ≠ 6 — translating 6 lines one by one
+  · line count 7 ≠ 8 (attempt 1) — retrying
+  · line count 7 ≠ 8 — translating 8 lines one by one
+EXIT=1
