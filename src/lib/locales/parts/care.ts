@@ -88,6 +88,7 @@ const zh = {
   'care.pageSingle': '第 {page} 页',
   'care.pageRange': '第 {start}-{end} 页',
   'care.segmentCount': '({n}段)',
+  'care.teachingDate': '开示于 {date}',
 };
 
 export const carePart: {
@@ -177,6 +178,7 @@ export const carePart: {
     'care.pageSingle': 'p. {page}',
     'care.pageRange': 'pp. {start}-{end}',
     'care.segmentCount': '({n} excerpts)',
+    'care.teachingDate': 'taught on {date}',
   },
   id: {
     'care.channelWeb': 'Web',
@@ -260,5 +262,6 @@ export const carePart: {
     'care.pageSingle': 'hlm. {page}',
     'care.pageRange': 'hlm. {start}-{end}',
     'care.segmentCount': '({n} kutipan)',
+    'care.teachingDate': 'diajarkan pada {date}',
   },
 };

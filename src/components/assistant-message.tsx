@@ -16,6 +16,11 @@ export type Source = {
   page_end?: number;
   excerpt?: string;
   count: number;
+  // Website sources (lujunhong2or): clickable link + 开示/节目 date (batch 2 §6).
+  url?: string;
+  post_title?: string;
+  original_date?: string;
+  wp_date?: string;
 };
 
 // The gold 师父开示 quote card rendered for markdown blockquotes. A real
@@ -70,10 +75,21 @@ export function MessageSources({ sources, title }: { sources: Source[]; title: s
                 ? t('care.pageSingle', { page: s.page_start })
                 : t('care.pageRange', { start: s.page_start, end: s.page_end ?? s.page_start }))
             : '';
+          // Website sources render as a link to the post plus the 开示 date
+          // (original_date from the title, else the WP publish date). Books unchanged.
+          const isWeb = Boolean(s.url);
+          const date = (s.original_date ?? s.wp_date ?? '').slice(0, 10);
           return (
-            <div key={sidx} className="text-xs text-ink-muted flex items-center gap-1">
-              <span>📖</span>
-              <span className="font-medium">《{s.book}》</span>
+            <div key={sidx} className="text-xs text-ink-muted flex items-center gap-1 flex-wrap">
+              <span>{isWeb ? '🔗' : '📖'}</span>
+              {isWeb ? (
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium underline decoration-dotted hover:text-accent" title={s.post_title ?? s.book}>
+                  《{s.book}》{s.post_title ? ` · ${s.post_title.length > 40 ? `${s.post_title.slice(0, 40)}…` : s.post_title}` : ''}
+                </a>
+              ) : (
+                <span className="font-medium">《{s.book}》</span>
+              )}
+              {isWeb && date && <span className="text-ink-muted/70">· {t('care.teachingDate', { date })}</span>}
               {pageInfo && <span className="text-ink-muted/70">· {pageInfo}</span>}
               {s.count > 1 && <span className="text-ink-faint text-[10px]">{t('care.segmentCount', { n: s.count })}</span>}
             </div>

@@ -10,6 +10,7 @@ import {
   buildSources,
   chooseReplyEffort,
   classifyAndSaveCategory,
+  crisisFastLaneText,
   flagCrisisByKeywords,
   generateGuardedReplyText,
   retrievalContextFrom,
@@ -23,6 +24,39 @@ import { recordReplyFailure } from '@/lib/ops-alerts';
 import { processFailedReplies } from '@/lib/reply-recovery';
 import { matchChip } from '@/lib/quick-questions';
 import { lookupChipAnswer, storeChipAnswer } from '@/lib/chip-answers';
+import { detectCrisisKeywords, matchedCrisisKeywords } from '@/lib/crisis-keywords';
+import { checkChatRateLimit, RATE_LIMITED_REPLY } from '@/lib/chat-rate-limit';
+
+// F03 request-body limits (batch 2 §3): runtime-validated before any work.
+const MAX_MESSAGE_CHARS = 2000;
+const MAX_HISTORY_TURNS = 20;
+const MAX_HISTORY_TURN_CHARS = 6000;
+const LANGUAGES = new Set(['zh', 'en', 'id']);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validateBody(raw: unknown): { ok: true; body: ChatRequest } | { ok: false; error: string } {
+  if (!raw || typeof raw !== 'object') return { ok: false, error: 'Invalid body' };
+  const r = raw as Record<string, unknown>;
+  const message = typeof r.message === 'string' ? r.message : '';
+  if (message.trim().length === 0) return { ok: false, error: 'Message is required' };
+  if (message.length > MAX_MESSAGE_CHARS) return { ok: false, error: `Message too long (max ${MAX_MESSAGE_CHARS} chars)` };
+  const language = typeof r.language === 'string' && LANGUAGES.has(r.language) ? (r.language as ChatRequest['language']) : 'zh';
+  const conversation: ChatRequest['conversation'] = [];
+  if (r.conversation !== undefined) {
+    if (!Array.isArray(r.conversation)) return { ok: false, error: 'conversation must be an array' };
+    if (r.conversation.length > MAX_HISTORY_TURNS) return { ok: false, error: `conversation too long (max ${MAX_HISTORY_TURNS} turns)` };
+    for (const t of r.conversation) {
+      if (!t || typeof t !== 'object') return { ok: false, error: 'invalid conversation turn' };
+      const turn = t as Record<string, unknown>;
+      if (turn.role !== 'user' && turn.role !== 'assistant') return { ok: false, error: 'conversation role must be user or assistant' };
+      if (typeof turn.content !== 'string' || turn.content.length > MAX_HISTORY_TURN_CHARS) return { ok: false, error: 'invalid conversation turn content' };
+      conversation.push({ role: turn.role, content: turn.content });
+    }
+  }
+  const conversationId = typeof r.conversationId === 'string' && UUID_RE.test(r.conversationId) ? r.conversationId : undefined;
+  const browserId = typeof r.browserId === 'string' && r.browserId.length > 0 && r.browserId.length <= 64 ? r.browserId : undefined;
+  return { ok: true, body: { message, conversation, language, conversationId, browserId } };
+}
 
 // Honest message when generation fails after the fast retries (brief "别再把
 // 访客弄丢" §3). The visitor's question IS stored (persistInbound ran), it is
@@ -61,57 +95,53 @@ interface ChatRequest {
 // conversationId to surface back to the client (null if storage is unavailable)
 // plus the conversation's current status, so the caller can stay silent when a
 // human has taken over ('volunteer_handling').
+// Batch 2 §5 (chip <1 s): the contact find-or-create and the ownership check
+// run IN PARALLEL (the check needs only browserId + conversationId), and the
+// inbound user message is NOT written here — the caller writes it, so a chip
+// hit can insert user + assistant in ONE call. Ownership semantics unchanged.
 async function persistInbound(params: {
   conversationId?: string;
   browserId?: string;
   language: 'zh' | 'en' | 'id';
-  message: string;
-}): Promise<{ conversationId: string | null; status: string | null }> {
-  if (!supabaseAdmin) return { conversationId: null, status: null };
+}): Promise<{ conversationId: string | null; status: string | null; created: boolean }> {
+  if (!supabaseAdmin) return { conversationId: null, status: null, created: false };
+  const db = supabaseAdmin;
 
-  let contactId: string | null = null;
   let convId: string | null = params.conversationId ?? null;
   // A freshly created conversation is always AI-handled; only an existing one the
   // client passes back could already be under human takeover.
   let status: string | null = params.conversationId ? null : 'ai_handling';
 
   // Find-or-create contact (web case) by persistent anonymous browserId.
-  try {
-    if (params.browserId) {
-      const { data: existing } = await supabaseAdmin
-        .from('contacts')
-        .select('id')
-        .eq('browser_id', params.browserId)
-        .maybeSingle();
-
+  const contactPromise = (async (): Promise<string | null> => {
+    try {
+      if (!params.browserId) return null;
+      const { data: existing } = await db.from('contacts').select('id').eq('browser_id', params.browserId).maybeSingle();
       if (existing) {
-        contactId = existing.id;
-        await supabaseAdmin
-          .from('contacts')
-          .update({ last_seen: new Date().toISOString() })
-          .eq('id', contactId);
-      } else {
-        const { data: created } = await supabaseAdmin
-          .from('contacts')
-          .insert({ channel: 'web', browser_id: params.browserId, display_name: '匿名访客' })
-          .select('id')
-          .single();
-        contactId = created?.id ?? null;
+        await db.from('contacts').update({ last_seen: new Date().toISOString() }).eq('id', existing.id);
+        return existing.id;
       }
+      const { data: created } = await db
+        .from('contacts')
+        .insert({ channel: 'web', browser_id: params.browserId, display_name: '匿名访客' })
+        .select('id')
+        .single();
+      return created?.id ?? null;
+    } catch (e) {
+      console.error('[supabase] contact find-or-create failed:', e);
+      return null;
     }
-  } catch (e) {
-    console.error('[supabase] contact find-or-create failed:', e);
-    contactId = null;
-  }
+  })();
 
   // OWNERSHIP CHECK (security audit H1): a client-supplied conversationId is only
   // honoured when the conversation's contact belongs to THIS browser — the same check
   // chat/updates does. Anything else (unknown id, no browserId, orphan conversation,
   // different browser) falls through to a NEW conversation instead, so an attacker who
   // learns another visitor's conversation UUID can't inject into their thread.
-  try {
-    if (convId) {
-      const { data: claimed } = await supabaseAdmin
+  const ownershipPromise = (async (): Promise<{ convId: string | null; status: string | null }> => {
+    if (!convId) return { convId: null, status };
+    try {
+      const { data: claimed } = await db
         .from('conversations')
         .select('id, status, contact:contacts ( browser_id )')
         .eq('id', convId)
@@ -125,21 +155,23 @@ async function persistInbound(params: {
       );
       if (!owned) {
         console.warn('[chat] conversationId ownership check failed — starting a new conversation');
-        convId = null;
-        status = 'ai_handling';
-      } else {
-        status = (claimed?.status as string | null) ?? status;
+        return { convId: null, status: 'ai_handling' };
       }
+      return { convId, status: (claimed?.status as string | null) ?? status };
+    } catch (e) {
+      // Fail closed: if we can't verify ownership, don't write into the claimed thread.
+      console.error('[supabase] conversation ownership check failed:', e);
+      return { convId: null, status: 'ai_handling' };
     }
-  } catch (e) {
-    // Fail closed: if we can't verify ownership, don't write into the claimed thread.
-    console.error('[supabase] conversation ownership check failed:', e);
-    convId = null;
-    status = 'ai_handling';
-  }
+  })();
 
-  // Find-or-create conversation. For an existing one, read back its status so a
-  // human takeover can silence the AI (below).
+  const [contactId, owned] = await Promise.all([contactPromise, ownershipPromise]);
+  convId = owned.convId;
+  status = owned.status;
+
+  // Find-or-create conversation. For an existing one, its status was read during
+  // the ownership check so a human takeover can silence the AI (below).
+  let created = false;
   try {
     if (!convId) {
       // Tripwire: a conversation without a contact is an ORPHAN (no browserId supplied) —
@@ -148,36 +180,70 @@ async function persistInbound(params: {
       if (!contactId) {
         console.warn('[care] conversation created without contact (no browserId)');
       }
-      const { data: created } = await supabaseAdmin
+      const { data: row } = await db
         .from('conversations')
         .insert({
           channel: 'web',
           status: 'ai_handling',
           language: params.language,
           contact_id: contactId,
+          last_message_at: new Date().toISOString(),
         })
         .select('id')
         .single();
-      convId = created?.id ?? null;
+      convId = row?.id ?? null;
+      created = Boolean(convId);
     }
-    // (an existing convId already had its status read during the ownership check)
   } catch (e) {
     console.error('[supabase] conversation create failed:', e);
     convId = null;
   }
 
-  // Save the inbound user message.
+  return { conversationId: convId, status, created };
+}
+
+// The inbound user message, written by the caller once it knows whether the
+// assistant reply can go in the same insert (chip hit) or must wait for
+// generation (normal turn — the question must be on record even if the reply fails).
+async function persistUserMessage(conversationId: string | null, content: string): Promise<void> {
+  if (!supabaseAdmin || !conversationId) return;
   try {
-    if (convId) {
-      await supabaseAdmin
-        .from('messages')
-        .insert({ conversation_id: convId, role: 'user', content: params.message });
-    }
+    await supabaseAdmin.from('messages').insert({ conversation_id: conversationId, role: 'user', content });
   } catch (e) {
     console.error('[supabase] user message save failed:', e);
   }
+}
 
-  return { conversationId: convId, status };
+// Chip hit: user + assistant rows in ONE insert; last_message_at bumped only
+// when the conversation already existed (a new one was created with it set).
+async function persistChipTurn(params: {
+  conversationId: string | null;
+  created: boolean;
+  question: string;
+  answer: string;
+  sources: unknown;
+}): Promise<string | null> {
+  if (!supabaseAdmin || !params.conversationId) return null;
+  try {
+    const { data } = await supabaseAdmin
+      .from('messages')
+      .insert([
+        { conversation_id: params.conversationId, role: 'user', content: params.question },
+        { conversation_id: params.conversationId, role: 'assistant', content: params.answer, sources: params.sources },
+      ])
+      .select('role, created_at');
+    if (!params.created) {
+      await supabaseAdmin
+        .from('conversations')
+        .update({ last_message_at: new Date().toISOString() })
+        .eq('id', params.conversationId);
+    }
+    const assistantRow = (data ?? []).find((r) => r.role === 'assistant');
+    return (assistantRow?.created_at as string | undefined) ?? new Date().toISOString();
+  } catch (e) {
+    console.error('[supabase] chip turn save failed:', e);
+    return null;
+  }
 }
 
 // Runs AFTER the reply is final: save the assistant message + bump
@@ -276,18 +342,6 @@ async function handleTurn(
 
   emit({ type: 'stage', stage: 'retrieving' satisfies ReplyStage });
 
-  // Kick off conversation storage concurrently with retrieval so the DB
-  // latency overlaps the vector search — near-zero added wall-clock before
-  // the first token. persistInbound never throws.
-  const storagePromise = persistInbound({ conversationId, browserId, language, message });
-
-  // E3 (brief §3.3): the AI-draft master switch. When 设置 turns it off, the
-  // reply pipeline skips Claude entirely — the inbound is stored, the
-  // conversation goes straight to the human queue (needs_human), and the
-  // client gets the same silent volunteer-handling stream it already knows.
-  // Missing key / unreachable table → true (today's behavior).
-  const aiDraftEnabled = await isAiDraftEnabled();
-
   const history: CareMessage[] = conversation
     .filter((msg) => msg.content && msg.content.trim().length > 0)
     .map((msg) => ({
@@ -295,14 +349,38 @@ async function handleTurn(
       content: msg.content,
     }));
   const ctx = retrievalContextFrom(history);
+  const messages: CareMessage[] = [...history, { role: 'user', content: message }];
+
+  // F07 crisis fast lane (batch 2 §4): a crisis keyword in the visitor's turn
+  // puts the hotline in front of them BEFORE retrieval and generation (R15 ran
+  // 107 s end-to-end). The full reply follows as a second text block.
+  const crisisText = detectCrisisKeywords(message) ? crisisFastLaneText(language) : null;
+  if (crisisText) {
+    console.error(`[chat] crisis fast lane keywords=${JSON.stringify(matchedCrisisKeywords(message))}`);
+    emit({ type: 'text', text: `${crisisText}\n\n` });
+  }
+
+  // Kick off conversation storage concurrently with retrieval so the DB
+  // latency overlaps the vector search — near-zero added wall-clock before
+  // the first token. persistInbound never throws.
+  const storagePromise = persistInbound({ conversationId, browserId, language });
 
   // Chip cache (09-10 §2, migration 046): one of the six homepage questions,
   // asked as the opening turn, is served from chip_answers when a fresh
   // guard-verified answer exists. Only the opening turn — mid-conversation the
-  // history changes the right answer (入门锚定). Checked BEFORE retrieval so a
-  // hit costs one DB read.
-  const chip = history.length === 0 ? matchChip(message) : null;
-  const chipHit = chip ? await lookupChipAnswer(chip.question, chip.language) : null;
+  // history changes the right answer (入门锚定). Looked up in parallel with the
+  // AI-draft switch and storage so a hit costs no extra round trip.
+  //
+  // E3 (brief §3.3): the AI-draft master switch. When 设置 turns it off, the
+  // reply pipeline skips Claude entirely — the inbound is stored, the
+  // conversation goes straight to the human queue (needs_human), and the
+  // client gets the same silent volunteer-handling stream it already knows.
+  // Missing key / unreachable table → true (today's behavior).
+  const chip = history.length === 0 && !crisisText ? matchChip(message) : null;
+  const [aiDraftEnabled, chipHit] = await Promise.all([
+    isAiDraftEnabled(),
+    chip ? lookupChipAnswer(chip.question, chip.language) : Promise.resolve(null),
+  ]);
 
   // Step 1: Search for relevant teachings from vector DB (default top_k = 10).
   // Context-aware (入门锚定): a short follow-up like 「没有学过」 is retrieved
@@ -318,7 +396,12 @@ async function handleTurn(
   // Resolve storage (started concurrently with retrieval). We need the status
   // BEFORE deciding whether to call Claude, so a human takeover isn't billed a
   // wasted generation.
-  const { conversationId: convId, status } = await storagePromise;
+  const { conversationId: convId, status, created } = await storagePromise;
+  // The visitor's question goes on record now unless a chip hit writes it
+  // together with the answer below.
+  if (!chipHit) await persistUserMessage(convId, message);
+  // Crisis flag lands at this moment too — not after generation (F07).
+  if (crisisText && convId) await flagCrisisByKeywords(convId, messages);
 
   // Send conversationId first (older clients ignore it) so the frontend can
   // persist it and send it back on the next message.
@@ -361,14 +444,6 @@ async function handleTurn(
     emit({ type: 'volunteer_handling' });
     return null;
   }
-
-  // Step 3: Build the messages array for Claude. Normalise history roles —
-  // Anthropic only accepts 'user'|'assistant', but after a human takeover the
-  // history can carry 'volunteer' turns; a volunteer's reply is prior
-  // assistant-side context from the model's POV, so it maps to 'assistant'.
-  // Empty/whitespace-only turns (e.g. an aborted streaming placeholder) are
-  // dropped defensively.
-  const messages: CareMessage[] = [...history, { role: 'user', content: message }];
 
   // Step 4: Generate the reply through the shared GUARDED pipeline (model +
   // token budget + refusal handling + verbatim/numbers guard identical to the
@@ -430,43 +505,64 @@ async function handleTurn(
   }
 
   // Step 6: Emit the reply. Sources first so the UI can show them immediately,
-  // then the full guarded reply as a single text event.
+  // then the full guarded reply as a single text event (appended after the
+  // crisis block when one was sent).
   emit({ type: 'sources', sources });
   emit({ type: 'text', text: fullText });
+  // What the visitor saw, as one stored message.
+  const storedText = crisisText ? `${crisisText}\n\n${fullText}` : fullText;
 
   // Persist the assistant message BEFORE [DONE] and tell the client its
   // timestamp, so the visitor page's late-reply poll (which also returns
   // recovered assistant replies) can start strictly after it and never
   // re-shows this one. The failure notice is NOT persisted — the conversation
   // must still count as unanswered until recovery lands.
-  if (!generationFailed) {
-    const persistedAt = await persistAssistant({ conversationId: convId, content: fullText, sources });
+  if (chipHit) {
+    const persistedAt = await persistChipTurn({ conversationId: convId, created, question: message, answer: storedText, sources });
+    if (persistedAt) emit({ type: 'persisted', createdAt: persistedAt });
+  } else if (!generationFailed) {
+    const persistedAt = await persistAssistant({ conversationId: convId, content: storedText, sources });
     if (persistedAt) emit({ type: 'persisted', createdAt: persistedAt });
   }
 
   return {
     convId,
-    transcript: [...messages, { role: 'assistant', content: fullText }],
+    transcript: [...messages, { role: 'assistant', content: storedText }],
     generationFailed,
     chipToStore,
   };
 }
 
 export async function POST(req: NextRequest) {
-  let body: ChatRequest;
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   }
-  if (!body.message || body.message.trim().length === 0) {
-    return new Response(JSON.stringify({ error: 'Message is required' }), {
+  const validated = validateBody(raw);
+  if (!validated.ok) {
+    return new Response(JSON.stringify({ error: validated.error }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+  const body = validated.body;
+
+  // F03 persistent rate limit (batch 2 §3): browserId + IP, 10-minute windows
+  // in Supabase (survives cold starts). Over the limit → 429 with an honest
+  // sentence, and NO retrieval or model call — this protects the balance.
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || req.headers.get('x-real-ip') || 'unknown';
+  const limited = await checkChatRateLimit({ browserId: body.browserId, ip });
+  if (limited) {
+    console.error(`[chat] rate_limited key=${limited.key} count=${limited.count} limit=${limited.limit}`);
+    return new Response(
+      JSON.stringify({ error: 'rate_limited', message: RATE_LIMITED_REPLY[body.language ?? 'zh'], retryAfterSec: limited.retryAfterSec }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(limited.retryAfterSec) } }
+    );
   }
 
   // Post-stream work is registered with after() HERE, in the request scope, and

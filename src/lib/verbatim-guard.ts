@@ -31,22 +31,45 @@
 // assistant messages, with every 失眠 answer losing its 遍数. The scoped rule
 // above is the fix; the quote check is unchanged.
 //
+// F01 (batch 2, 2026-09-11): the NUMBERS CHECK now works on (subject, count)
+// PAIRS with a sentence mood — see verbatim-guard-pairs.ts. A draft's
+// 「《礼佛大忏悔文》49遍」 is grounded only by a source pairing 礼佛 with 49遍
+// (or a bare source 49遍), never by 「《往生咒》49遍」; a visitor's number may
+// be quoted back but not turned into advice; a case source's number may only
+// be narrated. Bare draft numbers (no subject anywhere in the block) keep
+// the old token rule.
+//
 // Pure functions only — the pipeline (care-pipeline.ts) owns the
 // regenerate-once / strip / log flow.
+
+import {
+  extractNumberPairsByLine,
+  pairKey,
+  type NumberPair,
+} from './verbatim-guard-pairs';
 
 export type GuardViolationReason =
   // A blockquote segment is not a verbatim substring of any retrieved chunk.
   | 'quote_not_verbatim'
-  // N遍/N张 appears in no retrieved chunk and not in the visitor's words.
+  // (subject, N遍/N张) appears in no retrieved chunk and not in the visitor's words.
   | 'number_not_in_sources'
   // N遍/N张 sits in a sentence on the 组织审定 subject but only an ordinary
   // (non-canonical) chunk carries it — 组织审定 wins on its own subject.
-  | 'number_canonical_conflict';
+  | 'number_canonical_conflict'
+  // F01: the count exists only in the VISITOR's words, and the sentence
+  // recommends it (「建议每天念999遍」) instead of quoting them back.
+  | 'number_visitor_as_advice'
+  // F01: the count exists only in a CASE source (玄艺综述/玄艺问答 个案) and
+  // the sentence is not narrating that case (「你可以念200张」).
+  | 'number_case_generalized';
 
 export type GuardViolation = {
   type: 'quote' | 'number';
   text: string;
   reason: GuardViolationReason;
+  // F01: the subject the count was bound to (大悲咒 / 礼佛 / 小房子 …), null
+  // when bare. Stripping and the retry instruction are scoped by it.
+  subject?: string | null;
 };
 
 // ── Normalization ────────────────────────────────────────────────────────────
@@ -208,6 +231,10 @@ export function checkDraft(
     // the retrieved text" and got re-presented as 初一十五 doctrine — while
     // leaving 疾病百科 / 例说 numbers on other subjects legitimate (08-29).
     canonicalTexts?: string[];
+    // F01: chunk texts that are CASE records (type='case_qa' — 玄艺综述 /
+    // 玄艺问答 个案). Their counts ground a draft sentence only when it
+    // narrates the case; advising them is 个案→通则 and is rejected.
+    caseTexts?: string[];
   } = {}
 ): GuardViolation[] {
   const violations: GuardViolation[] = [];
@@ -237,33 +264,72 @@ export function checkDraft(
   const allLines = draft.split('\n');
   const subjectFlags = canonicalSubjectFlags(draft);
 
-  // Ground truth = EVERY retrieved chunk + the visitor's own words (the
-  // original brief). The canonical set is a stricter sub-ground applied only
-  // to sentences on the canonical subject.
+  // Ground truth (F01) as (subject, count) pairs, split by source class:
+  //   general — every retrieved chunk that is NOT a case record
+  //   case    — 玄艺综述 / 玄艺问答 records (opts.caseTexts)
+  //   visitor — the visitor's own words
+  // A draft pair (S, N) is grounded by a source pair (S, N) or by a BARE
+  // source N (the source stated N with no subject nearby — bare numbers keep
+  // the permissive token rule). A bare draft N is grounded by any source N.
+  // Chunks are joined with a blank line so subject context never bleeds
+  // from one chunk into the next.
+  const caseSet = new Set(opts.caseTexts ?? []);
+  const generalTexts = chunkTexts.filter((t) => !caseSet.has(t));
+  const caseTexts = chunkTexts.filter((t) => caseSet.has(t));
+  const ground = (texts: string[]) => {
+    const pairs = new Set<string>();
+    const tokens = new Set<string>();
+    for (const p of extractNumberPairsByLine(texts.join('\n\n'))) {
+      pairs.add(pairKey(p));
+      tokens.add(p.token);
+    }
+    return {
+      has: (p: NumberPair) =>
+        pairs.has(pairKey(p)) ||
+        (p.subject ? pairs.has(pairKey({ subject: null, token: p.token })) : tokens.has(p.token)),
+    };
+  };
+  const general = ground(generalTexts);
+  const cases = ground(caseTexts);
   const visitorTokens = new Set(extractNumberTokens(visitorTexts.join('\n')));
-  const allTokens = new Set([...extractNumberTokens(chunkTexts.join('\n')), ...visitorTokens]);
   const canonicalTexts = opts.canonicalTexts ?? [];
   const canonicalTokens = new Set([
     ...extractNumberTokens(canonicalTexts.join('\n')),
     ...visitorTokens,
   ]);
   const canonicalPresent = canonicalTexts.length > 0;
+  // The 组织审定 rule stays token-level on the canonical subject (unchanged).
+  const allTokens = new Set([...extractNumberTokens(chunkTexts.join('\n')), ...visitorTokens]);
 
   const seen = new Set<string>();
-  for (let i = 0; i < allLines.length; i++) {
-    const line = allLines[i];
+  const push = (p: NumberPair, reason: GuardViolationReason, strict: boolean) => {
+    const key = `${strict ? 'c' : 'a'}:${reason}:${pairKey(p)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    violations.push({ type: 'number', text: p.token, reason, subject: p.subject });
+  };
+  for (const p of extractNumberPairsByLine(draft)) {
+    const line = allLines[p.line];
     if (verifiedQuoteLines.has(line)) continue;
-    const strict = canonicalPresent && subjectFlags[i];
-    for (const token of extractNumberTokens(line)) {
-      const key = `${strict ? 'c' : 'a'}:${token}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      if (!allTokens.has(token)) {
-        violations.push({ type: 'number', text: token, reason: 'number_not_in_sources' });
-      } else if (strict && !canonicalTokens.has(token)) {
-        violations.push({ type: 'number', text: token, reason: 'number_canonical_conflict' });
-      }
+    const strict = canonicalPresent && subjectFlags[p.line];
+    // 组织审定 wins on its own subject — checked first, as before.
+    if (strict && allTokens.has(p.token) && !canonicalTokens.has(p.token)) {
+      push(p, 'number_canonical_conflict', true);
+      continue;
     }
+    if (general.has(p)) continue;
+    if (cases.has(p)) {
+      // 个案 ≠ 通则: only narration may carry a case source's number.
+      if (p.mood === 'narrate') continue;
+      push(p, 'number_case_generalized', false);
+      continue;
+    }
+    if (visitorTokens.has(p.token)) {
+      // The visitor said it: quoting it back is fine; advising it is not.
+      if (p.mood === 'advise') push(p, 'number_visitor_as_advice', false);
+      continue;
+    }
+    push(p, 'number_not_in_sources', false);
   }
 
   return violations;
@@ -284,15 +350,30 @@ export function stripViolations(draft: string, violations: GuardViolation[]): st
   const badQuoteSkeletons = new Set(
     violations.filter((v) => v.type === 'quote').map((v) => normalizeForGuard(v.text))
   );
+  // F01: pair-scoped. A violated (subject, token) removes only sentences that
+  // bind that token to that subject; a bare violation (no subject) removes
+  // every sentence carrying the token, as before.
+  const badPairs = new Set(
+    violations
+      .filter((v) => v.type === 'number' && v.reason !== 'number_canonical_conflict' && v.subject)
+      .map((v) => pairKey({ subject: v.subject!, token: v.text }))
+  );
   const badEverywhere = new Set(
-    violations.filter((v) => v.reason === 'number_not_in_sources').map((v) => v.text)
+    violations
+      .filter((v) => v.type === 'number' && v.reason !== 'number_canonical_conflict' && !v.subject)
+      .map((v) => v.text)
   );
   const badOnCanonical = new Set(
     violations.filter((v) => v.reason === 'number_canonical_conflict').map((v) => v.text)
   );
-  const sentenceIsBad = (s: string, lineOnSubject: boolean): boolean => {
+  // Pairs per (line, sentence) with block context, computed once for the draft.
+  const located = extractNumberPairsByLine(draft);
+  const pairsOf = (lineIdx: number, sentence: string): NumberPair[] =>
+    located.filter((p) => p.line === lineIdx && p.sentence === sentence);
+  const sentenceIsBad = (s: string, lineIdx: number, lineOnSubject: boolean): boolean => {
     const tokens = extractNumberTokens(s);
     if (tokens.some((t) => badEverywhere.has(t))) return true;
+    if (pairsOf(lineIdx, s).some((p) => badPairs.has(pairKey(p)))) return true;
     return lineOnSubject && tokens.some((t) => badOnCanonical.has(t));
   };
 
@@ -319,11 +400,12 @@ export function stripViolations(draft: string, violations: GuardViolation[]): st
     }
     // Non-quote line: drop the sentences that carry an unverified number.
     const lineOnSubject = subjectFlags[i];
-    if (!sentenceIsBad(line, lineOnSubject)) {
+    const sentences = splitSentences(line);
+    if (!sentences.some((s) => sentenceIsBad(s, i, lineOnSubject))) {
       keptLines.push(line);
       continue;
     }
-    const kept = splitSentences(line).filter((s) => !sentenceIsBad(s, lineOnSubject));
+    const kept = sentences.filter((s) => !sentenceIsBad(s, i, lineOnSubject));
     const rejoined = kept.join('').trim();
     if (rejoined) keptLines.push(rejoined);
   }
