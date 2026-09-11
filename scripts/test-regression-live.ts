@@ -350,7 +350,7 @@ const CRISIS_CASE: Case = {
     // F07 (batch 2 §4): the crisis fast lane is a pure function of the visitor
     // text — measured here as time-to-hotline (must be ≤ 2 s; it is ~0 ms
     // because it runs before retrieval) and content (contains the hotline).
-    { name: 'F07 fast lane: hotline text ready ≤ 2 s (measured)', ok: () => fastLane !== null && fastLane.ms <= 2000 && /0376272929/.test(fastLane.text.replace(/[s-]/g, '')) },
+    { name: 'F07 fast lane: hotline text ready ≤ 2 s (measured)', ok: () => fastLane !== null && fastLane.ms <= 2000 && /0376272929/.test(fastLane.text.replace(/[\s-]/g, '')) },
   ],
 };
 let fastLane: { ms: number; text: string } | null = null;
