@@ -27,6 +27,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { testContactIds } from '@/lib/test-traffic';
 import {
   prepareContactFold,
   applyFoldOutput,
@@ -145,6 +146,10 @@ export async function GET(req: Request) {
   let junkSkipped = 0;
   const markSummarized = (id: string) =>
     db.from('conversations').update({ summarized_at: new Date().toISOString() }).eq('id', id);
+  // Synthetic contacts (chip warm-ups / test suites, migration 050) get no
+  // profile and no per-conversation gist — their conversations are marked
+  // summarized without a model call so they stop being picked up every night.
+  const testIds = new Set(await testContactIds(db));
 
   // Orphans (no contact to attach a profile to) and junk chit-chat: mark without
   // an AI call. Junk WITH a contact is also marked inside prepareContactFold,
@@ -153,7 +158,7 @@ export async function GET(req: Request) {
   const seen = new Set<string>();
   for (const conv of conversations ?? []) {
     if (inflightConvIds.has(conv.id)) continue; // already in a pending batch
-    if (!conv.contact_id || conv.category === JUNK_CATEGORY) {
+    if (!conv.contact_id || conv.category === JUNK_CATEGORY || testIds.has(conv.contact_id)) {
       const { error } = await markSummarized(conv.id);
       if (error) console.error(`[cron/summarize] mark failed for conversation ${conv.id}:`, error);
       else junkSkipped++;

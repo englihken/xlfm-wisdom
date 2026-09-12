@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { testContactIds, excludeTestContacts } from '@/lib/test-traffic';
 
 export const runtime = 'nodejs';
 
@@ -56,11 +57,12 @@ interface MonthStats {
 }
 
 async function computeMonth(db: Db, start: string, end: string): Promise<MonthStats> {
-  const { data: convs } = await db
-    .from('conversations')
-    .select('id, category')
-    .gte('created_at', start)
-    .lt('created_at', end);
+  // Synthetic contacts are not 对话量 (09-12).
+  const testIds = await testContactIds(db as unknown as Parameters<typeof testContactIds>[0]);
+  const { data: convs } = await excludeTestContacts(
+    db.from('conversations').select('id, category').gte('created_at', start).lt('created_at', end),
+    testIds
+  );
   const convRows = (convs ?? []) as { id: string; category: string | null }[];
   const ids = convRows.map((c) => c.id);
 

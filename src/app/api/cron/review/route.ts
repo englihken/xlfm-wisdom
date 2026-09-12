@@ -30,6 +30,7 @@ import {
 import { checkAnthropicHealth } from '@/lib/ops-alerts';
 import { processFailedReplies } from '@/lib/reply-recovery';
 import { refreshChipAnswers } from '@/lib/chip-answers';
+import { testContactIds, excludeTestContacts } from '@/lib/test-traffic';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -127,11 +128,13 @@ export async function GET(req: Request) {
 
   // ── Review pass (§1.1) ─────────────────────────────────────────────────────
   const idleCutoff = new Date(Date.now() - IDLE_MS).toISOString();
-  const { data: candidates, error: candError } = await db
-    .from('conversations')
-    .select('id')
-    .lt('last_message_at', idleCutoff)
-    .eq('crisis_flag', false)
+  // Synthetic traffic is never reviewed (09-12): chip warm-ups are our own
+  // questions, and reviewing them skews the 待改进率 the watch reports read.
+  const testIds = await testContactIds(db);
+  const { data: candidates, error: candError } = await excludeTestContacts(
+    db.from('conversations').select('id').lt('last_message_at', idleCutoff).eq('crisis_flag', false),
+    testIds
+  )
     .order('last_message_at', { ascending: false })
     .limit(SCAN_LIMIT);
   if (candError) {

@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server';
 import { requireModuleAccess } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { isUnread } from '@/lib/care-inbox';
+import { testContactIds, excludeTestContacts } from '@/lib/test-traffic';
 
 export const runtime = 'nodejs';
 
@@ -61,14 +62,20 @@ export async function GET(req: Request) {
   const q = (new URL(req.url).searchParams.get('q') ?? '').trim().toLowerCase();
 
   // One query: conversations + their contact + only their latest message
-  // (ordered desc, limited to 1 per conversation for the preview).
-  const { data, error } = await supabaseAdmin
-    .from('conversations')
-    .select(
-      `id, channel, status, category, crisis_flag, assigned_volunteer, last_message_at,
+  // (ordered desc, limited to 1 per conversation for the preview). Synthetic
+  // contacts (chip warm-ups / test suites) are excluded from the list, which is
+  // what the 全部 / 我接手的 / 未回复 tabs all count off.
+  const testIds = await testContactIds(supabaseAdmin);
+  const { data, error } = await excludeTestContacts(
+    supabaseAdmin
+      .from('conversations')
+      .select(
+        `id, channel, status, category, crisis_flag, assigned_volunteer, last_message_at,
        contact:contacts ( display_name, channel, stage, wa_id, phone ),
        messages ( content, created_at, role )`
-    )
+      ),
+    testIds
+  )
     .order('last_message_at', { ascending: false })
     .order('created_at', { referencedTable: 'messages', ascending: false })
     .limit(1, { referencedTable: 'messages' });

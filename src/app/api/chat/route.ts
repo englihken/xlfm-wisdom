@@ -26,6 +26,7 @@ import { matchChip } from '@/lib/quick-questions';
 import { lookupChipAnswer, storeChipAnswer } from '@/lib/chip-answers';
 import { detectCrisisKeywords, matchedCrisisKeywords } from '@/lib/crisis-keywords';
 import { checkChatRateLimit, RATE_LIMITED_REPLY } from '@/lib/chat-rate-limit';
+import { isTestBrowserId, invalidateTestContactCache, TEST_CONTACT_SUMMARY } from '@/lib/test-traffic';
 
 // F03 request-body limits (batch 2 §3): runtime-validated before any work.
 const MAX_MESSAGE_CHARS = 2000;
@@ -121,11 +122,20 @@ async function persistInbound(params: {
         await db.from('contacts').update({ last_seen: new Date().toISOString() }).eq('id', existing.id);
         return existing.id;
       }
+      // Synthetic traffic (chip warm-ups, test suites) is flagged at creation so
+      // the inbox, counts, summaries and reviews can skip it (migration 050).
+      const isTest = isTestBrowserId(params.browserId);
       const { data: created } = await db
         .from('contacts')
-        .insert({ channel: 'web', browser_id: params.browserId, display_name: '匿名访客' })
+        .insert({
+          channel: 'web',
+          browser_id: params.browserId,
+          display_name: isTest ? '系统预热账号' : '匿名访客',
+          ...(isTest ? { is_test: true, summary: TEST_CONTACT_SUMMARY } : {}),
+        })
         .select('id')
         .single();
+      if (isTest) invalidateTestContactCache();
       return created?.id ?? null;
     } catch (e) {
       console.error('[supabase] contact find-or-create failed:', e);

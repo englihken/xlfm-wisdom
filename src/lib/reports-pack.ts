@@ -39,6 +39,7 @@ import { loadEventWindowDays } from './org-settings';
 import { countsByMailbox, ownersByMailbox, loadEscalation } from './inbox-server';
 import { ageDays, overdueLevel } from './inbox';
 import { EXPENSE_GROUPS, txnCounts } from './finance-cashbook';
+import { testContactIds, excludeTestContacts } from './test-traffic';
 
 // zh fallback labels for the 财务 v2 expense groups. The pack ships the stable
 // `grp` key alongside, and the UI localizes via t('cash.grp.<grp>') — this is only
@@ -280,7 +281,13 @@ export async function assembleReportsPack(volunteer: Volunteer, monthParam: stri
     db.from('contact_milestones').select('contact_id, milestone, happened_on').limit(50000),
     locked
       ? Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
-      : db.from('conversations').select('created_at, category, crisis_flag').gte('created_at', prevStartUtc).lt('created_at', monthEndUtc),
+      // Synthetic contacts (chip warm-ups / test suites) are not 对话量 (09-12).
+      : testContactIds(db as unknown as Parameters<typeof testContactIds>[0]).then((ids) =>
+          excludeTestContacts(
+            db.from('conversations').select('created_at, category, crisis_flag').gte('created_at', prevStartUtc).lt('created_at', monthEndUtc),
+            ids
+          )
+        ),
     db.from('centres').select('id, name_cn').eq('is_active', true),
     locked
       ? Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
