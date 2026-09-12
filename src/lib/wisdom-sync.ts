@@ -24,6 +24,9 @@ export interface WisdomEntryForSync {
   keywords: string | null;
   answer_guidance: string | null;
   language: string;
+  // migration 049 (09-12 strip-tails §A): a pinned entry is attached to EVERY
+  // retrieval as a canonical passage (see vector-search getPinnedCanonPassages).
+  pinned?: boolean | null;
 }
 
 let cachedHost: string | null = null;
@@ -55,6 +58,7 @@ export function buildWisdomRecord(entry: WisdomEntryForSync): Record<string, unk
     source: 'wisdom_entry',
     entry_id: entry.id,
     language: entry.language,
+    pinned: entry.pinned === true,
     // keywords feed the categories field (retrieval hints, same as canonical docs)
     categories: ['组织审定', '智库', entry.keywords?.trim() || null].filter(Boolean).join(','),
     excerpt: `组织审定 · 智库：${entry.canonical_question}`.slice(0, 200),

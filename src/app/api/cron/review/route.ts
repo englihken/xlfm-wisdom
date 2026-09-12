@@ -108,7 +108,9 @@ export async function GET(req: Request) {
 
   let chipRefresh: Awaited<ReturnType<typeof refreshChipAnswers>> | { error: string } | null = null;
   try {
-    chipRefresh = await refreshChipAnswers({ force: true, budgetMs: 150_000, concurrency: 6 });
+    // 09-12 strip-tails §C: 150 s left 3 of 18 chips unrefreshed every night;
+    // 270 s is what /api/cron/refresh-chips already uses (maxDuration 300).
+    chipRefresh = await refreshChipAnswers({ force: true, budgetMs: 270_000, concurrency: 6 });
   } catch (e) {
     console.error('[cron/review] chip refresh failed:', e);
     chipRefresh = { error: e instanceof Error ? e.message : String(e) };

@@ -16,6 +16,7 @@
 // Every function is fail-safe: storage off or any error → behaves as a miss.
 
 import { supabaseAdmin } from './supabase';
+import { invalidatePinnedCanon } from './vector-search';
 import { allChips, type ChipKey, type ChipLanguage } from './quick-questions';
 import type { CareSource, GuardOutcome } from './care-pipeline';
 
@@ -103,6 +104,8 @@ export async function storeChipAnswer(params: {
 // corpus changed). The next visitor click regenerates and re-caches; the
 // nightly refresh does the rest.
 export async function invalidateChipAnswers(reason: string): Promise<number> {
+  // Same hook for the pinned 组织审定 cards (09-12 §A): the corpus changed.
+  invalidatePinnedCanon();
   if (!supabaseAdmin) return 0;
   try {
     const { data, error } = await supabaseAdmin

@@ -142,6 +142,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       before: { status: entry.status, canonical_question: entry.canonical_question },
       after: { canonical_question, demoted_to_draft: wasApproved },
     });
+    // The live corpus lost a record → cached chip answers and the pinned-card
+    // cache are stale (09-12 §A: same hook for both).
+    if (wasApproved) await invalidateChipAnswers(`wisdom_demoted ${id}`);
     return NextResponse.json({ ok: true, entry: updated, demotedToDraft: wasApproved });
   }
 
@@ -223,5 +226,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     before: { status: entry.status },
     after: { status: 'retired' },
   });
+  await invalidateChipAnswers(`wisdom_retired ${id}`);
   return NextResponse.json({ ok: true, entry: retired });
 }
