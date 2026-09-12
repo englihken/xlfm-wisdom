@@ -30,4 +30,6 @@
 - **R22–R24 与 R10/R13/R14/R18 各跑 2 次**：按 brief 等 Ken 批准 10 条智库条目、重预热 18 条 chips 之后再跑，写进 `docs/reviews/2026-09-13-sonnet-watch.md`（本报告不含）。
 
 ## 部署
-__DEPLOY__
+- 合并 `f8e10f9`（提交 `dc8c560`），Vercel 自动部署，/qa 200——**A+B 已在 09-12 晚上线**，brief 里「09-13 12:00 前上不了线就先切回 Opus」的条件没有触发，`DEFAULT_REPLY_MODEL` 仍是 Sonnet 4.6。
+- B 立即生效（护栏是代码）；C 的 270 s 预算和程序补日期立即生效；**A 要等 Ken 批准**——现在 `wisdom_entries` 里 10 条全是 draft（9 条普通 + 1 条 pinned 卡），批准后 5 分钟内（进程缓存）每一轮都会带上卡。
+- 批准之后要做的（按 brief，本报告不含）：`warm-chips-prod.ts` 重预热 18 条 → R22–R24 + R10/R13/R14/R18 各 2 次 → `docs/reviews/2026-09-13-sonnet-watch.md`。
