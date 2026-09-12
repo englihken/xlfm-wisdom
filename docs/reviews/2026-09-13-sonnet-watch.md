@@ -1,9 +1,10 @@
 # Sonnet 4.6 观察 — 第 2 天 + 功课块全称交付（2026-09-12 晚）
 
-一份报告三件事（按 `docs/briefs/2026-09-12-full-sutra-names.md` 第 5 条「并进本报告，不另开」）：
+一份报告四件事（两份 brief 都写了「并进本报告，不另开」）：
 1. 功课块经名用全称（Ken 09-12）——已交付部署
 2. Ken 批准智库条目后：重预热 18 条 chips、跑 R22–R24 + R10/R13/R14/R18 各 2 次
 3. 切换后 48 小时的数字
+4. 预热／测试对话不再混进关怀收件箱（`docs/briefs/2026-09-12-test-contacts.md`）
 
 写于 09-12 21:50 MYT（不是 09-13 早上——当天拿到指令就跑完了）。切换上线 09-11 约 18:05 MYT。
 
@@ -116,9 +117,39 @@
 
 ---
 
-## 4. 明天（09-13）要看的
+---
+
+## 4. 预热／测试对话不再混进关怀收件箱（`docs/briefs/2026-09-12-test-contacts.md`）
+
+Ken 看到的那个「什么烦恼都有」的匿名访客档案，成因就是 brief 写的：`warm-chips-prod.ts` 把同一语言的六条 chip 都用 `browserId=chip-warm:<lang>` 发出，六个问题落在同一个 contact 上，档案引擎如实合成。**档案只给义工看，不进回复提示词，所以没有任何访客因此拿到错答案**——被污染的是收件箱、未回复计数、夜审和复盘。
+
+**做了什么**
+
+| 项 | 位置 |
+|---|---|
+| 前缀与判定集中一处 | 新增 `src/lib/test-traffic.ts`：`chip-warm:` / `test:` / `test-suite:`、`isTestBrowserId()`、5 分钟缓存的测试 contact id 列表、`excludeTestContacts()` |
+| 建 contact 时打标 | `chat/route.ts` find-or-create：命中前缀 → `is_test=true`、`display_name='系统预热账号'`、档案写死「（系统预热账号，非真实访客）」 |
+| 过滤 | 收件箱列表（全部／我接手的／未回复三个 tab 都是从这份列表算的）、首页未读数（`care-inbox`）、`cron/summarize`（**不叫模型**，直接标记 summarized）、`cron/review` 候选、`countUnanswered`、月度复盘统计、报表页对话数 |
+| 不动 | `failed_replies` 重试队列（预热失败也要知道）；52 通对话**不删**（它们是 chip 答案的样本） |
+| 已有的三个档案 | 已改成固定一句；`conversations.summarized_at` 没动（档案时间戳就是它算出来的） |
+
+**过程中发现并修掉的一个真 bug（值得单独说）**：我第一版 `excludeTestContacts` 用的是 `.not('contact_id','in',(…))`。SQL 三值逻辑里 `NULL NOT IN (…)` 结果是 NULL 而不是 TRUE，**这会把所有 `contact_id` 为空的对话一起筛掉**。拿生产库实测：2,680 通里 52 通是预热、124 通是无 contact 的孤儿对话；裸 `not.in` 只剩 2,504（124 通孤儿全没了），改成 `contact_id.is.null OR not.in.(…)` 之后是 2,628 = 2,680 − 52，正确。那 124 通是真访客（浏览器没送 browserId），要是按第一版上线，收件箱会悄悄少掉 124 通对话。
+
+**验证**
+
+- `scripts/test-test-traffic.ts`：前缀判定 8/8（本机无 Supabase 钥匙，带库的断言在有钥匙的环境才跑，脚本会自己说明并跳过）。库侧断言包括「恰好筛掉预热行、一行不多」和「124 通孤儿全部保留」。
+- 生产 SQL 复核：列表应返回 **2,628** 通、其中孤儿 **124** 通——与上面的算术一致。
+- 生产收件箱实测（Chrome，Ken 的会话）：搜索「系统预热」→「未找到相关对话」；列表顶部是真访客（22:02 / 21:56 / 21:50 / 21:48），我 21:37–21:41 那批预热对话不再出现。
+- tsc、eslint 零错；`test-verbatim-guard` 129/129、`test-crisis-keywords` 43/43 未受影响。
+
+**还没验证的**：`cron/summarize` 今晚 00:00 MYT 才跑——那 14 通未摘要的 zh 预热对话应该被直接标记、不花模型钱；`cron/review` 00:30 跑，预热对话不该出现在复盘队列里。明天看一眼就知道。
+
+**顺带**：收件箱「未回复」的计数是在**最新 1,000 通**里算的（PostgREST 默认行上限），所以 UI 显示 261 而全库口径是 461。这是既有行为，不是今天改出来的，但下次要用这个数字做判断时得知道。
+
+## 5. 明天（09-13）要看的
 1. 夜审 00:30 之后：Sonnet 首批 `conversation_reviews`，NI 率 vs 17% 基线（>26% 先 `REPLY_MODEL_HIGH=claude-opus-5`）。
 2. 白天访客流量上的 strip / blanket 尾巴率——今晚的 0 是 chip 流量测出来的。
 3. zh `work_karma` 这条 chip 在夜审刷新后能不能一次存下。
 4. `citation_no_date` 在程序补日期上线后的比例（今晚之前 20%）。
 5. 0.1／0.2／0.3 三个待拍板事项。
+6. `cron/summarize`（00:00）与 `cron/review`（00:30）跑完之后：14 通预热对话被无成本标记、复盘队列里没有预热对话（§4 末）。
