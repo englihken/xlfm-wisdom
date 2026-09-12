@@ -38,6 +38,12 @@ const FULL_SUTRA_NAMES: Record<string, string> = {
   往生咒: '往生净土神咒',
 };
 const hasSutra = (s: string, short: string) => has(s, short) || has(s, FULL_SUTRA_NAMES[short] ?? short);
+// A 祈求词 in either approved wording: the prompt's 「请大慈大悲观世音菩萨…」 and
+// the 共修总会功课卡's 「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨…」 (the
+// pinned 组织审定 card Ken approved 09-12 21:29 — it is canonical, so replies
+// follow it). Neither string contains the other.
+const hasPrayer = (r: string) =>
+  has(r, '请大慈大悲观世音菩萨') || has(r, '大慈大悲救苦救难广大灵感观世音菩萨');
 /** Every 📿 line that names 大悲咒 / 心经 / 往生咒 must carry its full name. */
 const homeworkUsesFullNames = (r: string): boolean =>
   r
@@ -242,7 +248,7 @@ const CASES: Case[] = [
     checks: [
       { name: 'retrieval carries N遍 counts', ok: (_r, _b, _t, ps) => ps.some((p) => hasBianCount(p.text)) },
       { name: 'reply contains a N遍 prescription', ok: (r) => hasBianCount(r) },
-      { name: 'reply contains a 祈求词', ok: (r) => has(r, '请大慈大悲观世音菩萨') || has(r, '祈求') },
+      { name: 'reply contains a 祈求词', ok: (r) => hasPrayer(r) || has(r, '祈求') },
       { name: 'NO 查不到相关原文/不敢乱给 tail', ok: (r) => !REFUSAL_TAIL.test(r) },
     ],
   },
@@ -299,7 +305,7 @@ const BEGINNER_CASES: Case[] = [
       { name: 'contains 《大悲咒》 and 《心经》 (full or short name)', ok: (r) => hasSutra(r, '大悲咒') && hasSutra(r, '心经') },
       { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
       { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
-      { name: 'contains 祈求词', ok: (r) => has(r, '请大慈大悲观世音菩萨') },
+      { name: 'contains 祈求词', ok: (r) => hasPrayer(r) },
       { name: 'no 查不到相关原文 / 不敢随意 / 不敢乱说', ok: (r) => !REFUSAL_TAIL.test(r) && !has(r, '不敢乱说') },
       { name: 'no 「资料里没有写明具体数字」 (new refusal phrasing)', ok: (r) => !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
       { name: '共修会 not the only substance (功课 present alongside)', ok: (r) => !(has(r, '共修会') && !hasBianCount(r)) },
@@ -319,7 +325,7 @@ const BEGINNER_CASES: Case[] = [
       { name: 'xlfm.my/chant not a substitute for counts (link ok only with counts)', ok: (r) => !has(r, 'xlfm.my/chant') || hasBianCount(r) },
       { name: 'body (minus 功课 block) ≤ 400 chars', ok: (r) => bodyChars(r) <= 400 },
       { name: '≤1 开示 quote, and after the 功课', ok: (r) => { const q = quoteParagraphs(r); return q.n <= 1 && q.afterHomework; } },
-      { name: 'contains 祈求词', ok: (r) => has(r, '请大慈大悲观世音菩萨') },
+      { name: 'contains 祈求词', ok: (r) => hasPrayer(r) },
     ],
   },
   // R13 (入门锚定 brief, corrected 08-30): 小房子 before 功课 → give the 功课
@@ -438,7 +444,7 @@ const BATCH4_CASES: Case[] = [
       { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
       { name: '《礼佛大忏悔文》 NOT given as this round\'s 功课 (no 📿 line / no count)', ok: (r) => !homeworkLines(r).some((l) => /礼佛/.test(l)) && !/礼佛大?忏?悔?文?[^\n。]{0,15}\d+\s*遍/.test(r.replace(/\s+/g, '')) },
       { name: '四段结构: ≥2 plain paragraphs before the 📿 block, block present, closing after it', ok: (r) => { const lines = r.split('\n'); const first = lines.findIndex((l) => /📿/.test(l)); if (first < 0) return false; const before = lines.slice(0, first).filter((l) => l.trim() && !/^\s*>/.test(l)); const after = lines.slice(first).filter((l) => l.trim() && !/📿|祈求|念之前|请大慈大悲|⚠️|🔗|^\s*>/.test(l)); return before.length >= 2 && after.length >= 1; } },
-      { name: 'contains 祈求词', ok: (r) => has(r, '请大慈大悲观世音菩萨') },
+      { name: 'contains 祈求词', ok: (r) => hasPrayer(r) },
       { name: 'no 查不到相关原文 / 没有写明具体数字', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
     ],
   },
@@ -510,11 +516,14 @@ const STRIP_TAIL_CASES: Case[] = [
     ],
   },
   {
-    label: 'R24 化解三六九关劫的小房子怎么念（50b07633）',
-    q: '化解三六九关劫的小房子怎么念？',
+    // The visitor's own words in both production conversations (50b07633 07-12
+    // 17:46 and a4210b01 17:47) are about 祈求, not 念诵 — the brief asks for the
+    // 原话原样, so the case asks what they asked.
+    label: 'R24 怎样祈求369的小房子（50b07633 / a4210b01）',
+    q: '怎样祈求369的小房子？',
     checks: [
       { name: 'says 分开念／分别祈求 (解答来信 146)', ok: (r) => /分开|分别/.test(r) },
-      { name: 'gives the 祈求 wording', ok: (r) => /祈请南无大慈大悲观世音菩萨|请大慈大悲观世音菩萨/.test(r) && /关劫/.test(r) },
+      { name: 'gives the 祈求 wording (either approved form) naming 关劫', ok: (r) => hasPrayer(r) && /关劫/.test(r) },
       { name: 'no blanket 查不到 tail', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
       { name: 'no orphan 祈求词', ok: (r) => !orphanPrayer(r) },
     ],
