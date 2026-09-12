@@ -28,6 +28,22 @@ type Case = {
 
 // Whitespace-blind contains: the model writes "21 遍" / "21遍" interchangeably.
 const has = (s: string, sub: string) => s.replace(/\s+/g, '').includes(sub.replace(/\s+/g, ''));
+// Ken 2026-09-12: 功课块 (📿 lines) name a sutra in full, 简称 in brackets.
+// Assertions accept either spelling; a separate check requires the full name
+// ON the 📿 lines. 「心经」 is a substring of 「般若波罗蜜多心经」 and 「大悲咒」 of
+// the bracketed form, so the existing has() assertions keep working either way.
+const FULL_SUTRA_NAMES: Record<string, string> = {
+  大悲咒: '千手千眼无碍大悲心陀罗尼',
+  心经: '般若波罗蜜多心经',
+  往生咒: '往生净土神咒',
+};
+const hasSutra = (s: string, short: string) => has(s, short) || has(s, FULL_SUTRA_NAMES[short] ?? short);
+/** Every 📿 line that names 大悲咒 / 心经 / 往生咒 must carry its full name. */
+const homeworkUsesFullNames = (r: string): boolean =>
+  r
+    .split('\n')
+    .filter((l) => l.includes('📿'))
+    .every((l) => Object.entries(FULL_SUTRA_NAMES).every(([short, full]) => !has(l, short) || has(l, full)));
 // Any Arabic-digit N遍 prescription (whitespace-blind).
 const hasBianCount = (s: string) => /\d+遍/.test(s.replace(/\s+/g, ''));
 // The blanket refusal shapes the 08-29 brief forbids next to grounded numbers.
@@ -280,7 +296,8 @@ const BEGINNER_CASES: Case[] = [
     compareNaive: true,
     checks: [
       { name: 'retrieval carries 心灵法门入门手册', ok: (_r, _b, _t, ps) => ps.some((p) => p.book === '心灵法门入门手册') },
-      { name: 'contains 《大悲咒》 and 《心经》', ok: (r) => has(r, '大悲咒') && has(r, '心经') },
+      { name: 'contains 《大悲咒》 and 《心经》 (full or short name)', ok: (r) => hasSutra(r, '大悲咒') && hasSutra(r, '心经') },
+      { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
       { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
       { name: 'contains 祈求词', ok: (r) => has(r, '请大慈大悲观世音菩萨') },
       { name: 'no 查不到相关原文 / 不敢随意 / 不敢乱说', ok: (r) => !REFUSAL_TAIL.test(r) && !has(r, '不敢乱说') },
@@ -295,7 +312,8 @@ const BEGINNER_CASES: Case[] = [
     label: 'R14 入门轮 简单直接 (吵架 → 没有念过)',
     turns: ['和家人一直吵架，我可以先学什么？', '没有念过'],
     checks: [
-      { name: 'contains 《大悲咒》《心经》《解结咒》', ok: (r) => has(r, '大悲咒') && has(r, '心经') && has(r, '解结咒') },
+      { name: 'contains 《大悲咒》《心经》《解结咒》 (full or short name)', ok: (r) => hasSutra(r, '大悲咒') && hasSutra(r, '心经') && has(r, '解结咒') },
+      { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
       { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
       { name: 'no 「资料里没有写明」 / 「没有写明具体数字」', ok: (r) => !NEW_REFUSAL.test(r.replace(/\s+/g, '')) && !REFUSAL_TAIL.test(r) },
       { name: 'xlfm.my/chant not a substitute for counts (link ok only with counts)', ok: (r) => !has(r, 'xlfm.my/chant') || hasBianCount(r) },
@@ -325,7 +343,8 @@ const BEGINNER_CASES: Case[] = [
           return hw >= 0 && (xf < 0 || hw < xf);
         },
       },
-      { name: 'names the three pillars (大悲咒/心经/礼佛)', ok: (r) => has(r, '大悲咒') && has(r, '心经') && has(r, '礼佛') },
+      { name: 'names the three pillars (大悲咒/心经/礼佛, full or short)', ok: (r) => hasSutra(r, '大悲咒') && hasSutra(r, '心经') && has(r, '礼佛') },
+      { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
       { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
       {
         name: '小房子 can start once 功课 has begun (not "wait until stable")',
@@ -415,7 +434,8 @@ const BATCH4_CASES: Case[] = [
     label: 'R18 关系类×分档 (吵架 → 没有念过)',
     turns: ['和家人一直吵架，我可以先学什么？', '没有念过'],
     checks: [
-      { name: 'contains 《大悲咒》《心经》《解结咒》 each with a count', ok: (r) => { const s = r.replace(/\s+/g, ''); return /大悲咒[^\n📿]{0,24}\d+遍/.test(s) && /心经[^\n📿]{0,24}\d+遍/.test(s) && /解结咒[^\n📿]{0,24}\d+遍/.test(s); } },
+      { name: 'contains 《大悲咒》《心经》《解结咒》 each with a count', ok: (r) => { const s = r.replace(/\s+/g, ''); return /大悲咒[^\n📿]{0,26}\d+遍/.test(s) && /心经[^\n📿]{0,26}\d+遍/.test(s) && /解结咒[^\n📿]{0,26}\d+遍/.test(s); } },
+      { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
       { name: '《礼佛大忏悔文》 NOT given as this round\'s 功课 (no 📿 line / no count)', ok: (r) => !homeworkLines(r).some((l) => /礼佛/.test(l)) && !/礼佛大?忏?悔?文?[^\n。]{0,15}\d+\s*遍/.test(r.replace(/\s+/g, '')) },
       { name: '四段结构: ≥2 plain paragraphs before the 📿 block, block present, closing after it', ok: (r) => { const lines = r.split('\n'); const first = lines.findIndex((l) => /📿/.test(l)); if (first < 0) return false; const before = lines.slice(0, first).filter((l) => l.trim() && !/^\s*>/.test(l)); const after = lines.slice(first).filter((l) => l.trim() && !/📿|祈求|念之前|请大慈大悲|⚠️|🔗|^\s*>/.test(l)); return before.length >= 2 && after.length >= 1; } },
       { name: 'contains 祈求词', ok: (r) => has(r, '请大慈大悲观世音菩萨') },
@@ -472,7 +492,8 @@ const STRIP_TAIL_CASES: Case[] = [
     label: 'R22 已在修梦见蛇 → 加什么（d7897fd1）',
     turns: ['梦到买一条蛇，不知道放哪里，实然看到飞进房间，感觉他是照顾我。请问这是什么意思', '有', '大悲咒21', '心经21'],
     checks: [
-      { name: 'at least two sutras each with a count', ok: (r) => { const s = r.replace(/\s+/g, ''); const n = ['往生咒', '解结咒', '消灾吉祥神咒', '大悲咒', '心经', '礼佛大忏悔文', '准提神咒'].filter((x) => new RegExp(`${x}[^\\n📿]{0,24}\\d+遍`).test(s)).length; return n >= 2; } },
+      { name: 'at least two sutras each with a count', ok: (r) => { const s = r.replace(/\s+/g, ''); const n = ['往生咒|往生净土神咒', '解结咒', '消灾吉祥神咒', '大悲咒', '心经', '礼佛大忏悔文', '准提神咒'].filter((x) => new RegExp(`(?:${x})[^\\n📿]{0,26}\\d+遍`).test(s)).length; return n >= 2; } },
+      { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
       { name: 'no orphan 祈求词', ok: (r) => !orphanPrayer(r) },
       { name: 'no blanket 查不到 tail', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
       { name: 'placeholder (if any) sits next to a sutra name, never alone', ok: (r) => r.split('\n').every((l) => !l.includes('（遍数以官方资料为准）') || /《|咒|经/.test(l)) },
