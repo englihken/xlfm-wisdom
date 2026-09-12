@@ -4,6 +4,8 @@
 // Data uploaded to namespace 'xlfm-wisdom' by scripts/upload-wave*.ts
 
 import { Pinecone } from '@pinecone-database/pinecone';
+import { supabaseAdmin } from './supabase';
+import { buildWisdomRecord } from './wisdom-sync';
 
 // === CONFIG ===
 const NAMESPACE = 'xlfm-wisdom';
@@ -75,6 +77,9 @@ export interface RetrievedPassage {
   post_title?: string;
   original_date?: string;
   wp_date?: string;
+  // 09-12 strip-tails §A: a pinned 组织审定 card (智库 pinned=true) attached to
+  // every retrieval regardless of similarity.
+  pinned?: boolean;
   // True when this chunk came back via the cross-language fallback path
   // (en/id user, primary lang-filtered results were weak, no-filter retry
   // surfaced this chunk). Internal only — used for logging.
@@ -360,6 +365,69 @@ async function pineconeSearch(
   }));
 }
 
+// === PINNED 组织审定 CARDS (09-12 strip-tails brief §A) ===
+// Approved 智库 entries with pinned=true (migration 049) — today the 「常用经文
+// 标准遍数卡」 — are appended to EVERY retrieval (zh/en/id; the guard reads
+// Chinese counts) as canonical_ruling passages, so the standard 遍数 are
+// always a grounded source. Not ranked, never dropped by topK. Cached for
+// 5 minutes per process; approve/retire/edit clears it through the same
+// hook as the chip cache (chip-answers invalidateChipAnswers). Locally
+// (scripts without Supabase keys) the same records are read from Pinecone
+// through the pinned=true metadata they carry.
+const PINNED_TTL_MS = 5 * 60_000;
+let pinnedCache: { at: number; passages: RetrievedPassage[] } | null = null;
+
+export function invalidatePinnedCanon(): void {
+  pinnedCache = null;
+}
+
+export async function getPinnedCanonPassages(): Promise<RetrievedPassage[]> {
+  if (pinnedCache && Date.now() - pinnedCache.at < PINNED_TTL_MS) return pinnedCache.passages;
+  let passages: RetrievedPassage[] = [];
+  try {
+    if (supabaseAdmin) {
+      const { data, error } = await supabaseAdmin
+        .from('wisdom_entries')
+        .select('id, canonical_question, variants, keywords, answer_guidance, language, pinned')
+        .eq('status', 'approved')
+        .eq('pinned', true)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      passages = (data ?? []).map((e) => {
+        const rec = buildWisdomRecord(e);
+        return {
+          id: rec._id as string,
+          score: 1,
+          text: rec.text as string,
+          book: '组织审定',
+          type: CANONICAL_TYPE,
+          language: e.language as 'zh' | 'en' | 'id',
+          pinned: true,
+        };
+      });
+    } else {
+      const hits = await pineconeSearch('常用经文标准遍数 每天念多少遍', 10, {
+        pinned: { $eq: true },
+        type: { $eq: CANONICAL_TYPE },
+      });
+      passages = hits.map((p) => ({ ...p, score: 1, pinned: true }));
+    }
+  } catch (e) {
+    console.error('[vector-search] pinned canon fetch failed:', e);
+    passages = pinnedCache?.passages ?? [];
+  }
+  pinnedCache = { at: Date.now(), passages };
+  return passages;
+}
+
+/** Append the pinned cards to a ranked result (dedupe by id). */
+async function withPinnedCanon(ranked: RetrievedPassage[]): Promise<RetrievedPassage[]> {
+  const pinned = await getPinnedCanonPassages();
+  if (pinned.length === 0) return ranked;
+  const ids = new Set(ranked.map((p) => p.id));
+  return [...ranked, ...pinned.filter((p) => !ids.has(p.id))];
+}
+
 // === MAIN SEARCH FUNCTION ===
 
 /**
@@ -553,7 +621,7 @@ export async function searchRelevantTeachings(
       .sort((a, b) => b.score - a.score)
       .slice(0, topK);
 
-    return ranked;
+    return await withPinnedCanon(ranked);
   } catch (err) {
     console.error('[vector-search] Search failed:', err);
     return [];

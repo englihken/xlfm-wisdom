@@ -106,6 +106,57 @@ export function citationsMissingDate(text: string): string[] {
   }
   return out;
 }
+// 09-12 strip-tails §C: programmatic date fill. When a citation line still has
+// no date after the model retry, take the date from the retrieved passage's
+// metadata (post_title / original_date) — no model involved. Matching:
+//   解答来信疑惑（第N篇） → the passage whose post_title carries 「（N）」;
+//   玄艺问答 / 玄艺综述 / 玄学问答 / 精彩节目摘录 → all retrieved passages of that
+//   book share one original_date → use it; otherwise leave it for the flag.
+const CN_NUM_RE = /[零〇一二两三四五六七八九十百千]+/;
+function fmtDate(iso: string): string | null {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[1]}年${Number(m[2])}月${Number(m[3])}日` : null;
+}
+export function fillCitationDates(text: string, passages: RetrievedPassage[]): { text: string; filled: string[] } {
+  const filled: string[] = [];
+  const lines = text.split('\n').map((line) => {
+    if (!WEBSITE_SOURCE_RE.test(line) || CITATION_DATE_RE.test(line)) return line;
+    if (/^\s*>/.test(line) && !/参考|来源|——|—— /.test(line)) return line;
+    let date: string | null = null;
+    let label = '';
+    const letter = line.match(/解答来信疑惑[（(]第?([零〇一二两三四五六七八九十百千\d]+)篇?[)）]/);
+    if (letter) {
+      const n = letter[1];
+      const hit = passages.find((p) => /解答来信疑惑/.test(p.book) && p.post_title && p.post_title.includes(`（${n}）`) && p.original_date);
+      if (hit?.original_date) {
+        date = fmtDate(hit.original_date);
+        label = date ? `（开示于${date}）` : '';
+      }
+    } else {
+      const family = (line.match(/玄艺问答|玄艺综述|玄学问答|精彩节目摘录/) ?? [])[0];
+      if (family) {
+        const dates = new Set(
+          passages
+            .filter((p) => p.original_date && (p.book.includes(family) || (p.post_title ?? '').includes(family)))
+            .map((p) => p.original_date as string)
+        );
+        if (dates.size === 1) {
+          date = fmtDate([...dates][0]);
+          label = date ? `（${date}节目）` : '';
+        }
+      }
+    }
+    if (!label) return line;
+    // Put the date right after the 《…》 title when there is one, else at the end.
+    const anchored = line.replace(/(《[^》]*(解答来信疑惑|玄艺问答|玄艺综述|玄学问答|精彩节目摘录)[^》]*》)/, `$1${label}`);
+    const out = anchored === line ? `${line}${label}` : anchored;
+    filled.push(out.trim().slice(0, 80));
+    return out;
+  });
+  return { text: lines.join('\n'), filled };
+}
+void CN_NUM_RE;
+
 function buildCitationDateInstruction(missing: string[]): string {
   return `【引用格式提醒】你的回复引用了网站问答类来源，但下面这些引用没有写开示／节目日期：\n${missing.map((m) => `- ${m}`).join('\n')}\n请按〔网站问答 来源规则〕第 1 条重写引用：《解答来信疑惑（第N篇）》（开示于YYYY年M月D日）／《玄艺问答》（YYYY年M月D日节目）／《玄艺综述》（YYYY年M月D日节目）。日期只能取自检索段落开头【…】标题里的日期；标题里没有日期就省略日期，绝不推算。其余内容保持不变——不要因此删掉已经写出的遍数、祈求词或引用本身。`;
 }
@@ -455,9 +506,14 @@ export async function generateGuardedReplyText(params: {
     guard: GuardOutcome,
     tail?: GuardTail | 'safe-reply'
   ): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome; modelCalls: number; flags: string[] }> => {
-    const scrub = scrubContradictoryRefusal(text);
-    // Citation date soft check: flag only (the retry already happened on the first draft).
+    const scrub0 = scrubContradictoryRefusal(text);
+    // Citation date soft check: the retry already happened on the first draft;
+    // now fill programmatically from passage metadata (§C), then flag what is
+    // still missing.
     const flags: string[] = [];
+    const dated = fillCitationDates(scrub0.text, passages);
+    if (dated.filled.length > 0) console.log(`[care-pipeline] conversation=${convId} citation dates filled from metadata: ${JSON.stringify(dated.filled)}`);
+    const scrub = { ...scrub0, text: dated.text };
     const stillMissing = citationsMissingDate(scrub.text);
     if (stillMissing.length > 0) {
       flags.push('citation_no_date');

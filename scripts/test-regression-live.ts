@@ -455,6 +455,51 @@ const BATCH4_CASES: Case[] = [
   },
 ];
 
+// 09-12 strip-tails brief §C — three production conversations, visitor text
+// verbatim. Assertions target the two mechanisms fixed that day: no orphan
+// 祈求词 (a prayer line must have a sutra line within the two lines above it)
+// and no blanket 「查不到相关原文」 tail while counts / sutras are given.
+const orphanPrayer = (r: string): boolean => {
+  const lines = r.split('\n');
+  return lines.some((l, i) => {
+    if (!/^\s*(>\s*)?(\*\*)?[（(]?\s*(念之前祈求|念前祈求|念之前说|祈求\s*[：:]|["“「]?请大慈大悲(的)?观世音菩萨)/.test(l)) return false;
+    const above = lines.slice(Math.max(0, i - 2), i).join('\n');
+    return !/《[^》]{1,24}(经|咒|真言|陀罗尼|忏悔文)》|大悲咒|心经|礼佛|往生咒|解结咒|消灾吉祥神咒|准提神咒|小房子/.test(above);
+  });
+};
+const STRIP_TAIL_CASES: Case[] = [
+  {
+    label: 'R22 已在修梦见蛇 → 加什么（d7897fd1）',
+    turns: ['梦到买一条蛇，不知道放哪里，实然看到飞进房间，感觉他是照顾我。请问这是什么意思', '有', '大悲咒21', '心经21'],
+    checks: [
+      { name: 'at least two sutras each with a count', ok: (r) => { const s = r.replace(/\s+/g, ''); const n = ['往生咒', '解结咒', '消灾吉祥神咒', '大悲咒', '心经', '礼佛大忏悔文', '准提神咒'].filter((x) => new RegExp(`${x}[^\\n📿]{0,24}\\d+遍`).test(s)).length; return n >= 2; } },
+      { name: 'no orphan 祈求词', ok: (r) => !orphanPrayer(r) },
+      { name: 'no blanket 查不到 tail', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
+      { name: 'placeholder (if any) sits next to a sutra name, never alone', ok: (r) => r.split('\n').every((l) => !l.includes('（遍数以官方资料为准）') || /《|咒|经/.test(l)) },
+    ],
+  },
+  {
+    label: 'R23 眼睛不好是不是有灵性（cbcf8b8a）',
+    q: '眼睛不好是不是有灵性',
+    checks: [
+      { name: 'no totem reading applied to the visitor', ok: (r) => !appliesTotemToVisitor(r) },
+      { name: 'gives 功课 (a sutra with a count) or 小房子 guidance', ok: (r) => /\d+\s*遍|小房子/.test(r) },
+      { name: 'no blanket 查不到 tail', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
+      { name: 'no orphan 祈求词', ok: (r) => !orphanPrayer(r) },
+    ],
+  },
+  {
+    label: 'R24 化解三六九关劫的小房子怎么念（50b07633）',
+    q: '化解三六九关劫的小房子怎么念？',
+    checks: [
+      { name: 'says 分开念／分别祈求 (解答来信 146)', ok: (r) => /分开|分别/.test(r) },
+      { name: 'gives the 祈求 wording', ok: (r) => /祈请南无大慈大悲观世音菩萨|请大慈大悲观世音菩萨/.test(r) && /关劫/.test(r) },
+      { name: 'no blanket 查不到 tail', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
+      { name: 'no orphan 祈求词', ok: (r) => !orphanPrayer(r) },
+    ],
+  },
+];
+
 const TOTEM_CASE: Case = {
   label: 'R16 梦见蛇 → 图腾案例不套访客',
   q: '我昨晚梦见一条蛇缠在我身上，醒来后一直很不舒服，是不是身上有灵性？',
@@ -638,7 +683,7 @@ async function main() {
   const concurrency = concArg >= 0 ? Math.max(1, parseInt(process.argv[concArg + 1] ?? '0', 10) || 0) : 0;
   const pool: Case[] = chipsOnly
     ? chipCases(QUICK_QUESTIONS)
-    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, TOTEM_CASE, XFZ_CASE, ...BATCH4_CASES, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
+    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, TOTEM_CASE, XFZ_CASE, ...BATCH4_CASES, ...STRIP_TAIL_CASES, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
   const selected = pool.filter(
     (c) => !only || only.some((id) => c.label.startsWith(id + ' ') || c.label.startsWith(id))
   );

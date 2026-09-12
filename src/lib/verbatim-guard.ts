@@ -405,9 +405,35 @@ export function stripViolations(draft: string, violations: GuardViolation[]): st
       keptLines.push(line);
       continue;
     }
+    // 09-12 strip-tails brief §B.1: a 功课 line (📿 …, or 《经名》 + a count)
+    // keeps its sutra name; only the offending count is replaced with the
+    // placeholder. Production d7897fd1 shipped three prayer lines whose
+    // 「📿《往生咒》每天 21 遍」 lines had been deleted above them.
+    if (isHomeworkLine(line)) {
+      const badTokens = new Set<string>(badEverywhere);
+      if (lineOnSubject) for (const t of badOnCanonical) badTokens.add(t);
+      keptLines.push(replaceCountTokens(line, { badPairs, badTokens }));
+      continue;
+    }
     const kept = sentences.filter((s) => !sentenceIsBad(s, i, lineOnSubject));
     const rejoined = kept.join('').trim();
-    if (rejoined) keptLines.push(rejoined);
+    if (rejoined) {
+      keptLines.push(rejoined);
+      continue;
+    }
+    // §B.2: the whole line went (a bare-count line such as 「每天念 21 遍。」).
+    // Prayer lines that directly follow it would be orphans — drop them too.
+    let j = i + 1;
+    while (j < lines.length && (lines[j].trim() === '' || isPrayerLine(lines[j]))) {
+      if (lines[j].trim() !== '' && !isPrayerLine(lines[j])) break;
+      j++;
+    }
+    // Only skip when at least one prayer line was actually found.
+    if (lines.slice(i + 1, j).some((l) => isPrayerLine(l))) {
+      // Leave trailing blank lines to the collapse below.
+      while (j > i + 1 && lines[j - 1].trim() === '') j--;
+      i = j - 1;
+    }
   }
 
   // Collapse the blank-line runs that stripping leaves behind.
@@ -415,6 +441,45 @@ export function stripViolations(draft: string, violations: GuardViolation[]): st
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+// ── 功课 line helpers (09-12 strip-tails brief §B) ───────────────────────────
+/** Shown in place of a count the guard could not ground, keeping the sutra line. */
+export const COUNT_PLACEHOLDER = '（遍数以官方资料为准）';
+const HOMEWORK_LINE_RE = /^\s*(>\s*)?(\*\*)?📿/;
+const SUTRA_TITLE_RE = /《[^》\n]{1,24}(经|咒|真言|陀罗尼|忏悔文)》/;
+const PRAYER_LINE_RE = /^\s*(>\s*)?(\*\*)?[（(]?\s*(念之前祈求|念前祈求|念之前说|念之前跟菩萨说|念之前先说|祈求词|祈求\s*[：:]|念前说|["“「]?请大慈大悲(的)?观世音菩萨)/;
+/** A 功课 line: starts with 📿, or names a 《sutra》 and carries a 遍/张 count. */
+export function isHomeworkLine(line: string): boolean {
+  if (HOMEWORK_LINE_RE.test(line)) return true;
+  return SUTRA_TITLE_RE.test(line) && extractNumberTokens(line).length > 0;
+}
+/** A 祈求词 line (the line under a 功课 line that carries the prayer). */
+export function isPrayerLine(line: string): boolean {
+  return PRAYER_LINE_RE.test(line);
+}
+// Replace the count spans on the line that carry a violated (subject, count)
+// pair — or a violated bare token — with COUNT_PLACEHOLDER; grounded spans on
+// the same line stay (「《大悲咒》每天7遍、《礼佛大忏悔文》每天7遍」 keeps the
+// first 7遍). Spans are matched on the raw line with the same shape tokensAt
+// uses (digits / Chinese numerals, enumerations, 或, ranges, one unit), so the
+// k-th span's tokens are the k-th group of pairs extractNumberPairsByLine
+// yields for the line — that is how each span learns its bound subject.
+const NUM_RAW = '(?:\\d+|[０-９]+|[零〇一二两三四五六七八九十百]+)';
+const COUNT_SPAN_RE = new RegExp(`${NUM_RAW}(?:\\s*[、，,/]\\s*${NUM_RAW})*(?:\\s*或\\s*${NUM_RAW})?(?:\\s*[-–—~～至到]\\s*${NUM_RAW})?\\s*(?:遍|张|張)`, 'g');
+export function replaceCountTokens(line: string, opts: { badPairs: Set<string>; badTokens: Set<string> }): string {
+  if (opts.badPairs.size === 0 && opts.badTokens.size === 0) return line;
+  const pairs = extractNumberPairsByLine(line); // document order, one per number in each span
+  let cursor = 0;
+  return line
+    .replace(COUNT_SPAN_RE, (span) => {
+      const k = (span.match(new RegExp(NUM_RAW, 'g')) ?? []).length;
+      const mine = pairs.slice(cursor, cursor + k);
+      cursor += k;
+      const bad = mine.some((p) => opts.badTokens.has(p.token) || opts.badPairs.has(pairKey(p)));
+      return bad ? COUNT_PLACEHOLDER : span;
+    })
+    .replace(new RegExp(`\\s+${COUNT_PLACEHOLDER}`, 'g'), COUNT_PLACEHOLDER);
 }
 
 // ── Post-strip tail decision ─────────────────────────────────────────────────
@@ -431,7 +496,11 @@ export type GuardTail = 'none' | 'partial' | 'blanket';
 
 export function chooseGuardTail(stripped: string, violations: GuardViolation[]): GuardTail {
   if (!violations.some((v) => v.type === 'number')) return 'none';
-  return extractNumberTokens(stripped).length > 0 ? 'partial' : 'blanket';
+  // A reply that still names its sutras (counts replaced by the placeholder)
+  // gets the scoped partial note, never the blanket 「查不到相关原文」 — the
+  // placeholder already says exactly which figures to confirm (§B.3).
+  if (extractNumberTokens(stripped).length > 0 || stripped.includes(COUNT_PLACEHOLDER)) return 'partial';
+  return 'blanket';
 }
 
 // ── Contradiction scrub ──────────────────────────────────────────────────────

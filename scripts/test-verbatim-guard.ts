@@ -351,7 +351,9 @@ console.log('— over-strip detection (conv c47ffe52: 祈求词 without 经名) 
   const draft = '你可以先这样开始：\n\n📿 《大悲咒》每天3遍\n📿 《心经》每天3遍\n\n念之前跟菩萨说：「请大慈大悲观世音菩萨保佑我（姓名）身体健康，心情平静」\n\n有教念视频可以跟着念。';
   const v = checkDraft(draft, ['不学佛，你永远活在自己内心肮脏的小生命中。'], []);
   const stripped = stripViolations(draft, v);
-  assert('stripping ungrounded 功课 lines reproduces the gutted shape', isOverStripped(stripped), stripped);
+  // 09-12 §B: the 功课 lines now survive with the placeholder, so the strip no
+  // longer guts the reply (isOverStripped stays as the safety net for prose).
+  assert('stripping ungrounded 功课 lines keeps the sutra names (no longer gutted)', !isOverStripped(stripped) && stripped.includes('《大悲咒》每天（遍数以官方资料为准）'), stripped);
 }
 
 
@@ -388,7 +390,7 @@ console.log('— F01 negatives (batch 2 §1): (subject, count) pairs + sentence 
   assert('N8 …and 大悲咒/心经 7遍 are NOT flagged', !n8.some((x) => x.subject === '大悲咒' || x.subject === '心经'), n8);
   // Stripping is pair-scoped: only the 礼佛 line goes.
   const stripped8 = stripViolations('📿 《大悲咒》每天7遍\n📿 《心经》每天7遍\n📿 《礼佛大忏悔文》每天7遍', n8);
-  assert('N8 strip removes only the 礼佛 line', stripped8.includes('《大悲咒》每天7遍') && stripped8.includes('《心经》每天7遍') && !stripped8.includes('礼佛'), stripped8);
+  assert('N8 strip touches only the 礼佛 count (09-12 §B: line kept, count → placeholder)', stripped8.includes('《大悲咒》每天7遍') && stripped8.includes('《心经》每天7遍') && stripped8.includes('《礼佛大忏悔文》每天（遍数以官方资料为准）') && !stripped8.includes('礼佛大忏悔文》每天7遍'), stripped8);
   // Subject binding variants that must still ground.
   const n9 = checkDraft('每天三遍《心经》就可以。', ['入门手册：三遍《心经》，三遍《大悲咒》。'], []);
   assert('subject AFTER the count (三遍《心经》) binds', n9.length === 0, n9);
@@ -427,6 +429,33 @@ console.log('— F01 negatives (batch 2 §1): (subject, count) pairs + sentence 
   assert('N9 PDF-broken p29 → (心经, 7…49遍) and (大悲咒, 7遍)', e5.some((p) => p.subject === '心经' && p.token === '49遍') && e5.some((p) => p.subject === '大悲咒' && p.token === '7遍'), e5);
   const n9g = checkDraft('📿 《解结咒》每天 21 遍', [P29], []);
   assert('N9 draft 「《解结咒》每天 21 遍」 grounded by the PDF-broken p29 chunk', n9g.length === 0, n9g);
+
+  // N10 (09-12 strip-tails brief §B): the d7897fd1 07:14 draft. The only
+  // source with 往生咒 21 is a CASE record, so (往生咒, 21遍) is
+  // number_case_generalized; stripping must keep the sutra line (count →
+  // placeholder) and its prayer, never leave an orphan prayer.
+  const SNAKE_CASE = '【玄艺综述】听众：梦见蛇。台长：那你念往生咒21遍，还有解结咒。';
+  const D07 = '明白了 🙏 礼佛大忏悔文偶尔念，这个很好，有在忏悔消业。\n\n建议你加念：\n\n📿 **《往生咒》每天 21 遍**\n念之前祈求："请大慈大悲观世音菩萨保佑我（名字）超度因我而受害的小灵性，帮助我消除孽障"\n\n针对梦见蛇这个情况，往生咒可以帮助超度跟你有缘的灵性，让它们安息 🙏\n\n你有念小房子吗？';
+  const v10 = checkDraft(D07, [SNAKE_CASE], [], { caseTexts: [SNAKE_CASE] });
+  assert('N10 (往生咒, 21遍) is number_case_generalized', v10.some((x) => x.text === '21遍' && x.reason === 'number_case_generalized' && x.subject === '往生咒'), v10);
+  const s10 = stripViolations(D07, v10);
+  assert('N10 sutra line kept with the placeholder', s10.includes('📿 **《往生咒》每天（遍数以官方资料为准）**'), s10);
+  assert('N10 prayer line kept (no orphan, no deletion)', s10.includes('念之前祈求："请大慈大悲观世音菩萨保佑我（名字）超度因我而受害的小灵性'), s10);
+  assert('N10 no 21遍 survives', !s10.includes('21 遍') && !s10.includes('21遍'), s10);
+  assert('N10 not over-stripped (sutra still named)', !isOverStripped(s10), s10);
+  assert('N10 tail is partial, not blanket', chooseGuardTail(s10, v10) === 'partial');
+  // §B.2: a bare-count line that is deleted takes its prayer line with it.
+  const BARE = '先把功课念起来：\n每天念 21 遍。\n念之前祈求："请大慈大悲观世音菩萨保佑我（名字）身体健康"\n\n坚持念下去 🙏';
+  const v10b = checkDraft(BARE, ['【入门手册】《大悲咒》每天7遍。'], []);
+  const s10b = stripViolations(BARE, v10b);
+  assert('N10b bare 21遍 line removed…', !s10b.includes('21 遍'), s10b);
+  assert('N10b …and its orphan prayer line removed with it', !s10b.includes('请大慈大悲观世音菩萨保佑我（名字）身体健康'), s10b);
+  assert('N10b the rest survives', s10b.includes('先把功课念起来') && s10b.includes('坚持念下去'), s10b);
+  // A 功课 line with one bad count and one good count keeps the good one.
+  const MIX = '📿 《大悲咒》每天7遍、《礼佛大忏悔文》每天7遍';
+  const v10c = checkDraft(MIX, [MANUAL], []);
+  const s10c = stripViolations(MIX, v10c);
+  assert('N10c only the ungrounded count is replaced', s10c.includes('《大悲咒》每天7遍') && s10c.includes('《礼佛大忏悔文》每天（遍数以官方资料为准）'), s10c);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
