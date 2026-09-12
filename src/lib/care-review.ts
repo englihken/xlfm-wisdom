@@ -11,6 +11,8 @@
 // returns one strict JSON object; anything unparseable is logged and skipped
 // (the conversation stays eligible and is retried next run).
 
+import { testContactIds, excludeTestContacts } from './test-traffic';
+
 export const REVIEW_MODEL = 'claude-haiku-4-5';
 // 500, not 300: the first backfill round lost 6.8% of reviews to max_tokens
 // truncation mid-JSON (verbose zh reasons). The prompt also caps 字数 now.
@@ -201,11 +203,12 @@ type QueryDb = {
  * replies are role='volunteer', written with sent_by, and count as answered).
  */
 export async function countUnanswered(db: QueryDb, start: string, end: string): Promise<number> {
-  const { data: convs, error } = await db
-    .from('conversations')
-    .select('id')
-    .gte('created_at', start)
-    .lt('created_at', end);
+  // Synthetic traffic never counts as an unanswered visitor (09-12).
+  const testIds = await testContactIds(db as unknown as Parameters<typeof testContactIds>[0]);
+  const { data: convs, error } = await excludeTestContacts(
+    db.from('conversations').select('id').gte('created_at', start).lt('created_at', end),
+    testIds
+  );
   if (error || !convs || convs.length === 0) return 0;
 
   const ids = (convs as { id: string }[]).map((c) => c.id);

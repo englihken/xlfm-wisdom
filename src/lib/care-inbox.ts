@@ -3,6 +3,7 @@
 // conversations list route and the home stats strip — no duplication).
 
 import { supabaseAdmin } from './supabase';
+import { testContactIds, excludeTestContacts } from './test-traffic';
 
 // A conversation is unread for a volunteer when there's new activity since they last
 // opened it (or they never opened it). This is the single unread predicate.
@@ -15,8 +16,10 @@ export function isUnread(lastMessageAt: string, lastReadAt: string | null | unde
 export async function countUnreadConversations(volunteerId: string): Promise<number> {
   if (!supabaseAdmin) return 0;
   try {
+    // Synthetic contacts never count as unread work for a volunteer.
+    const testIds = await testContactIds(supabaseAdmin);
     const [{ data: convs }, { data: reads }] = await Promise.all([
-      supabaseAdmin.from('conversations').select('id, last_message_at'),
+      excludeTestContacts(supabaseAdmin.from('conversations').select('id, last_message_at'), testIds),
       supabaseAdmin
         .from('conversation_reads')
         .select('conversation_id, last_read_at')
