@@ -22,6 +22,22 @@ const OUT_MD = path.join(ROOT, 'docs', 'reviews', 'batch4-2026-09-11', 'traceabi
 
 // ── normalisation: what counts as "the same line" ──────────────────────────
 const V1_HEADER_RE = /^第[一二三四五六七八九十]+部分\s*[:：]\s*/;
+// Ken 2026-09-12 (docs/briefs/2026-09-12-full-sutra-names.md): 功课块 lines
+// render a sutra as 《全称》（简称）. That is a RENDERING change, not new
+// content — the line still traces to its v1 twin. normRename() folds the card
+// form back to the short name so those lines keep matching; every line where
+// it actually fired is listed in the traceability table's fourth section,
+// tagged `ken-0912-fullname`, so the rename is still visible line by line.
+const FULLNAME_RENAMES: [RegExp, string][] = [
+  [/《千手千眼无碍大悲心陀罗尼》（大悲咒）/g, '《大悲咒》'],
+  [/《般若波罗蜜多心经》（心经）/g, '《心经》'],
+  [/《往生净土神咒》（往生咒）/g, '《往生咒》'],
+];
+function normRename(s: string): string {
+  let out = s;
+  for (const [re, to] of FULLNAME_RENAMES) out = out.replace(re, to);
+  return out;
+}
 function norm(s: string): string {
   return s
     .replace(/^export const \w+ = `/, '')
@@ -98,6 +114,18 @@ const NEW_LINES: { text: string; c: string; why: string }[] = [
   { text: '| 关系类 | 四段结构，功课块按分档 |', c: 'C7', why: '长度表' },
   // C8 结构（章节标题只是搬家）
   { text: '### 📜 2010 年之前案例里的经文组合（era 规则）', c: 'C8', why: 'LETTERS 第 6 条搬到 xiaofangzi 模块时的小标题' },
+  // ── Ken 2026-09-12 功课块经名用全称 ──
+  { text: '6. **功课块（📿 行）经名用全称，简称加括号；正文可用简称。** 与共修总会功课卡一致：卡上标题用全称，括号里给简称。只有全称与简称不同的经才加括号。', c: 'ken-0912-fullname', why: 'brief §CC 1：新规则进入门轮硬性规则' },
+  { text: '| 功课块写法（📿 行） | 正文可用 |', c: 'ken-0912-fullname', why: '写法表表头' },
+  { text: '| 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍 | 大悲咒 |', c: 'ken-0912-fullname', why: '写法表' },
+  { text: '| 《般若波罗蜜多心经》（心经）每天 3 遍 | 心经 |', c: 'ken-0912-fullname', why: '写法表' },
+  { text: '| 《礼佛大忏悔文》每天 1 遍 | 礼佛 |', c: 'ken-0912-fullname', why: '写法表' },
+  { text: '| 《往生净土神咒》（往生咒）每天 21 遍 | 往生咒 |', c: 'ken-0912-fullname', why: '写法表' },
+  { text: '| 《解结咒》《准提神咒》《消灾吉祥神咒》《七佛灭罪真言》《补阙真言》《净口业真言》《大吉祥天女咒》《功德宝山神咒》 | 同名 |', c: 'ken-0912-fullname', why: '写法表：全称＝简称的经' },
+  { text: '小房子不在此列（仍写「小房子」）。祈求词一字不动。英文／印尼文回复的功课块用该语言的经名，不套这张表。', c: 'ken-0912-fullname', why: '写法表的例外说明' },
+  { text: '**1. 《千手千眼无碍大悲心陀罗尼》（大悲咒）**', c: 'ken-0912-fullname', why: 'v1 L513 功用表标题改成卡片写法（全称在前）' },
+  { text: '**2. 《般若波罗蜜多心经》（心经）**', c: 'ken-0912-fullname', why: 'v1 L521 同上' },
+  { text: '**4. 《往生净土神咒》（往生咒；全名《拔一切业障根本得生净土陀罗尼》）**', c: 'ken-0912-fullname', why: 'v1 L542 同上；v1 写的全名《拔一切业障根本得生净土陀罗尼》保留，Ken 的卡名《往生净土神咒》加在前面（两个名字都是这部咒的名字，见报告）' },
   // ── 增补（docs/briefs/2026-09-11-batch-4-addendum.md）──
   { text: '**"老公出轨了，我该怎么办？"（访客已经说过没念过经——「没念过」档的写法）**', c: 'addendum-A6', why: 'L1870 第二个示例改写成「没念过」档' },
   { text: '> 📿 《大悲咒》每天 3 遍', c: 'addendum-A6', why: '没念过档功课块（祈求词行照 v1 L1788/1791/1799 原文，自动追溯）' },
@@ -149,6 +177,10 @@ const DELETED: { from: number; to: number; c: string; why: string }[] = [
   { from: 931, to: 935, c: 'C7', why: '「结构（回答长度控制）」四行（进表；L931 标题与 L935「不要每次都写长文」保留）' },
   { from: 1634, to: 1634, c: 'C2', why: '「关系类案件 MANDATORY 回应模板（强制遵守）」标题（改名）' },
   { from: 1356, to: 1356, c: 'C1', why: '「小房子念诵指南 —— 在用户熟悉经文后才教（通常两周后）」（保留书名）' },
+  // ── Ken 2026-09-12 功课块经名用全称 ──
+  { from: 513, to: 513, c: 'ken-0912-fullname', why: '功用表标题《大悲咒》（全名…）→ 卡片写法' },
+  { from: 521, to: 521, c: 'ken-0912-fullname', why: '同上（心经）' },
+  { from: 542, to: 542, c: 'ken-0912-fullname', why: '同上（往生咒）' },
   // ── 增补 ──
   { from: 77, to: 77, c: 'addendum-B1', why: '「不要一开始就教礼佛」旧文' },
   { from: 180, to: 180, c: 'addendum-B1', why: '「初学者先不要念」旧文' },
@@ -169,8 +201,9 @@ const DELETED: { from: number; to: number; c: string; why: string }[] = [
 const deletedReason = (n: number) => DELETED.find((d) => n >= d.from && n <= d.to);
 
 // ── walk v2 ────────────────────────────────────────────────────────────────
-type Row = { module: ModuleKey; v2Line: number; text: string; v1: number[] | null; c?: string; why?: string };
+type Row = { module: ModuleKey; v2Line: number; text: string; v1: number[] | null; c?: string; why?: string; renamed?: boolean };
 const rows: Row[] = [];
+const renamedRows: { module: ModuleKey; v2Line: number; text: string; v1: number }[] = [];
 const usedV1 = new Set<number>();
 let untraced = 0;
 for (const key of MODULE_ORDER) {
@@ -178,16 +211,32 @@ for (const key of MODULE_ORDER) {
   lines.forEach((raw, i) => {
     const k = norm(raw);
     if (!k) return;
-    const hit = v1Index.get(k);
+    let hit = v1Index.get(k);
+    // Card-style sutra rename (ken-0912-fullname): same v1 line, new rendering.
+    let renamed = false;
+    if (!hit) {
+      const kr = norm(normRename(raw));
+      if (kr !== k) {
+        hit = v1Index.get(kr);
+        if (hit) renamed = true;
+      }
+    }
     if (hit) {
+      if (renamed) {
+        const pick = hit.find((n) => !usedV1.has(n)) ?? hit[0];
+        renamedRows.push({ module: key, v2Line: i + 1, text: raw, v1: pick });
+      }
       // prefer an unused v1 line (duplicated lines like 「---」 map to the next free one)
       const pick = hit.find((n) => !usedV1.has(n)) ?? hit[0];
       usedV1.add(pick);
       rows.push({ module: key, v2Line: i + 1, text: raw, v1: hit });
       return;
     }
-    const nl = newIndex.get(k);
+    // A C1–C8 / addendum line that the 09-12 rename also touched: same entry,
+    // new sutra rendering (listed in the rename table too).
+    const nl = newIndex.get(k) ?? newIndex.get(norm(normRename(raw)));
     if (nl) {
+      if (!newIndex.get(k)) renamedRows.push({ module: key, v2Line: i + 1, text: raw, v1: 0 });
       rows.push({ module: key, v2Line: i + 1, text: raw, v1: null, c: nl.c, why: nl.why });
       return;
     }
@@ -310,7 +359,7 @@ async function main() {
   const i18n = process.argv.includes('--i18n') ? await checkI18n() : null;
   const traced = rows.filter((r) => r.v1).length;
   const added = rows.filter((r) => !r.v1).length;
-  console.log(`v2 zh lines: ${rows.length} non-blank · traced to v1: ${traced} · new (C1–C8): ${added} · untraced: ${untraced}`);
+  console.log(`v2 zh lines: ${rows.length} non-blank · traced to v1: ${traced} (of which renamed 全称: ${renamedRows.length}) · new (C1–C8): ${added} · untraced: ${untraced}`);
   console.log(`v1 content lines absent from v2: ${missing.length} (${missing.filter((m) => !m.c).length} without a C#)`);
   console.log('inventories v1→v2:', JSON.stringify(invReport, null, 1));
   if (i18n) console.log('i18n:', JSON.stringify(i18n, null, 1));
@@ -345,6 +394,14 @@ ${deletedTable()}
 ## 三、新增（只允许是 C1–C8 的落实，逐句标 C 号）
 
 ${newTable()}
+
+## 四、经名全称改写（\`ken-0912-fullname\`，内容不变，只改写法）
+
+功课块（📿 行）与分档／示例里的经名改成共修总会功课卡写法：《全称》（简称）。下面每一行都仍然逐字追溯到左边那条 v1 行，差别只有经名的写法。
+
+| v2 模块（行） | v1 行 | 句子 |
+|---|---|---|
+${renamedRows.map((r) => `| ${r.module}.ts L${r.v2Line} | ${r.v1 ? `L${r.v1}` : '（C1–C8 新增行，见第三表）'} | ${r.text.trim().replace(/\|/g, '\\|')} |`).join('\n') || '| — | — | — |'}
 `;
     fs.writeFileSync(OUT_MD, md);
     console.log(`wrote ${path.relative(ROOT, OUT_MD)}`);

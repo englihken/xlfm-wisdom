@@ -451,6 +451,20 @@ console.log('— F01 negatives (batch 2 §1): (subject, count) pairs + sentence 
   assert('N10b bare 21遍 line removed…', !s10b.includes('21 遍'), s10b);
   assert('N10b …and its orphan prayer line removed with it', !s10b.includes('请大慈大悲观世音菩萨保佑我（名字）身体健康'), s10b);
   assert('N10b the rest survives', s10b.includes('先把功课念起来') && s10b.includes('坚持念下去'), s10b);
+  // N11 (Ken 2026-09-12): 功课块 lines now write 《全称》（简称）. SUBJECT_ALIASES
+  // already folds the full names, so the pair still binds to the short subject.
+  const CASE21 = '【玄艺综述】听众：梦见蛇。台长：那你念往生咒21遍。';
+  const full21 = '📿 《往生净土神咒》（往生咒）每天 21 遍';
+  assert('N11 「《往生净土神咒》（往生咒）每天 21 遍」 binds to (往生咒, 21遍)',
+    extractNumberPairs(full21).some((p) => p.subject === '往生咒' && p.token === '21遍'), extractNumberPairs(full21));
+  assert('N11 …and a source stating 往生咒 21 遍 grounds it (narrated case source)',
+    checkDraft(`台长对一位听众的开示是：${full21}`, [CASE21], [], { caseTexts: [CASE21] }).length === 0);
+  const MANUAL21 = '【心灵法门入门手册】每天念《往生咒》21 遍。';
+  assert('N11 …and a book source grounds it as advice', checkDraft(full21, [MANUAL21], []).length === 0);
+  assert('N11 full name alone (no 简称) still binds', extractNumberPairs('📿 《千手千眼无碍大悲心陀罗尼》每天 7 遍').some((p) => p.subject === '大悲咒' && p.token === '7遍'));
+  assert('N11 an ungrounded count on a full-name line is still rejected',
+    checkDraft('📿 《往生净土神咒》（往生咒）每天 33 遍', [MANUAL21], []).some((x) => x.text === '33遍' && x.subject === '往生咒'));
+
   // A 功课 line with one bad count and one good count keeps the good one.
   const MIX = '📿 《大悲咒》每天7遍、《礼佛大忏悔文》每天7遍';
   const v10c = checkDraft(MIX, [MANUAL], []);
