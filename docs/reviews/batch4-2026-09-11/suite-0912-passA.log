@@ -1,0 +1,456 @@
+◇ injected env (6) from .env.local // tip: ⌘ enable debugging { debug: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 7 case(s) · concurrency=3
+Running: R10, R14, R13, R18, R22, R23, R24
+[vector-search] timing parallel=2 wall_ms=3129 per_query={"little_house":3009,"general":3129}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=3181 per_query={"homework_入门手册":2922,"health":3159,"homework_175问":3162,"general":3181}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'health', 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 19,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=3271 per_query={"homework_入门手册":2831,"homework_175问":3161,"general":3271}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=1729 per_query={"homework_入门手册":342,"homework_175问":361,"general":606,"little_house":1729}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=2092 per_query={"homework_175问":1738,"homework_入门手册":1803,"general":2092}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=2055 per_query={"homework_175问":1637,"homework_入门手册":1731,"general":2055}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=1709 per_query={"general":1709}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=1694 per_query={"general":1694}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=1712 per_query={"general":338,"homework_入门手册":350,"homework_175问":1712}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R22 violation=quote attempt=1 reason=quote_not_verbatim text="——台长对一位梦见蛇盘踞家中、自己喂食并最终放生、蛇飞升天际的案例的解读"
+[vector-search] timing parallel=2 wall_ms=2013 per_query={"little_house":1734,"general":2013}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[care-pipeline] conversation=regression-test:R24 citation without date (1) — regenerating once with the format reminder
+[care-pipeline] conversation=regression-test:R22 citation_no_date after retry: ["台长在《解答来信疑惑》里对不同的蛇梦有不同的解读，主要看梦中蛇的状态和感觉："]
+[verbatim-guard] conversation=regression-test:R22 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"——台长对一位梦见蛇盘踞家中、自己喂食并最终放生、蛇飞升天际的案例的解读","reason":"quote_not_verbatim"}],"chunkTokens":["7遍","21遍","100张","3遍","1遍","49遍","5遍","27遍","4张"],"replyTokens":["3遍","7遍","1遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=3 wall_ms=1780 per_query={"homework_入门手册":1710,"homework_175问":1775,"general":1780}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R24 violation=quote attempt=1 reason=quote_not_verbatim text="\"祈请南无大慈大悲观世音菩萨帮助我 **XXX（您的名字）** 能够将这些小房子送给 **XXX 化解 X 岁（或三六九年龄）的关劫**。\""
+[verbatim-guard] conversation=regression-test:R24 violation=quote attempt=1 reason=quote_not_verbatim text="\"拜谢南无大慈大悲观世音菩萨帮助我 XXX 能够将这些小房子送给 XXX 化解关劫。感恩大慈大悲观世音菩萨保佑！\""
+[vector-search] timing parallel=1 wall_ms=395 per_query={"general":395}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=383 per_query={"general":383}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[care-pipeline] conversation=regression-test:R24 citation_no_date after retry: ["参考：《解答来信疑惑（第一百四十六篇）》、《心灵法门入门手册》、《佛学常识开示锦集（第一册）》"]
+[verbatim-guard] conversation=regression-test:R24 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"\"祈请南无大慈大悲观世音菩萨帮助我 **XXX（您的名字）** 能够将这些小房子送给 **XXX 化解 X 岁（或三六九年龄）的关劫**。\"","reason":"quote_not_verbatim"},{"attempt":1,"type":"quote","text":"\"拜谢南无大慈大悲观世音菩萨帮助我 XXX 能够将这些小房子送给 XXX 化解关劫。感恩大慈大悲观世音菩萨保佑！\"","reason":"quote_not_verbatim"}],"chunkTokens":["1遍","79张","3张","89张","69张","49张","21张","5000张","7遍","3遍","49遍","21遍","5遍","27遍"],"replyTokens":["1遍","21张","49张","69张"],"scrubbed":[],"refusalWithCountsAvailable":false}
+
+═══ R10 失眠 keeps grounded 功课 遍数 — guard: clean ═══
+Q: 我最近失眠很严重，念什么经好？
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,case_studies,disease_encyclopedia,canonical_ruling
+  ✓ retrieval carries N遍 counts
+  ✓ reply contains a N遍 prescription
+  ✓ reply contains a 祈求词
+  ✓ NO 查不到相关原文/不敢乱给 tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+失眠真的很苦，身心都在受煎熬 🙏
+
+台长在开示中提到，睡眠不好有几种情况——白天压力太大、或者身上有灵性阴气重。念经可以帮助稳定神经、平静心气。
+
+可以这样开始：
+
+📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3-7 遍
+祈请："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力"
+
+📿 《般若波罗蜜多心经》（心经）每天 3-7 遍
+祈请："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼"
+⚠️ 晚上 10 点后不念
+
+📿 《往生净土神咒》（往生咒）每天 21-49 遍
+祈请："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）超度因我而死去的小灵性，帮助我消除孽障"
+⚠️ 晚上 10 点后不念
+
+往生咒对于睡眠不好特别有帮助——台长开示过，失眠很多时候与身上灵性有关，往生咒超度小灵性，睡眠自然会改善。
+
+坚持念下去，菩萨会帮你 🙏
+
+你之前有念过经吗？
+
+═══ R14 入门轮 简单直接 (吵架 → 没有念过) — guard: clean ═══
+访客：和家人一直吵架，我可以先学什么？
+AI：家人之间的争吵真的很累心 🙏
+
+可以先从这两部经开始，很简单：
+
+📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力"
+
+📿 《解结咒》每天 21 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（…
+访客：没有念过
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,core_wisdom,teaching,radio_teaching,fahui_qa,canonical_ruling
+Last-turn retrieval (ALL 11): 心灵法门入门手册 p23 | 心灵法门入门手册 p36 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 白话佛法（第十册） p226 | 白话佛法（第九册） p74 | 玄艺综述 | 白话佛法（第九册） p140 | 白话佛法广播讲座（第一册） p141 | 法会弟子提问 | 组织审定
+  ✓ contains 《大悲咒》《心经》《解结咒》 (full or short name)
+  ✓ 📿 lines use the full sutra names (Ken 09-12)
+  ✓ at least one N遍
+  ✓ no 「资料里没有写明」 / 「没有写明具体数字」
+  ✓ xlfm.my/chant not a substitute for counts (link ok only with counts)
+  ✓ body (minus 功课 block) ≤ 400 chars
+  ✓ ≤1 开示 quote, and after the 功课
+  ✓ contains 祈求词
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏
+
+先这样起步，很简单：
+
+📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的名字）身体健康，增强功力"
+
+📿 《般若波罗蜜多心经》（心经）每天 3 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的名字）开智慧，头脑清醒冷静，去除烦恼"
+⚠️ 晚上 10 点后不念
+
+📿 《解结咒》每天 21 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的名字）与（家人名字）化解恶缘"
+
+---
+
+不会念没关系，跟着视频学：
+🔗 https://xinlingfamen.info/jingwen/
+
+每天坚持比念多重要。先把这三部念顺，菩萨会帮你 🙏
+
+═══ R13 小房子 → 还没有开始念功课 — guard: clean ═══
+访客：我想开始念小房子
+AI：好的 🙏 很高兴你想开始！
+
+先问你一下：**你目前有在做基础功课吗？**（大悲咒、心经、礼佛大忏悔文这些）
+
+这样我可以告诉你最适合你的起步方式。
+访客：还没有开始念功课
+Sources: 心灵法门入门手册 | 小房子念诵指南 | 心灵法门入门手册 · types: beginner_guide,xiaofangzi_guide,qa_collection,counseling_manual,case_studies,fahui_qa,buddhist_basics,canonical_ruling
+Last-turn retrieval (ALL 11): 心灵法门入门手册 p23 | 小房子念诵指南 p38 | 心灵法门入门手册 p36 | 小房子念诵指南 p22 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 弘法度人辅导手册 p67 | 心灵法门例说 p334 | 法会弟子提问 | 佛学常识开示锦集（第一册） p132 | 组织审定
+  ✓ retrieval carries 念诵指南 or 入门手册
+  ✓ gives the 功课 first (words, or 📿 block before 小房子)
+  ✗ names the three pillars (大悲咒/心经/礼佛, full or short)
+  ✓ 📿 lines use the full sutra names (Ken 09-12)
+  ✓ at least one N遍
+  ✓ 小房子 can start once 功课 has begun (not "wait until stable")
+  ✓ cites 念诵指南 or 入门手册 (reply or sources)
+  ✓ no 查不到相关原文 / 不敢乱说
+  ✓ no 「资料里没有写明具体数字」 (new refusal phrasing)
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏
+
+根据台长的教导，**小房子需要配合日常功课才有能量**——就像要先有收入，才能还债。所以我们先把基础功课起来，这样念的小房子质量才好。
+
+先从这两部开始，很简单：
+
+📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 **3 遍**
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力"
+
+📿 《般若波罗蜜多心经》（心经）每天 **3 遍**
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼"
+⚠️ 晚上 10 点后不念
+
+不会念没关系，有教念视频跟着念：
+🔗 https://xinlingfamen.info/jingwen/
+
+---
+
+**关于小房子**：
+
+只要你开始做功课了（哪怕才念几天），就可以同时开始念小房子了，不用等很久。
+
+小房子的组成（每张）：
+- 《大悲咒》27 遍
+- 《心经》49 遍
+- 《往生咒》84 遍
+- 《七佛灭罪真言》87 遍
+
+小房子纸可以免费下载打印：
+🔗 https://xlfm.my/little-house
+
+或者去附近的共修会免费领取：
+🔗 https://xlfm.my/contact-us
+
+---
+
+你是为了什么想念小房子？（是为自己、为家人，还是有特定的困扰？）这样我可以帮你更清楚地指引方向 🙏
+
+═══ R18 关系类×分档 (吵架 → 没有念过) — guard: clean ═══
+访客：和家人一直吵架，我可以先学什么？
+AI：家里不和睦，真的很累 🙏
+
+可以先从这两部经开始，简单但很有力量：
+
+📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的姓名）身体健康，增强功力"
+
+📿 《般若波罗蜜多心经》（心经）每天 3 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感…
+访客：没有念过
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,core_wisdom,teaching,radio_teaching,fahui_qa,canonical_ruling
+Last-turn retrieval (ALL 11): 心灵法门入门手册 p23 | 心灵法门入门手册 p36 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 白话佛法（第十册） p226 | 白话佛法（第九册） p74 | 玄艺综述 | 白话佛法（第九册） p140 | 白话佛法广播讲座（第一册） p141 | 法会弟子提问 | 组织审定
+  ✓ contains 《大悲咒》《心经》《解结咒》 each with a count
+  ✓ 📿 lines use the full sutra names (Ken 09-12)
+  ✓ 《礼佛大忏悔文》 NOT given as this round's 功课 (no 📿 line / no count)
+  ✓ 四段结构: ≥2 plain paragraphs before the 📿 block, block present, closing after it
+  ✓ contains 祈求词
+  ✓ no 查不到相关原文 / 没有写明具体数字
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏
+
+上面那三部就是你的起步功课：
+
+📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的姓名）身体健康，增强功力"
+
+📿 《般若波罗蜜多心经》（心经）每天 3 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的姓名）开智慧，头脑清醒冷静，去除烦恼"
+⚠️ 晚上 10 点后不念
+
+📿 《解结咒》每天 21 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（你的姓名）与（家人姓名）化解恶缘"
+
+跟着视频念，不会认字没关系：
+🔗 https://xinlingfamen.info/jingwen/
+
+先把这三部念顺了，每天坚持。少念比不念好，3 遍不多，菩萨看的是你的心意 🙏
+
+═══ R22 已在修梦见蛇 → 加什么（d7897fd1） — guard: clean ═══
+访客：梦到买一条蛇，不知道放哪里，实然看到飞进房间，感觉他是照顾我。请问这是什么意思
+AI：谢谢你分享这个梦 🙏
+
+台长在《解答来信疑惑》里对不同的蛇梦有不同的解读，主要看梦中蛇的状态和感觉：
+
+- 梦中蛇是来**咬你、追你、带着威胁感**的 → 代表麻烦、困境
+- 梦中蛇是**温和的、来保护你的** → 台长对一位梦见蛇盘踞家中、自己喂食并放生、最终蛇飞升天际的案例，解读是「地龙，是来保护她的」
+
+你的梦…
+访客：有
+AI：好的 🙏
+
+那功课继续保持，念经的时候可以在心里诚心祈求菩萨保佑你平安、身边有善缘护持。
+
+梦中那种被照顾的感觉，好好珍惜，继续念经修心，菩萨会在你身边的 🙏
+
+你现在有在念小房子吗？
+访客：大悲咒21
+AI：好的，大悲咒每天21遍，很好 🙏
+
+有在念其他经文吗？比如心经、礼佛大忏悔文、往生咒？
+访客：心经21
+Sources: 佛学问答175问 | 心灵法门例说 | 小房子念诵指南 · types: qa_collection,case_studies,xiaofangzi_guide,buddhist_basics,fahui_qa,case_qa,disciple_teaching,canonical_ruling
+Last-turn retrieval (ALL 11): 佛学问答175问 p143 | 心灵法门例说 p114 | 小房子念诵指南 p61 | 佛学常识开示锦集（第一册） p150 | 法会弟子提问 | 玄艺问答 | 弟子开示（第二册） p32 | 玄艺问答 | 法会弟子提问 | 佛学常识开示锦集（第一册） p143 | 组织审定
+  ✓ at least two sutras each with a count
+  ✓ 📿 lines use the full sutra names (Ken 09-12)
+  ✓ no orphan 祈求词
+  ✓ no blanket 查不到 tail
+  ✓ placeholder (if any) sits next to a sutra name, never alone
+  ✓ final text passes guard (0 residual)
+--- reply ---
+大悲咒21遍 + 心经21遍，功课很扎实 🙏
+
+有在念往生咒或礼佛大忏悔文吗？
+
+═══ R23 眼睛不好是不是有灵性（cbcf8b8a） — guard: clean ═══
+Q: 眼睛不好是不是有灵性
+Sources: 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 · types: case_qa,letter_qa,fahui_qa,canonical_ruling
+  ✓ no totem reading applied to the visitor
+  ✓ gives 功课 (a sutra with a count) or 小房子 guidance
+  ✓ no blanket 查不到 tail
+  ✓ no orphan 祈求词
+  ✓ final text passes guard (0 residual)
+--- reply ---
+眼睛不好，这确实是很多人会担心的问题 🙏
+
+台长在开示里有提到，眼睛出问题有**两种可能**：
+
+> 眼睛不好，要看的，有两种，一种是器质性的，就是天生的眼睛不好，家族的影响等，都有关系；还有一种是真的有灵性。所以针对这个毛病，两方面都要去做，一是要去看医生，用药，还有眼睛不要用得太过分……如果感觉经常做噩梦的话，说明身上有灵性，会弄他身体不好的部位，那么赶紧念小房子，把它超度掉就OK了。
+
+——《解答来信疑惑（第七百篇）》（开示于2015年7月27日）
+
+所以台长的意思很清楚：**两方面都要做，不能只靠一边**。
+
+**你可以这样做：**
+
+📿 **《千手千眼无碍大悲心陀罗尼》（大悲咒）** 每天 3-7 遍
+祈请："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力"
+
+📿 **《往生净土神咒》（往生咒）** 每天 21-49 遍
+祈请："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）帮助我超度因我而死去的小灵性，帮助我消除孽障"
+
+同时，**一定要配合去看医生**，不要放弃正规治疗 🙏
+
+请问你眼睛现在是什么情况？有没有在念经？
+
+═══ R24 怎样祈求369的小房子（50b07633 / a4210b01） — guard: passed_after_retry flags=citation_no_date ═══
+Q: 怎样祈求369的小房子？
+Sources: 心灵法门入门手册 | 解答来信疑惑 | 解答来信疑惑 · types: xiaofangzi_guide,beginner_guide,qa_collection,case_studies,letter_qa,buddhist_basics,canonical_ruling
+  ✓ says 分开念／分别祈求 (解答来信 146)
+  ✓ gives the 祈求 wording (either approved form) naming 关劫
+  ✓ no blanket 查不到 tail
+  ✓ no orphan 祈求词
+  ✓ final text passes guard (0 residual)
+--- reply ---
+根据检索到的台长开示，369（三六九年龄关劫）的小房子要**分开念诵、分别祈求**，和犯太岁的小房子是不同的。
+
+**烧送前的祈求**（按《入门手册》的烧送流程）：
+
+**有佛台的话：**
+
+上香后，将小房子举过头顶放在佛台上，跪求：
+
+"祈请南无大慈大悲观世音菩萨帮助我 XXX 能够将这些小房子送给 XXX 化解 X 岁的关劫（或三六九的关劫）"
+
+然后点燃，烧的过程中说："请大慈大悲观世音菩萨慈悲"
+
+烧完后说："拜谢南无大慈大悲观世音菩萨帮助我 XXX 能够将这些小房子送给 XXX 化解关劫。感恩大慈大悲观世音菩萨保佑！"（一拜）
+
+**没有佛台的话：**
+
+先上心香，念 1 遍《大悲咒》、1 遍《心经》，再将小房子举过头顶，朝天三拜后按同样方式祈求。
+
+---
+
+**小房子的遍数参考：**
+
+台长在开示中提到过，事情大小不同，张数也不同：
+- 21 张 —— 小的状况
+- 49 张 —— 较大的事
+- 69 张 —— 更重的关劫
+
+具体多少张适合您的情况，可以联系就近共修会义工询问 🙏
+
+---
+
+参考：《解答来信疑惑（第一百四十六篇）》、《心灵法门入门手册》、《佛学常识开示锦集（第一册）》
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R10 失眠 keeps grounded 功课 遍数              turns=1 wall/turn=14851ms calls=1 effort=low out_tokens=519 cost=$0.047
+  R14 入门轮 简单直接 (吵架 → 没有念过)                 turns=2 wall/turn=11337ms calls=2 effort=low out_tokens=798 cost=$0.085
+  R13 小房子 → 还没有开始念功课                       turns=2 wall/turn=10713ms calls=2 effort=low out_tokens=670 cost=$0.083
+  R18 关系类×分档 (吵架 → 没有念过)                   turns=2 wall/turn=9642ms calls=2 effort=low out_tokens=830 cost=$0.085
+  R22 已在修梦见蛇 → 加什么（d7897fd1）               turns=4 wall/turn=10203ms calls=5 effort=medium/low out_tokens=1420 cost=$0.198
+  R23 眼睛不好是不是有灵性（cbcf8b8a）                 turns=1 wall/turn=14717ms calls=1 effort=medium out_tokens=547 cost=$0.037
+  R24 怎样祈求369的小房子（50b07633 / a4210b01）     turns=1 wall/turn=33648ms calls=3 effort=low out_tokens=1323 cost=$0.135
+turn wall p50=11337ms p90=33648ms avg=15016ms · first_text avg=1737ms · calls/turn=1.23 · cache hits=16/16
+cost: total=$0.671 · per turn=$0.0516 (13 turns)
+checks: 46/47 passed · cases: 6/7 fully green
+
+1 CHECKS FAILED
+EXIT=1

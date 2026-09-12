@@ -1,0 +1,23 @@
+warming 18 chips against https://xlfm-wisdom.vercel.app · concurrency 3
+✓ zh family_conflict      11.0s 1966 bytes · stages retrieving>drafting>verifying
+✓ zh insomnia             13.0s 2099 bytes · stages retrieving>drafting>verifying
+✓ zh beginner_first_step  10.4s 1959 bytes · stages retrieving>drafting>verifying
+✓ zh work_karma           36.0s 3153 bytes · stages retrieving>drafting>verifying>verifying
+✓ zh family_illness       15.1s 2477 bytes · stages retrieving>drafting>verifying
+✓ en family_conflict      12.1s 2615 bytes · stages retrieving>drafting>verifying
+✓ en insomnia             15.7s 3064 bytes · stages retrieving>drafting>verifying
+✓ zh child_emotions       49.5s 3213 bytes · stages retrieving>drafting>verifying>verifying>verifying
+✓ en work_karma           15.7s 3170 bytes · stages retrieving>drafting>verifying
+✓ en beginner_first_step  17.3s 2873 bytes · stages retrieving>drafting>verifying
+✓ en family_illness       12.4s 2558 bytes · stages retrieving>drafting>verifying
+✓ en child_emotions       33.3s 3532 bytes · stages retrieving>drafting>verifying>verifying
+✓ id insomnia             12.8s 2107 bytes · stages retrieving>drafting>verifying
+✓ id family_conflict      17.5s 2754 bytes · stages retrieving>drafting>verifying
+✓ id work_karma           16.0s 2876 bytes · stages retrieving>drafting>verifying
+✓ id child_emotions       17.8s 2716 bytes · stages retrieving>drafting>verifying
+✓ id family_illness       17.4s 2954 bytes · stages retrieving>drafting>verifying
+✓ id beginner_first_step  26.8s 2420 bytes · stages retrieving>drafting>verifying>verifying
+done: 18/18 ok
+EXIT=0
+✓ zh work_karma           31.7s 3713 bytes · stages retrieving>drafting>verifying>verifying
+done: 1/1 ok
