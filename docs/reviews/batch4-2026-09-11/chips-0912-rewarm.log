@@ -1,0 +1,12 @@
+✓ zh work_karma           28.9s 3441 bytes · stages retrieving>drafting>verifying>verifying
+✓ zh family_illness       9.0s 1694 bytes · stages retrieving>drafting>verifying
+✓ zh child_emotions       39.9s 2974 bytes · stages retrieving>drafting>verifying>verifying>verifying
+✓ id insomnia             14.0s 2210 bytes · stages retrieving>drafting>verifying
+done: 4/4 ok
+✓ en family_illness       12.0s 2571 bytes · stages retrieving>drafting>verifying
+done: 1/1 ok
+✓ zh child_emotions       42.8s 3148 bytes · stages retrieving>drafting>verifying>verifying>verifying
+✓ zh work_karma           43.2s 3101 bytes · stages retrieving>drafting>verifying>verifying>verifying
+done: 2/2 ok
+✓ zh work_karma           37.9s 2459 bytes · stages retrieving>drafting>verifying>verifying>verifying
+done: 1/1 ok
