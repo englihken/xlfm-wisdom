@@ -1,0 +1,108 @@
+◇ injected env (6) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 2 case(s) · all parallel
+Running: R28, R29
+[vector-search] timing parallel=1 wall_ms=3014 per_query={"general":3013}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=3365 per_query={"little_house":2922,"canonical":3050,"general":3365}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'little_house_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[care-pipeline] conversation=regression-test:R29 citation without date (1) — regenerating once with the format reminder
+[vector-search] timing parallel=1 wall_ms=2359 per_query={"general":2359}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: true,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[care-pipeline] conversation=regression-test:R29 citation_no_date after retry: ["台长在《解答来信疑惑（第一百七十二篇）》里有这样的开示："]
+
+═══ R28 同修轮 提高境界 → 有（c53fd896） — guard: clean ═══
+访客：要怎样才能提高境界
+AI：这是一个很好的问题，也是每个修行人心里都在想的事 🙏
+
+师父在《白话佛法（第二册）》里这样开示：
+
+> 境界的提升是看不见，摸不着的，只有靠你自己慢慢地悟，慢慢地去修炼。为什么有些人碰到一点事情就忍不住上窜下跳的？为什么有些人又很沉稳忍辱精进？这就是境界的不同。境界高的人，就是指着鼻子骂他，他也只是笑笑而已，一句话都…
+访客：有
+Sources: 法会弟子提问 | 法会弟子提问 | 白话佛法（第三册） · types: fahui_qa,core_wisdom,radio_teaching,disciple_teaching,golden_quote,canonical_ruling
+Last-turn retrieval (ALL 11): 法会弟子提问 | 法会弟子提问 | 白话佛法（第三册） p84 | 白话佛法广播讲座（第一册） p117 | 白话佛法（第二册） p132 | 法会弟子提问 | 白话佛法广播讲座（第一册） p76 | 法会弟子提问 | 弟子开示（第一册） p22 | 佛言佛语(十) p35 | 组织审定
+  ✓ pre-reply level (cues) = experienced
+  ✓ no 📿 功课 block
+  ✓ no 遍数／张数 outside quotes
+  ✗ ≥2 「> 」 quote block(s) (verbatim — see residual check)
+  ✓ does not ask whether they chant
+  ✗ names a source 《…》
+  ✓ no 查不到／partial guard tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+是哪里觉得卡住了，可以说说吗？🙏
+
+═══ R29 同修轮 安老院佛台结缘（长者关怀，37a5bc19） — guard: clean flags=citation_no_date ═══
+访客：你好休息，心灵法门已有好几年。目前因为年事已高，家人又没有修行，所以只有入住安老院，但是现在供奉的佛台要结缘出去，请问我应该念多少张小房子和进正处该写什么才能如理如法的请下供台，感恩。
+Sources: 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 · types: canonical_ruling,letter_qa,fahui_qa
+Last-turn retrieval (ALL 10): 组织审定 | 组织审定 | 组织审定 | 组织审定 | 解答来信疑惑 | 法会弟子提问 | 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑
+  ✓ pre-reply level (cues) = experienced
+  ✓ pre-reply needs_care (cues)
+  ✓ invites a volunteer to follow up (义工)
+  ✓ body ≤ 300 chars (长者关怀)
+  ✓ no 查不到／partial guard tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+您好 🙏 感恩您多年的修行，这份坚持真的很不容易。
+
+台长在《解答来信疑惑（第一百七十二篇）》里有这样的开示：
+
+> 大家一起帮忙念诵21张小房子就结束了，还有大悲咒、心经、礼佛大忏悔文各7遍。
+
+这是台长针对请下佛台的开示——每尊菩萨像请下时，念大悲咒、心经、礼佛大忏悔文各7遍，加上给房子要经者念21张小房子，就如理如法了。
+
+**小房子的抬头写法：**
+- 敬赠：**"XXX（您的名字）房子的要经者"**
+- 落款：XXX赠（您的名字）
+
+如果您身边有同修或义工可以帮忙一起念，是最好的。一个人来不及也没关系，心诚最重要，慢慢念完即可。
+
+菩萨明白您的处境，会护佑您的 🙏
+
+如果附近有心灵法门共修会，义工们很愿意上门协助您请下佛台，您可以联系就近的分会：
+🔗 https://xlfm.my/contact-us
+
+您现在在哪个城市？我可以帮您找最近的分会联系方式。
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R28 同修轮 提高境界 → 有（c53fd896）               turns=2 wall/turn=11625ms calls=2 effort=medium out_tokens=575 cost=$0.081
+  R29 同修轮 安老院佛台结缘（长者关怀，37a5bc19）           turns=1 wall/turn=26508ms calls=2 effort=high out_tokens=828 cost=$0.091
+turn wall p50=26508ms p90=26508ms avg=19067ms · first_text avg=2230ms · calls/turn=1.33 · cache hits=4/4
+cost: total=$0.172 · per turn=$0.0573 (3 turns)
+checks: 12/14 passed · cases: 1/2 fully green
+
+2 CHECKS FAILED

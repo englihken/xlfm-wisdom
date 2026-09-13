@@ -784,7 +784,10 @@ async function main() {
       messages.push({ role: 'assistant', content: fullText });
       stat.turns++;
       stat.wallMs += Date.now() - t0;
-      transcript.push(`访客：${turn}`, `AI：${fullText.length > 160 && turn !== turns[turns.length - 1] ? fullText.slice(0, 160) + '…' : fullText}`);
+      // Earlier turns: head AND tail — the question a turn ends with is what the
+      // visitor's next short answer (「有」「还没」) replies to.
+      const isLast = turn === turns[turns.length - 1];
+      transcript.push(`访客：${turn}`, `AI：${!isLast && fullText.length > 320 ? `${fullText.slice(0, 160)}…${fullText.slice(-160)}` : fullText}`);
     }
     const books = buildSources(passages, fullText).map((s) => s.book);
     const types = passages.map((p) => p.type ?? '');
