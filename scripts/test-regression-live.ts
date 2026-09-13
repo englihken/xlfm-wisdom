@@ -6,6 +6,7 @@
 
 import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
+import { levelFromCues, needsCareFromCues } from '../src/lib/prompt/level-cues';
 
 type Passage = { text: string; book: string; type?: string };
 type Check = {
@@ -464,6 +465,66 @@ const XFZ_CASE: Case = {
   ],
 };
 
+// 同修轮 (09-13 fellow-practitioner brief §四 + addendum §5): the visitors' own
+// words from production. The level must already be experienced BEFORE the
+// reply (cues), not only after the post-reply classifier.
+const COUNT_ANY_RE = /([0-9０-９]+|[一二两三四五六七八九十百]+)(遍|张|張)/;
+const ASKS_IF_CHANTING_RE = /(有没有|有在|是否|之前有|平时有)[^。？?\n]{0,6}(念经|念过经|做功课|念功课)|念过经吗|在做功课吗|有在念[^。？?\n]{0,4}吗|帮你看看功课/;
+const GUARD_TAIL_RE = /查不到相关原文|个别涉及遍数／张数的细节因暂未能核对到原文/;
+const proseOnly = (r: string) => r.split('\n').filter((l) => !/^\s*>/.test(l)).join('\n').replace(/\s+/g, '');
+const quoteBlocks = (r: string) => r.split(/\n\s*\n/).filter((p) => /^\s*>/.test(p)).length;
+const fellowChecks = (turns: string[], opts: { minQuotes?: number; allowCounts?: boolean } = {}): Check[] => [
+  { name: 'pre-reply level (cues) = experienced', ok: () => levelFromCues(turns).level === 'experienced' },
+  { name: 'no 📿 功课 block', ok: (r) => !/📿/.test(r) },
+  ...(opts.allowCounts ? [] : [{ name: 'no 遍数／张数 outside quotes', ok: (r: string) => !COUNT_ANY_RE.test(proseOnly(r)) }]),
+  { name: `≥${opts.minQuotes ?? 2} 「> 」 quote block(s) (verbatim — see residual check)`, ok: (r) => quoteBlocks(r) >= (opts.minQuotes ?? 2) },
+  { name: 'does not ask whether they chant', ok: (r) => !ASKS_IF_CHANTING_RE.test(r.replace(/\s+/g, '')) },
+  { name: 'names a source 《…》', ok: (r) => /《[^》]+》/.test(r) },
+  { name: 'no 查不到／partial guard tail', ok: (r) => !GUARD_TAIL_RE.test(r) },
+];
+const fellow = (label: string, turns: string[], extra: Check[] = [], opts?: { minQuotes?: number; allowCounts?: boolean }): Case => ({
+  label,
+  turns,
+  checks: [...fellowChecks(turns, opts), ...extra],
+});
+const R29_Q = '你好休息，心灵法门已有好几年。目前因为年事已高，家人又没有修行，所以只有入住安老院，但是现在供奉的佛台要结缘出去，请问我应该念多少张小房子和进正处该写什么才能如理如法的请下供台，感恩。';
+const FELLOW_CASES: Case[] = [
+  fellow('R26 同修轮 清修后与异性保持距离（925ef1a9）', ['清修后怎样跟异性保持距离 如果遇到缘分怎么办']),
+  fellow('R27 同修轮 如何修光明心（5fa0f9ca）', ['如何修光明心'], [
+    { name: 'cites 《白话佛法》 (reply or sources)', ok: (r, books) => has(r, '白话佛法') || books.some((b) => b.startsWith('白话佛法')) },
+  ]),
+  fellow('R28 同修轮 提高境界 → 有（c53fd896）', ['要怎样才能提高境界', '有']),
+  {
+    label: 'R29 同修轮 安老院佛台结缘（长者关怀，37a5bc19）',
+    turns: [R29_Q],
+    checks: [
+      { name: 'pre-reply level (cues) = experienced', ok: () => levelFromCues([R29_Q]).level === 'experienced' },
+      { name: 'pre-reply needs_care (cues)', ok: () => needsCareFromCues([R29_Q]).needsCare },
+      { name: 'invites a volunteer to follow up (义工)', ok: (r) => has(r, '义工') },
+      { name: 'body ≤ 300 chars (长者关怀)', ok: (r) => bodyChars(r) <= 300 },
+      { name: 'no 查不到／partial guard tail', ok: (r) => !GUARD_TAIL_RE.test(r) },
+    ],
+  },
+  fellow('R30 同修轮 度女佛友交女义工（8ebb5350）', ['我刚度一位女佛友，也开始念经了，有时候她有不明白会问我，接下来要跟进这位女佛友是否交给女义工的师兄，因为我是男的'], [
+    { name: 'suggests a female volunteer／同修 follows up', ok: (r) => /女(义工|同修|师姐|师兄)/.test(r.replace(/\s+/g, '')) },
+    { name: 'addresses the 男女 boundary', ok: (r) => /异性|男女|男同修|女同修|界线|界限/.test(r.replace(/\s+/g, '')) },
+  ], { minQuotes: 1 }),
+  fellow('R31 同修轮 清修遇到缘分（第二通，6a6134b1）', ['清修遇到缘分怎么办 要怎样化解坚定清修路']),
+  {
+    label: 'F1 反例 工作不顺业障（仍是入门）',
+    q: '工作一直不顺，是不是有业障？',
+    checks: [{ name: 'pre-reply level (cues) is new/beginner', ok: () => ['new', 'beginner'].includes(levelFromCues(['工作一直不顺，是不是有业障？']).level) }],
+  },
+  {
+    label: 'F2 反例 小房子组合（practising，四个数）',
+    q: '小房子的经文组合是什么？',
+    checks: [
+      { name: 'pre-reply level (cues) = practising', ok: () => levelFromCues(['小房子的经文组合是什么？']).level === 'practising' },
+      { name: 'gives 27／49／84／87 遍, no placeholder', ok: (r) => { const s = r.replace(/\s+/g, ''); return ['27', '49', '84', '87'].every((n) => s.includes(`${n}遍`)) && !s.includes('（遍数以官方资料为准）'); } },
+    ],
+  },
+];
+
 // Batch 4 (F08 prompt consolidation) — one case per architect decision that
 // changed behaviour: C2 关系类×分档 (R18), C3 给了再问 EN (R19), C5 安全优先级
 // (R20), C6 礼佛时间 (R21). They run against whichever SYSTEM_PROMPT_VERSION
@@ -658,7 +719,7 @@ async function main() {
   stripViolationsRef = stripViolations;
   chooseGuardTailRef = chooseGuardTail;
 
-  const { retrievalContextFrom, classifyConversation, replyActivatesCrisisProtocol, crisisFastLaneText } = await import('../src/lib/care-pipeline');
+  const { retrievalContextFrom, classifyConversation, replyActivatesCrisisProtocol, crisisFastLaneText, decideTurnLevel, withLevelBlock } = await import('../src/lib/care-pipeline');
   const { detectCrisisKeywords } = await import('../src/lib/crisis-keywords');
   {
     // F07 timing: visitor text → hotline text, the pure path the route runs before retrieval.
@@ -701,8 +762,12 @@ async function main() {
     for (const turn of turns) {
       const t0 = Date.now();
       const ctx = retrievalContextFrom(messages);
+      // 同修轮 (09-13): the same pre-reply level judgement as production (no
+      // persisted level or stage — every case is a fresh conversation).
+      const turnLevel = decideTurnLevel([...messages, { role: 'user', content: turn }], null);
+      ctx.level = turnLevel.level;
       passages = await searchRelevantTeachings(turn, undefined, lang, ctx);
-      const contextBlock = formatPassagesAsContext(passages);
+      const contextBlock = withLevelBlock(formatPassagesAsContext(passages), turnLevel);
       messages.push({ role: 'user', content: turn });
       const out = await generateGuardedReplyText({
         messages,
@@ -710,6 +775,7 @@ async function main() {
         passages,
         contextBlock,
         conversationId: convLabel,
+        level: turnLevel.level,
         // Same tiering as production (09-10 §3) — the suite must stay green with it.
         effort: process.env.EFFORT_TIERS === 'off' ? undefined : chooseReplyEffort({ message: turn, messages, ctx }),
       });
@@ -748,7 +814,7 @@ async function main() {
   const concurrency = concArg >= 0 ? Math.max(1, parseInt(process.argv[concArg + 1] ?? '0', 10) || 0) : 0;
   const pool: Case[] = chipsOnly
     ? chipCases(QUICK_QUESTIONS)
-    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, TOTEM_CASE, XFZ_CASE, ...BATCH4_CASES, ...STRIP_TAIL_CASES, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
+    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, TOTEM_CASE, XFZ_CASE, ...BATCH4_CASES, ...STRIP_TAIL_CASES, ...FELLOW_CASES, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
   const selected = pool.filter(
     (c) => !only || only.some((id) => c.label.startsWith(id + ' ') || c.label.startsWith(id))
   );

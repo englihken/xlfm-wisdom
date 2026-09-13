@@ -497,8 +497,16 @@ export function replaceCountTokens(line: string, opts: { badPairs: Set<string>; 
 //   'blanket' — number sentences were stripped and no counts remain.
 export type GuardTail = 'none' | 'partial' | 'blanket';
 
-export function chooseGuardTail(stripped: string, violations: GuardViolation[]): GuardTail {
+export function chooseGuardTail(
+  stripped: string,
+  violations: GuardViolation[],
+  opts: { level?: string | null } = {}
+): GuardTail {
   if (!violations.some((v) => v.type === 'number')) return 'none';
+  // 同修轮 (09-13): an experienced practitioner's reply should carry no counts
+  // at all — a stripped number is the model over-reaching, not a figure the
+  // visitor is missing, so no disclaimer of any kind is appended.
+  if (opts.level === 'experienced') return 'none';
   // A reply that still names its sutras (counts replaced by the placeholder)
   // gets the scoped partial note, never the blanket 「查不到相关原文」 — the
   // placeholder already says exactly which figures to confirm (§B.3).

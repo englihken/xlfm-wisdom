@@ -35,6 +35,7 @@ import {
   type GuardTail,
 } from './verbatim-guard';
 import { wisdomEntryIdsInPassages, incrementWisdomUseCounts } from './wisdom-sync';
+import { levelFromCues, needsCareFromCues, maxLevel, stageToLevel, isVisitorLevel, type VisitorLevel } from './prompt/level-cues';
 import { writeAudit } from './audit';
 import { detectCrisisKeywords, matchedCrisisKeywords } from './crisis-keywords';
 
@@ -166,6 +167,17 @@ export function chooseReplyEffort(params: {
   messages: CareMessage[];
   ctx?: RetrievalContext;
 }): ReplyEffort {
+  const effort = chooseReplyEffortByTopic(params);
+  // 同修轮 (09-13 §三): an experienced practitioner gets at least medium —
+  // 2–3 verbatim passages plus how they apply is not a low-effort answer.
+  return params.ctx?.level === 'experienced' && effort === 'low' ? 'medium' : effort;
+}
+
+function chooseReplyEffortByTopic(params: {
+  message: string;
+  messages: CareMessage[];
+  ctx?: RetrievalContext;
+}): ReplyEffort {
   const visitorTurns = params.messages.filter((m) => m.role === 'user').map((m) => m.content);
   if (!visitorTurns.includes(params.message)) visitorTurns.push(params.message);
   if (visitorTurns.some((t) => detectCrisisKeywords(t))) return 'high';
@@ -246,7 +258,23 @@ const GUARD_SAFE_REPLY: Record<Language, string> = {
 // every number that IS grounded. The 08-09 version said "no numbers outside
 // 组织审定 at all" — so a quote-only trip on a 失眠 answer regenerated with
 // zero 遍数 and a 查不到 line (production 08-19→08-29: 14/14 失眠 answers).
-function buildRetryInstruction(violations: GuardViolation[]): string {
+function buildRetryInstruction(violations: GuardViolation[], level?: VisitorLevel | null): string {
+  // 同修轮 (09-13): an experienced practitioner's reply carries no counts, so a
+  // number violation means 「take the number out」 — never 「use a grounded one
+  // instead」 and never 「say the figure is not in the materials」.
+  if (level === 'experienced') {
+    const numbers = [...new Set(violations.filter((v) => v.type === 'number').map((v) => v.text))];
+    return [
+      '【重要纠正】这是同修轮（访客是已在修行的同修），请重写整个回答：',
+      ...violations
+        .filter((v) => v.type === 'quote')
+        .map((v) => `- 引文「${v.text.length > 60 ? `${v.text.slice(0, 60)}…` : v.text}」不是检索段落的逐字原文：引文块（"> "）必须逐字照抄检索段落；做不到就删去，或改为不带引文块的转述。`),
+      ...(numbers.length > 0
+        ? [`- 同修轮不写遍数／张数：把「${numbers.join('」「')}」连同所在句子改成不带数字的建议（例如「多念心经开智慧」），不要换成别的数字。`]
+        : []),
+      '重写时不要写「查不到相关原文」「资料里没有写明」一类的话；其余内容保持不变。',
+    ].join('\n');
+  }
   const lines: string[] = [
     '【重要纠正】你上一稿有以下内容未通过与检索段落的逐字核对，请重写整个回答：',
   ];
@@ -363,6 +391,9 @@ export async function generateGuardedReplyText(params: {
   // default (high), which is what production ran before 09-10.
   effort?: ReplyEffort;
   onStage?: (stage: ReplyStage) => void;
+  // 同修轮 (09-13): visitor level for this turn — shapes the retry instruction
+  // and the post-strip tail (see decideTurnLevel).
+  level?: VisitorLevel | null;
 }): Promise<{ fullText: string; refused: boolean; guard: GuardOutcome; modelCalls: number; flags: string[] }> {
   const { messages, language, passages, contextBlock, effort } = params;
   const convId = params.conversationId ?? 'unknown';
@@ -568,7 +599,7 @@ export async function generateGuardedReplyText(params: {
   recordViolations(1, violations);
 
   // One corrective regeneration, told exactly what failed and what to keep.
-  result = await callModel(buildRetryInstruction(violations));
+  result = await callModel(buildRetryInstruction(violations, params.level));
   if (result.stop_reason === 'refusal') {
     console.warn('[care-pipeline] model refused on guard retry; sending hand-off reply');
     return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'passed_after_retry', modelCalls, flags: [] };
@@ -605,7 +636,7 @@ export async function generateGuardedReplyText(params: {
     console.error(`[verbatim-guard] conversation=${convId} stripped tail=safe-reply`);
     return finish(GUARD_SAFE_REPLY[language], 'stripped', 'safe-reply');
   }
-  const tail = chooseGuardTail(stripped, violations);
+  const tail = chooseGuardTail(stripped, violations, { level: params.level });
   console.error(`[verbatim-guard] conversation=${convId} stripped tail=${tail}`);
   const fullText =
     tail === 'none'
@@ -706,6 +737,88 @@ export function buildSources(passages: RetrievedPassage[], replyText?: string): 
   return Array.from(sourcesMap.values()).slice(0, MAX_SOURCES);
 }
 
+// ── 同修轮: visitor level (09-13 fellow-practitioner brief + addendum) ────────
+export type PersistedLevel = { level: VisitorLevel | null; needsCare: boolean; stageLevel: VisitorLevel | null };
+
+/**
+ * What storage already knows before this turn: conversations.level / needs_care
+ * (migration 051, upgrade-only) and the volunteer-set contacts.stage (同修 →
+ * experienced). By conversation id; on a first turn, the returning browser's
+ * contact stage alone. Fail-safe: empty on any error, never throws.
+ */
+export async function loadPersistedLevel(params: {
+  conversationId?: string | null;
+  browserId?: string | null;
+}): Promise<PersistedLevel> {
+  const empty: PersistedLevel = { level: null, needsCare: false, stageLevel: null };
+  if (!supabaseAdmin) return empty;
+  try {
+    if (params.conversationId) {
+      const { data } = await supabaseAdmin
+        .from('conversations')
+        .select('level, needs_care, contact:contacts ( stage )')
+        .eq('id', params.conversationId)
+        .maybeSingle();
+      const row = data as unknown as {
+        level: string | null;
+        needs_care: boolean | null;
+        contact: { stage: string | null } | { stage: string | null }[] | null;
+      } | null;
+      if (!row) return empty;
+      const contact = Array.isArray(row.contact) ? row.contact[0] : row.contact;
+      return {
+        level: isVisitorLevel(row.level) ? row.level : null,
+        needsCare: row.needs_care === true,
+        stageLevel: stageToLevel(contact?.stage ?? null),
+      };
+    }
+    if (params.browserId) {
+      const { data } = await supabaseAdmin.from('contacts').select('stage').eq('browser_id', params.browserId).maybeSingle();
+      return { ...empty, stageLevel: stageToLevel((data as { stage: string | null } | null)?.stage ?? null) };
+    }
+    return empty;
+  } catch (e) {
+    console.error('[level] persisted level read failed:', e);
+    return empty;
+  }
+}
+
+export type TurnLevel = { level: VisitorLevel; needsCare: boolean; cueHits: string[]; source: 'cues' | 'persisted' | 'stage' };
+
+/** Pre-reply level: cues over every visitor turn, maxed with what storage knows. */
+export function decideTurnLevel(messages: CareMessage[], persisted?: PersistedLevel | null): TurnLevel {
+  const visitorTurns = messages.filter((m) => m.role === 'user').map((m) => m.content);
+  const cues = levelFromCues(visitorTurns);
+  const care = needsCareFromCues(visitorTurns);
+  const level = maxLevel(cues.level, persisted?.level, persisted?.stageLevel);
+  const source = level === cues.level ? 'cues' : level === persisted?.stageLevel ? 'stage' : 'persisted';
+  return {
+    level,
+    needsCare: care.needsCare || persisted?.needsCare === true,
+    cueHits: [...cues.hits, ...care.hits],
+    source,
+  };
+}
+
+/** Per-turn instruction for the (uncached) context block; empty for new／beginner without care signals. */
+export function levelContextBlock(turn: Pick<TurnLevel, 'level' | 'needsCare'>): string {
+  const parts: string[] = [];
+  if (turn.level === 'experienced') {
+    parts.push('【本轮判级：同修轮】访客是已在修行的同修。按系统提示词【同修轮】回答：不出 📿 功课块，不写遍数张数（访客明确问数字除外），不问「有没有念经」；师父原文 2–3 段，引文逐字、带出处，再用白话讲怎么用在他身上。');
+  } else if (turn.level === 'practising') {
+    parts.push('【本轮判级：practising】访客已在念功课。默认不给遍数；访客问「念几遍／几张」或话题本身是教义数字（小房子规格、礼佛特殊日子、369）时才给，给就按功课卡／《佛学问答》161。');
+  }
+  if (turn.needsCare) {
+    parts.push('【关怀】访客可能是长者或需要关怀：句子短、字少，一段师父原文就够；不自创遍数张数；结尾邀请义工联系（「共修会的义工可以来看您／打电话给您」）。');
+  }
+  return parts.join('\n');
+}
+
+/** The retrieval context block with this turn's level instruction appended. */
+export function withLevelBlock(contextBlock: string, turn: Pick<TurnLevel, 'level' | 'needsCare'>): string {
+  return [contextBlock, levelContextBlock(turn)].filter(Boolean).join('\n\n');
+}
+
 // ── Non-streaming reply (WhatsApp) ────────────────────────────────────────────
 // Same retrieval + system prompt + model + verbatim guard as the web chat, in
 // one blocking call. Retrieval keys off the latest user turn (as the web route
@@ -717,10 +830,14 @@ export async function generateReply(
 ): Promise<{ fullText: string; sources: CareSource[] }> {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   const query = lastUser?.content ?? '';
-  const ctx = retrievalContextFrom(messages.slice(0, -1));
+  // 同修轮 (09-13): same pre-reply level judgement as the web route.
+  const persisted = opts.conversationId ? await loadPersistedLevel({ conversationId: opts.conversationId }) : null;
+  const turnLevel = decideTurnLevel(messages, persisted);
+  const ctx: RetrievalContext = { ...retrievalContextFrom(messages.slice(0, -1)), level: turnLevel.level };
+  console.log(`[level] conversation=${opts.conversationId ?? 'unknown'} channel=whatsapp level=${turnLevel.level} source=${turnLevel.source} needs_care=${turnLevel.needsCare} cues=${JSON.stringify(turnLevel.cueHits)}`);
 
   const passages = await searchRelevantTeachings(query, undefined, language, ctx);
-  const contextBlock = formatPassagesAsContext(passages);
+  const contextBlock = withLevelBlock(formatPassagesAsContext(passages), turnLevel);
 
   const { fullText, refused } = await generateGuardedReplyText({
     messages,
@@ -729,6 +846,7 @@ export async function generateReply(
     contextBlock,
     conversationId: opts.conversationId,
     effort: chooseReplyEffort({ message: query, messages, ctx }),
+    level: turnLevel.level,
   });
 
   return { fullText, sources: refused ? [] : buildSources(passages, fullText) };
@@ -752,7 +870,7 @@ export type ConversationCategory = string;
 
 export async function classifyConversation(
   messages: CareMessage[]
-): Promise<{ category: ConversationCategory; crisis_flag: boolean } | null> {
+): Promise<{ category: ConversationCategory; crisis_flag: boolean; level: VisitorLevel | null; needs_care: boolean } | null> {
   try {
     // org_settings list with built-in fallback (never throws; null → fallback).
     const configured = await loadCareCategories();
@@ -767,24 +885,38 @@ export async function classifyConversation(
 
     const result = await anthropic.messages.create({
       model: CLASSIFY_MODEL,
-      max_tokens: 20,
+      max_tokens: 40,
       messages: [
         {
           role: 'user',
           content:
             'Read this conversation between a person and a Buddhist care assistant. ' +
-            'Reply with EXACTLY ONE category label from this list and nothing else:\n' +
+            'Reply with EXACTLY ONE line in the form 类别|level|care and nothing else.\n' +
+            '类别 = ONE category label from this list:\n' +
             categories.join('、') +
             '\nIf the conversation shows crisis / self-harm / severe distress signals, ' +
-            'prefix your answer with "危机:" (e.g. "危机:家庭").\n\n' +
+            'prefix the category with "危机:" (e.g. "危机:家庭|new|0").\n' +
+            // 同修轮 (09-13, migration 051): the visitor's practice level and a
+            // care flag, persisted upgrade-only by classifyAndSaveCategory.
+            "level = the VISITOR's practice level: new (no practice signs, or asks how/why to start) | " +
+            'beginner (just started, cannot recite yet, follows videos) | ' +
+            'practising (already does daily 功课 / 小房子 / has an altar, asks count details) | ' +
+            'experienced (清修, 境界, 弘法度人, 拜师/弟子, vows already made, 自存, 7749, years of practice, quotes 师父 to ask, elderly long-time practitioner). ' +
+            'When unsure between two levels, choose the higher one.\n' +
+            'care = 1 if the visitor seems elderly or vulnerable (年事已高, 安老院, 身体不好, 孤单, 家人不修, 独居), else 0.\n\n' +
             `对话:\n${transcript}`,
         },
       ],
     });
 
     const textPart = result.content.find((b) => b.type === 'text');
-    let label = textPart && textPart.type === 'text' ? textPart.text.trim() : '';
-    if (!label) return null;
+    const line = textPart && textPart.type === 'text' ? textPart.text.trim().split('\n')[0].trim() : '';
+    if (!line) return null;
+    // 类别|level|care — a bare one-label answer (older shape) still parses.
+    const [rawLabel, rawLevel, rawCare] = line.split(/[|｜]/).map((s) => s.trim());
+    let label = rawLabel ?? '';
+    const level = isVisitorLevel(rawLevel) ? rawLevel : null;
+    const needs_care = rawCare === '1';
 
     // Crisis overlay: a "危机:" prefix (half- or full-width colon) applies to any
     // category. Strip it off, then validate the remaining label.
@@ -796,7 +928,7 @@ export async function classifyConversation(
 
     const category: ConversationCategory = categories.includes(label) ? label : '其他';
 
-    return { category, crisis_flag };
+    return { category, crisis_flag, level, needs_care };
   } catch (e) {
     console.error('[classify] conversation classification failed:', e);
     return null;
@@ -869,6 +1001,35 @@ export async function flagCrisisByKeywords(conversationId: string, messages: Car
   }
 }
 
+// Upgrade-only level / needs_care values for one conversation (migration 051):
+// max(current, cues over every visitor turn, classifier). Returns only the
+// columns that change. Fail-safe: {} on any error.
+async function levelUpdateFor(
+  conversationId: string,
+  messages: CareMessage[],
+  tag: { level: VisitorLevel | null; needs_care: boolean } | null
+): Promise<{ level?: VisitorLevel; needs_care?: boolean }> {
+  if (!supabaseAdmin) return {};
+  try {
+    const visitorTurns = messages.filter((m) => m.role === 'user').map((m) => m.content);
+    const { data } = await supabaseAdmin.from('conversations').select('level, needs_care').eq('id', conversationId).maybeSingle();
+    const row = data as { level: string | null; needs_care: boolean | null } | null;
+    const current: VisitorLevel | null = row && isVisitorLevel(row.level) ? row.level : null;
+    const next = maxLevel(current, levelFromCues(visitorTurns).level, tag?.level);
+    const care = needsCareFromCues(visitorTurns).needsCare || tag?.needs_care === true;
+    const update: { level?: VisitorLevel; needs_care?: boolean } = {};
+    if (next !== current) update.level = next;
+    if (care && row?.needs_care !== true) update.needs_care = true;
+    if (Object.keys(update).length > 0) {
+      console.log(`[level] conversation=${conversationId} persist ${JSON.stringify(update)} (was level=${current} needs_care=${row?.needs_care ?? null}; classifier=${tag?.level ?? null}/${tag?.needs_care ?? null})`);
+    }
+    return update;
+  } catch (e) {
+    console.error('[level] level update read failed:', e);
+    return {};
+  }
+}
+
 export async function classifyAndSaveCategory(
   conversationId: string,
   messages: CareMessage[]
@@ -885,16 +1046,21 @@ export async function classifyAndSaveCategory(
       console.error(`[classify] conversation=${conversationId} crisis keywords ${JSON.stringify(keywordHits)}`);
     }
     const tag = await classifyConversation(messages);
+    // 同修轮 (migration 051): level only ever goes up and needs_care only ever
+    // turns on. Cues over every visitor turn are OR-ed in, so a classifier miss
+    // or failure never loses what the pre-reply judgement already saw.
+    const levelUpdate = await levelUpdateFor(conversationId, messages, tag);
     if (tag) {
       await supabaseAdmin
         .from('conversations')
-        .update({ category: tag.category, crisis_flag: tag.crisis_flag || mechanicalCrisis })
+        .update({ category: tag.category, crisis_flag: tag.crisis_flag || mechanicalCrisis, ...levelUpdate })
         .eq('id', conversationId);
-    } else if (mechanicalCrisis) {
-      // Classifier failed but the protocol trip is certain — persist the flag alone.
+    } else if (mechanicalCrisis || Object.keys(levelUpdate).length > 0) {
+      // Classifier failed: persist what is certain — the protocol trip and/or
+      // the cue-derived level.
       await supabaseAdmin
         .from('conversations')
-        .update({ crisis_flag: true })
+        .update({ ...(mechanicalCrisis ? { crisis_flag: true } : {}), ...levelUpdate })
         .eq('id', conversationId);
     }
   } catch (e) {

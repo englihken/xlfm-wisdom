@@ -4,7 +4,7 @@
 
 | # | 简报 | 模型 | 状态 | 报告 |
 |---|---|---|---|---|
-| 3 | `2026-09-13-fellow-practitioner-mode.md` — 判级（level）、同修轮、不替已在修的人规划功课、长者关怀标记、R26–R31 | [opus]（分类器提示词若调不准再换 fable） | 待执行 | `docs/reviews/2026-09-13-fellow-practitioner.md` |
+| 3 | `2026-09-13-fellow-practitioner-mode.md` — 判级（level）、同修轮、不替已在修的人规划功课、长者关怀标记、R26–R31 | [opus]（分类器提示词若调不准再换 fable） | 执行中 | `docs/reviews/2026-09-13-fellow-practitioner.md` |
 | 5 | `2026-09-13-xfz-retrieval-and-prayer-guard.md` — 小房子组合检索根因（p2 块、话题粘住整通对话、生产探针、出处归属）；祈求词不进引文块 + 护栏只核对开头；en/id 祈求词；小房子祈求词按《念诵指南》p17/p31；本机 pinned 卡读 `docs/canon/pinned-cards.json`；智库「重同步」按钮 | [opus] | 待执行 | `docs/reviews/2026-09-13-xfz-retrieval-and-prayer-guard.md` |
 | 4 | Sonnet 观察第 3 天（做完 #3、#5 再跑，同一份数字一起看）：夜审首批 Sonnet 判定（NI 率 vs 17% 基线）、访客流量上的 strip／尾巴率、citation_no_date 比例、zh work_karma chip、cron/summarize 与 cron/review 对预热对话的处理、探针三问 | [opus] | 待执行 | `docs/reviews/2026-09-13-sonnet-watch-day3.md` §5 起 |
 

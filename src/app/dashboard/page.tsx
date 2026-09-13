@@ -38,6 +38,9 @@ type ListItem = {
   awaitingReply?: boolean;
   waitingSinceMs?: number;
   hasContactInfo?: boolean;
+  // migration 051 (同修轮 brief): 关怀跟进 flag + visitor level.
+  needsCare?: boolean;
+  level?: string | null;
 };
 
 // Compact "waited for" label: 12分钟 / 3小时 / 2天.
@@ -204,7 +207,7 @@ export default function DashboardPage() {
   const [conversations, setConversations] = useState<ListItem[]>([]);
   // Exact whole-inbox tab counts from the API (09-13 prayer-form §3); a null
   // count falls back to counting the list.
-  const [tabCounts, setTabCounts] = useState<{ all: number | null; mine: number | null; unanswered: number | null } | null>(null);
+  const [tabCounts, setTabCounts] = useState<{ all: number | null; mine: number | null; unanswered: number | null; needsCare?: number | null } | null>(null);
   const [listLoading, setListLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -216,7 +219,7 @@ export default function DashboardPage() {
   const [query, setQuery] = useState('');
 
   // Inbox filter tab + human-takeover action state (takeover / handback).
-  const [filter, setFilter] = useState<'all' | 'mine' | 'unanswered'>('all');
+  const [filter, setFilter] = useState<'all' | 'mine' | 'unanswered' | 'care'>('all');
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -626,12 +629,17 @@ export default function DashboardPage() {
   // server's exact count (not capped at PostgREST's 1,000 rows).
   const unansweredCount =
     !query && tabCounts?.unanswered != null ? tabCounts.unanswered : unansweredConversations.length;
+  // 关怀跟进 (同修轮 brief): elderly / vulnerable visitors flagged needs_care.
+  const careConversations = conversations.filter((c) => c.needsCare);
+  const careCount = !query && tabCounts?.needsCare != null ? tabCounts.needsCare : careConversations.length;
   const visibleConversations =
     filter === 'mine'
       ? conversations.filter((c) => c.assignedToMe)
       : filter === 'unanswered'
         ? unansweredConversations
-        : conversations;
+        : filter === 'care'
+          ? careConversations
+          : conversations;
   const nowMs = Date.now();
   const todayKey = mytDayKey(new Date(nowMs).toISOString());
   const yesterdayKey = mytDayKey(new Date(nowMs - 86_400_000).toISOString());
@@ -679,7 +687,7 @@ export default function DashboardPage() {
 
           {/* FILTER TABS + 复盘 link (open-count badge) */}
           <div className="shrink-0 px-3 py-2 border-b border-border flex items-center gap-1">
-            {([['all', t('care.filterAll')], ['mine', t('care.filterMine')], ['unanswered', t('care.filterUnanswered')]] as const).map(([f, label]) => (
+            {([['all', t('care.filterAll')], ['mine', t('care.filterMine')], ['unanswered', t('care.filterUnanswered')], ['care', t('care.filterCare')]] as const).map(([f, label]) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -693,6 +701,11 @@ export default function DashboardPage() {
                 {f === 'unanswered' && unansweredCount > 0 && (
                   <span className="ml-1 inline-block min-w-[18px] text-center px-1 rounded-full bg-red-700 text-white text-[10.5px]">
                     {unansweredCount}
+                  </span>
+                )}
+                {f === 'care' && careCount > 0 && (
+                  <span className="ml-1 inline-block min-w-[18px] text-center px-1 rounded-full bg-amber-600 text-white text-[10.5px]">
+                    {careCount}
                   </span>
                 )}
               </button>
@@ -720,7 +733,9 @@ export default function DashboardPage() {
                   ? t('care.emptyMine')
                   : filter === 'unanswered'
                     ? t('care.emptyUnanswered')
-                    : query
+                    : filter === 'care'
+                      ? t('care.emptyCare')
+                      : query
                     ? t('care.emptySearch')
                     : t('care.emptyAll')}
               </p>

@@ -10,6 +10,9 @@ import {
   buildSources,
   chooseReplyEffort,
   classifyAndSaveCategory,
+  decideTurnLevel,
+  loadPersistedLevel,
+  withLevelBlock,
   crisisFastLaneText,
   flagCrisisByKeywords,
   generateGuardedReplyText,
@@ -391,10 +394,16 @@ async function handleTurn(
   // client gets the same silent volunteer-handling stream it already knows.
   // Missing key / unreachable table → true (today's behavior).
   const chip = history.length === 0 && !crisisText ? matchChip(message) : null;
-  const [aiDraftEnabled, chipHit] = await Promise.all([
+  const [aiDraftEnabled, chipHit, persistedLevel] = await Promise.all([
     isAiDraftEnabled(),
     chip ? lookupChipAnswer(chip.question, chip.language) : Promise.resolve(null),
+    // 同修轮 (09-13): what storage already knows — conversations.level and the
+    // volunteer-set contacts.stage — joins the other pre-retrieval lookups.
+    loadPersistedLevel({ conversationId, browserId }),
   ]);
+  const turnLevel = decideTurnLevel(messages, persistedLevel);
+  ctx.level = turnLevel.level;
+  console.log(`[level] conversation=${conversationId ?? 'new'} channel=web level=${turnLevel.level} source=${turnLevel.source} needs_care=${turnLevel.needsCare} cues=${JSON.stringify(turnLevel.cueHits)}`);
 
   // Step 1: Search for relevant teachings from vector DB (default top_k = 10).
   // Context-aware (入门锚定): a short follow-up like 「没有学过」 is retrieved
@@ -402,7 +411,7 @@ async function handleTurn(
   // triage question is routed onto the 功课 baseline. A volunteer's turn in
   // the history counts as the assistant side (same mapping as Step 3).
   const passages = chipHit ? [] : await searchRelevantTeachings(message, undefined, language, ctx);
-  const contextBlock = formatPassagesAsContext(passages);
+  const contextBlock = withLevelBlock(formatPassagesAsContext(passages), turnLevel);
   if (!chipHit) {
     console.log('[chat] Retrieved passages:', passages.map((t) => ({ book: t.book, score: t.score.toFixed(3) })));
   }
@@ -487,6 +496,7 @@ async function handleTurn(
         contextBlock,
         conversationId: convId,
         effort,
+        level: turnLevel.level,
         onStage: (stage) => emit({ type: 'stage', stage }),
       });
       fullText = out.fullText;
