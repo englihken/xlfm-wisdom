@@ -38,12 +38,17 @@ const FULL_SUTRA_NAMES: Record<string, string> = {
   往生咒: '往生净土神咒',
 };
 const hasSutra = (s: string, short: string) => has(s, short) || has(s, FULL_SUTRA_NAMES[short] ?? short);
-// A 祈求词 in either approved wording: the prompt's 「请大慈大悲观世音菩萨…」 and
-// the 共修总会功课卡's 「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨…」 (the
-// pinned 组织审定 card Ken approved 09-12 21:29 — it is canonical, so replies
-// follow it). Neither string contains the other.
-const hasPrayer = (r: string) =>
-  has(r, '请大慈大悲观世音菩萨') || has(r, '大慈大悲救苦救难广大灵感观世音菩萨');
+// A 祈求词 in the 共修总会功课卡's wording only: 「祈请南无大慈大悲救苦救难广大灵感
+// 观世音菩萨摩诃萨…」 (Ken 2026-09-12, docs/briefs/2026-09-13-prayer-form.md —
+// the prompt now uses the card's long form too). The short 《入门手册》 form
+// 「请大慈大悲观世音菩萨…」 no longer passes. zh only; en/id replies pray in
+// their own language and don't reach this assertion.
+const hasPrayer = (r: string) => has(r, '祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨');
+// 小房子 prayers are not 功课卡 prayers (the brief leaves them alone): the
+// 《念诵指南》 「请大慈大悲观世音菩萨…」, the 解答来信／玄艺问答 「祈请南无大慈大悲观世音
+// 菩萨帮助我…」 (11× in the lujunhong2or corpus), or the card's long opener.
+const hasXfzPrayer = (r: string) =>
+  hasPrayer(r) || has(r, '请大慈大悲观世音菩萨') || has(r, '祈请南无大慈大悲观世音菩萨');
 /** Every 📿 line that names 大悲咒 / 心经 / 往生咒 must carry its full name. */
 const homeworkUsesFullNames = (r: string): boolean =>
   r
@@ -523,7 +528,7 @@ const STRIP_TAIL_CASES: Case[] = [
     q: '怎样祈求369的小房子？',
     checks: [
       { name: 'says 分开念／分别祈求 (解答来信 146)', ok: (r) => /分开|分别/.test(r) },
-      { name: 'gives the 祈求 wording (either approved form) naming 关劫', ok: (r) => hasPrayer(r) && /关劫/.test(r) },
+      { name: 'gives the 小房子 祈求 wording naming 关劫', ok: (r) => hasXfzPrayer(r) && /关劫/.test(r) },
       { name: 'no blanket 查不到 tail', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
       { name: 'no orphan 祈求词', ok: (r) => !orphanPrayer(r) },
     ],

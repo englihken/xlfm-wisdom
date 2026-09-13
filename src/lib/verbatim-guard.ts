@@ -448,7 +448,10 @@ export function stripViolations(draft: string, violations: GuardViolation[]): st
 export const COUNT_PLACEHOLDER = '（遍数以官方资料为准）';
 const HOMEWORK_LINE_RE = /^\s*(>\s*)?(\*\*)?📿/;
 const SUTRA_TITLE_RE = /《[^》\n]{1,24}(经|咒|真言|陀罗尼|忏悔文)》/;
-const PRAYER_LINE_RE = /^\s*(>\s*)?(\*\*)?[（(]?\s*(念之前祈求|念前祈求|念之前说|念之前跟菩萨说|念之前先说|祈求词|祈求\s*[：:]|念前说|["“「]?请大慈大悲(的)?观世音菩萨)/;
+// The last alternative covers both prayer openers: the 功课卡's
+// 「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨…」 (prompt default since
+// 09-13) and the older 「请大慈大悲观世音菩萨…」.
+const PRAYER_LINE_RE = /^\s*(>\s*)?(\*\*)?[（(]?\s*(念之前祈求|念前祈求|念之前说|念之前跟菩萨说|念之前先说|祈求词|祈求\s*[：:]|念前说|["“「]?(祈请南无大慈大悲救苦救难广大灵感观世音菩萨|请大慈大悲(的)?观世音菩萨))/;
 /** A 功课 line: starts with 📿, or names a 《sutra》 and carries a 遍/张 count. */
 export function isHomeworkLine(line: string): boolean {
   if (HOMEWORK_LINE_RE.test(line)) return true;
@@ -563,7 +566,7 @@ export function hasBlanketRefusal(text: string): boolean {
 // before. A 祈求词 with zero sutra names is a 功课 answer gutted by the guard,
 // not an answer; the pipeline treats it as a regeneration trigger rather than
 // shipping it.
-const PRAYER_RE = /请大慈大悲(的)?观世音菩萨|Guan\s*Yin Bodhisattva.{0,40}(protect|bless)/i;
+const PRAYER_RE = /请大慈大悲(的)?观世音菩萨|大慈大悲救苦救难广大灵感观世音菩萨摩诃萨(保佑|帮助|医治)|Guan\s*Yin Bodhisattva.{0,40}(protect|bless)/i;
 const SUTRA_NAME_RE =
   /《[^》\n]{1,24}(经|咒|真言|陀罗尼|忏悔文)》|大悲咒|心经|礼佛大忏悔文|往生咒|解结咒|准提神咒|消灾吉祥神咒|七佛灭罪真言|功德宝山神咒|Great Compassion Mantra|Heart Sutra|Eighty-?Eight Buddhas/;
 

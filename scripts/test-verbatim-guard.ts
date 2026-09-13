@@ -12,6 +12,7 @@ import {
   scrubContradictoryRefusal,
   hasBlanketRefusal,
   isOverStripped,
+  isPrayerLine,
 } from '../src/lib/verbatim-guard';
 
 let passed = 0;
@@ -347,6 +348,12 @@ console.log('— over-strip detection (conv c47ffe52: 祈求词 without 经名) 
   const okBracket = '📿 《千手千眼无碍大悲心陀罗尼》每天3遍\n祈求：请大慈大悲观世音菩萨保佑我（姓名）身体健康';
   assert('《…陀罗尼》 counts as a sutra name', !isOverStripped(okBracket));
   assert('no 祈求词 at all → not over-stripped (nothing to judge)', !isOverStripped('先把心静下来，慢慢来 🙏'));
+  // 09-13 prayer-form: the 功课卡's long opener is a 祈求词 too.
+  const longPrayer = '念之前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力"';
+  assert('card-form 祈求词 with no sutra named → over-stripped', isOverStripped(`先这样开始 🙏\n${longPrayer}`));
+  assert('card-form 祈求词 with 经名 → fine', !isOverStripped(`📿 《大悲咒》每天 3 遍\n${longPrayer}`));
+  assert('card-form 祈求词 line (no lead-in) is a prayer line', isPrayerLine('"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧"'));
+  assert('short 祈求词 line still a prayer line', isPrayerLine('"请大慈大悲观世音菩萨保佑我（姓名）开智慧"'));
   // The real production shape: strip the 功课 sentences from a full draft and check.
   const draft = '你可以先这样开始：\n\n📿 《大悲咒》每天3遍\n📿 《心经》每天3遍\n\n念之前跟菩萨说：「请大慈大悲观世音菩萨保佑我（姓名）身体健康，心情平静」\n\n有教念视频可以跟着念。';
   const v = checkDraft(draft, ['不学佛，你永远活在自己内心肮脏的小生命中。'], []);
