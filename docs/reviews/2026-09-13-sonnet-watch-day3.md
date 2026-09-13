@@ -66,7 +66,7 @@ pass A 的 R25 最后一轮：📿 大悲咒 3／心经 3／礼佛 1，「功课
 
 ### 1.4 部署与 chips
 
-合并后 Vercel 自动部署。`beginner_first_step`（三语）和 zh `family_conflict` 的缓存答案会过时；**缓存只在智库批准／退役时失效**，本机又没有 `CRON_SECRET`，没法 `refresh-chips?force=1`。每晚 `cron/review` 会强制重生成全部 18 条（270 s 预算），所以**今晚之后自动是新版**。如果 Ken 先做了 prayer-form §2 的「卡退役再批准」，那一步会让 18 条立刻失效，之后跑一次 `warm-chips-prod.ts` 即可。
+合并 `fbd820e` 后 Vercel 自动部署。**生产探针**（09-13 11:24 MYT，`browserId=test-suite:probe-0913`，UTF-8 请求体）「我想开始念经，之前完全没有念过」→ 📿 大悲咒 3／心经 3／**礼佛 1**，无「念顺了再加礼佛」——新提示词已在线。（第一次用 Git Bash 的 curl 发中文，请求体被转码，生产收到的是问号、回复在问「你发来的问号」——那一通是 test: 前缀，不进收件箱；改用 node fetch 重发。）`beginner_first_step`（三语）和 zh `family_conflict` 的缓存答案会过时；**缓存只在智库批准／退役时失效**，本机又没有 `CRON_SECRET`，没法 `refresh-chips?force=1`。每晚 `cron/review` 会强制重生成全部 18 条（270 s 预算），所以**今晚之后自动是新版**。如果 Ken 先做了 prayer-form §2 的「卡退役再批准」，那一步会让 18 条立刻失效，之后跑一次 `warm-chips-prod.ts` 即可。
 
 ### 1.5 待架构师
 
