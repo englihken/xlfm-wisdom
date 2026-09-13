@@ -38,6 +38,17 @@ function normRename(s: string): string {
   for (const [re, to] of FULLNAME_RENAMES) out = out.replace(re, to);
   return out;
 }
+// Ken 2026-09-12 (docs/briefs/2026-09-13-prayer-form.md): zh 祈求词 open with
+// the 功课卡's 「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨」 instead of
+// 《入门手册》's 「请大慈大悲（的）观世音菩萨」; what is prayed for is unchanged.
+// normPrayer() folds both openers to one token (v1 side via v1PrayerIndex) so
+// the line still traces to its v1 twin; listed in the fourth table as
+// `ken-0912-prayer`. 小房子 (《念诵指南》) and 放生 prayers keep the short form.
+const PRAYER_OPENER_RE = /祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨|请大慈大悲(?:的)?观世音菩萨/g;
+function normPrayer(s: string): string {
+  return s.replace(PRAYER_OPENER_RE, '〈祈求开头〉');
+}
+type RenameTag = 'ken-0912-fullname' | 'ken-0912-prayer' | 'ken-0912-fullname + ken-0912-prayer';
 function norm(s: string): string {
   return s
     .replace(/^export const \w+ = `/, '')
@@ -69,6 +80,13 @@ for (let n = 1; n <= v1Lines.length; n++) {
   const arr = v1Index.get(k) ?? [];
   arr.push(n);
   v1Index.set(k, arr);
+}
+
+// Same index with both prayer openers folded (ken-0912-prayer lookups only).
+const v1PrayerIndex = new Map<string, number[]>();
+for (const [k, ns] of v1Index) {
+  const kp = normPrayer(k);
+  v1PrayerIndex.set(kp, [...(v1PrayerIndex.get(kp) ?? []), ...ns]);
 }
 
 // ── the only lines allowed NOT to trace to v1: the C1–C8 implementations ──
@@ -203,7 +221,7 @@ const deletedReason = (n: number) => DELETED.find((d) => n >= d.from && n <= d.t
 // ── walk v2 ────────────────────────────────────────────────────────────────
 type Row = { module: ModuleKey; v2Line: number; text: string; v1: number[] | null; c?: string; why?: string; renamed?: boolean };
 const rows: Row[] = [];
-const renamedRows: { module: ModuleKey; v2Line: number; text: string; v1: number }[] = [];
+const renamedRows: { module: ModuleKey; v2Line: number; text: string; v1: number; tag: RenameTag }[] = [];
 const usedV1 = new Set<number>();
 let untraced = 0;
 for (const key of MODULE_ORDER) {
@@ -212,19 +230,24 @@ for (const key of MODULE_ORDER) {
     const k = norm(raw);
     if (!k) return;
     let hit = v1Index.get(k);
-    // Card-style sutra rename (ken-0912-fullname): same v1 line, new rendering.
-    let renamed = false;
+    // Card-style sutra rename (ken-0912-fullname) and card prayer opener
+    // (ken-0912-prayer): same v1 line, new rendering.
+    let tag: RenameTag | null = null;
     if (!hit) {
       const kr = norm(normRename(raw));
       if (kr !== k) {
         hit = v1Index.get(kr);
-        if (hit) renamed = true;
+        if (hit) tag = 'ken-0912-fullname';
       }
     }
+    if (!hit) {
+      hit = v1PrayerIndex.get(norm(normPrayer(normRename(raw))));
+      if (hit) tag = norm(normRename(raw)) !== k ? 'ken-0912-fullname + ken-0912-prayer' : 'ken-0912-prayer';
+    }
     if (hit) {
-      if (renamed) {
+      if (tag) {
         const pick = hit.find((n) => !usedV1.has(n)) ?? hit[0];
-        renamedRows.push({ module: key, v2Line: i + 1, text: raw, v1: pick });
+        renamedRows.push({ module: key, v2Line: i + 1, text: raw, v1: pick, tag });
       }
       // prefer an unused v1 line (duplicated lines like 「---」 map to the next free one)
       const pick = hit.find((n) => !usedV1.has(n)) ?? hit[0];
@@ -236,7 +259,7 @@ for (const key of MODULE_ORDER) {
     // new sutra rendering (listed in the rename table too).
     const nl = newIndex.get(k) ?? newIndex.get(norm(normRename(raw)));
     if (nl) {
-      if (!newIndex.get(k)) renamedRows.push({ module: key, v2Line: i + 1, text: raw, v1: 0 });
+      if (!newIndex.get(k)) renamedRows.push({ module: key, v2Line: i + 1, text: raw, v1: 0, tag: 'ken-0912-fullname' });
       rows.push({ module: key, v2Line: i + 1, text: raw, v1: null, c: nl.c, why: nl.why });
       return;
     }
@@ -268,7 +291,7 @@ const inv = (text: string) => ({
   urls: new Set(text.match(/https?:\/\/[^\s)）]+/g) ?? []),
   phones: new Set((text.match(/\+?\d{2,4}[- ]\d{3,4}[- ]?\d{3,4}|\b\d{5}\b|\b999\b/g) ?? []).map((p) => p.replace(/\s/g, ''))),
   counts: new Set(text.match(/\d+(?:-\d+)?\s*(?:遍|张)/g)?.map((c) => c.replace(/\s/g, '')) ?? []),
-  prayers: new Set(text.match(/["“「]?(请大慈大悲[^"”」\n]{4,120}|感恩南无大慈大悲救苦救难广大灵感观世音菩萨)/g)?.map((p) => p.replace(/^["“「]/, '')) ?? []),
+  prayers: new Set(text.match(/["“「]?(祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨[^"”」\n]{2,120}|请大慈大悲[^"”」\n]{4,120}|感恩南无大慈大悲救苦救难广大灵感观世音菩萨)/g)?.map((p) => p.replace(/^["“「]/, '')) ?? []),
 });
 const v1Text = v1Lines.filter((_, i) => isV1Content(i + 1)).join('\n');
 const v2Text = MODULE_ORDER.map((k) => ZH_MODULES[k]).join('\n');
@@ -280,8 +303,27 @@ const invReport = {
   urls: { v1: I1.urls.size, v2: I2.urls.size, onlyV1: diff(I1.urls, I2.urls), onlyV2: diff(I2.urls, I1.urls) },
   phones: { v1: I1.phones.size, v2: I2.phones.size, onlyV1: diff(I1.phones, I2.phones), onlyV2: diff(I2.phones, I1.phones) },
   counts: { v1: I1.counts.size, v2: I2.counts.size, onlyV1: diff(I1.counts, I2.counts), onlyV2: diff(I2.counts, I1.counts) },
-  prayers: { v1: I1.prayers.size, v2: I2.prayers.size, onlyV1: diff(I1.prayers, I2.prayers), onlyV2: diff(I2.prayers, I1.prayers) },
+  // ken-0912-prayer: compared with the opener folded — every prayer's content
+  // must survive; that the opener is the card's is checked by cardForm below.
+  prayers: (() => {
+    const a = new Set([...I1.prayers].map(normPrayer));
+    const b = new Set([...I2.prayers].map(normPrayer));
+    return { v1: a.size, v2: b.size, onlyV1: diff(a, b), onlyV2: diff(b, a) };
+  })(),
 };
+// 「v2 祈求词 = 卡格式」: every zh prayer outside 小房子 (《念诵指南》) and the
+// 放生 section opens with the card's long form. A short one anywhere else fails.
+const SHORT_FORM_EXEMPT_TEXT =
+  ZH_MODULES.xiaofangzi + '\n' + ZH_MODULES.practice.slice(0, ZH_MODULES.practice.indexOf('## 完整经文功用表'));
+const cardForm = {
+  long: [...I2.prayers].filter((p) => p.startsWith('祈请南无')).length,
+  exempt: [...I2.prayers].filter((p) => p.startsWith('请大慈大悲') && SHORT_FORM_EXEMPT_TEXT.includes(p)),
+  shortLeft: [...I2.prayers].filter((p) => p.startsWith('请大慈大悲') && !SHORT_FORM_EXEMPT_TEXT.includes(p)),
+};
+for (const p of cardForm.shortLeft) {
+  untraced++;
+  console.error(`PRAYER NOT IN CARD FORM: ${p.slice(0, 80)}`);
+}
 
 // ── i18n check ─────────────────────────────────────────────────────────────
 type I18nReport = Record<string, { lines: string; missing: Record<string, string[]> }>;
@@ -305,8 +347,11 @@ async function checkI18n(): Promise<I18nReport> {
       const miss: Record<string, string[]> = {};
       for (const f of ['books', 'urls', 'phones', 'counts', 'prayers'] as const) {
         // counts: the digit must survive (遍 may become "times")
-        const want = f === 'counts' ? [...a[f]].map((c) => c.replace(/遍|张/, '')) : [...a[f]];
-        const haveText = t.replace(/\s/g, '');
+        // prayers: opener folded — en/id keep the 《入门手册》 opener in their
+        // embedded zh (brief 2026-09-13: en/id not in scope); content must match.
+        const want =
+          f === 'counts' ? [...a[f]].map((c) => c.replace(/遍|张/, '')) : f === 'prayers' ? [...a[f]].map(normPrayer) : [...a[f]];
+        const haveText = (f === 'prayers' ? normPrayer(t) : t).replace(/\s/g, '');
         const m = want.filter((w) => !haveText.includes(w.replace(/\s/g, '')));
         if (m.length) miss[f] = m;
       }
@@ -359,7 +404,9 @@ async function main() {
   const i18n = process.argv.includes('--i18n') ? await checkI18n() : null;
   const traced = rows.filter((r) => r.v1).length;
   const added = rows.filter((r) => !r.v1).length;
-  console.log(`v2 zh lines: ${rows.length} non-blank · traced to v1: ${traced} (of which renamed 全称: ${renamedRows.length}) · new (C1–C8): ${added} · untraced: ${untraced}`);
+  const byTag = (t: string) => renamedRows.filter((r) => r.tag.includes(t)).length;
+  console.log(`v2 zh lines: ${rows.length} non-blank · traced to v1: ${traced} (card rewrites: 全称 ${byTag('fullname')}, 祈求词 ${byTag('prayer')}) · new (C1–C8): ${added} · untraced: ${untraced}`);
+  console.log('prayer card form:', JSON.stringify(cardForm));
   console.log(`v1 content lines absent from v2: ${missing.length} (${missing.filter((m) => !m.c).length} without a C#)`);
   console.log('inventories v1→v2:', JSON.stringify(invReport, null, 1));
   if (i18n) console.log('i18n:', JSON.stringify(i18n, null, 1));
@@ -380,6 +427,8 @@ async function main() {
 |---|---|---|---|---|
 ${(['books', 'urls', 'phones', 'counts', 'prayers'] as const).map((f) => `| ${f} | ${invReport[f].v1} | ${invReport[f].v2} | ${invReport[f].onlyV1.join('、') || '—'} | ${invReport[f].onlyV2.join('、') || '—'} |`).join('\n')}
 
+prayers 一行按「祈求开头」折叠后比较（\`ken-0912-prayer\` 只换开头，祈求内容须 v1=v2）。**卡格式核对（v2 祈求词 = 卡格式）**：卡的长句开头 ${cardForm.long} 条；仍是短句 ${cardForm.exempt.length + cardForm.shortLeft.length} 条，其中小房子／放生（不在范围）${cardForm.exempt.length} 条${cardForm.exempt.length ? `（${cardForm.exempt.join('；')}）` : ''}，范围内未改 **${cardForm.shortLeft.length}**。
+
 ${i18n ? `## EN／ID 翻译核对（逐行：行数相同；清单项目须在译文中原样出现）\n\n| 模块 | 行数（译/中） | 缺失 |\n|---|---|---|\n${Object.entries(i18n).map(([k, v]) => `| ${k} | ${v.lines} | ${Object.entries(v.missing).map(([f, m]) => `${f}: ${m.join('、')}`).join('；') || '—'} |`).join('\n')}\n` : ''}
 ## 一、合并（v1 哪几处 → v2 哪一处）
 
@@ -395,13 +444,16 @@ ${deletedTable()}
 
 ${newTable()}
 
-## 四、经名全称改写（\`ken-0912-fullname\`，内容不变，只改写法）
+## 四、按共修总会功课卡改写法（内容不变，只改写法）
 
-功课块（📿 行）与分档／示例里的经名改成共修总会功课卡写法：《全称》（简称）。下面每一行都仍然逐字追溯到左边那条 v1 行，差别只有经名的写法。
+- \`ken-0912-fullname\`：功课块（📿 行）与分档／示例里的经名改成卡片写法《全称》（简称）。
+- \`ken-0912-prayer\`（brief 2026-09-13-prayer-form）：zh 祈求词开头由《入门手册》的「请大慈大悲（的）观世音菩萨」改为卡的「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨」，祈求内容一字不动；小房子（《念诵指南》）与放生的祈求词不在此列。
 
-| v2 模块（行） | v1 行 | 句子 |
-|---|---|---|
-${renamedRows.map((r) => `| ${r.module}.ts L${r.v2Line} | ${r.v1 ? `L${r.v1}` : '（C1–C8 新增行，见第三表）'} | ${r.text.trim().replace(/\|/g, '\\|')} |`).join('\n') || '| — | — | — |'}
+下面每一行都仍然追溯到左边那条 v1 行，差别只有「标记」列写明的写法。
+
+| v2 模块（行） | v1 行 | 标记 | 句子 |
+|---|---|---|---|
+${renamedRows.map((r) => `| ${r.module}.ts L${r.v2Line} | ${r.v1 ? `L${r.v1}` : '（C1–C8 新增行，见第三表）'} | ${r.tag} | ${r.text.trim().replace(/\|/g, '\\|')} |`).join('\n') || '| — | — | — | — |'}
 `;
     fs.writeFileSync(OUT_MD, md);
     console.log(`wrote ${path.relative(ROOT, OUT_MD)}`);

@@ -202,6 +202,9 @@ export default function DashboardPage() {
   const [profileReady, setProfileReady] = useState(false);
 
   const [conversations, setConversations] = useState<ListItem[]>([]);
+  // Exact whole-inbox tab counts from the API (09-13 prayer-form §3); a null
+  // count falls back to counting the list.
+  const [tabCounts, setTabCounts] = useState<{ all: number | null; mine: number | null; unanswered: number | null } | null>(null);
   const [listLoading, setListLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -341,6 +344,7 @@ export default function DashboardPage() {
       const json = await res.json();
       if (reqId !== listReqRef.current) return; // superseded by a newer request
       setConversations(json.conversations ?? []);
+      setTabCounts(json.counts ?? null);
     } catch {
       /* keep the current list on a transient error */
     } finally {
@@ -618,6 +622,10 @@ export default function DashboardPage() {
       Number(Boolean(b.hasContactInfo)) - Number(Boolean(a.hasContactInfo)) ||
       (b.waitingSinceMs ?? 0) - (a.waitingSinceMs ?? 0)
     );
+  // A search narrows the list, so the badge counts the matches; otherwise the
+  // server's exact count (not capped at PostgREST's 1,000 rows).
+  const unansweredCount =
+    !query && tabCounts?.unanswered != null ? tabCounts.unanswered : unansweredConversations.length;
   const visibleConversations =
     filter === 'mine'
       ? conversations.filter((c) => c.assignedToMe)
@@ -629,7 +637,7 @@ export default function DashboardPage() {
   const yesterdayKey = mytDayKey(new Date(nowMs - 86_400_000).toISOString());
   const dayGroups =
     filter === 'unanswered'
-      ? [{ key: 'unanswered', label: t('care.unansweredHeader', { n: unansweredConversations.length }), items: visibleConversations }]
+      ? [{ key: 'unanswered', label: t('care.unansweredHeader', { n: unansweredCount }), items: visibleConversations }]
       : buildDayGroups(t, visibleConversations, todayKey, yesterdayKey);
 
   return (
@@ -682,9 +690,9 @@ export default function DashboardPage() {
                 }`}
               >
                 {label}
-                {f === 'unanswered' && unansweredConversations.length > 0 && (
+                {f === 'unanswered' && unansweredCount > 0 && (
                   <span className="ml-1 inline-block min-w-[18px] text-center px-1 rounded-full bg-red-700 text-white text-[10.5px]">
-                    {unansweredConversations.length}
+                    {unansweredCount}
                   </span>
                 )}
               </button>
