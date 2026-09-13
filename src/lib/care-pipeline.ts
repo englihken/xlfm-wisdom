@@ -804,12 +804,12 @@ export function decideTurnLevel(messages: CareMessage[], persisted?: PersistedLe
 export function levelContextBlock(turn: Pick<TurnLevel, 'level' | 'needsCare'>): string {
   const parts: string[] = [];
   if (turn.level === 'experienced') {
-    parts.push('【本轮判级：同修轮】访客是已在修行的同修。按系统提示词【同修轮】回答：不出 📿 功课块，不写遍数张数（访客明确问数字除外），不问「有没有念经」；师父原文 2–3 段，引文逐字、带出处，再用白话讲怎么用在他身上。');
+    parts.push('【本轮判级：同修轮】访客是已在修行的同修。按系统提示词【同修轮】回答：不出 📿 功课块，不写遍数张数（访客明确问数字除外），不问「有没有念经」；师父原文 2–3 段，引文逐字、带出处，再用白话讲怎么用在他身上。访客若只是简短回答你上一轮的问题（「有」「是的」），直接接着讲，不要再反问。');
   } else if (turn.level === 'practising') {
     parts.push('【本轮判级：practising】访客已在念功课。默认不给遍数；访客问「念几遍／几张」或话题本身是教义数字（小房子规格、礼佛特殊日子、369）时才给，给就按功课卡／《佛学问答》161。');
   }
   if (turn.needsCare) {
-    parts.push('【关怀】访客可能是长者或需要关怀：句子短、字少，一段师父原文就够；不自创遍数张数；结尾邀请义工联系（「共修会的义工可以来看您／打电话给您」）。');
+    parts.push('【关怀】访客可能是长者或需要关怀：正文不超过 300 字（引文不计），句子短，一段师父原文就够；不自创遍数张数；结尾邀请义工联系（「共修会的义工可以来看您／打电话给您」）。');
   }
   return parts.join('\n');
 }
@@ -892,17 +892,21 @@ export async function classifyConversation(
           content:
             'Read this conversation between a person and a Buddhist care assistant. ' +
             'Reply with EXACTLY ONE line in the form 类别|level|care and nothing else.\n' +
-            '类别 = ONE category label from this list:\n' +
+            '类别 = the TOPIC of the conversation, as ONE category label from this list ' +
+            '(questions about 念经／功课／小房子／佛台／许愿／放生 are 修行方法; 学业 is only school or exams):\n' +
             categories.join('、') +
             '\nIf the conversation shows crisis / self-harm / severe distress signals, ' +
             'prefix the category with "危机:" (e.g. "危机:家庭|new|0").\n' +
             // 同修轮 (09-13, migration 051): the visitor's practice level and a
             // care flag, persisted upgrade-only by classifyAndSaveCategory.
-            "level = the VISITOR's practice level: new (no practice signs, or asks how/why to start) | " +
-            'beginner (just started, cannot recite yet, follows videos) | ' +
-            'practising (already does daily 功课 / 小房子 / has an altar, asks count details) | ' +
-            'experienced (清修, 境界, 弘法度人, 拜师/弟子, vows already made, 自存, 7749, years of practice, quotes 师父 to ask, elderly long-time practitioner). ' +
-            'When unsure between two levels, choose the higher one.\n' +
+            "level = the VISITOR's practice level, judged from the visitor's words only:\n" +
+            '- experienced: the question itself is one only a practitioner asks — 清修, 境界／提高境界, 光明心, 开悟, 三界／六道, 莲花, ' +
+            '弘法／度人 (e.g. 「我刚度一位佛友」), 拜师／弟子, vows already made (许过愿、吃素、放生), 自存, 要经者, 7749, 369／本命年小房子, ' +
+            'giving away／replacing an altar or Bodhisattva image, "practised for years", quoting 师父／台长 to ask, an elderly long-time practitioner.\n' +
+            '- practising: already doing daily 功课, reciting 小房子, has an altar, or asks 小房子 composition／遍数／张数 details.\n' +
+            '- beginner: just started, cannot recite yet, follows videos, or says they have not started.\n' +
+            '- new: no practice signs at all, or asks how／why to start.\n' +
+            'When unsure between two levels, ALWAYS choose the higher one.\n' +
             'care = 1 if the visitor seems elderly or vulnerable (年事已高, 安老院, 身体不好, 孤单, 家人不修, 独居), else 0.\n\n' +
             `对话:\n${transcript}`,
         },
