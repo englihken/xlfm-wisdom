@@ -1,0 +1,57 @@
+◇ injected env (6) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 1 case(s) · all parallel
+Running: R11
+[vector-search] timing parallel=4 wall_ms=3063 per_query={"general":2809,"canonical":2842,"homework_入门手册":2971,"homework_175问":3062}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 18,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] pinned cards source=file n=1 (wisdom_15eb9282-581a-4761-a53e-50eb7a74a727)
+
+═══ R11 ungrounded figure still declined honestly — guard: clean ═══
+Q: 我在国外，时差和马来西亚不同，功课遍数要按当地时间加倍吗？一天要念几遍才够？
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: canonical_ruling,beginner_guide,qa_collection,case_studies
+  ✓ no ungrounded count shipped (all reply counts in chunks/question)
+  ✓ counts absent → honest decline present; counts present → no blanket refusal
+  ✓ mechanical: invented 39遍 flagged + stripped + blanket tail on real passages
+  ✓ final text passes guard (0 residual)
+--- reply ---
+不用加倍，也不需要按时差换算 🙏
+
+功课遍数是固定的——不管你在哪个国家、当地是几点，遍数都是一样的。菩萨不按时区计算，只看你每天有没有念。
+
+台长的教导很清楚：
+
+> 功课就如每天需要吃饭一样重要，就像日常支出的开销……做功课的经文遍数不能算在"小房子"的经文里，要分开祈求和另外计算经文的遍数。
+
+——《心灵法门入门手册》
+
+所以"够不够"的标准，不是遍数越多越好，而是**每天都念**。
+
+关于时间的限制，按你**当地时间**来就好：
+- 《心经》、《往生咒》：当地晚上 10 点后不念
+- 《礼佛大忏悔文》：当地晚上 10 点至凌晨 5 点之间不念
+- 凌晨 2 点至 5 点：最好不念任何经文
+
+在国外念经，照样有效。菩萨的加持没有地域限制 🙏
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R11 ungrounded figure still declined honestly turns=1 wall/turn=11311ms calls=1 effort=high out_tokens=346 cost=$0.042
+turn wall p50=11311ms p90=11311ms avg=11311ms · first_text avg=1666ms · calls/turn=1.00 · cache hits=1/1
+cost: total=$0.042 · per turn=$0.0420 (1 turns)
+pinned cards attached: 1 (source=file; wisdom_15eb9282-581a-4761-a53e-50eb7a74a727)
+checks: 4/4 passed · cases: 1/1 fully green
+
+ALL PASS

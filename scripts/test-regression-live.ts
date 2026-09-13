@@ -295,8 +295,15 @@ const CASES: Case[] = [
       {
         name: 'no ungrounded count shipped (all reply counts in chunks/question)',
         ok: (r, _b, _t, ps) => {
-          const ground = new Set((ps.map((p) => p.text).join('\n') + '\n我在国外，时差和马来西亚不同，功课遍数要按当地时间加倍吗？一天要念几遍才够？').replace(/\s+/g, '').match(/\d+[遍张]/g) ?? []);
-          const counts = r.replace(/\s+/g, '').match(/\d+[遍张]/g) ?? [];
+          // 09-13: ranges and enumerations count every number in them — 「1-3 遍」
+          // grounds 1遍 as well as 3遍 (the guard's extractor already does; the
+          // bare \d+遍 match flagged the card-grounded 「从 1 遍起」 as invented).
+          const expand = (s: string) =>
+            s.replace(/\s+/g, '').replace(/(\d+)((?:[-–~至到、，,或和及]\d+)+)([遍张])/g, (_m, a: string, rest: string, u: string) =>
+              [a, ...rest.split(/[-–~至到、，,或和及]/).filter(Boolean)].map((n) => `${n}${u}`).join('')
+            );
+          const ground = new Set(expand(ps.map((p) => p.text).join('\n') + '\n我在国外，时差和马来西亚不同，功课遍数要按当地时间加倍吗？一天要念几遍才够？').match(/\d+[遍张]/g) ?? []);
+          const counts = expand(r).match(/\d+[遍张]/g) ?? [];
           return counts.every((c) => ground.has(c));
         },
       },
