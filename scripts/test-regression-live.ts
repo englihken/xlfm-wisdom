@@ -55,6 +55,15 @@ const homeworkUsesFullNames = (r: string): boolean =>
     .split('\n')
     .filter((l) => l.includes('📿'))
     .every((l) => Object.entries(FULL_SUTRA_NAMES).every(([short, full]) => !has(l, short) || has(l, full)));
+// 09-13 xiaofangzi-entry: 首轮三部都开 — each pillar named WITH an N遍 on the same line.
+const pillarWithCount = (r: string, re: RegExp) => r.split('\n').some((l) => re.test(l) && /\d+\s*遍/.test(l));
+const threePillarsWithCounts = (r: string) =>
+  pillarWithCount(r, /大悲咒|大悲心陀罗尼/) && pillarWithCount(r, /心经/) && pillarWithCount(r, /礼佛/);
+// 「念顺了再加礼佛」 and variants — the 09-12 production shape the brief forbids.
+const LIBUO_LATER_RE = /(念顺|熟悉|熟了|熟练|稳定)[^。！？\n]{0,20}(再|才)(加|开|念)[^。！？\n]{0,12}礼佛/;
+// 小房子 threshold sentence: may start once 功课 has begun (念诵指南 p14 / p48 Q14).
+const STARTS_ONCE_BEGUN_RE =
+  /功课[^。！？]{0,30}(就可以|就能|即可|可以开始|便可)[^。！？]{0,8}小房子|只要开始做功课|不用等(到)?[^。！？]{0,12}(熟|稳定)|当天[^。！？]{0,20}大悲咒[^。！？]{0,12}后[^。！？]{0,12}(即可|就可以|可以开始)|开始了就可以/;
 // Any Arabic-digit N遍 prescription (whitespace-blind).
 const hasBianCount = (s: string) => /\d+遍/.test(s.replace(/\s+/g, ''));
 // The blanket refusal shapes the 08-29 brief forbids next to grounded numbers.
@@ -311,6 +320,7 @@ const BEGINNER_CASES: Case[] = [
       { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
       { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
       { name: 'contains 祈求词', ok: (r) => hasPrayer(r) },
+      { name: '《礼佛大忏悔文》 opened with a count (首轮三部, 09-13)', ok: (r) => pillarWithCount(r, /礼佛/) },
       { name: 'no 查不到相关原文 / 不敢随意 / 不敢乱说', ok: (r) => !REFUSAL_TAIL.test(r) && !has(r, '不敢乱说') },
       { name: 'no 「资料里没有写明具体数字」 (new refusal phrasing)', ok: (r) => !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
       { name: '共修会 not the only substance (功课 present alongside)', ok: (r) => !(has(r, '共修会') && !hasBianCount(r)) },
@@ -331,6 +341,7 @@ const BEGINNER_CASES: Case[] = [
       { name: 'body (minus 功课 block) ≤ 400 chars', ok: (r) => bodyChars(r) <= 400 },
       { name: '≤1 开示 quote, and after the 功课', ok: (r) => { const q = quoteParagraphs(r); return q.n <= 1 && q.afterHomework; } },
       { name: 'contains 祈求词', ok: (r) => hasPrayer(r) },
+      { name: '《礼佛大忏悔文》 opened with a count (关系类分档一 (a), 09-13)', ok: (r) => pillarWithCount(r, /礼佛/) },
     ],
   },
   // R13 (入门锚定 brief, corrected 08-30): 小房子 before 功课 → give the 功课
@@ -354,7 +365,9 @@ const BEGINNER_CASES: Case[] = [
           return hw >= 0 && (xf < 0 || hw < xf);
         },
       },
-      { name: 'names the three pillars (大悲咒/心经/礼佛, full or short)', ok: (r) => hasSutra(r, '大悲咒') && hasSutra(r, '心经') && has(r, '礼佛') },
+      // 09-13 xiaofangzi-entry: the three pillars are OPENED (3／3／1), each with a count.
+      { name: 'opens the three pillars, each with a count (大悲咒/心经/礼佛)', ok: (r) => threePillarsWithCounts(r) },
+      { name: 'no 「念顺了再加礼佛」', ok: (r) => !LIBUO_LATER_RE.test(r.replace(/\s+/g, '')) },
       { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
       { name: 'at least one N遍', ok: (r) => hasBianCount(r) },
       {
@@ -363,8 +376,7 @@ const BEGINNER_CASES: Case[] = [
           const s = r.replace(/\s+/g, '');
           // Either order: 「功课起来了…就可以开始念小房子」 / 「开始做功课就可以念小房子」 /
           // 「只要开始做功课」 / 「不用等到经文很熟」.
-          const startsOnceBegun =
-            /功课[^。！？]{0,30}(就可以|就能|即可|可以开始|便可)[^。！？]{0,8}小房子|只要开始做功课|不用等(到)?[^。！？]{0,12}(熟|稳定)/.test(s);
+          const startsOnceBegun = STARTS_ONCE_BEGUN_RE.test(s);
           const waitUntilStable = /功课.{0,6}(稳定|熟练|熟了|念顺).{0,12}(才|再).{0,6}(念|开始|教).{0,4}小房子/.test(s);
           return startsOnceBegun && !waitUntilStable;
         },
@@ -372,6 +384,23 @@ const BEGINNER_CASES: Case[] = [
       { name: 'cites 念诵指南 or 入门手册 (reply or sources)', ok: (r, books) => has(r, '念诵指南') || has(r, '入门手册') || books.includes('小房子念诵指南') || books.includes('心灵法门入门手册') },
       { name: 'no 查不到相关原文 / 不敢乱说', ok: (r) => !REFUSAL_TAIL.test(r) && !has(r, '不敢乱说') },
       { name: 'no 「资料里没有写明具体数字」 (new refusal phrasing)', ok: (r) => !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
+    ],
+  },
+  // R25 (09-13 xiaofangzi-entry; production conv 18f74524 of 09-12, the
+  // visitor's own words): 小房子 composition → how to recite → 「还没」 (功课 not
+  // started). Production answered 「先这两部…念顺了我们再加《礼佛大忏悔文》」,
+  // contradicting 《念诵指南》 p14. Must open all three pillars with counts,
+  // give the threshold sentence, and never 「念顺再加礼佛」.
+  {
+    label: 'R25 小房子学习者 → 还没（18f74524 原话）',
+    turns: ['谢谢你的解析，小房子的篇数是多少？', '如何念诵，可以教我吗？', '还没'],
+    checks: [
+      { name: 'opens the three pillars, each with a count (大悲咒/心经/礼佛)', ok: (r) => threePillarsWithCounts(r) },
+      { name: 'threshold: 小房子 once 功课 has begun (开始了就可以／当天…大悲咒后即可)', ok: (r) => STARTS_ONCE_BEGUN_RE.test(r.replace(/\s+/g, '')) },
+      { name: 'no 「念顺了再加礼佛」', ok: (r) => !LIBUO_LATER_RE.test(r.replace(/\s+/g, '')) },
+      { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
+      { name: 'contains 祈求词', ok: (r) => hasPrayer(r) },
+      { name: 'no 查不到相关原文 / 没有写明具体数字', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
     ],
   },
 ];
@@ -447,7 +476,8 @@ const BATCH4_CASES: Case[] = [
     checks: [
       { name: 'contains 《大悲咒》《心经》《解结咒》 each with a count', ok: (r) => { const s = r.replace(/\s+/g, ''); return /大悲咒[^\n📿]{0,26}\d+遍/.test(s) && /心经[^\n📿]{0,26}\d+遍/.test(s) && /解结咒[^\n📿]{0,26}\d+遍/.test(s); } },
       { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
-      { name: '《礼佛大忏悔文》 NOT given as this round\'s 功课 (no 📿 line / no count)', ok: (r) => !homeworkLines(r).some((l) => /礼佛/.test(l)) && !/礼佛大?忏?悔?文?[^\n。]{0,15}\d+\s*遍/.test(r.replace(/\s+/g, '')) },
+      // 09-13 xiaofangzi-entry, 关系类分档一 (a): 没念过 → 3 + 3 + 礼佛 1 + 解结咒 21 (was: 礼佛 NOT this round).
+      { name: '《礼佛大忏悔文》 opened with a count (分档一 (a), 09-13)', ok: (r) => pillarWithCount(r, /礼佛/) },
       { name: '四段结构: ≥2 plain paragraphs before the 📿 block, block present, closing after it', ok: (r) => { const lines = r.split('\n'); const first = lines.findIndex((l) => /📿/.test(l)); if (first < 0) return false; const before = lines.slice(0, first).filter((l) => l.trim() && !/^\s*>/.test(l)); const after = lines.slice(first).filter((l) => l.trim() && !/📿|祈求|念之前|请大慈大悲|⚠️|🔗|^\s*>/.test(l)); return before.length >= 2 && after.length >= 1; } },
       { name: 'contains 祈求词', ok: (r) => hasPrayer(r) },
       { name: 'no 查不到相关原文 / 没有写明具体数字', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },

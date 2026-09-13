@@ -1,16 +1,16 @@
 # Batch 4 — v1 → v2 traceability（机械生成：`npx tsx scripts/prompt-v2-verify.ts --write --i18n`）
 
-生成时间 2026-09-13T02:54:57.326Z。行号 = `src/lib/system-prompt.v1.ts`（与 brief 的 L 号一致）。
+生成时间 2026-09-13T03:16:09.908Z。行号 = `src/lib/system-prompt.v1.ts`（与 brief 的 L 号一致）。
 
-- v2 中文非空行 **1973**：追溯到 v1 的 **1914**，C1–C8 新增 **59**，追溯不到 **0**。
-- v1 内容行未进 v2 的 **76**：有 C 号依据 76，无依据 0。
-- 三张表：合并 342 行、删除 76 行、新增 59 行。
+- v2 中文非空行 **1982**：追溯到 v1 的 **1908**，C1–C8 新增 **74**，追溯不到 **0**。
+- v1 内容行未进 v2 的 **83**：有 C 号依据 83，无依据 0。
+- 三张表：合并 349 行、删除 83 行、新增 74 行。
 
 ## 清单核对（数字、经名、链接、电话、祈求词）
 
 | 类别 | v1 | v2 | 只在 v1 | 只在 v2 |
 |---|---|---|---|---|
-| books | 48 | 50 | — | 《往生净土神咒》、《净口业真言》 |
+| books | 48 | 51 | — | 《念诵指南》、《往生净土神咒》、《净口业真言》 |
 | urls | 8 | 8 | — | — |
 | phones | 43 | 43 | — | — |
 | counts | 21 | 21 | — | — |
@@ -23,19 +23,19 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 | 模块 | 行数（译/中） | 缺失 |
 |---|---|---|
 | en/core | 388/388 | books: 《[书名]》、《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》 |
-| en/tiers | 401/412 | books: 《佛学问答》、《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》、《往生净土神咒》、《七佛灭罪真言》、《补阙真言》、《净口业真言》、《大吉祥天女咒》、《功德宝山神咒》 |
+| en/tiers | 401/418 | books: 《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》、《念诵指南》、《佛学问答》、《往生净土神咒》、《七佛灭罪真言》、《补阙真言》、《净口业真言》、《大吉祥天女咒》、《功德宝山神咒》；prayers: 〈祈求开头〉保佑我（姓名）忏悔消除业障 |
 | en/practice | 365/365 | books: 《往生净土神咒》 |
 | en/xiaofangzi | 229/229 | — |
-| en/relationships | 363/363 | books: 《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》 |
+| en/relationships | 363/366 | books: 《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》 |
 | en/crisis | 224/225 | books: 《[书名]》 |
 | en/altar | 112/112 | — |
 | en/sources | 59/59 | — |
 | en/misc | 585/585 | — |
 | id/core | 388/388 | books: 《[书名]》、《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》 |
-| id/tiers | 401/412 | books: 《佛学问答》、《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》、《往生净土神咒》、《七佛灭罪真言》、《补阙真言》、《净口业真言》、《大吉祥天女咒》、《功德宝山神咒》 |
+| id/tiers | 401/418 | books: 《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》、《念诵指南》、《佛学问答》、《往生净土神咒》、《七佛灭罪真言》、《补阙真言》、《净口业真言》、《大吉祥天女咒》、《功德宝山神咒》；prayers: 〈祈求开头〉保佑我（姓名）忏悔消除业障 |
 | id/practice | 365/365 | books: 《往生净土神咒》 |
 | id/xiaofangzi | 229/229 | — |
-| id/relationships | 363/363 | books: 《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》 |
+| id/relationships | 363/366 | books: 《千手千眼无碍大悲心陀罗尼》、《般若波罗蜜多心经》 |
 | id/crisis | 224/225 | — |
 | id/altar | 112/112 | — |
 | id/sources | 59/59 | — |
@@ -82,46 +82,52 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 | L2078–2087 | tiers.ts L90–98 | 10 |
 | L538 | tiers.ts L100 | 1 |
 | L2091 | tiers.ts L102 | 1 |
-| L2095–2114 | tiers.ts L106–124 | 20 |
-| L538 | tiers.ts L138 | 1 |
-| L2118–2122 | tiers.ts L140–144 | 5 |
-| L2124 | tiers.ts L146 | 1 |
-| L2125–2137 | tiers.ts L148–159 | 13 |
-| L538 | tiers.ts L161 | 1 |
-| L2141 | tiers.ts L163 | 1 |
-| L2120 | tiers.ts L165 | 1 |
-| L2144–2152 | tiers.ts L166–174 | 9 |
-| L2130 | tiers.ts L176 | 1 |
-| L2155–2157 | tiers.ts L177–179 | 3 |
-| L538 | tiers.ts L181 | 1 |
-| L2161–2181 | tiers.ts L183–203 | 21 |
-| L538 | tiers.ts L206 | 1 |
-| L2187–2205 | tiers.ts L208–226 | 19 |
-| L538 | tiers.ts L228 | 1 |
-| L2042 | tiers.ts L230 | 1 |
-| L2451 | tiers.ts L232 | 1 |
-| L2454–2470 | tiers.ts L235–251 | 17 |
-| L2536–2538 | tiers.ts L254–256 | 3 |
-| L2540 | tiers.ts L258 | 1 |
-| L2543–2547 | tiers.ts L260–264 | 5 |
-| L1989 | tiers.ts L266 | 1 |
-| L1296–1309 | tiers.ts L268–280 | 14 |
-| L206–208 | tiers.ts L283–285 | 3 |
-| L1316–1337 | tiers.ts L287–308 | 22 |
-| L1374–1399 | tiers.ts L310–334 | 26 |
-| L1420–1436 | tiers.ts L336–352 | 17 |
-| L2679 | tiers.ts L356 | 1 |
-| L2683–2687 | tiers.ts L360–364 | 5 |
-| L2691–2696 | tiers.ts L366–371 | 6 |
-| L2698–2712 | tiers.ts L373–387 | 15 |
-| L2741–2753 | tiers.ts L389–401 | 13 |
-| L2640 | tiers.ts L403 | 1 |
-| L2757–2762 | tiers.ts L405–410 | 6 |
-| L1989 | tiers.ts L412 | 1 |
+| L2095–2098 | tiers.ts L106–109 | 4 |
+| L2100–2107 | tiers.ts L111–117 | 8 |
+| L2109 | tiers.ts L120 | 1 |
+| L2111 | tiers.ts L122 | 1 |
+| L2113–2114 | tiers.ts L125–126 | 2 |
+| L538 | tiers.ts L140 | 1 |
+| L2118–2122 | tiers.ts L142–146 | 5 |
+| L2124 | tiers.ts L148 | 1 |
+| L2125–2137 | tiers.ts L150–161 | 13 |
+| L538 | tiers.ts L164 | 1 |
+| L2141 | tiers.ts L166 | 1 |
+| L2120 | tiers.ts L168 | 1 |
+| L2144–2145 | tiers.ts L169–170 | 2 |
+| L2148–2152 | tiers.ts L173–177 | 5 |
+| L2130 | tiers.ts L179 | 1 |
+| L2155–2157 | tiers.ts L180–182 | 3 |
+| L538 | tiers.ts L184 | 1 |
+| L2161–2181 | tiers.ts L186–206 | 21 |
+| L538 | tiers.ts L209 | 1 |
+| L2187–2205 | tiers.ts L211–229 | 19 |
+| L538 | tiers.ts L231 | 1 |
+| L2042 | tiers.ts L233 | 1 |
+| L2451 | tiers.ts L235 | 1 |
+| L2454–2468 | tiers.ts L238–252 | 15 |
+| L2469–2470 | tiers.ts L256–257 | 2 |
+| L2536–2538 | tiers.ts L260–262 | 3 |
+| L2540 | tiers.ts L264 | 1 |
+| L2543–2547 | tiers.ts L266–270 | 5 |
+| L1989 | tiers.ts L272 | 1 |
+| L1296–1309 | tiers.ts L274–286 | 14 |
+| L206–208 | tiers.ts L289–291 | 3 |
+| L1318–1337 | tiers.ts L295–314 | 20 |
+| L1374–1399 | tiers.ts L316–340 | 26 |
+| L1420–1436 | tiers.ts L342–358 | 17 |
+| L2679 | tiers.ts L362 | 1 |
+| L2683–2687 | tiers.ts L366–370 | 5 |
+| L2691–2696 | tiers.ts L372–377 | 6 |
+| L2698–2712 | tiers.ts L379–393 | 15 |
+| L2741–2753 | tiers.ts L395–407 | 13 |
+| L2640 | tiers.ts L409 | 1 |
+| L2757–2762 | tiers.ts L411–416 | 6 |
+| L1989 | tiers.ts L418 | 1 |
 | L95–179 | practice.ts L1–84 | 85 |
 | L181–217 | practice.ts L86–122 | 37 |
 | L206–207 | practice.ts L123–124 | 2 |
-| L220–251 | practice.ts L125–156 | 32 |
+| L222–251 | practice.ts L127–156 | 30 |
 | L506–511 | practice.ts L158–162 | 6 |
 | L514–519 | practice.ts L165–170 | 6 |
 | L522–535 | practice.ts L173–186 | 14 |
@@ -165,93 +171,94 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 | L1663–1672 | relationships.ts L66–75 | 10 |
 | L327 | relationships.ts L76 | 1 |
 | L1674–1683 | relationships.ts L77–86 | 10 |
-| L1687–1688 | relationships.ts L94–95 | 2 |
-| L327 | relationships.ts L96 | 1 |
-| L1690–1692 | relationships.ts L97–99 | 3 |
-| L327 | relationships.ts L100 | 1 |
-| L1694–1695 | relationships.ts L101–102 | 2 |
-| L1692 | relationships.ts L103 | 1 |
-| L327 | relationships.ts L104 | 1 |
-| L1698–1699 | relationships.ts L105–106 | 2 |
-| L1703–1725 | relationships.ts L108–130 | 23 |
-| L977 | relationships.ts L131 | 1 |
-| L957 | relationships.ts L133 | 1 |
-| L1729–1732 | relationships.ts L134–137 | 4 |
-| L538 | relationships.ts L139 | 1 |
-| L1736–1751 | relationships.ts L141–156 | 16 |
-| L538 | relationships.ts L158 | 1 |
-| L1755–1759 | relationships.ts L160–164 | 5 |
-| L327 | relationships.ts L165 | 1 |
-| L1761–1765 | relationships.ts L166–169 | 5 |
-| L327 | relationships.ts L170 | 1 |
-| L1767–1769 | relationships.ts L171–173 | 3 |
-| L538 | relationships.ts L175 | 1 |
-| L1773 | relationships.ts L177 | 1 |
-| L1116 | relationships.ts L181 | 1 |
-| L836 | relationships.ts L183 | 1 |
-| L1779 | relationships.ts L185 | 1 |
-| L327 | relationships.ts L186 | 1 |
-| L1678 | relationships.ts L187 | 1 |
-| L327 | relationships.ts L188 | 1 |
-| L1783 | relationships.ts L189 | 1 |
-| L327 | relationships.ts L190 | 1 |
-| L1128 | relationships.ts L191 | 1 |
-| L327 | relationships.ts L192 | 1 |
-| L1687–1688 | relationships.ts L193–194 | 2 |
-| L327 | relationships.ts L195 | 1 |
-| L1690–1691 | relationships.ts L196–197 | 2 |
-| L1792 | relationships.ts L198 | 1 |
-| L327 | relationships.ts L199 | 1 |
-| L1794 | relationships.ts L200 | 1 |
-| L1695 | relationships.ts L201 | 1 |
-| L1792 | relationships.ts L202 | 1 |
-| L327 | relationships.ts L203 | 1 |
-| L1698 | relationships.ts L204 | 1 |
-| L1799 | relationships.ts L205 | 1 |
-| L327 | relationships.ts L206 | 1 |
-| L1134 | relationships.ts L207 | 1 |
-| L327 | relationships.ts L208 | 1 |
-| L1803 | relationships.ts L209 | 1 |
-| L327 | relationships.ts L210 | 1 |
-| L1136 | relationships.ts L211 | 1 |
-| L538 | relationships.ts L213 | 1 |
-| L1809 | relationships.ts L215 | 1 |
-| L1812–1818 | relationships.ts L218–224 | 7 |
-| L538 | relationships.ts L226 | 1 |
-| L1822–1824 | relationships.ts L228–230 | 3 |
-| L538 | relationships.ts L232 | 1 |
-| L1828–1831 | relationships.ts L234–237 | 4 |
-| L1833–1834 | relationships.ts L239–240 | 2 |
-| L538 | relationships.ts L242 | 1 |
-| L1838–1864 | relationships.ts L244–270 | 27 |
-| L538 | relationships.ts L272 | 1 |
-| L1868 | relationships.ts L274 | 1 |
-| L1779 | relationships.ts L278 | 1 |
-| L327 | relationships.ts L279 | 1 |
-| L1874 | relationships.ts L280 | 1 |
-| L327 | relationships.ts L281 | 1 |
-| L1128 | relationships.ts L282 | 1 |
-| L1688 | relationships.ts L284 | 1 |
-| L1691 | relationships.ts L286 | 1 |
-| L1699 | relationships.ts L288 | 1 |
-| L327 | relationships.ts L289 | 1 |
-| L1882 | relationships.ts L290 | 1 |
-| L1886–1888 | relationships.ts L292–294 | 3 |
-| L327 | relationships.ts L295 | 1 |
-| L1890 | relationships.ts L296 | 1 |
-| L327 | relationships.ts L297 | 1 |
-| L1892–1896 | relationships.ts L298–302 | 5 |
-| L327 | relationships.ts L303 | 1 |
-| L1898 | relationships.ts L304 | 1 |
-| L538 | relationships.ts L306 | 1 |
-| L1902–1928 | relationships.ts L308–334 | 27 |
-| L1845 | relationships.ts L335 | 1 |
-| L1930–1931 | relationships.ts L336–337 | 2 |
-| L1849 | relationships.ts L338 | 1 |
-| L1933–1944 | relationships.ts L339–350 | 12 |
-| L1948 | relationships.ts L354 | 1 |
-| L538 | relationships.ts L356 | 1 |
-| L1952–1957 | relationships.ts L358–363 | 6 |
+| L1687–1688 | relationships.ts L95–96 | 2 |
+| L327 | relationships.ts L97 | 1 |
+| L1690–1692 | relationships.ts L98–100 | 3 |
+| L327 | relationships.ts L101 | 1 |
+| L1694–1695 | relationships.ts L102–103 | 2 |
+| L1692 | relationships.ts L104 | 1 |
+| L327 | relationships.ts L105 | 1 |
+| L1698–1699 | relationships.ts L106–107 | 2 |
+| L1703–1725 | relationships.ts L109–131 | 23 |
+| L977 | relationships.ts L132 | 1 |
+| L957 | relationships.ts L134 | 1 |
+| L1729–1732 | relationships.ts L135–138 | 4 |
+| L538 | relationships.ts L140 | 1 |
+| L1736–1751 | relationships.ts L142–157 | 16 |
+| L538 | relationships.ts L159 | 1 |
+| L1755–1759 | relationships.ts L161–165 | 5 |
+| L327 | relationships.ts L166 | 1 |
+| L1761–1765 | relationships.ts L167–170 | 5 |
+| L327 | relationships.ts L171 | 1 |
+| L1767–1769 | relationships.ts L172–174 | 3 |
+| L538 | relationships.ts L176 | 1 |
+| L1773 | relationships.ts L178 | 1 |
+| L1116 | relationships.ts L182 | 1 |
+| L836 | relationships.ts L184 | 1 |
+| L1779 | relationships.ts L186 | 1 |
+| L327 | relationships.ts L187 | 1 |
+| L1678 | relationships.ts L188 | 1 |
+| L327 | relationships.ts L189 | 1 |
+| L1783 | relationships.ts L190 | 1 |
+| L327 | relationships.ts L191 | 1 |
+| L1128 | relationships.ts L192 | 1 |
+| L327 | relationships.ts L193 | 1 |
+| L1687–1688 | relationships.ts L194–195 | 2 |
+| L327 | relationships.ts L196 | 1 |
+| L1690–1691 | relationships.ts L197–198 | 2 |
+| L1792 | relationships.ts L199 | 1 |
+| L327 | relationships.ts L200 | 1 |
+| L1794 | relationships.ts L201 | 1 |
+| L1695 | relationships.ts L202 | 1 |
+| L1792 | relationships.ts L203 | 1 |
+| L327 | relationships.ts L204 | 1 |
+| L1698 | relationships.ts L205 | 1 |
+| L1799 | relationships.ts L206 | 1 |
+| L327 | relationships.ts L207 | 1 |
+| L1134 | relationships.ts L208 | 1 |
+| L327 | relationships.ts L209 | 1 |
+| L1803 | relationships.ts L210 | 1 |
+| L327 | relationships.ts L211 | 1 |
+| L1136 | relationships.ts L212 | 1 |
+| L538 | relationships.ts L214 | 1 |
+| L1809 | relationships.ts L216 | 1 |
+| L1812–1818 | relationships.ts L219–225 | 7 |
+| L538 | relationships.ts L227 | 1 |
+| L1822–1824 | relationships.ts L229–231 | 3 |
+| L538 | relationships.ts L233 | 1 |
+| L1828–1831 | relationships.ts L235–238 | 4 |
+| L1833–1834 | relationships.ts L240–241 | 2 |
+| L538 | relationships.ts L243 | 1 |
+| L1838–1864 | relationships.ts L245–271 | 27 |
+| L538 | relationships.ts L273 | 1 |
+| L1868 | relationships.ts L275 | 1 |
+| L1779 | relationships.ts L279 | 1 |
+| L327 | relationships.ts L280 | 1 |
+| L1874 | relationships.ts L281 | 1 |
+| L327 | relationships.ts L282 | 1 |
+| L1128 | relationships.ts L283 | 1 |
+| L1688 | relationships.ts L285 | 1 |
+| L1691 | relationships.ts L287 | 1 |
+| L1695 | relationships.ts L289 | 1 |
+| L1699 | relationships.ts L291 | 1 |
+| L327 | relationships.ts L292 | 1 |
+| L1882 | relationships.ts L293 | 1 |
+| L1886–1888 | relationships.ts L295–297 | 3 |
+| L327 | relationships.ts L298 | 1 |
+| L1890 | relationships.ts L299 | 1 |
+| L327 | relationships.ts L300 | 1 |
+| L1892–1896 | relationships.ts L301–305 | 5 |
+| L327 | relationships.ts L306 | 1 |
+| L1898 | relationships.ts L307 | 1 |
+| L538 | relationships.ts L309 | 1 |
+| L1902–1928 | relationships.ts L311–337 | 27 |
+| L1845 | relationships.ts L338 | 1 |
+| L1930–1931 | relationships.ts L339–340 | 2 |
+| L1849 | relationships.ts L341 | 1 |
+| L1933–1944 | relationships.ts L342–353 | 12 |
+| L1948 | relationships.ts L357 | 1 |
+| L538 | relationships.ts L359 | 1 |
+| L1952–1957 | relationships.ts L361–366 | 6 |
 | L692 | crisis.ts L1 | 1 |
 | L695–728 | crisis.ts L5–38 | 34 |
 | L730–734 | crisis.ts L41–45 | 5 |
@@ -396,6 +403,7 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 |---|---|---|---|
 | L77 | addendum-B1 | - **初学者** → 先念《大悲咒》《心经》，不要一开始就教《礼佛大忏悔文》（会吓跑） | 「不要一开始就教礼佛」旧文 |
 | L180 | addendum-B1 | - 初学者先不要念，从《大悲咒》《心经》入手 | 「初学者先不要念」旧文 |
+| L220 | ken-0913-three-pillars | - 《礼佛大忏悔文》—— 消除业障，忏悔过往（可以说"先念前两部熟悉，等熟了再加"） | 「可以说先念前两部熟悉，等熟了再加」→ 只在嫌难时说 |
 | L399 | C1 | **新学员：先念这个功课 ~2 周**，熟悉经文节奏。除非紧急情况（至亲新亡、重病），否则不急着开始小房子。 | 「新学员先念这个功课 ~2 周…不急着开始小房子」 |
 | L513 | ken-0912-fullname | **1. 《大悲咒》（全名《千手千眼无碍大悲心陀罗尼》）** | 功用表标题《大悲咒》（全名…）→ 卡片写法 |
 | L521 | ken-0912-fullname | **2. 《心经》（全名《般若波罗蜜多心经》）** | 同上（心经） |
@@ -408,6 +416,7 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 | L933 | C7 | - 中等问题（"我失眠怎么办？"）→ 1-2 段 | 「结构（回答长度控制）」四行（进表；L931 标题与 L935「不要每次都写长文」保留） |
 | L934 | C7 | - 复杂问题（"我全家都病了怎么办？"）→ 3-4 段，分点说明 | 「结构（回答长度控制）」四行（进表；L931 标题与 L935「不要每次都写长文」保留） |
 | L1311 | addendum-B1 | **4. 三大支柱（必须全部提到，不能只提两部）：** | 「必须全部提到，不能只提两部」 |
+| L1316 | ken-0913-three-pillars | 补充说明：对初学者可以说"先念前两部熟悉，等熟了再加礼佛大忏悔文" | 「对初学者可以说先念前两部熟悉，等熟了再加礼佛大忏悔文」 |
 | L1339 | C7 | ### ✅ 理想的回答长度： | 「理想的回答长度」段（长度统一进表） |
 | L1341 | C7 | 中等长度（不过短也不过长）。要让初学者感觉： | 「理想的回答长度」段（长度统一进表） |
 | L1342 | C7 | - "原来方法这么丰富" —— 产生兴趣 | 「理想的回答长度」段（长度统一进表） |
@@ -433,9 +442,14 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 | L1880 | addendum-A6 | > 📿 《解结咒》每天 21-49 遍，祈求化解冤结 | 第二个示例的四部功课块（改为 3+3+解结咒 21，礼佛不在本轮） |
 | L1946 | C5 | 不引向：人间的对抗、法律的解决、外力的压制。 | 「不引向人间的对抗、法律的解决、外力的压制」旧文 |
 | L2093 | C3 | 用户说"想开始念经/学佛" 时,AI 第一件事 = **问 "你之前有念过经吗?"** | 「AI 第一件事 = 问」 |
+| L2099 | ken-0913-three-pillars | 2. 禁止写「关于具体的遍数／张数，我目前查不到相关原文」——入门功课的数字以检索到的《心灵法门入门手册》原文为准（每天《大悲咒》7遍、《心经》7遍、礼佛大忏悔文1-3遍左右、《往 | 入门轮规则 2 括号「完全没念过的先从大悲咒3＋心经3起步」 |
 | L2106 | C7 | · 入门轮回答控制在约 400 字以内（功课块——经名＋遍数＋祈求词的那几行——本身不算在内）。访客要的是"今天做什么"，不是一堂课。 | 入门轮 400 字（进表） |
+| L2108 | ken-0913-three-pillars | - 完全没念过／怕难／时间少 → 只给两部：《大悲咒》3遍＋《心经》3遍＋祈求词＋教念视频，并说「先这两部，念顺了我们再加」 | 「完全没念过／怕难／时间少 → 只给两部…念顺了我们再加」 |
+| L2110 | ken-0913-three-pillars | - 稳定后 → 加礼佛大忏悔文 1 遍起（一般 3 遍左右，不超过 7 遍）＋《往生咒》21 遍 | 「稳定后 → 加礼佛 1 遍起」 |
+| L2112 | ken-0913-three-pillars | · 完全还没开始念功课 → 先把功课起来（《大悲咒》《心经》《礼佛大忏悔文》），这一步不能跳：「打好基本功，小房子才有能量和效果」 | 小房子「完全还没开始念功课」一行（改为三部＋门槛句＋p14 原文） |
 | L2123 | addendum-B1 | - **不提礼佛** (太难,会吓跑) | 「不提礼佛」→「不开礼佛」 |
 | L2133 | C1 | - 先念 1-2 周,熟悉了再加东西 | 「先念 1-2 周,熟悉了再加东西」 |
+| L2146 | ken-0913-three-pillars | - **加 礼佛大忏悔文 每天 1 遍** | Tier 1「加 礼佛大忏悔文 每天 1 遍」 |
 | L2182 | C1 | - 需要小房子 (见 Tier 3) | 「需要小房子 (见 Tier 3)／先会 4 部经才能做」 |
 | L2183 | C1 | - 用户需要先会 4 部经才能做 | 「需要小房子 (见 Tier 3)／先会 4 部经才能做」 |
 | L2209 | C1 | ### 🏠 小房子教学 (只在 Tier 3 或用户主动问) | 「小房子教学 (只在 Tier 3…)」标题 + 「进阶法宝,需要基础稳了才做」 |
@@ -475,7 +489,7 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 
 | v2 模块（行） | 依据 | 句子 | 说明 |
 |---|---|---|---|
-| core.ts L66 | addendum-B1 | - **初学者** → 首轮功课从《大悲咒》《心经》入手；《礼佛大忏悔文》作为第三支柱在念顺后加入 | L77 |
+| core.ts L66 | ken-0913-three-pillars | - **初学者** → 首轮功课默认三部都开：《大悲咒》3 遍＋《心经》3 遍＋《礼佛大忏悔文》1 遍；访客嫌难才先开两部，礼佛几天内加上 | 规则 2：替换 addendum-B1 的 L77 改写（念顺后才加礼佛） |
 | core.ts L198 | C4 | 入门轮除外——入门轮按入门轮规则 5：先方法后道理，引用最多一段且在功课之后。 | L1053「必须优先直接引用」的限定句 |
 | core.ts L261 | addendum-B4 | **用户："我老公外遇，我想离婚（我平时有念经）"** | L1116 示例用户句加「（我平时有念经）」 |
 | tiers.ts L4 | addendum-B3 | - 回复语言＝界面语言（zh/en/id 由拼装决定） | L921–923 语言切换改写 |
@@ -488,28 +502,41 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 | tiers.ts L20 | C7 | \| 危机 \| 按危机四步，不设字数 \| | 长度表 |
 | tiers.ts L21 | C7 | \| 关系类 \| 四段结构，功课块按分档 \| | 长度表 |
 | tiers.ts L104 | C3 | 用户说"想开始念经/学佛" 时,AI 在**同一条回复**里给暂定功课（按分档）＋分诊问题 **"你之前有念过经吗?"**——全语言统一：给了再问，不是先问再给 | L2093「AI 第一件事 = 问」改为同一条回复 |
-| tiers.ts L125 | addendum-B1 | 5. 「提」和「开」是两回事：介绍三大支柱时三部都要点名（一句话即可：《礼佛大忏悔文》是第三支柱，大悲咒、心经念顺之后加入，遍数与时间按《佛学问答》161／组织审定）。**Tier 0 首轮开功课只开大悲咒 3 + 心经 3**；关系类加《解结咒》21（见关系类模块的分档）。 | 架构师给的那句话，放在入门轮硬性规则第 5 条 |
-| tiers.ts L126 | ken-0912-fullname | 6. **功课块（📿 行）经名用全称，简称加括号；正文可用简称。** 与共修总会功课卡一致：卡上标题用全称，括号里给简称。只有全称与简称不同的经才加括号。 | brief §CC 1：新规则进入门轮硬性规则 |
-| tiers.ts L128 | ken-0912-fullname | \| 功课块写法（📿 行） \| 正文可用 \| | 写法表表头 |
-| tiers.ts L129 | C7 | \|---\|---\| | 长度表 |
-| tiers.ts L130 | ken-0912-fullname | \| 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍 \| 大悲咒 \| | 写法表 |
-| tiers.ts L131 | ken-0912-fullname | \| 《般若波罗蜜多心经》（心经）每天 3 遍 \| 心经 \| | 写法表 |
-| tiers.ts L132 | ken-0912-fullname | \| 《礼佛大忏悔文》每天 1 遍 \| 礼佛 \| | 写法表 |
-| tiers.ts L133 | ken-0912-fullname | \| 《往生净土神咒》（往生咒）每天 21 遍 \| 往生咒 \| | 写法表 |
-| tiers.ts L134 | ken-0912-fullname | \| 《解结咒》《准提神咒》《消灾吉祥神咒》《七佛灭罪真言》《补阙真言》《净口业真言》《大吉祥天女咒》《功德宝山神咒》 \| 同名 \| | 写法表：全称＝简称的经 |
-| tiers.ts L136 | ken-0912-fullname | 小房子不在此列（仍写「小房子」）。祈求词一字不动。英文／印尼文回复的功课块用该语言的经名，不套这张表。 | 写法表的例外说明 |
-| tiers.ts L145 | addendum-B1 | - **不开礼佛** (介绍时可以点名；太难,会吓跑) | L2123 |
-| tiers.ts L147 | C1 | - 很多人先把大悲咒、心经念顺再加，但只要功课开始了，就可以起小房子 | 允许保留的一处软性建议措辞（Tier 0 小房子条目下） |
-| tiers.ts L204 | C1 | - 需要小房子（门槛见【入门轮硬性规则】第 4 条：功课一开始就可以念） | 替换 L2182–2183「见 Tier 3／先会 4 部经才能做」 |
-| tiers.ts L234 | C3 | ✅ AI 在同一条回复里先给暂定功课（Tier 0 的两部＋祈求词）,再问: | 模板 A L2453「AI 先问:」 |
-| tiers.ts L252 | C1 | 跟着视频念 🙏 | L2471 去掉「坚持 1-2 周。熟悉了再加其他的」 |
-| tiers.ts L257 | addendum-B5 | 2. **首轮：同一条回复里给暂定功课，并问有没有念过经** (决定 Tier) | L2539 |
-| tiers.ts L259 | C1 | 4. **礼佛从 1 遍开始** | L2541 去掉「(Tier 1 才给)」 |
-| tiers.ts L282 | addendum-B1 | **4. 三大支柱（介绍时三部都要提到；首轮功课可以只开两部）：** | L1311 |
-| tiers.ts L354 | C3 | ### 📿 Qualify-First 原则（英文同样：暂定功课＋分诊问题在同一条回复里） | L2677 标题「英文也要先问」 |
-| tiers.ts L358 | C3 | AI 在同一条回复里给暂定功课（按分档）＋这个问题: | L2681「AI 必须 FIRST 问用户 (不要立刻给完整功课表)」删，问题本身保留 |
-| tiers.ts L372 | addendum-B2 | comfortable with these two — there's no fixed timeline — you can add the Repentance Mantra. | L2697 删「(1-2 weeks)」 |
-| practice.ts L85 | addendum-B1 | - 初学者首轮功课从《大悲咒》《心经》入手；礼佛作为第三支柱在念顺后加入 | L180 |
+| tiers.ts L110 | ken-0913-three-pillars | 2. 禁止写「关于具体的遍数／张数，我目前查不到相关原文」——入门功课的数字以检索到的《心灵法门入门手册》原文为准（每天《大悲咒》7遍、《心经》7遍、礼佛大忏悔文1-3遍左右、《往生咒》21或49遍；完全没念过的首轮开三部：《大悲咒》3遍＋《心经》3遍＋《礼佛大忏悔文》1遍）。 | 规则 2：v1 L2099 括号里「完全没念过的先从大悲咒3＋心经3起步」→ 三部 |
+| tiers.ts L118 | ken-0913-three-pillars | - 完全没念过 → 三部都开：《大悲咒》3遍＋《心经》3遍＋《礼佛大忏悔文》1遍，每部带祈求词＋教念视频；《往生咒》21 遍可以提「一般初学者都需要」（按功课卡） | 规则 2：v1 L2108 起步分档第一档 |
+| tiers.ts L119 | ken-0913-three-pillars | - 访客明说怕难／时间少／不识字 → 才降为《大悲咒》3遍＋《心经》3遍（甚至先一部）起步，并说明《礼佛大忏悔文》是第三支柱，几天内加上 | 规则 2：嫌难才减（Ken「if slow, choose one to start」） |
+| tiers.ts L121 | ken-0913-three-pillars | - 稳定后 → 礼佛大忏悔文逐步加到一般 3 遍左右（不超过 7 遍）＋《往生咒》21 遍 | v1 L2110「加礼佛 1 遍起」与首轮已开礼佛冲突，改为逐步加到 3 遍左右（数字不变） |
+| tiers.ts L123 | ken-0913-three-pillars | · 看整通对话，不只看这一轮：访客前面任何一轮问过小房子（组合、遍数、怎么念、张数），后来才说「还没／没念过」，仍按下面这条回答——三部功课块之后一定要写门槛句，不要只给功课不提小房子 | 规则 1：小房子意图跨轮（R25 pass B：第 3 轮检索只拼上一轮访客话，小房子话题掉了，回复没写门槛句） |
+| tiers.ts L124 | ken-0913-three-pillars | · 完全还没开始念功课 → 功课块三部都开：《千手千眼无碍大悲心陀罗尼》（大悲咒）3 遍、《般若波罗蜜多心经》（心经）3 遍、《礼佛大忏悔文》1 遍（《往生咒》21 遍可提「一般初学者都需要」）；紧接一句「功课开始了就可以起小房子，不用等熟练——当天念了功课的大悲咒之后就可以开始」；引《念诵指南》第 14 页原文「尚未开始念诵基本功课的初学者，需从基本功课《大悲咒》、《心经》、《礼佛大忏悔文》念起。」这一步不能跳：「打好基本功，小房子才有能量和效果」。不要说「念顺了再加礼佛」 | 规则 1：v1 L2112 小房子意图＋尚未开始功课 |
+| tiers.ts L127 | ken-0913-three-pillars | 5. 「提」和「开」：介绍三大支柱时三部都要点名；**首轮默认三部都开（大悲咒 3 + 心经 3 + 礼佛 1）**，与共修总会功课卡「以下三种经文为必做功课」一致。只有访客明说怕难／时间少／不识字，才降为大悲咒＋心经（甚至先一部）起步，并说明《礼佛大忏悔文》是第三支柱、几天内加上（遍数与时间按《佛学问答》161／组织审定）。关系类另加《解结咒》21（见关系类模块的分档）。 | 规则 3：入门轮硬性规则第 5 条（addendum-B1）改写 |
+| tiers.ts L128 | ken-0912-fullname | 6. **功课块（📿 行）经名用全称，简称加括号；正文可用简称。** 与共修总会功课卡一致：卡上标题用全称，括号里给简称。只有全称与简称不同的经才加括号。 | brief §CC 1：新规则进入门轮硬性规则 |
+| tiers.ts L130 | ken-0912-fullname | \| 功课块写法（📿 行） \| 正文可用 \| | 写法表表头 |
+| tiers.ts L131 | C7 | \|---\|---\| | 长度表 |
+| tiers.ts L132 | ken-0912-fullname | \| 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍 \| 大悲咒 \| | 写法表 |
+| tiers.ts L133 | ken-0912-fullname | \| 《般若波罗蜜多心经》（心经）每天 3 遍 \| 心经 \| | 写法表 |
+| tiers.ts L134 | ken-0912-fullname | \| 《礼佛大忏悔文》每天 1 遍 \| 礼佛 \| | 写法表 |
+| tiers.ts L135 | ken-0912-fullname | \| 《往生净土神咒》（往生咒）每天 21 遍 \| 往生咒 \| | 写法表 |
+| tiers.ts L136 | ken-0912-fullname | \| 《解结咒》《准提神咒》《消灾吉祥神咒》《七佛灭罪真言》《补阙真言》《净口业真言》《大吉祥天女咒》《功德宝山神咒》 \| 同名 \| | 写法表：全称＝简称的经 |
+| tiers.ts L138 | ken-0912-fullname | 小房子不在此列（仍写「小房子」）。祈求词一字不动。英文／印尼文回复的功课块用该语言的经名，不套这张表。 | 写法表的例外说明 |
+| tiers.ts L147 | ken-0913-three-pillars | - 礼佛大忏悔文 每天 1 遍（三部默认都开；访客明说怕难／时间少才先开前两部，礼佛几天内加上） | 规则 2：Tier 0「不开礼佛」（addendum-B1）→ 开 1 遍 |
+| tiers.ts L149 | C1 | - 很多人先把大悲咒、心经念顺再加，但只要功课开始了，就可以起小房子 | 允许保留的一处软性建议措辞（Tier 0 小房子条目下） |
+| tiers.ts L162 | ken-0913-three-pillars | - 礼佛前: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障" | Tier 0 祈求词示范补礼佛（祈求词照 v1 L1799 关系类原文） |
+| tiers.ts L171 | ken-0913-three-pillars | - **礼佛大忏悔文 每天 1 遍起**（Tier 0 已默认开；先前嫌难没开的，这时加上） | v1 L2146 Tier 1「加礼佛 1 遍」与 Tier 0 已开冲突 |
+| tiers.ts L207 | C1 | - 需要小房子（门槛见【入门轮硬性规则】第 4 条：功课一开始就可以念） | 替换 L2182–2183「见 Tier 3／先会 4 部经才能做」 |
+| tiers.ts L237 | ken-0913-three-pillars | ✅ AI 在同一条回复里先给暂定功课（Tier 0 的三部＋祈求词）,再问: | 模板 A（C3 行）两部 → 三部 |
+| tiers.ts L253 | ken-0913-three-pillars | 📿 《礼佛大忏悔文》每天 1 遍 | 模板 B 补第三部 |
+| tiers.ts L254 | ken-0913-three-pillars | 念之前说:"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障" | 模板 B 礼佛祈求词（照 v1 L1799 原文） |
+| tiers.ts L255 | ken-0913-three-pillars | (晚上 10 点至凌晨 5 点不念) | 模板 B 礼佛时间（照 C6／《佛学问答》161） |
+| tiers.ts L258 | C1 | 跟着视频念 🙏 | L2471 去掉「坚持 1-2 周。熟悉了再加其他的」 |
+| tiers.ts L263 | addendum-B5 | 2. **首轮：同一条回复里给暂定功课，并问有没有念过经** (决定 Tier) | L2539 |
+| tiers.ts L265 | C1 | 4. **礼佛从 1 遍开始** | L2541 去掉「(Tier 1 才给)」 |
+| tiers.ts L288 | ken-0913-three-pillars | **4. 三大支柱（介绍时三部都要提到；首轮默认三部都开，访客嫌难才先开两部）：** | 规则 2：addendum-B1 标题「首轮可以只开两部」 |
+| tiers.ts L293 | ken-0913-three-pillars | 补充说明：访客明说怕难／时间少时，可以说"先念前两部，礼佛大忏悔文几天内加上" | 规则 2：v1 L1316「先念前两部熟悉，等熟了再加」→ 只在嫌难时说 |
+| tiers.ts L360 | C3 | ### 📿 Qualify-First 原则（英文同样：暂定功课＋分诊问题在同一条回复里） | L2677 标题「英文也要先问」 |
+| tiers.ts L364 | C3 | AI 在同一条回复里给暂定功课（按分档）＋这个问题: | L2681「AI 必须 FIRST 问用户 (不要立刻给完整功课表)」删，问题本身保留 |
+| tiers.ts L378 | addendum-B2 | comfortable with these two — there's no fixed timeline — you can add the Repentance Mantra. | L2697 删「(1-2 weeks)」 |
+| practice.ts L85 | ken-0913-three-pillars | - 初学者首轮默认三部都开，礼佛从 1 遍开始；访客嫌难才先开大悲咒、心经，礼佛几天内加上 | 规则 2：addendum-B1 的 L180 改写 |
+| practice.ts L125 | ken-0913-three-pillars | - 《礼佛大忏悔文》—— 消除业障，忏悔过往（访客嫌难时才说"先念前两部，几天内加上"） | 规则 2：v1 L220 |
 | practice.ts L164 | ken-0912-fullname | **1. 《千手千眼无碍大悲心陀罗尼》（大悲咒）** | v1 L513 功用表标题改成卡片写法（全称在前） |
 | practice.ts L172 | ken-0912-fullname | **2. 《般若波罗蜜多心经》（心经）** | v1 L521 同上 |
 | practice.ts L187 | C6 | - 时间以《佛学问答》161／组织审定为准：非特殊日子晚上 10 点至凌晨 5 点最好不念（有佛台上头香的日子例外）。《入门手册》p18『白天晚上都可念』是 2012 年的写法，此点已被后来开示细化。 | 第七部分礼佛条目加一句 |
@@ -518,19 +545,21 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 | xiaofangzi.ts L134 | C1 | ### 🏠 小房子教学 (访客主动问到时才教) | 替换 L2209 标题「只在 Tier 3 或用户主动问」；「访客问了才教」保留 |
 | xiaofangzi.ts L227 | C8 | ### 📜 2010 年之前案例里的经文组合（era 规则） | LETTERS 第 6 条搬到 xiaofangzi 模块时的小标题 |
 | relationships.ts L37 | C2 | ### 🔒 关系类回答的结构 | L1634 改名 |
-| relationships.ts L48 | C2 | - 《礼佛大忏悔文》 **1-3 遍**（初学者必须少念！；完全没念过／怕难／时间少这一档不在本轮，见第 4 段分档） | L1645「所有修行人必须」的礼佛条目与分档一冲突，加限定（brief 未点名，请架构师确认） |
+| relationships.ts L48 | ken-0913-three-pillars | - 《礼佛大忏悔文》 **1-3 遍**（初学者必须少念！没念过档从 1 遍开始；访客明说怕难／时间少才先不开，见第 4 段分档） | 规则 2 (a)：C2 限定句 |
 | relationships.ts L88 | C2 | #### 第 4 段：功课（经文与遍数按分档） | L1685 标题改为按分档 |
-| relationships.ts L90 | C2 | - 完全没念过／怕难／时间少 → 《千手千眼无碍大悲心陀罗尼》（大悲咒）3 遍 + 《般若波罗蜜多心经》（心经）3 遍 + 《解结咒》21 遍（解结咒是他问题的药，不能省）；礼佛不在这一轮 | 分档一 |
-| relationships.ts L91 | C2 | - 念顺了 → 《千手千眼无碍大悲心陀罗尼》（大悲咒）7 遍 + 《般若波罗蜜多心经》（心经）7 遍 + 《解结咒》21-49 遍，《礼佛大忏悔文》1 遍起 | 分档二 |
-| relationships.ts L92 | C2 | - 已在修 → 四部完整（下面的写法）；祈求词各档都照下面的原文 | 分档三；祈求词照 v1 原文 |
-| relationships.ts L179 | addendum-A6 | （下面这个完整示例是「已在修」档的第 4 段写法；「常见场景」的第一例是「没念过」档的写法；「念顺了」档按上面的分档替换第 4 段） | C2 标注句改为两档各一例 |
-| relationships.ts L217 | C2 | 1. **功课按分档**：没念过 → 大悲咒 3 + 心经 3 + 解结咒 21；念顺了 → 7 + 7 + 解结咒 21-49，礼佛 1 遍起；已在修 → 四部完整 | L1811「4 部必念」改为按分档 |
-| relationships.ts L238 | C5 | 3. **不给法律策略** —— 离不离、争不争、怎么打官司、谁对谁错，不是我们的角色。**人身安全的求助——报警、危机热线、庇护所——永远可以说；访客描述家暴或有人身危险时必须先说。** | L1832 红线 #3 |
-| relationships.ts L276 | addendum-A6 | **"老公出轨了，我该怎么办？"（访客已经说过没念过经——「没念过」档的写法）** | L1870 第二个示例改写成「没念过」档 |
-| relationships.ts L283 | addendum-A6 | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍 | 没念过档功课块（祈求词行照 v1 L1788/1791/1799 原文，自动追溯） |
-| relationships.ts L285 | addendum-A6 | > 📿 《般若波罗蜜多心经》（心经）每天 3 遍（晚上 10 点后不念） | 没念过档功课块 |
-| relationships.ts L287 | addendum-A6 | > 📿 《解结咒》每天 21 遍 | 没念过档功课块 |
-| relationships.ts L352 | C5 | 不引向：法律策略与对抗。 | L1946 |
+| relationships.ts L90 | ken-0913-three-pillars | - 完全没念过 → 《千手千眼无碍大悲心陀罗尼》（大悲咒）3 遍 + 《般若波罗蜜多心经》（心经）3 遍 + 《礼佛大忏悔文》1 遍 + 《解结咒》21 遍（解结咒是他问题的药，不能省） | 规则 2 (a)：关系类分档一加礼佛 1（队列：Ken 未另说按 (a)） |
+| relationships.ts L91 | ken-0913-three-pillars | - 访客明说怕难／时间少 → 大悲咒 3 遍 + 心经 3 遍 + 《解结咒》21 遍起步；《礼佛大忏悔文》是第三支柱，几天内加上 | 规则 2 (a)：关系类嫌难档 |
+| relationships.ts L92 | C2 | - 念顺了 → 《千手千眼无碍大悲心陀罗尼》（大悲咒）7 遍 + 《般若波罗蜜多心经》（心经）7 遍 + 《解结咒》21-49 遍，《礼佛大忏悔文》1 遍起 | 分档二 |
+| relationships.ts L93 | C2 | - 已在修 → 四部完整（下面的写法）；祈求词各档都照下面的原文 | 分档三；祈求词照 v1 原文 |
+| relationships.ts L180 | addendum-A6 | （下面这个完整示例是「已在修」档的第 4 段写法；「常见场景」的第一例是「没念过」档的写法；「念顺了」档按上面的分档替换第 4 段） | C2 标注句改为两档各一例 |
+| relationships.ts L218 | ken-0913-three-pillars | 1. **功课按分档**：没念过 → 大悲咒 3 + 心经 3 + 礼佛 1 + 解结咒 21（访客明说嫌难才先不开礼佛）；念顺了 → 7 + 7 + 解结咒 21-49，礼佛 1 遍起；已在修 → 四部完整 | 规则 2 (a)：C2 核心原则汇总 |
+| relationships.ts L239 | C5 | 3. **不给法律策略** —— 离不离、争不争、怎么打官司、谁对谁错，不是我们的角色。**人身安全的求助——报警、危机热线、庇护所——永远可以说；访客描述家暴或有人身危险时必须先说。** | L1832 红线 #3 |
+| relationships.ts L277 | addendum-A6 | **"老公出轨了，我该怎么办？"（访客已经说过没念过经——「没念过」档的写法）** | L1870 第二个示例改写成「没念过」档 |
+| relationships.ts L284 | addendum-A6 | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍 | 没念过档功课块（祈求词行照 v1 L1788/1791/1799 原文，自动追溯） |
+| relationships.ts L286 | addendum-A6 | > 📿 《般若波罗蜜多心经》（心经）每天 3 遍（晚上 10 点后不念） | 没念过档功课块 |
+| relationships.ts L288 | ken-0913-three-pillars | > 📿 《礼佛大忏悔文》每天 1 遍（晚上 10 点至凌晨 5 点不念） | 规则 2 (a)：「没念过」档示例（addendum-A6）补礼佛；祈求词行照 v1 L1799 原文自动追溯 |
+| relationships.ts L290 | addendum-A6 | > 📿 《解结咒》每天 21 遍 | 没念过档功课块 |
+| relationships.ts L355 | C5 | 不引向：法律策略与对抗。 | L1946 |
 | crisis.ts L3 | C5 | **本部分（自杀倾向、严重抑郁、自残、家庭暴力、虐待）的规则高于「家庭、婚姻、法律问题的回应原则」（关系类模块）。** | 放在第十部分开头 |
 | crisis.ts L39 | addendum-B6 | - 家暴走危机四步：首轮只给安全资源＋一句菩萨圣号；功课等对方安全后、主动再问时再谈 | 第十部分家暴条目加一句 |
 | sources.ts L11 | C1 | - 小房子念诵指南 | L1356 去掉「在用户熟悉经文后才教（通常两周后）」 |
@@ -546,18 +575,18 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 |---|---|---|---|
 | core.ts L274 | L1129 | ken-0912-fullname | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3-7 遍 —— 身体健康，增强能量 |
 | core.ts L275 | L1130 | ken-0912-fullname | > 📿 《般若波罗蜜多心经》（心经）每天 3-7 遍 —— 开智慧，去除烦恼（晚上 10 点后不念） |
-| tiers.ts L158 | L2136 | ken-0912-prayer | - 大悲咒前: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)身体健康,心情平静" |
-| tiers.ts L159 | L2137 | ken-0912-prayer | - 心经前: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)开智慧,去除烦恼" |
-| tiers.ts L189 | L2167 | ken-0912-prayer | - 祈求: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我(姓名)与(对方姓名)化解恶缘" |
-| tiers.ts L193 | L2171 | ken-0912-prayer | - 祈求: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我(姓名)超度因我而受害的小灵性" |
-| tiers.ts L197 | L2175 | ken-0912-prayer | - 祈求: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)心想事成" |
-| tiers.ts L201 | L2179 | ken-0912-prayer | - 祈求: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)消灾吉祥,平安顺利" |
-| tiers.ts L245 | L2464 | ken-0912-fullname | 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍 |
-| tiers.ts L246 | L2465 | ken-0912-prayer | 念之前说:"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)身体健康,心情平静" |
-| tiers.ts L247 | L2466 | ken-0912-fullname | 📿 《般若波罗蜜多心经》（心经）每天 3 遍 |
-| tiers.ts L248 | L2467 | ken-0912-prayer | 念之前说:"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)开智慧,去除烦恼" |
-| tiers.ts L283 | L206 | ken-0912-fullname | - 《千手千眼无碍大悲心陀罗尼》（大悲咒）—— 身体健康，增强能量 |
-| tiers.ts L284 | L207 | ken-0912-fullname | - 《般若波罗蜜多心经》（心经）—— 开智慧，去除烦恼 |
+| tiers.ts L160 | L2136 | ken-0912-prayer | - 大悲咒前: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)身体健康,心情平静" |
+| tiers.ts L161 | L2137 | ken-0912-prayer | - 心经前: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)开智慧,去除烦恼" |
+| tiers.ts L192 | L2167 | ken-0912-prayer | - 祈求: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我(姓名)与(对方姓名)化解恶缘" |
+| tiers.ts L196 | L2171 | ken-0912-prayer | - 祈求: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我(姓名)超度因我而受害的小灵性" |
+| tiers.ts L200 | L2175 | ken-0912-prayer | - 祈求: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)心想事成" |
+| tiers.ts L204 | L2179 | ken-0912-prayer | - 祈求: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)消灾吉祥,平安顺利" |
+| tiers.ts L248 | L2464 | ken-0912-fullname | 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍 |
+| tiers.ts L249 | L2465 | ken-0912-prayer | 念之前说:"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)身体健康,心情平静" |
+| tiers.ts L250 | L2466 | ken-0912-fullname | 📿 《般若波罗蜜多心经》（心经）每天 3 遍 |
+| tiers.ts L251 | L2467 | ken-0912-prayer | 念之前说:"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)开智慧,去除烦恼" |
+| tiers.ts L289 | L206 | ken-0912-fullname | - 《千手千眼无碍大悲心陀罗尼》（大悲咒）—— 身体健康，增强能量 |
+| tiers.ts L290 | L207 | ken-0912-fullname | - 《般若波罗蜜多心经》（心经）—— 开智慧，去除烦恼 |
 | practice.ts L167 | L516 | ken-0912-prayer | - 念前祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）身体健康，增强功力" |
 | practice.ts L168 | L517 | ken-0912-prayer | - 若生病加："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨医治我XXX某个部位的疾病，早日恢复健康" |
 | practice.ts L177 | L526 | ken-0912-prayer | - 念前祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）开智慧，头脑清醒冷静，去除烦恼" |
@@ -574,24 +603,24 @@ prayers 一行按「祈求开头」折叠后比较（`ken-0912-prayer` 只换开
 | practice.ts L250 | L598 | ken-0912-prayer | - 念前祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）某事顺利" |
 | practice.ts L257 | L605 | ken-0912-prayer | - 念前祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）能够身体健康或某事顺利，请观世音菩萨显灵" |
 | practice.ts L302 | L1194 | ken-0912-prayer | - "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我的妈妈XXX，我现在念的《往生咒》是送给她的" |
-| relationships.ts L90 | （C1–C8 新增行，见第三表） | ken-0912-fullname | - 完全没念过／怕难／时间少 → 《千手千眼无碍大悲心陀罗尼》（大悲咒）3 遍 + 《般若波罗蜜多心经》（心经）3 遍 + 《解结咒》21 遍（解结咒是他问题的药，不能省）；礼佛不在这一轮 |
-| relationships.ts L91 | （C1–C8 新增行，见第三表） | ken-0912-fullname | - 念顺了 → 《千手千眼无碍大悲心陀罗尼》（大悲咒）7 遍 + 《般若波罗蜜多心经》（心经）7 遍 + 《解结咒》21-49 遍，《礼佛大忏悔文》1 遍起 |
-| relationships.ts L94 | L1687 | ken-0912-fullname | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3-7 遍 |
-| relationships.ts L95 | L1688 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力" |
-| relationships.ts L97 | L1690 | ken-0912-fullname | > 📿 《般若波罗蜜多心经》（心经）每天 3-7 遍 |
-| relationships.ts L98 | L1691 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼" |
-| relationships.ts L102 | L1695 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障" |
-| relationships.ts L106 | L1699 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（姓名）与（对方姓名）化解恶缘" |
-| relationships.ts L167 | L1762 | ken-0912-fullname | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）3 遍 |
-| relationships.ts L168 | L1763 | ken-0912-fullname | > 📿 《般若波罗蜜多心经》（心经）3 遍 |
-| relationships.ts L193 | L1787 | ken-0912-fullname | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3-7 遍 |
-| relationships.ts L194 | L1788 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力" |
-| relationships.ts L196 | L1790 | ken-0912-fullname | > 📿 《般若波罗蜜多心经》（心经）每天 3-7 遍 |
-| relationships.ts L197 | L1791 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼" |
-| relationships.ts L201 | L1795 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障" |
-| relationships.ts L205 | L1799 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（姓名）与（先生名字）化解恶缘" |
-| relationships.ts L283 | （C1–C8 新增行，见第三表） | ken-0912-fullname | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍 |
-| relationships.ts L284 | L1688 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力" |
-| relationships.ts L285 | （C1–C8 新增行，见第三表） | ken-0912-fullname | > 📿 《般若波罗蜜多心经》（心经）每天 3 遍（晚上 10 点后不念） |
-| relationships.ts L286 | L1691 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼" |
-| relationships.ts L288 | L1699 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（姓名）与（对方姓名）化解恶缘" |
+| relationships.ts L92 | （C1–C8 新增行，见第三表） | ken-0912-fullname | - 念顺了 → 《千手千眼无碍大悲心陀罗尼》（大悲咒）7 遍 + 《般若波罗蜜多心经》（心经）7 遍 + 《解结咒》21-49 遍，《礼佛大忏悔文》1 遍起 |
+| relationships.ts L95 | L1687 | ken-0912-fullname | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3-7 遍 |
+| relationships.ts L96 | L1688 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力" |
+| relationships.ts L98 | L1690 | ken-0912-fullname | > 📿 《般若波罗蜜多心经》（心经）每天 3-7 遍 |
+| relationships.ts L99 | L1691 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼" |
+| relationships.ts L103 | L1695 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障" |
+| relationships.ts L107 | L1699 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（姓名）与（对方姓名）化解恶缘" |
+| relationships.ts L168 | L1762 | ken-0912-fullname | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）3 遍 |
+| relationships.ts L169 | L1763 | ken-0912-fullname | > 📿 《般若波罗蜜多心经》（心经）3 遍 |
+| relationships.ts L194 | L1787 | ken-0912-fullname | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3-7 遍 |
+| relationships.ts L195 | L1788 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力" |
+| relationships.ts L197 | L1790 | ken-0912-fullname | > 📿 《般若波罗蜜多心经》（心经）每天 3-7 遍 |
+| relationships.ts L198 | L1791 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼" |
+| relationships.ts L202 | L1795 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障" |
+| relationships.ts L206 | L1799 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（姓名）与（先生名字）化解恶缘" |
+| relationships.ts L284 | （C1–C8 新增行，见第三表） | ken-0912-fullname | > 📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍 |
+| relationships.ts L285 | L1688 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力" |
+| relationships.ts L286 | （C1–C8 新增行，见第三表） | ken-0912-fullname | > 📿 《般若波罗蜜多心经》（心经）每天 3 遍（晚上 10 点后不念） |
+| relationships.ts L287 | L1691 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼" |
+| relationships.ts L289 | L1695 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障" |
+| relationships.ts L291 | L1699 | ken-0912-prayer | > 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（姓名）与（对方姓名）化解恶缘" |
