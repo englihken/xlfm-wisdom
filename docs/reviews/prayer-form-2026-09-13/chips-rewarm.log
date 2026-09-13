@@ -1,0 +1,20 @@
+warming 18 chips against https://xlfm-wisdom.vercel.app · concurrency 3
+✓ zh work_karma           1.0s 3106 bytes · stages retrieving
+✓ zh insomnia             1.4s 2105 bytes · stages retrieving
+✓ zh family_conflict      1.4s 1764 bytes · stages retrieving
+✓ zh child_emotions       0.4s 3216 bytes · stages retrieving
+✓ zh beginner_first_step  0.3s 1712 bytes · stages retrieving
+✓ zh family_illness       0.3s 1935 bytes · stages retrieving
+✓ en insomnia             0.4s 2955 bytes · stages retrieving
+✓ en family_conflict      0.3s 2463 bytes · stages retrieving
+✓ en work_karma           0.3s 2840 bytes · stages retrieving
+✓ en child_emotions       0.4s 3457 bytes · stages retrieving
+✓ en beginner_first_step  0.3s 2433 bytes · stages retrieving
+✓ en family_illness       0.3s 3169 bytes · stages retrieving
+✓ id insomnia             0.3s 1915 bytes · stages retrieving
+✓ id family_conflict      0.3s 2385 bytes · stages retrieving
+✓ id work_karma           0.3s 3138 bytes · stages retrieving
+✓ id child_emotions       0.3s 2777 bytes · stages retrieving
+✓ id beginner_first_step  0.3s 2285 bytes · stages retrieving
+✓ id family_illness       0.3s 2899 bytes · stages retrieving
+done: 18/18 ok
