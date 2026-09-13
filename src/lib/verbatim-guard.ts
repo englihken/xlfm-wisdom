@@ -214,6 +214,28 @@ export function canonicalSubjectFlags(draft: string): boolean[] {
 // Blockquote lines are checked segment-by-segment: an elided quote ("A……B") is
 // split at the ellipsis and each segment must independently be verbatim.
 
+// 09-13 xfz-retrieval-and-prayer-guard §2.2: a 祈求词 line is not a quotation
+// of a passage — its content is personal (名字、部位、对象), so it can never be
+// verbatim. A quote-block line that starts like a prayer is exempt from the
+// verbatim check; instead its OPENER must be one of the approved openers (the
+// pinned 功课卡, 《念诵指南》 p17／p31 for 小房子, the 放生 wording in the prompt).
+// A prayer-looking line with any other opener (「祈请大慈大悲观音菩萨…」) falls
+// back to the ordinary verbatim rule.
+export const APPROVED_PRAYER_OPENERS = [
+  '祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨', // 功课卡
+  '祈请南无大慈大悲观世音菩萨', // 《念诵指南》 p31 烧送前
+  '请大慈大悲观世音菩萨', // 《念诵指南》 p17 念诵前
+  '请大慈大悲的观世音菩萨', // 放生（《佛学问答》63）
+] as const;
+const PRAYER_TRIGGER_RE = /^(\*\*)?\s*["“「]?\s*(祈请南无|请大慈大悲|念前祈请|祈求\s*[：:])/;
+const PRAYER_LEAD_RE = /^(\*\*)?\s*(念前祈请|念之前祈求|念前祈求|念之前说|念前说|祈求)?\s*[：:]?\s*(\*\*)?\s*["“「]?/;
+export function isApprovedPrayerLine(quoted: string): boolean {
+  const s = quoted.trim();
+  if (!PRAYER_TRIGGER_RE.test(s)) return false;
+  const body = s.replace(PRAYER_LEAD_RE, '').replace(/\s+/g, '');
+  return APPROVED_PRAYER_OPENERS.some((o) => body.startsWith(o));
+}
+
 // Segments whose normalized skeleton is shorter than this are ignored — too
 // short to be a doctrinal claim, too likely to false-positive ("师父说：").
 const MIN_QUOTE_SKELETON = 8;
@@ -248,6 +270,11 @@ export function checkDraft(
   for (const line of draft.split('\n')) {
     const m = line.match(/^\s*>\s?(.*)$/);
     if (!m) continue;
+    // A 祈求词 is not a quotation: only its opener is checked (see above).
+    if (isApprovedPrayerLine(m[1])) {
+      verifiedQuoteLines.add(line);
+      continue;
+    }
     let lineOk = true;
     for (const seg of m[1].split(/…+|\.{3,}|⋯+/)) {
       const skeleton = normalizeForGuard(seg);
@@ -451,7 +478,7 @@ const SUTRA_TITLE_RE = /《[^》\n]{1,24}(经|咒|真言|陀罗尼|忏悔文)》
 // The last alternative covers both prayer openers: the 功课卡's
 // 「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨…」 (prompt default since
 // 09-13) and the older 「请大慈大悲观世音菩萨…」.
-const PRAYER_LINE_RE = /^\s*(>\s*)?(\*\*)?[（(]?\s*(念之前祈求|念前祈求|念之前说|念之前跟菩萨说|念之前先说|祈求词|祈求\s*[：:]|念前说|["“「]?(祈请南无大慈大悲救苦救难广大灵感观世音菩萨|请大慈大悲(的)?观世音菩萨))/;
+const PRAYER_LINE_RE = /^\s*(>\s*)?(\*\*)?[（(]?\s*(念之前祈求|念前祈求|念前祈请|念之前说|念之前跟菩萨说|念之前先说|祈求词|祈求\s*[：:]|念前说|["“「]?(祈请南无大慈大悲救苦救难广大灵感观世音菩萨|请大慈大悲(的)?观世音菩萨))/;
 /** A 功课 line: starts with 📿, or names a 《sutra》 and carries a 遍/张 count. */
 export function isHomeworkLine(line: string): boolean {
   if (HOMEWORK_LINE_RE.test(line)) return true;

@@ -13,6 +13,7 @@ import {
   hasBlanketRefusal,
   isOverStripped,
   isPrayerLine,
+  isApprovedPrayerLine,
 } from '../src/lib/verbatim-guard';
 
 let passed = 0;
@@ -477,6 +478,24 @@ console.log('— F01 negatives (batch 2 §1): (subject, count) pairs + sentence 
   const v10c = checkDraft(MIX, [MANUAL], []);
   const s10c = stripViolations(MIX, v10c);
   assert('N10c only the ungrounded count is replaced', s10c.includes('《大悲咒》每天7遍') && s10c.includes('《礼佛大忏悔文》每天（遍数以官方资料为准）'), s10c);
+}
+
+{
+  // N12 (09-13 xfz-retrieval-and-prayer-guard §2.2): 祈求词 lines in a quote
+  // block are exempt from the verbatim check — only the opener must be approved.
+  const CARD = '念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我 XXX 身体健康，增强功力」';
+  const quoteNV = (draft: string) => checkDraft(draft, [CARD], []).filter((v) => v.reason === 'quote_not_verbatim');
+  const personal = '> 祈求："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（孩子名字）与（对方名字）化解恶缘"';
+  assert('N12 card-form prayer with personal content in a quote block → no quote_not_verbatim', quoteNV(personal).length === 0, quoteNV(personal));
+  const wrongOpener = '> 念前祈请：「祈请大慈大悲观音菩萨保佑我（姓名）身体健康，增强功力」';
+  assert('N12 opener 「祈请大慈大悲观音菩萨」 → still quote_not_verbatim', quoteNV(wrongOpener).length > 0, quoteNV(wrongOpener));
+  const burnSend = '> "祈请南无大慈大悲观世音菩萨帮助我 XXX 能够将这些小房子送给 YYY"';
+  assert('N12 小房子 烧送前 opener (《念诵指南》 p31) → no quote_not_verbatim', quoteNV(burnSend).length === 0, quoteNV(burnSend));
+  const recite = '> 请大慈大悲观世音菩萨保佑我 XXX，帮助我将这些小房子送给 YYY';
+  assert('N12 小房子 念诵前 opener (《念诵指南》 p17) → no quote_not_verbatim', quoteNV(recite).length === 0, quoteNV(recite));
+  const teaching = '> 境界的提升是看不见，摸不着的，只有靠你自己慢慢地悟';
+  assert('N12 an ordinary quote is still checked verbatim', quoteNV(teaching).length > 0);
+  assert('N12 isApprovedPrayerLine: plain prose is not a prayer line', !isApprovedPrayerLine('师父说：多念心经开智慧'));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

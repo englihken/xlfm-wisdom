@@ -5,7 +5,7 @@
 
 import { Pinecone } from '@pinecone-database/pinecone';
 import { supabaseAdmin } from './supabase';
-import { buildWisdomRecord } from './wisdom-sync';
+import { buildWisdomRecord, type WisdomEntryForSync } from './wisdom-sync';
 
 // === CONFIG ===
 const NAMESPACE = 'xlfm-wisdom';
@@ -115,6 +115,9 @@ export type RetrievalContext = {
   // 同修轮 (09-13): visitor level decided before retrieval (level-cues ＋
   // persisted conversations.level ＋ contacts.stage; see care-pipeline).
   level?: import('./prompt/level-cues').VisitorLevel;
+  // 09-13 xfz-retrieval §1.2: 小房子 came up in an earlier visitor turn —
+  // the topic sticks to the whole conversation (see XFZ_TOPIC_RE).
+  topic?: 'xiaofangzi';
 };
 
 const SHORT_FOLLOWUP_MAX_CHARS = 40;
@@ -163,6 +166,51 @@ const HOMEWORK_BASELINE_QUERY_EN =
 // chunks — p12-17 chunks cover uses/printing. Until re-chunked, the threshold
 // (「有没有开始做功课」, per p14 + p48 Q14) is carried by the system prompt's
 // 【入门轮硬性规则】 only, not by a verbatim quote.
+// 09-13 xfz-retrieval-and-prayer-guard §1.2: once 小房子 has come up anywhere in
+// the conversation, every turn pins the two 《念诵指南》 chunks that carry what
+// replies kept getting wrong — printed p2 「小房子的组成」 (27／49／84／87,
+// PDF p11) and printed p14 「念诵者条件」 (PDF p21–22) — whatever the turn's own
+// wording retrieves. Production 09-12 「一张小房子的经文组合是」 and local R25
+// 「小房子的篇数是多少？」 both came back without p2.
+export const XFZ_TOPIC_RE = /小房子|敬赠|要经者|烧送|自存/;
+const XFZ_PINNED_CHUNK_IDS = ['xiaofangzi_guide_w2b2_14', 'xiaofangzi_guide_w2b2_20'];
+const XFZ_CHUNK_TTL_MS = 60 * 60_000;
+let xfzChunkCache: { at: number; passages: RetrievedPassage[] } | null = null;
+
+async function xfzPinnedChunks(): Promise<RetrievedPassage[]> {
+  if (xfzChunkCache && Date.now() - xfzChunkCache.at < XFZ_CHUNK_TTL_MS) return xfzChunkCache.passages;
+  try {
+    const host = await getIndexHost();
+    const params = new URLSearchParams([...XFZ_PINNED_CHUNK_IDS.map((id) => ['ids', id]), ['namespace', NAMESPACE]]);
+    const res = await fetch(`https://${host}/vectors/fetch?${params}`, {
+      headers: { 'Api-Key': process.env.PINECONE_API_KEY!, 'X-Pinecone-API-Version': '2025-01' },
+    });
+    if (!res.ok) throw new Error(`fetch ${res.status} ${await res.text()}`);
+    const json = (await res.json()) as { vectors?: Record<string, { metadata?: Record<string, unknown> }> };
+    const passages: RetrievedPassage[] = XFZ_PINNED_CHUNK_IDS.flatMap((id) => {
+      const m = json.vectors?.[id]?.metadata;
+      if (!m) return [];
+      return [
+        {
+          id,
+          score: 1,
+          text: String(m.text ?? ''),
+          book: String(m.book ?? LITTLE_HOUSE_BASELINE_BOOK),
+          type: m.type as string | undefined,
+          page_start: m.page_start as number | undefined,
+          page_end: m.page_end as number | undefined,
+          excerpt: m.excerpt as string | undefined,
+        },
+      ];
+    });
+    xfzChunkCache = { at: Date.now(), passages };
+    return passages;
+  } catch (e) {
+    console.error('[vector-search] 小房子 pinned chunks fetch failed:', e);
+    return xfzChunkCache?.passages ?? [];
+  }
+}
+
 const LITTLE_HOUSE_BASELINE_BOOK = '小房子念诵指南';
 const LITTLE_HOUSE_BASELINE_QUERY = '小房子 念诵者条件 尺寸 经文组合 填写 烧送 时间';
 const LITTLE_HOUSE_BASELINE_BOOK_EN = 'A Guide to Reciting Little Houses (EN)';
@@ -382,10 +430,11 @@ async function pineconeSearch(
 // always a grounded source. Not ranked, never dropped by topK. Cached for
 // 5 minutes per process; approve/retire/edit clears it through the same
 // hook as the chip cache (chip-answers invalidateChipAnswers). Locally
-// (scripts without Supabase keys) the same records are read from Pinecone
-// through the pinned=true metadata they carry.
+// (scripts without Supabase keys) the same rows come from the architect's
+// snapshot docs/canon/pinned-cards.json (09-13 xfz-retrieval brief §3).
 const PINNED_TTL_MS = 5 * 60_000;
 let pinnedCache: { at: number; passages: RetrievedPassage[] } | null = null;
+let lastPinnedSource: 'db' | 'file' | null = null;
 
 export function invalidatePinnedCanon(): void {
   pinnedCache = null;
@@ -394,6 +443,7 @@ export function invalidatePinnedCanon(): void {
 export async function getPinnedCanonPassages(): Promise<RetrievedPassage[]> {
   if (pinnedCache && Date.now() - pinnedCache.at < PINNED_TTL_MS) return pinnedCache.passages;
   let passages: RetrievedPassage[] = [];
+  let source: 'db' | 'file' = 'db';
   try {
     if (supabaseAdmin) {
       const { data, error } = await supabaseAdmin
@@ -416,18 +466,48 @@ export async function getPinnedCanonPassages(): Promise<RetrievedPassage[]> {
         };
       });
     } else {
-      const hits = await pineconeSearch('常用经文标准遍数 每天念多少遍', 10, {
-        pinned: { $eq: true },
-        type: { $eq: CANONICAL_TYPE },
-      });
-      passages = hits.map((p) => ({ ...p, score: 1, pinned: true }));
+      // No Supabase credentials (local scripts): the architect's snapshot of the
+      // same approved+pinned rows. Pinecone's pinned copy is no longer used here
+      // — on 09-13 it still lacked the card's 小房子 section, which is why local
+      // R25 kept missing the composition while production had it.
+      source = 'file';
+      passages = await pinnedCardsFromFile();
     }
   } catch (e) {
     console.error('[vector-search] pinned canon fetch failed:', e);
     passages = pinnedCache?.passages ?? [];
   }
   pinnedCache = { at: Date.now(), passages };
+  lastPinnedSource = source;
+  console.log(`[vector-search] pinned cards source=${source} n=${passages.length}${passages.length ? ` (${passages.map((p) => p.id).join(', ')})` : ''}`);
   return passages;
+}
+
+/** Where the last pinned-card fetch came from (regression scripts print it). */
+export function pinnedCanonSource(): 'db' | 'file' | null {
+  return lastPinnedSource;
+}
+
+// docs/canon/pinned-cards.json → exactly the passages the DB path builds.
+async function pinnedCardsFromFile(): Promise<RetrievedPassage[]> {
+  const fs = await import('fs');
+  const path = await import('path');
+  const file = path.join(process.cwd(), 'docs', 'canon', 'pinned-cards.json');
+  const json = JSON.parse(fs.readFileSync(file, 'utf8')) as { cards?: (WisdomEntryForSync & { status?: string })[] };
+  return (json.cards ?? [])
+    .filter((e) => e.pinned === true && (e.status ?? 'approved') === 'approved')
+    .map((e) => {
+      const rec = buildWisdomRecord(e);
+      return {
+        id: rec._id as string,
+        score: 1,
+        text: rec.text as string,
+        book: '组织审定',
+        type: CANONICAL_TYPE,
+        language: e.language as 'zh' | 'en' | 'id',
+        pinned: true,
+      };
+    });
 }
 
 /** Append the pinned cards to a ranked result (dedupe by id). */
@@ -469,6 +549,9 @@ export async function searchRelevantTeachings(
     const query = buildRetrievalQuery(rawQuery, ctx);
     const topics = detectTopics(query);
     const fellowTurn = ctx?.level === 'experienced';
+    // 09-13 §1.2: 小房子 sticks to the conversation (ctx.topic) or is in this turn.
+    const xfzTopic = ctx?.topic === 'xiaofangzi' || XFZ_TOPIC_RE.test(rawQuery);
+    if (xfzTopic && !topics.includes('little_house_baseline')) topics.push('little_house_baseline');
     if (isBeginnerTriageFollowup(ctx) && !topics.includes('homework_baseline')) {
       topics.push('homework_baseline');
     }
@@ -566,6 +649,7 @@ export async function searchRelevantTeachings(
       );
     }
 
+    const xfzChunksPromise = xfzTopic && userLang === 'zh' ? xfzPinnedChunks() : Promise.resolve([] as RetrievedPassage[]);
     const resultGroups = await Promise.all(queries);
     const primaryResults = resultGroups.flat();
     console.log(`[vector-search] timing parallel=${queries.length} wall_ms=${Date.now() - tStart} per_query=${JSON.stringify(timings)}`);
@@ -640,7 +724,10 @@ export async function searchRelevantTeachings(
       .sort((a, b) => b.score - a.score)
       .slice(0, topK);
 
-    return await withPinnedCanon(ranked);
+    // 小房子 topic: the p2／p14 chunks ride along like the pinned cards (not ranked, never dropped by topK).
+    const xfzChunks = await xfzChunksPromise;
+    const withXfz = xfzChunks.length > 0 ? [...ranked, ...xfzChunks.filter((p) => !ranked.some((r) => r.id === p.id))] : ranked;
+    return await withPinnedCanon(withXfz);
   } catch (err) {
     console.error('[vector-search] Search failed:', err);
     return [];

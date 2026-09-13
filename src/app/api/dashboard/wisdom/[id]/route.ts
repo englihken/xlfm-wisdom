@@ -7,6 +7,9 @@
 //   { action:'approve' }          care ADMIN   — status='approved' +
 //       approved_by/at + Pinecone upsert (wisdom_{id}, type='canonical_ruling').
 //   { action:'retire' }           care ADMIN   — status='retired' + Pinecone delete.
+//   { action:'resync' }           care ADMIN   — APPROVED entry only: re-upsert its
+//       Pinecone record from the current row (card text edited outside the page,
+//       e.g. by SQL) + invalidate chip answers and the pinned-card cache (09-13).
 // Every action writes an audit row (module='care').
 //
 // Sync-ordering invariant: a Pinecone wisdom_ record may exist ONLY while its
@@ -75,7 +78,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const action = body?.action;
-  if (action !== 'save' && action !== 'approve' && action !== 'retire') {
+  if (action !== 'save' && action !== 'approve' && action !== 'retire' && action !== 'resync') {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
 
@@ -152,6 +155,34 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const adminAccess = await requireModuleAccess('care', 'admin');
   if (!adminAccess.ok) {
     return NextResponse.json({ error: '批准/退役需要 care 管理员权限' }, { status: 403 });
+  }
+
+  // ── resync (09-13 xfz-retrieval brief §3.3) ─────────────────────────────────
+  // approve is a no-op on an approved entry, so a card edited by SQL had no way
+  // back into Pinecone short of retire → approve (which drops it from every
+  // retrieval for a moment). Re-upsert in place instead.
+  if (action === 'resync') {
+    if (entry.status !== 'approved') {
+      return NextResponse.json({ error: '只有已批准的条目可以重同步' }, { status: 400 });
+    }
+    try {
+      await upsertWisdomRecord(entry as WisdomEntryForSync);
+    } catch (e) {
+      console.error('[dashboard/wisdom] pinecone resync failed:', e);
+      return NextResponse.json({ error: '同步到检索库失败，请重试' }, { status: 502 });
+    }
+    await writeAudit({
+      actorId: me.id,
+      actorEmail: me.email,
+      module: 'care',
+      action: 'wisdom_resynced',
+      tableName: 'wisdom_entries',
+      recordId: id,
+      after: { pinecone_id: `wisdom_${id}`, updated_at: entry.updated_at },
+    });
+    // The indexed text changed: cached chip answers and the pinned-card cache are stale.
+    await invalidateChipAnswers(`wisdom_resynced ${id}`);
+    return NextResponse.json({ ok: true, entry });
   }
 
   if (action === 'approve') {

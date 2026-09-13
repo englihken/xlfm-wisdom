@@ -25,6 +25,8 @@ type Case = {
   compareNaive?: boolean;
   lang?: 'zh' | 'en' | 'id';
   checks: Check[];
+  // 09-13 xfz-retrieval §4: assertions on the FIRST reply of a multi-turn case.
+  firstTurnChecks?: Check[];
 };
 
 // Whitespace-blind contains: the model writes "21 遍" / "21遍" interchangeably.
@@ -45,11 +47,24 @@ const hasSutra = (s: string, short: string) => has(s, short) || has(s, FULL_SUTR
 // 「请大慈大悲观世音菩萨…」 no longer passes. zh only; en/id replies pray in
 // their own language and don't reach this assertion.
 const hasPrayer = (r: string) => has(r, '祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨');
-// 小房子 prayers are not 功课卡 prayers (the brief leaves them alone): the
-// 《念诵指南》 「请大慈大悲观世音菩萨…」, the 解答来信／玄艺问答 「祈请南无大慈大悲观世音
-// 菩萨帮助我…」 (11× in the lujunhong2or corpus), or the card's long opener.
+// 小房子 prayers follow 《念诵指南》 (09-13 xfz-retrieval-and-prayer-guard §2.5),
+// not the 功课卡: p17 念诵前 「请大慈大悲观世音菩萨保佑我 XXX…」／自存 「…见证我 XXX…」,
+// or p31 烧送前 「祈请南无大慈大悲观世音菩萨帮助我 XXX…」. Nothing else counts.
 const hasXfzPrayer = (r: string) =>
-  hasPrayer(r) || has(r, '请大慈大悲观世音菩萨') || has(r, '祈请南无大慈大悲观世音菩萨');
+  has(r, '请大慈大悲观世音菩萨保佑我') || has(r, '请大慈大悲观世音菩萨见证我') || has(r, '祈请南无大慈大悲观世音菩萨帮助我');
+// 09-13 xfz-retrieval §4: the four 小房子 numbers must each land on ITS sutra
+// (《念诵指南》 p2), with no guard placeholder (same rule as scripts/probe-prod.ts).
+const XFZ_SUTRA_ALIASES: Record<string, string> = { 大悲咒: '大悲咒|大悲心陀罗尼', 心经: '心经', 往生咒: '往生咒|往生净土神咒', 七佛灭罪真言: '七佛灭罪真言' };
+// An enumeration counts too — 「往生咒 21、27 或 49 遍」 pairs 21.
+const pairedCount = (r: string, sutra: string, n: number) => {
+  const names = XFZ_SUTRA_ALIASES[sutra] ?? sutra;
+  const enumWith = `(?<!\\d)(?:\\d+[、，,/或和及])*${n}(?:[、，,/或和及]\\d+)*遍`;
+  return new RegExp(`(${names})[^。\\n📿]{0,24}?${enumWith}|${enumWith}[^。\\n📿]{0,4}(${names})`).test(r.replace(/[ \t]+/g, '').replace(/\*\*/g, ''));
+};
+const compositionPaired = (r: string) =>
+  ([['大悲咒', 27], ['心经', 49], ['往生咒', 84], ['七佛灭罪真言', 87]] as [string, number][]).every(([s, n]) => pairedCount(r, s, n)) &&
+  !r.includes('（遍数以官方资料为准）');
+const COMPOSITION_CHECK: Check = { name: '27／49／84／87 each paired with its sutra, no placeholder', ok: (r) => compositionPaired(r) };
 /** Every 📿 line that names 大悲咒 / 心经 / 往生咒 must carry its full name. */
 const homeworkUsesFullNames = (r: string): boolean =>
   r
@@ -280,8 +295,15 @@ const CASES: Case[] = [
       {
         name: 'no ungrounded count shipped (all reply counts in chunks/question)',
         ok: (r, _b, _t, ps) => {
-          const ground = new Set((ps.map((p) => p.text).join('\n') + '\n我在国外，时差和马来西亚不同，功课遍数要按当地时间加倍吗？一天要念几遍才够？').replace(/\s+/g, '').match(/\d+[遍张]/g) ?? []);
-          const counts = r.replace(/\s+/g, '').match(/\d+[遍张]/g) ?? [];
+          // 09-13: ranges and enumerations count every number in them — 「1-3 遍」
+          // grounds 1遍 as well as 3遍 (the guard's extractor already does; the
+          // bare \d+遍 match flagged the card-grounded 「从 1 遍起」 as invented).
+          const expand = (s: string) =>
+            s.replace(/\s+/g, '').replace(/(\d+)((?:[-–~至到、，,或和及]\d+)+)([遍张])/g, (_m, a: string, rest: string, u: string) =>
+              [a, ...rest.split(/[-–~至到、，,或和及]/).filter(Boolean)].map((n) => `${n}${u}`).join('')
+            );
+          const ground = new Set(expand(ps.map((p) => p.text).join('\n') + '\n我在国外，时差和马来西亚不同，功课遍数要按当地时间加倍吗？一天要念几遍才够？').match(/\d+[遍张]/g) ?? []);
+          const counts = expand(r).match(/\d+[遍张]/g) ?? [];
           return counts.every((c) => ground.has(c));
         },
       },
@@ -395,6 +417,7 @@ const BEGINNER_CASES: Case[] = [
   {
     label: 'R25 小房子学习者 → 还没（18f74524 原话）',
     turns: ['谢谢你的解析，小房子的篇数是多少？', '如何念诵，可以教我吗？', '还没'],
+    firstTurnChecks: [COMPOSITION_CHECK],
     checks: [
       { name: 'opens the three pillars, each with a count (大悲咒/心经/礼佛)', ok: (r) => threePillarsWithCounts(r) },
       { name: 'threshold: 小房子 once 功课 has begun (开始了就可以／当天…大悲咒后即可)', ok: (r) => STARTS_ONCE_BEGUN_RE.test(r.replace(/\s+/g, '')) },
@@ -451,6 +474,7 @@ const XFZ_CASE: Case = {
   q: '小房子的经文组合是什么？每种经文各念多少遍？',
   checks: [
     { name: 'gives today\'s composition (27/49/84/87) or cites 念诵指南', ok: (r, books) => (has(r, '27遍') && has(r, '49遍') && has(r, '84遍') && has(r, '87遍')) || has(r, '念诵指南') || books.includes('小房子念诵指南') },
+    { name: '27／49／84／87 each paired with its sutra, no placeholder (09-13)', ok: (r) => compositionPaired(r) },
     { name: 'NEVER 48遍心经 / 78遍往生咒 as current practice', ok: (r) => !/心经[^。！？\n]{0,6}48遍|48遍[^。！？\n]{0,6}心经|往生咒[^。！？\n]{0,6}78遍|78遍[^。！？\n]{0,6}往生咒/.test(r.replace(/\s+/g, '')) },
     {
       name: 'a retrieved pre_xiaofangzi case (if any) is only narrated',
@@ -756,6 +780,7 @@ async function main() {
     let fullText = '';
     let guard = '';
     const transcript: string[] = [];
+    const replies: string[] = [];
     const convLabel = `regression-test:${c.label.split(' ')[0]}`;
     const stat: CaseStat = { label: c.label, turns: 0, wallMs: 0, calls: [] };
     stats.set(convLabel, stat);
@@ -780,6 +805,7 @@ async function main() {
         effort: process.env.EFFORT_TIERS === 'off' ? undefined : chooseReplyEffort({ message: turn, messages, ctx }),
       });
       fullText = out.fullText;
+      replies.push(fullText);
       guard = out.flags.length > 0 ? `${out.guard} flags=${out.flags.join(',')}` : out.guard;
       messages.push({ role: 'assistant', content: fullText });
       stat.turns++;
@@ -797,7 +823,7 @@ async function main() {
       caseTexts: passages.filter((p) => p.type === 'case_qa').map((p) => p.text),
     });
     const naive = c.compareNaive ? await naiveSearch(turns[turns.length - 1]) : null;
-    return { c, fullText, guard, books, types, passages, residual, transcript, naive };
+    return { c, fullText, replies, guard, books, types, passages, residual, transcript, naive };
   };
 
   // Single-turn cases in parallel; the two-turn beginner cases too (each is
@@ -852,7 +878,7 @@ async function main() {
     console.log(`R15 classifier verdict: ${JSON.stringify(tag)} · keyword floor: ${detectCrisisKeywords(CRISIS_CASE.q!)}`);
   }
 
-  for (const { c, fullText, guard, books, types, passages, residual, transcript, naive } of results) {
+  for (const { c, fullText, replies, guard, books, types, passages, residual, transcript, naive } of results) {
     console.log(`\n═══ ${c.label} — guard: ${guard} ═══`);
     if (c.turns) {
       for (const line of transcript.slice(0, -1)) console.log(line);
@@ -870,6 +896,11 @@ async function main() {
       const ok = check.ok(fullText, books, types, passages);
       if (!ok) failed++;
       console.log(`  ${ok ? '✓' : '✗'} ${check.name}`);
+    }
+    for (const check of c.firstTurnChecks ?? []) {
+      const ok = check.ok(replies[0] ?? '', books, types, passages);
+      if (!ok) failed++;
+      console.log(`  ${ok ? '✓' : '✗'} [turn 1] ${check.name}`);
     }
     const residualOk = residual.length === 0;
     if (!residualOk) failed++;
@@ -891,10 +922,17 @@ async function main() {
   }
   console.log(`turn wall p50=${pct(turnWalls, 50)}ms p90=${pct(turnWalls, 90)}ms avg=${avg(turnWalls)}ms · first_text avg=${avg(allCalls.map((c) => c.firstText))}ms · calls/turn=${(allCalls.length / Math.max(1, totalTurns)).toFixed(2)} · cache hits=${allCalls.filter((c) => c.cacheRead > 0).length}/${allCalls.length}`);
   console.log(`cost: total=$${totalCost.toFixed(3)} · per turn=$${(totalCost / Math.max(1, totalTurns)).toFixed(4)} (${totalTurns} turns)`);
-  const passedChecks = results.reduce((a, r) => a + r.c.checks.filter((ch) => ch.ok(r.fullText, r.books, r.types, r.passages)).length + (r.residual.length === 0 ? 1 : 0), 0);
-  const totalChecks = results.reduce((a, r) => a + r.c.checks.length + 1, 0);
+  const firstTurnOk = (r: (typeof results)[number]) => (r.c.firstTurnChecks ?? []).filter((ch) => ch.ok(r.replies[0] ?? '', r.books, r.types, r.passages)).length;
+  const passedChecks = results.reduce((a, r) => a + r.c.checks.filter((ch) => ch.ok(r.fullText, r.books, r.types, r.passages)).length + firstTurnOk(r) + (r.residual.length === 0 ? 1 : 0), 0);
+  const totalChecks = results.reduce((a, r) => a + r.c.checks.length + (r.c.firstTurnChecks ?? []).length + 1, 0);
+  // 09-13 xfz-retrieval §3.2: which pinned cards this run saw, and from where.
+  {
+    const { getPinnedCanonPassages, pinnedCanonSource } = await import('../src/lib/vector-search');
+    const pinned = await getPinnedCanonPassages();
+    console.log(`pinned cards attached: ${pinned.length} (source=${pinnedCanonSource() ?? 'none'}${pinned.length ? `; ${pinned.map((p) => p.id).join(', ')}` : ''})`);
+  }
   if (scopedNoNumber.length) console.log(`chips with a scoped 没有写明遍数 line: ${[...new Set(scopedNoNumber)].join(', ')}`);
-  console.log(`checks: ${passedChecks}/${totalChecks} passed · cases: ${results.filter((r) => r.c.checks.every((ch) => ch.ok(r.fullText, r.books, r.types, r.passages)) && r.residual.length === 0).length}/${results.length} fully green`);
+  console.log(`checks: ${passedChecks}/${totalChecks} passed · cases: ${results.filter((r) => r.c.checks.every((ch) => ch.ok(r.fullText, r.books, r.types, r.passages)) && firstTurnOk(r) === (r.c.firstTurnChecks ?? []).length && r.residual.length === 0).length}/${results.length} fully green`);
 
   console.log(`\n${failed === 0 ? 'ALL PASS' : `${failed} CHECKS FAILED`}`);
   if (failed > 0) process.exit(1);

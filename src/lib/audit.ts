@@ -64,6 +64,9 @@ export type AuditAction =
   // feeds (volume), visible in 系统日志 via the action filter.
   | 'care.guard'
   | 'care.citation_no_date'
+  // 09-13 xfz-retrieval brief §1.4: a verbatim quote credited to a different
+  // book than the passage it matches (soft: flag + audit, no strip, no retry).
+  | 'care.citation_book_mismatch'
   // "别再把访客弄丢" (08-30): reply-failure trail + alerts + dead-letter queue.
   | 'care.reply_failed'
   | 'care.reply_recovered'
@@ -78,6 +81,8 @@ export type AuditAction =
   | 'wisdom_updated'
   | 'wisdom_approved'
   | 'wisdom_retired'
+  // 09-13: approved entry re-upserted to Pinecone after an out-of-band edit.
+  | 'wisdom_resynced'
   | 'password_changed';
 
 export async function writeAudit(entry: {

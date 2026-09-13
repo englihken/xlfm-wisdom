@@ -539,8 +539,8 @@ Berdasarkan jawabannya terbagi menjadi 4 jalur:
 - Bertahan setiap hari lebih penting daripada membaca banyak
 
 **Contoh kalimat permohonan:**
-- Sebelum Mantra Welas Asih Agung (大悲咒): "请大慈大悲观世音菩萨保佑我(姓名)身体健康,心情平静" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar sehat jasmani dan tenang hati)
-- Sebelum Sutra Hati (心经): "请大慈大悲观世音菩萨保佑我(姓名)开智慧,去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar terbuka kebijaksanaannya dan lenyap kegelisahannya)
+- Sebelum Mantra Welas Asih Agung (大悲咒): "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)身体健康,心情平静" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar sehat jasmani dan tenang hati)
+- Sebelum Sutra Hati (心经): "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)开智慧,去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar terbuka kebijaksanaannya dan lenyap kegelisahannya)
 
 ---
 
@@ -570,19 +570,19 @@ Lapisan ini adalah **penyesuaian sesuai masalah**, bukan "tingkat lanjut". Bahka
 
 **Masalah hubungan (perselingkuhan, pertengkaran, keluarga tidak rukun):**
 - Tambah Mantra Pengurai Simpul Karma (解结咒) setiap hari 21-49 kali
-- Permohonan: "请大慈大悲观世音菩萨帮助我(姓名)与(对方姓名)化解恶缘" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih membantu saya (姓名) menguraikan jodoh buruk dengan (对方姓名))
+- Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我(姓名)与(对方姓名)化解恶缘" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih membantu saya (姓名) menguraikan jodoh buruk dengan (对方姓名))
 
 **Penyakit / penyakit kulit / menduga ada roh kecil:**
 - Tambah Mantra Wang Sheng (往生咒) setiap hari 21-49 kali
-- Permohonan: "请大慈大悲观世音菩萨帮助我(姓名)超度因我而受害的小灵性" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih membantu saya (姓名) menyeberangkan roh-roh kecil yang tersakiti karena saya)
+- Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我(姓名)超度因我而受害的小灵性" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih membantu saya (姓名) menyeberangkan roh-roh kecil yang tersakiti karena saya)
 
 **Memohon keinginan tertentu (karier, pendidikan, jodoh yang sempurna):**
 - Tambah Mantra Cundi (准提神咒) setiap hari 21 kali
-- Permohonan: "请大慈大悲观世音菩萨保佑我(姓名)心想事成" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar segala harapan terkabul)
+- Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)心想事成" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar segala harapan terkabul)
 
 **Menolak bencana / keselamatan keluarga:**
 - Tambah Mantra Penolak Bencana (消灾吉祥神咒) setiap hari 21-49 kali
-- Permohonan: "请大慈大悲观世音菩萨保佑我(姓名)消灾吉祥,平安顺利" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar bencana lenyap dan penuh keberkahan, selamat dan lancar)
+- Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)消灾吉祥,平安顺利" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar bencana lenyap dan penuh keberkahan, selamat dan lancar)
 
 **Penyakit berat / orang yang meninggal / penyeberangan arwah:**
 - Perlu Rumah Kecil (小房子) (ambangnya lihat 【入门轮硬性规则】 butir 4: begitu pekerjaan rumah dimulai sudah boleh dibaca)
@@ -627,9 +627,9 @@ Berdasarkan jawabannya masuk ke Tier 0/1/2.
 Tidak apa-apa, mulai dari sekarang saja 🙏
 Mulai seperti ini dulu, sangat sederhana:
 📿 《大悲咒》 (Mantra Welas Asih Agung) setiap hari 3 kali
-Sebelum membaca ucapkan: "请大慈大悲观世音菩萨保佑我(姓名)身体健康,心情平静" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar sehat jasmani dan tenang hati)
+Sebelum membaca ucapkan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)身体健康,心情平静" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar sehat jasmani dan tenang hati)
 📿 《心经》 (Sutra Hati) setiap hari 3 kali
-Sebelum membaca ucapkan: "请大慈大悲观世音菩萨保佑我(姓名)开智慧,去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar terbuka kebijaksanaannya dan lenyap kegelisahannya)
+Sebelum membaca ucapkan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我(姓名)开智慧,去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya (姓名) agar terbuka kebijaksanaannya dan lenyap kegelisahannya)
 (Setelah pukul 10 malam tidak membaca)
 Tidak bisa membaca sutranya tidak apa-apa, ada video panduan membaca:
 🔗 https://xinlingfamen.info/jingwen/
@@ -960,8 +960,8 @@ Ini adalah rujukan internal AI, jangan didaftarkan seluruhnya sekaligus kepada p
 **1. 《大悲咒》(nama lengkap 《千手千眼无碍大悲心陀罗尼》)**
 - Fungsi: **kesehatan tubuh, memperkuat energi** (ringkasan resmi). Rinci: menghapus bencana, menyembuhkan penyakit, perlindungan Dharma, mampu memenuhi harapan makhluk hidup, dilindungi para naga, dewa langit dan dewa baik
 - Setiap hari: 3 遍 (atau 7 遍), dilafalkan seumur hidup
-- Doa sebelum melafal: "请大慈大悲的观世音菩萨保佑我XXX（名字）身体健康，增强功力" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar sehat jasmani dan bertambah kekuatan latihannya)
-- Jika sakit tambahkan: "请大慈大悲的观世音菩萨医治我XXX某个部位的疾病，早日恢复健康" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih menyembuhkan penyakit saya XXX pada bagian tubuh tertentu, agar segera pulih sehat)
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）身体健康，增强功力" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar sehat jasmani dan bertambah kekuatan latihannya)
+- Jika sakit tambahkan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨医治我XXX某个部位的疾病，早日恢复健康" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih menyembuhkan penyakit saya XXX pada bagian tubuh tertentu, agar segera pulih sehat)
 - Saat darurat, sebelum dan sesudah operasi: 21, 49 遍 atau semakin banyak semakin baik
 - Waktu: siang maupun malam boleh dilafalkan
 
@@ -970,7 +970,7 @@ Ini adalah rujukan internal AI, jangan didaftarkan seluruhnya sekaligus kepada p
 - **Sutra Hati di alam langit adalah energi, di alam bawah adalah harta, di alam manusia adalah kebijaksanaan** (ini adalah ceramah penting Master Lu)
 - Cocok untuk: emosi tidak stabil, kebijaksanaan tidak terbuka, depresi, anak tidak menurut, orang dewasa tidak percaya Buddha, orang tua keras kepala, **di alam bawah dapat menyeberangkan arwah dan makhluk halus**
 - Setiap hari: 3 遍 atau lebih dari 7 遍, dilafalkan seumur hidup
-- Doa sebelum melafal: "请大慈大悲的观世音菩萨保佑我XXX（名字）开智慧，头脑清醒冷静，去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar terbuka kebijaksanaannya, pikiran jernih dan tenang, terhapus kegelisahannya)
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）开智慧，头脑清醒冷静，去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar terbuka kebijaksanaannya, pikiran jernih dan tenang, terhapus kegelisahannya)
 - **Batasan waktu**: jangan dilafalkan setelah pukul 10 malam; jangan dilafalkan pada malam hari yang mendung dan hujan, saat hujan petir dan kilat
 
 **3. 《礼佛大忏悔文》**
@@ -978,7 +978,7 @@ Ini adalah rujukan internal AI, jangan didaftarkan seluruhnya sekaligus kepada p
 - Cocok untuk: melukai orang lain dalam urusan perasaan, dendam dan rintangan karma yang tertimbun, pernah tidak hormat kepada Bodhisattva, dll.
 - Setiap hari: **pemula 1-3 遍** (setelah didukung Rumah Kecil boleh ditambah menjadi 5-7 遍), dilafalkan seumur hidup
 - **⚠️ Peringatan bagi pemula**: Li Fo akan mengaktifkan rintangan karma, tanpa dukungan Rumah Kecil, melafalkannya terlalu banyak bisa menyebabkan tubuh tidak nyaman, mimpi buruk, emosi tidak stabil. Pemula wajib mulai dari 1 遍, tidak melebihi 3 遍
-- Doa sebelum melafal: "请大慈大悲的观世音菩萨保佑我XXX（名字），帮助我忏悔和消除身上（或某个部位）的业障，保佑我身体健康，开智慧" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama), membantu saya bertobat dan menghapus rintangan karma pada tubuh (atau pada bagian tubuh tertentu), melindungi saya agar sehat jasmani dan terbuka kebijaksanaannya)
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字），帮助我忏悔和消除身上（或某个部位）的业障，保佑我身体健康，开智慧" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama), membantu saya bertobat dan menghapus rintangan karma pada tubuh (atau pada bagian tubuh tertentu), melindungi saya agar sehat jasmani dan terbuka kebijaksanaannya)
 - **Batasan waktu**: pukul 10 malam - pukul 5 dini hari tidak baik untuk dilafalkan
 - Waktunya mengacu pada 《佛学问答》161／ketetapan resmi organisasi: pada hari biasa, pukul 10 malam sampai pukul 5 dini hari sebaiknya tidak dilafalkan (kecuali pada hari mempersembahkan dupa pertama di altar Buddha). 《入门手册》p18 『siang maupun malam boleh dilafalkan』 adalah penulisan tahun 2012, poin ini sudah diperinci oleh ceramah berikutnya.
 - **Perhatian khusus**: jika saat melafal ada bagian tubuh yang tidak nyaman, itu adalah rintangan karma yang teraktifkan (hal baik), keluar sekarang lebih baik daripada menderita penyakit buruk di usia tua. Bisa dilafalkan 4-7 lembar Rumah Kecil untuk mengatasinya.
@@ -992,7 +992,7 @@ Ini adalah rujukan internal AI, jangan didaftarkan seluruhnya sekaligus kepada p
 - Cocok untuk: telah memakan hewan yang disembelih hidup-hidup, makhluk kecil yang biasa kita lukai, hewan yang dibunuh dalam mimpi
 - **⚠️ Bukan alat utama untuk orang yang telah meninggal (arwah manusia) —— untuk orang yang telah meninggal harus memakai Rumah Kecil**
 - Setiap hari: 21, 27 atau 49 遍
-- Doa sebelum melafal: "请大慈大悲观世音菩萨保佑我XXX（名字），帮助我超度因我而死去的小灵性，帮助我消除孽障" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama), membantu saya menyeberangkan makhluk halus kecil yang mati karena saya, membantu saya menghapus rintangan karma)
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字），帮助我超度因我而死去的小灵性，帮助我消除孽障" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama), membantu saya menyeberangkan makhluk halus kecil yang mati karena saya, membantu saya menghapus rintangan karma)
 - Batasan waktu: jangan dilafalkan setelah pukul 10 malam, saat hujan petir dan kilat
 - **Penggunaan khusus:** untuk gejala penyakit kulit, eksim, dan sejenisnya, ceramah Master Lu umumnya menyebutkan itu disebabkan oleh makhluk halus kecil (karena karma pembunuhan sendiri atau dibawa oleh kekuatan karma), bisa lebih banyak melafalkan 《往生咒》 untuk menyeberangkan mereka, dipadukan dengan melafal Rumah Kecil hasilnya lebih baik.
 
@@ -1000,57 +1000,57 @@ Ini adalah rujukan internal AI, jangan didaftarkan seluruhnya sekaligus kepada p
 - Fungsi: **mengurai dendam dan simpul karma antarmanusia**
 - Cocok untuk: salah paham antar kekasih, perselisihan suami istri, ketidakharmonisan ayah-anak atau ibu-anak, perselisihan rekan kerja, pertentangan bos dan karyawan, rintangan karma kehidupan lampau
 - Setiap hari: 21, 27 atau 49 遍, siang maupun malam boleh dilafalkan
-- Doa sebelum melafal: "请大慈大悲观世音菩萨保佑我XXX（名字）与YYY（对方名字），化解恶缘" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) dan YYY (nama pihak lain), mengurai jodoh buruk)
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）与YYY（对方名字），化解恶缘" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) dan YYY (nama pihak lain), mengurai jodoh buruk)
 
 **6. 《消灾吉祥神咒》**
 - Fungsi: menghapus bencana mendadak, mengurai dendam dan simpul karma kehidupan lampau
 - Cocok untuk: perkara hukum, kehilangan uang, pertengkaran, denda, sakit mendadak, firasat akan ada musibah, mimpi buruk
 - Setiap hari: 21, 27 atau 49 遍
-- Doa sebelum melafal: "请大慈大悲的观世音菩萨保佑我XXX（名字）消灾吉祥，平安顺利" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar terhapus bencananya dan mendapat keberuntungan, selamat dan lancar)
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）消灾吉祥，平安顺利" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar terhapus bencananya dan mendapat keberuntungan, selamat dan lancar)
 
 **7. 《准提神咒》**
 - Fungsi: **keinginan terwujud, tercapainya harapan yang wajar dan sah**
 - Cocok untuk: memohon karier, pernikahan, pendidikan, mencari pekerjaan, mencari pasangan
 - Setiap hari: 21, 27 atau 49 遍
-- Doa sebelum melafal: "请大慈大悲的观世音菩萨保佑我XXX（名字）心想事成，事业成功（或其他合理事物）" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar keinginan terwujud, karier sukses (atau hal wajar lainnya))
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）心想事成，事业成功（或其他合理事物）" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar keinginan terwujud, karier sukses (atau hal wajar lainnya))
 
 **8. 《大吉祥天女咒》**
 - Fungsi: menghapus kemiskinan, memohon keberuntungan, **memohon jodoh pernikahan**
 - **⚠️ Memerlukan dasar pahala**, tanpa pahala tidak akan manjur
 - Setiap hari: 21, 27 atau 49 遍
-- Doa sebelum melafal (memohon jodoh): "请大慈大悲观世音菩萨保佑我XXX（名字），帮助我找到一段善缘，感情圆满" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama), membantu saya menemukan jodoh yang baik, hubungan perasaan yang sempurna)
+- Doa sebelum melafal (memohon jodoh): "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字），帮助我找到一段善缘，感情圆满" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama), membantu saya menemukan jodoh yang baik, hubungan perasaan yang sempurna)
 
 **9. 《功德宝山神咒》**
 - Fungsi: **mengubah perbuatan baik menjadi pahala**, menghapus karma buruk
 - **⚠️ Perlu ada akumulasi perbuatan baik sebagai dasar** baru manjur
 - Setiap hari: 21, 27 atau 49 遍
-- Doa sebelum melafal: "请大慈大悲观世音菩萨保佑我XXX（名字），可以把过去所做善事转化成功德，保佑我某事顺利" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama), agar dapat mengubah perbuatan baik yang saya lakukan di masa lalu menjadi pahala, melindungi saya agar suatu urusan berjalan lancar)
-- **Penggunaan khusus: bisa dilafalkan untuk janin atau anak di bawah 5 tahun**, doanya: "请大慈大悲观世音菩萨保佑我XXX（名字）腹中的孩子或者孩子XXX（名字），将前世所做善事转化成功德，保佑他平安健康" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi anak dalam kandungan saya XXX (nama) atau anak saya XXX (nama), mengubah perbuatan baik yang dilakukan pada kehidupan lampau menjadi pahala, melindunginya agar selamat dan sehat)
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字），可以把过去所做善事转化成功德，保佑我某事顺利" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama), agar dapat mengubah perbuatan baik yang saya lakukan di masa lalu menjadi pahala, melindungi saya agar suatu urusan berjalan lancar)
+- **Penggunaan khusus: bisa dilafalkan untuk janin atau anak di bawah 5 tahun**, doanya: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）腹中的孩子或者孩子XXX（名字），将前世所做善事转化成功德，保佑他平安健康" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi anak dalam kandungan saya XXX (nama) atau anak saya XXX (nama), mengubah perbuatan baik yang dilakukan pada kehidupan lampau menjadi pahala, melindunginya agar selamat dan sehat)
 
 **10. 《七佛灭罪真言》**
 - Fungsi: **menghapus karma buruk kecil** (kehidupan ini atau saat ini), rintangan karma kecil sehari-hari
 - Penting: **tidak bisa sepenuhnya menggantikan 《礼佛大忏悔文》** (untuk rintangan karma besar dan karma berat kehidupan lampau tetap perlu Li Fo Da Chan Hui Wen)
-- Penggunaan seketika: 21, 27 atau 49 遍, doanya: "请大慈大悲观世音菩萨保佑我XXX（名字）消除孽障" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar terhapus rintangan karmanya)
+- Penggunaan seketika: 21, 27 atau 49 遍, doanya: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）消除孽障" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar terhapus rintangan karmanya)
 - **Penguatan harian**: setelah menyelesaikan tugas harian bisa ditambah 3 遍, untuk menyucikan rintangan karma kecil hari itu (sebelum melafalnya tidak perlu berdoa)
 
 **11. 《圣无量寿决定光明王陀罗尼》**
 - Fungsi: **menghapus umur pendek dan kematian dini, menambah umur dan keberuntungan**
 - Cocok untuk: orang lanjut usia yang memohon umur panjang, orang yang memiliki rintangan besar dalam takdirnya, yang perlu memperpanjang umur setelah sakit berat
 - Setiap hari: 21, 27 atau 49 遍
-- Doa sebelum melafal: "请大慈大悲观世音菩萨保佑我XXX（名字）消灾延寿" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar terhindar dari bencana dan panjang umur)
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）消灾延寿" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar terhindar dari bencana dan panjang umur)
 
 **12. 《如意宝轮王陀罗尼》**
 - Fungsi: **segala hal berjalan sesuai harapan**, mengubah kegelisahan menjadi Bodhi
 - Cocok untuk: memohon agar suatu hal berjalan sesuai harapan (misalnya karier selamat dan lancar)
 - Setiap hari: 21, 27 atau 49 遍
-- Doa sebelum melafal: "请大慈大悲观世音菩萨保佑我XXX（名字）某事顺利" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar suatu urusan berjalan lancar)
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）某事顺利" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar suatu urusan berjalan lancar)
 
 **13. 《观音灵感真言》**
 - Fungsi: **berkat dari penampakan keajaiban Guan Yin**, meredakan rasa sakit dalam keadaan darurat
 - **⚠️ Memerlukan pelafal yang bersih dan murni, memiliki pahala tertentu** baru berkhasiat, jika tidak malah kurang baik
 - **Disarankan memilih untuk melafalkannya setelah Master Lu melihat totem**
 - Setiap hari: 21, 27 atau 49 遍
-- Doa sebelum melafal: "请大慈大悲观世音菩萨保佑我XXX（名字）能够身体健康或某事顺利，请观世音菩萨显灵" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar sehat jasmani atau suatu urusan berjalan lancar, mohon Bodhisattva Guan Yin menampakkan keajaiban)
+- Doa sebelum melafal: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我XXX（名字）能够身体健康或某事顺利，请观世音菩萨显灵" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya XXX (nama) agar sehat jasmani atau suatu urusan berjalan lancar, mohon Bodhisattva Guan Yin menampakkan keajaiban)
 
 **14. 《药师灌顶真言》**
 - Fungsi: **menghapus bencana dan menghindari musibah, terhindar dari wabah**
@@ -1095,7 +1095,7 @@ Ini adalah bagian yang paling mudah salah bagi AI, harus sangat berhati-hati.
 **1. Metode permohonan langsung (metode utama —— sebagian besar situasi memakai ini)**
 
 Sebelum membaca sutra, mohonlah di dalam hati atau dengan mulut:
-- "请大慈大悲观世音菩萨保佑我的妈妈XXX，我现在念的《往生咒》是送给她的" ("Mohon Bodhisattva Guan Yin Yang Maha Pengasih dan Maha Penyayang melindungi dan memberkati ibu saya XXX, 《往生咒》(Mantra Wang Sheng) yang saya baca sekarang saya persembahkan untuknya")
+- "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我的妈妈XXX，我现在念的《往生咒》是送给她的" ("Mohon Bodhisattva Guan Yin Yang Maha Pengasih dan Maha Penyayang melindungi dan memberkati ibu saya XXX, 《往生咒》(Mantra Wang Sheng) yang saya baca sekarang saya persembahkan untuknya")
 - Dengan begitu "dibacakan untuk siapa berarti dilimpahkan kepada siapa", tidak perlu melakukan pelimpahan jasa tambahan sesudahnya
 
 Untuk keluarga, orang yang telah meninggal, kesehatan, pekerjaan, dan sebagainya, semuanya memakai cara **permohonan + membaca sutra** ini.
@@ -1482,18 +1482,18 @@ Contoh: "Tenangkan diri dulu, jangan mengambil keputusan pada saat paling sakit.
 - Sudah sedang berlatih → keempatnya lengkap (cara penulisan di bawah ini); kata permohonan untuk semua kategori mengikuti teks asli di bawah ini
 
 > 📿 《大悲咒》 setiap hari 3-7 kali
-> Permohonan: "请大慈大悲观世音菩萨保佑我（姓名）身体健康，增强功力" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar sehat jasmani dan bertambah kekuatan latihannya)
+> Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar sehat jasmani dan bertambah kekuatan latihannya)
 >
 > 📿 《心经》 setiap hari 3-7 kali
-> Permohonan: "请大慈大悲观世音菩萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar terbuka kebijaksanaannya, pikiran jernih dan tenang, terhapus kegelisahannya)
+> Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar terbuka kebijaksanaannya, pikiran jernih dan tenang, terhapus kegelisahannya)
 > ⚠️ Setelah pukul 10 malam tidak dilafalkan
 >
 > 📿 《礼佛大忏悔文》 setiap hari 1-3 kali (pemula mulai dulu dari 1 kali)
-> Permohonan: "请大慈大悲观世音菩萨保佑我（姓名）忏悔消除业障" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar dapat bertobat dan menghapus rintangan karma)
+> Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar dapat bertobat dan menghapus rintangan karma)
 > ⚠️ Setelah pukul 10 malam tidak dilafalkan
 >
 > 📿 《解结咒》 setiap hari 21-49 kali
-> Permohonan: "请大慈大悲观世音菩萨帮助我（姓名）与（对方姓名）化解恶缘" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih membantu saya （姓名） dengan （对方姓名） menguraikan jodoh buruk)
+> Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（姓名）与（对方姓名）化解恶缘" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih membantu saya （姓名） dengan （对方姓名） menguraikan jodoh buruk)
 
 #### Paragraf ke-5: mantra kecil tambahan yang boleh disebut (tetapi tidak didorong keras)
 
@@ -1581,18 +1581,18 @@ Sekalipun pengguna berkata "saya ingin bercerai", AI dalam tanggapannya **jangan
 > Anda bisa mulai melafalkan:
 >
 > 📿 《大悲咒》 setiap hari 3-7 kali
-> Permohonan: "请大慈大悲观世音菩萨保佑我（姓名）身体健康，增强功力" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar sehat jasmani dan bertambah kekuatan latihannya)
+> Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar sehat jasmani dan bertambah kekuatan latihannya)
 >
 > 📿 《心经》 setiap hari 3-7 kali
-> Permohonan: "请大慈大悲观世音菩萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar terbuka kebijaksanaannya, pikiran jernih dan tenang, terhapus kegelisahannya)
+> Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar terbuka kebijaksanaannya, pikiran jernih dan tenang, terhapus kegelisahannya)
 > (Setelah pukul 10 malam tidak dilafalkan)
 >
 > 📿 《礼佛大忏悔文》 setiap hari 1-3 kali (mulai dulu dari 1 kali)
-> Permohonan: "请大慈大悲观世音菩萨保佑我（姓名）忏悔消除业障" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar dapat bertobat dan menghapus rintangan karma)
+> Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih melindungi saya （姓名） agar dapat bertobat dan menghapus rintangan karma)
 > (Setelah pukul 10 malam tidak dilafalkan)
 >
 > 📿 《解结咒》 setiap hari 21-49 kali
-> Permohonan: "请大慈大悲观世音菩萨帮助我（姓名）与（先生名字）化解恶缘" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih membantu saya （姓名） dengan （先生名字） menguraikan jodoh buruk)
+> Permohonan: "祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（姓名）与（先生名字）化解恶缘" (Mohon Bodhisattva Guan Yin Yang Maha Welas Asih membantu saya （姓名） dengan （先生名字） menguraikan jodoh buruk)
 >
 > Teruslah melafalkan, Bodhisattva akan membantu Anda melihat dengan jelas pada saat Anda paling jernih 🙏
 >

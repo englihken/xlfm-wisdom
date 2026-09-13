@@ -48,7 +48,15 @@ const PRAYER_OPENER_RE = /祈请南无大慈大悲救苦救难广大灵感观世
 function normPrayer(s: string): string {
   return s.replace(PRAYER_OPENER_RE, '〈祈求开头〉');
 }
-type RenameTag = 'ken-0912-fullname' | 'ken-0912-prayer' | 'ken-0912-fullname + ken-0912-prayer';
+// Brief 2026-09-13-xfz-retrieval-and-prayer-guard §2.1: 祈求词 are plain lines
+// 「念前祈请：「……」」, never inside a 「> 」 block. relationships.ts' 功课 template
+// and its two example replies were un-quoted for that; normQuote() folds the
+// removed 「> 」 and the 祈求："…" → 念前祈请：「…」 rewrite, so those lines still
+// trace to their v1 twins (fourth table: `ken-0913-prayer-line`).
+function normQuote(s: string): string {
+  return s.replace(/^\s*>\s?/, '').replace(/^祈求：["“](.*)["”]\s*$/, '念前祈请：「$1」');
+}
+type RenameTag = 'ken-0912-fullname' | 'ken-0912-prayer' | 'ken-0912-fullname + ken-0912-prayer' | 'ken-0913-prayer-line';
 function norm(s: string): string {
   return s
     .replace(/^export const \w+ = `/, '')
@@ -87,6 +95,13 @@ const v1PrayerIndex = new Map<string, number[]>();
 for (const [k, ns] of v1Index) {
   const kp = normPrayer(k);
   v1PrayerIndex.set(kp, [...(v1PrayerIndex.get(kp) ?? []), ...ns]);
+}
+// …and with the 「> 」／祈求 rewrite folded too (ken-0913-prayer-line lookups only).
+const v1QuoteIndex = new Map<string, number[]>();
+for (const [k, ns] of v1Index) {
+  const kq = norm(normPrayer(normQuote(k)));
+  if (!kq) continue;
+  v1QuoteIndex.set(kq, [...(v1QuoteIndex.get(kq) ?? []), ...ns]);
 }
 
 // ── the only lines allowed NOT to trace to v1: the C1–C8 implementations ──
@@ -144,6 +159,17 @@ const NEW_LINES: { text: string; c: string; why: string }[] = [
   { text: '**1. 《千手千眼无碍大悲心陀罗尼》（大悲咒）**', c: 'ken-0912-fullname', why: 'v1 L513 功用表标题改成卡片写法（全称在前）' },
   { text: '**2. 《般若波罗蜜多心经》（心经）**', c: 'ken-0912-fullname', why: 'v1 L521 同上' },
   { text: '**4. 《往生净土神咒》（往生咒；全名《拔一切业障根本得生净土陀罗尼》）**', c: 'ken-0912-fullname', why: 'v1 L542 同上；v1 写的全名《拔一切业障根本得生净土陀罗尼》保留，Ken 的卡名《往生净土神咒》加在前面（两个名字都是这部咒的名字，见报告）' },
+  // ── 2026-09-13 小房子检索＋祈求词与护栏（docs/briefs/2026-09-13-xfz-retrieval-and-prayer-guard.md）──
+  { text: '7. **祈求词写成普通行，不放进「> 」引文块**：照功课卡写「念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我 XXX……」」；「> 」引文块只放检索到的师父原文。小房子、放生的祈求词照各自的写法，同样写成普通行。', c: 'ken-0913-prayer-guard', why: '§2.1：祈求词不进引文块' },
+  { text: '- 书名以该检索段落的出处为准（【参考 N】那一行写的书名、篇名），不要换成别的书', c: 'ken-0913-citation', why: '§1.4：出处归属（day-3 §1.3 c：p14 原文被说成《入门手册》）' },
+  { text: '**念诵前的祈请（《念诵指南》第 17 页；也可以写好抬头与落款后不做祈求，直接念诵）：**', c: 'ken-0913-xfz-prayer', why: '§2.5：小房子祈求词按《念诵指南》p17' },
+  { text: '- 送给在世人的要经者、亡人、流产或打胎的孩子、房子的要经者：念前祈请：「请大慈大悲观世音菩萨保佑我 XXX（自己的名字），帮助我将这些小房子送给 YYY（敬赠处所写：某某某的要经者、某某某的孩子、某某某（亡人）、某某某房子的要经者）」', c: 'ken-0913-xfz-prayer', why: '§2.5：p17 送给要经者／亡人／孩子／房子的要经者（与 pinned 卡逐字一致）' },
+  { text: '- 化解冤结：念前祈请：「请大慈大悲观世音菩萨保佑我 XXX 与 YYY 化解恶缘」，或泛泛地求「请大慈大悲观世音菩萨保佑我 XXX 化解恶缘」', c: 'ken-0913-xfz-prayer', why: '§2.5：p17 化解冤结' },
+  { text: '**烧送前的祈请（《念诵指南》第 31 页）：** 有佛台先上香，三称「感恩南无大慈大悲救苦救难广大灵感观世音菩萨」，跪求：「祈请南无大慈大悲观世音菩萨帮助我 XXX 能够将这些小房子送给 YYY」；无佛台先上心香，念一遍《大悲咒》、一遍《心经》，把小房子举过头顶朝天三拜，同样祈请。', c: 'ken-0913-xfz-prayer', why: '§2.5：p31 烧送前' },
+  { text: '念之前祈请（《念诵指南》第 17 页）：念前祈请：「请大慈大悲观世音菩萨见证我 XXX 所念小房子上的经文（《大悲咒》、《心经》、《往生咒》、《七佛灭罪真言》）」', c: 'ken-0913-xfz-prayer', why: '§2.5：p17 自存（替换《佛学问答》55 的「作见证…保佑我身体健康」两句，见报告）' },
+  { text: '（自存小房子敬赠处留空，**不加任何自己的祈求**——将来给谁还不确定）', c: 'ken-0913-xfz-prayer', why: '§2.5：保留 v1「不能加任何自己的祈求」的意思' },
+  { text: '10. 自存小房子只做见证祈请（「请大慈大悲观世音菩萨见证我 XXX 所念小房子上的经文……」），不加自己的祈求；送给要经者、亡人、化解冤结的祈请见上（《念诵指南》第 17、31 页）', c: 'ken-0913-xfz-prayer', why: '§2.5：SOP 第 10 条' },
+  { text: '烧送前祈请：「祈请南无大慈大悲观世音菩萨帮助我 XXX 能够将这些小房子送给 YYY」（《念诵指南》第 31 页）', c: 'ken-0913-xfz-prayer', why: '§2.5：模板 F「烧送前,在菩萨前祈求」' },
   // ── 2026-09-13 同修轮（docs/briefs/2026-09-13-fellow-practitioner-mode.md ＋ addendum）──
   { text: '| 同修轮 | 正文 ≤ 600 字（引文不计）；长者关怀 ≤ 300 字 |', c: 'ken-0913-fellow', why: '§五 2：长度表加一行（长者关怀 ≤ 300 取自 R29）' },
   { text: '**【同修轮】（判级为 experienced 的访客——已在修行的老同修；优先于上面的入门轮规则）**', c: 'ken-0913-fellow', why: '§二：同修轮章节，替代该级的入门轮规则' },
@@ -205,6 +231,8 @@ const NEW_LINES: { text: string; c: string; why: string }[] = [
   { text: '- 家暴走危机四步：首轮只给安全资源＋一句菩萨圣号；功课等对方安全后、主动再问时再谈', c: 'addendum-B6', why: '第十部分家暴条目加一句' },
 ];
 const newIndex = new Map(NEW_LINES.map((n) => [norm(n.text), n]));
+// NEW_LINES written with a 「> 」 prefix that ken-0913-prayer-line later removed.
+const newQuoteIndex = new Map(NEW_LINES.map((n) => [norm(normQuote(n.text)), n]));
 
 // ── v1 lines that are allowed to be absent from v2 ────────────────────────
 // (inclusive ranges; C# or 「结构」 for headers/separators/TS wrapper)
@@ -253,6 +281,13 @@ const DELETED: { from: number; to: number; c: string; why: string }[] = [
   { from: 2123, to: 2123, c: 'addendum-B1', why: '「不提礼佛」→「不开礼佛」' },
   { from: 2539, to: 2539, c: 'addendum-B5', why: '「先问有没有念过经」' },
   { from: 2697, to: 2697, c: 'addendum-B2', why: '「(1-2 weeks)」' },
+  // ── 2026-09-13 小房子祈求词按《念诵指南》（xfz-retrieval-and-prayer-guard §2.5）──
+  { from: 439, to: 439, c: 'ken-0913-xfz-prayer', why: '自存「念之前祈求（两种情况）」→ 一句 p17 自存祈请' },
+  { from: 441, to: 442, c: 'ken-0913-xfz-prayer', why: '「确定将来烧给自己」＋「作见证…保佑我身体健康」（《佛学问答》55 的写法，《念诵指南》p17 没有，请架构师确认）' },
+  { from: 444, to: 445, c: 'ken-0913-xfz-prayer', why: '「不确定将来给谁」＋「作见证…」→ p17「见证我 XXX 所念小房子上的经文」' },
+  { from: 447, to: 447, c: 'ken-0913-xfz-prayer', why: '「不能加任何自己的祈求」并进新增的一句说明' },
+  { from: 470, to: 470, c: 'ken-0913-xfz-prayer', why: 'SOP 第 10 条「确定给自己加保佑我身体健康／不确定只说请菩萨作见证」' },
+  { from: 2525, to: 2525, c: 'ken-0913-xfz-prayer', why: '模板 F「烧送前,在菩萨前祈求」→ p31 原句' },
   // ── 2026-09-13 首轮三部都开 ──
   { from: 220, to: 220, c: 'ken-0913-three-pillars', why: '「可以说先念前两部熟悉，等熟了再加」→ 只在嫌难时说' },
   { from: 1316, to: 1316, c: 'ken-0913-three-pillars', why: '「对初学者可以说先念前两部熟悉，等熟了再加礼佛大忏悔文」' },
@@ -293,6 +328,10 @@ for (const key of MODULE_ORDER) {
       hit = v1PrayerIndex.get(norm(normPrayer(normRename(raw))));
       if (hit) tag = norm(normRename(raw)) !== k ? 'ken-0912-fullname + ken-0912-prayer' : 'ken-0912-prayer';
     }
+    if (!hit) {
+      hit = v1QuoteIndex.get(norm(normPrayer(normQuote(normRename(raw)))));
+      if (hit) tag = 'ken-0913-prayer-line';
+    }
     if (hit) {
       if (tag) {
         const pick = hit.find((n) => !usedV1.has(n)) ?? hit[0];
@@ -306,7 +345,7 @@ for (const key of MODULE_ORDER) {
     }
     // A C1–C8 / addendum line that the 09-12 rename also touched: same entry,
     // new sutra rendering (listed in the rename table too).
-    const nl = newIndex.get(k) ?? newIndex.get(norm(normRename(raw)));
+    const nl = newIndex.get(k) ?? newIndex.get(norm(normRename(raw))) ?? newQuoteIndex.get(norm(normQuote(normRename(raw))));
     if (nl) {
       if (!newIndex.get(k)) renamedRows.push({ module: key, v2Line: i + 1, text: raw, v1: 0, tag: 'ken-0912-fullname' });
       rows.push({ module: key, v2Line: i + 1, text: raw, v1: null, c: nl.c, why: nl.why });
@@ -496,6 +535,7 @@ ${newTable()}
 ## 四、按共修总会功课卡改写法（内容不变，只改写法）
 
 - \`ken-0912-fullname\`：功课块（📿 行）与分档／示例里的经名改成卡片写法《全称》（简称）。
+- \`ken-0913-prayer-line\`（brief 2026-09-13-xfz-retrieval-and-prayer-guard §2.1）：祈求词不进「> 」引文块——关系类功课模板与两个示例回复去掉「> 」，「祈求："…"」写成「念前祈请：「…」」；内容不变。
 - \`ken-0912-prayer\`（brief 2026-09-13-prayer-form）：zh 祈求词开头由《入门手册》的「请大慈大悲（的）观世音菩萨」改为卡的「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨」，祈求内容一字不动；小房子（《念诵指南》）与放生的祈求词不在此列。
 
 下面每一行都仍然追溯到左边那条 v1 行，差别只有「标记」列写明的写法。
