@@ -1,0 +1,115 @@
+◇ injected env (6) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 2 case(s) · all parallel
+Running: R19, R24
+[vector-search] timing parallel=2 wall_ms=3135 per_query={"little_house":2918,"general":3135}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=3183 per_query={"homework_en":2870,"general":3183}
+[vector-search] {
+  userLang: 'en',
+  topics: [ 'homework_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 13,
+  avgPrimaryScore: '0.831',
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[care-pipeline] conversation=regression-test:R24 citation without date (1) — regenerating once with the format reminder
+[verbatim-guard] conversation=regression-test:R24 violation=quote attempt=1 reason=quote_not_verbatim text="\"祈请南无大慈大悲观世音菩萨帮助我 **XXX（你的名字）** 能够将这些小房子送给 **XXX 化解 __ 岁的关劫**。\""
+[verbatim-guard] conversation=regression-test:R24 violation=quote attempt=1 reason=quote_not_verbatim text="\"拜谢南无大慈大悲观世音菩萨帮助我 XXX 化解 __ 岁的关劫。感恩大慈大悲观世音菩萨保佑！\""
+[care-pipeline] conversation=regression-test:R24 citation_no_date after retry: ["台长在《解答来信疑惑（第一百四十六篇）》里明确开示："]
+[verbatim-guard] conversation=regression-test:R24 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"\"祈请南无大慈大悲观世音菩萨帮助我 **XXX（你的名字）** 能够将这些小房子送给 **XXX 化解 __ 岁的关劫**。\"","reason":"quote_not_verbatim"},{"attempt":1,"type":"quote","text":"\"拜谢南无大慈大悲观世音菩萨帮助我 XXX 化解 __ 岁的关劫。感恩大慈大悲观世音菩萨保佑！\"","reason":"quote_not_verbatim"}],"chunkTokens":["1遍","79张","3张","89张","69张","49张","21张","5000张","7遍","3遍","49遍","21遍","5遍","27遍"],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false}
+
+═══ R19 EN 给了再问 (How do I start chanting?) — guard: clean ═══
+Q: How do I start chanting?
+Sources: Heart Dharma Intro (EN) | Heart Dharma Intro (EN) | Heart Dharma Intro (EN) · types: introduction,xiaofangzi_guide,qa_metaphysics,qa_general,canonical_ruling
+  ✓ names at least one sutra/mantra
+  ✓ gives a count (N times / × N / N遍)
+  ✓ AND asks the triage question in the same reply
+  ✓ no generic 「I dedicate all merits」 closing
+  ✓ final text passes guard (0 residual)
+--- reply ---
+Welcome 🙏 Happy to help you get started.
+
+Before I give you the best guide, let me ask: **Have you chanted before, or is this completely new to you?**
+
+In the meantime, here's a simple starting point you can use right away:
+
+---
+
+📿 **《千手千眼无碍大悲心陀罗尼》(Great Compassion Mantra)** — 3 times daily
+
+Before chanting, say:
+*"May the Great Merciful and Great Compassionate Guan Yin Bodhisattva protect and bless me, [your full name], grant me good health and peace of mind."*
+
+📿 **《般若波罗蜜多心经》(Heart Sutra)** — 3 times daily
+
+Before chanting, say:
+*"May the Great Merciful and Great Compassionate Guan Yin Bodhisattva protect and bless me, [your full name], grant me wisdom and remove my worries."*
+
+⚠️ *Do not chant the Heart Sutra after 10pm.*
+
+---
+
+**Not sure how to pronounce them?** Follow along with the teaching videos here:
+🔗 https://xinlingfamen.info/jingwen/
+
+Start with just these two. Consistency matters more than quantity — even 3 times each, every day, is a wonderful beginning 🙏
+
+Once I know more about your background, I can guide you further!
+
+═══ R24 怎样祈求369的小房子（50b07633 / a4210b01） — guard: passed_after_retry flags=citation_no_date ═══
+Q: 怎样祈求369的小房子？
+Sources: 解答来信疑惑 | 解答来信疑惑 | 小房子念诵指南 · types: xiaofangzi_guide,beginner_guide,qa_collection,case_studies,letter_qa,buddhist_basics,canonical_ruling
+  ✓ says 分开念／分别祈求 (解答来信 146)
+  ✓ gives the 小房子 祈求 wording naming 关劫
+  ✓ no blanket 查不到 tail
+  ✓ no orphan 祈求词
+  ✓ final text passes guard (0 residual)
+--- reply ---
+根据台长开示，犯三六九或本命年关劫的小房子，祈求方法如下：
+
+**念小房子时的祈求（举过头顶后跪求）：**
+
+"祈请南无大慈大悲观世音菩萨帮助我 XXX（你的名字）能够将这些小房子送给 XXX 化解 __ 岁的关劫（或本命年的关劫）"
+
+**烧完后的感恩：**
+
+"拜谢南无大慈大悲观世音菩萨帮助我 XXX 能够将这些小房子送给 XXX 化解 __ 岁的关劫。感恩大慈大悲观世音菩萨保佑！"（一拜）
+
+---
+
+台长在《解答来信疑惑（第一百四十六篇）》里明确开示：
+
+> 犯太岁的小房子和369年龄或本命年的小房子是分开的对吗？
+>
+> 要分开念诵、分别祈求（化解三六九或者本命年关劫的小房子，烧送之前求观世音菩萨保佑我某某某化解多少岁的关劫或者本命年的关劫）。
+
+---
+
+**几个重要提醒：**
+
+- 369 的小房子和犯太岁的小房子**分开念、分开烧**，不能混在一起
+- 念诵小房子时，不要为自己做其他祈求，专注在化解关劫这一件事上
+- 先保证自己的要经者小房子再念 369 的
+
+你今年是哪个年龄，需要化解关劫吗？🙏
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R19 EN 给了再问 (How do I start chanting?)   turns=1 wall/turn=12054ms calls=1 effort=low out_tokens=352 cost=$0.039
+  R24 怎样祈求369的小房子（50b07633 / a4210b01）     turns=1 wall/turn=35841ms calls=3 effort=low out_tokens=1364 cost=$0.136
+turn wall p50=35841ms p90=35841ms avg=23948ms · first_text avg=1572ms · calls/turn=2.00 · cache hits=4/4
+cost: total=$0.175 · per turn=$0.0877 (2 turns)
+checks: 10/10 passed · cases: 2/2 fully green
+
+ALL PASS
