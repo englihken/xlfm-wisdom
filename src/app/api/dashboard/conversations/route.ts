@@ -50,11 +50,14 @@ type ConversationRow = {
   crisis_flag: boolean;
   assigned_volunteer: string | null;
   last_message_at: string;
+  // migration 051 (同修轮 brief): care follow-up flag + visitor level.
+  needs_care?: boolean | null;
+  level?: string | null;
   contact: ContactLite | ContactLite[] | null;
   messages: MessageLite[] | null;
 };
 
-const LIST_SELECT = `id, channel, status, category, crisis_flag, assigned_volunteer, last_message_at,
+const LIST_SELECT = `id, channel, status, category, crisis_flag, assigned_volunteer, last_message_at, needs_care, level,
        contact:contacts ( display_name, channel, stage, wa_id, phone ),
        messages ( content, created_at, role )`;
 
@@ -116,7 +119,7 @@ export async function GET(req: Request) {
 
   // One query for the list: conversations + their contact + only their latest
   // message (ordered desc, limited to 1 per conversation for the preview).
-  const [listRes, allRes, mineRes, awaitingIds, readsRes] = await Promise.all([
+  const [listRes, allRes, mineRes, careRes, awaitingIds, readsRes] = await Promise.all([
     excludeTestContacts(db.from('conversations').select(LIST_SELECT), testIds)
       .order('last_message_at', { ascending: false })
       .order('created_at', { referencedTable: 'messages', ascending: false })
@@ -126,6 +129,9 @@ export async function GET(req: Request) {
       'assigned_volunteer',
       access.volunteer.id
     ),
+    // 关怀跟进 (同修轮 brief §二, migration 051): every flagged conversation's id —
+    // a handful, so the ids double as the exact count.
+    excludeTestContacts(db.from('conversations').select('id'), testIds).eq('needs_care', true).limit(PAGE_SIZE),
     scanAwaiting().catch((e) => {
       console.error('[dashboard] awaiting-reply scan failed:', e);
       return null;
@@ -151,9 +157,12 @@ export async function GET(req: Request) {
 
   // Awaiting conversations beyond the first page: fetch and append (they are
   // older than every listed row, so appending keeps newest-first order).
-  if (awaitingIds) {
+  // Same for 关怀跟进: a flagged conversation must be reachable from its tab.
+  if (careRes.error) console.error('[dashboard] needs_care ids fetch failed:', careRes.error);
+  const careIds = careRes.error ? [] : ((careRes.data ?? []) as { id: string }[]).map((r) => r.id);
+  if (awaitingIds || careIds.length > 0) {
     const listed = new Set(rows.map((r) => r.id));
-    const missing = awaitingIds.filter((id) => !listed.has(id));
+    const missing = [...new Set([...(awaitingIds ?? []), ...careIds])].filter((id) => !listed.has(id));
     const extra: ConversationRow[] = [];
     for (let i = 0; i < missing.length; i += 100) {
       const { data, error } = await db
@@ -200,6 +209,8 @@ export async function GET(req: Request) {
         status: row.status,
         category: row.category ?? null,
         crisisFlag: row.crisis_flag ?? false,
+        needsCare: row.needs_care === true,
+        level: row.level ?? null,
         lastMessagePreview: preview,
         lastMessageAt: row.last_message_at,
         unread,
@@ -219,6 +230,7 @@ export async function GET(req: Request) {
   const counts = {
     all: allRes.error ? null : allRes.count,
     mine: mineRes.error ? null : mineRes.count,
+    needsCare: careRes.error ? null : careIds.length,
     unanswered: awaitingIds ? awaitingIds.length : null,
   };
 

@@ -1,0 +1,174 @@
+◇ injected env (6) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 3 case(s) · all parallel
+Running: R26, R28, R29
+[vector-search] timing parallel=1 wall_ms=3541 per_query={"general":3540}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=3597 per_query={"general":3597}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=3650 per_query={"little_house":2717,"canonical":3257,"general":3650}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'little_house_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[care-pipeline] conversation=regression-test:R29 citation without date (1) — regenerating once with the format reminder
+[care-pipeline] conversation=regression-test:R26 citation without date (1) — regenerating once with the format reminder
+[vector-search] timing parallel=1 wall_ms=2231 per_query={"general":2231}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: true,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[care-pipeline] conversation=regression-test:R29 citation_no_date after retry: ["台长在《解答来信疑惑（第一百七十二篇）》里有这样的开示："]
+[care-pipeline] conversation=regression-test:R26 citation_no_date after retry: ["关于\"遇到缘分怎么办\"，台长在《解答来信疑惑》里也说得很清楚："]
+
+═══ R26 同修轮 清修后与异性保持距离（925ef1a9） — guard: clean flags=citation_no_date ═══
+访客：清修后怎样跟异性保持距离 如果遇到缘分怎么办
+Sources: 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 · types: counseling_manual,letter_qa,core_wisdom,marriage_case_study,canonical_ruling
+Last-turn retrieval (ALL 11): 弘法度人辅导手册 p137 | 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 | 白话佛法（第十册） p57 | 解答来信疑惑 | 解答来信疑惑 | 婚姻·情感（第一册） p66 | 婚姻·情感（第一册） p54 | 组织审定
+  ✓ pre-reply level (cues) = experienced
+  ✓ no 📿 功课 block
+  ✓ no 遍数／张数 outside quotes
+  ✓ ≥2 「> 」 quote block(s) (verbatim — see residual check)
+  ✓ does not ask whether they chant
+  ✓ names a source 《…》
+  ✓ no 查不到／partial guard tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+这个问题问得很真实，清修的路上这个"度"确实不好拿 🙏
+
+台长在《婚姻·情感（第一册）》里有这样的开示：
+
+> 清修，干净一点就好。男女同修讲话，如果觉得自己没有修好，那当然是自己找麻烦；如果自己真的无罣碍了，没把对方当男同修女同修有暧昧关系的话，当然可以接触。问题是自己根本把握不住，常在河边站哪有不湿鞋？你在考验自己的意志和能量。在还没有功底的时候，男女之间，一切这样的使你犯错的条件都要控制好。
+
+这段话的核心是：**自知**。不是靠规则，而是靠自己诚实地看清楚——心里有没有动？动了就是不干净了。
+
+---
+
+关于"遇到缘分怎么办"，台长在《解答来信疑惑》里也说得很清楚：
+
+> 许愿有仪式，不是嘴巴里随便说说的，是有规矩规范的，不是随便当时一发心就算了。
+
+意思是：如果当时的清修愿是在菩萨面前正式上香许的，那就要有骨气守住。如果只是一时发心说说，那在菩萨眼里的分量不同，随缘就好。
+
+所以先问自己：**当时的愿是怎么许的？**
+
+---
+
+如果清修愿是正式的，遇到所谓"缘分"时，台长的提醒是：那个"感觉"要小心辨别——是真缘，还是要经者在扰动？念《心经》开智慧，心静下来自然会清楚。
+
+你现在是遇到了具体的情况，还是在预先思考这个问题？
+
+═══ R28 同修轮 提高境界 → 有（c53fd896） — guard: clean ═══
+访客：要怎样才能提高境界
+AI：这个问题，很多修行人都在问 🙏
+
+师父在《白话佛法（第二册）》里有这样的开示：
+
+> 境界的提升是看不见，摸不着的，只有靠你自己慢慢地悟，慢慢地去修炼。为什么有些人碰到一点事情就忍不住上窜下跳的？为什么有些人又很沉稳忍辱精进？这就是境界的不同。境界高的人，就是指着鼻子骂他，他也只是笑笑而已，一句话都不讲。
+
+师父在另…
+访客：有
+Sources: 法会弟子提问 | 法会弟子提问 | 白话佛法（第三册） · types: fahui_qa,core_wisdom,radio_teaching,disciple_teaching,golden_quote,canonical_ruling
+Last-turn retrieval (ALL 11): 法会弟子提问 | 法会弟子提问 | 白话佛法（第三册） p84 | 白话佛法广播讲座（第一册） p117 | 白话佛法（第二册） p132 | 法会弟子提问 | 白话佛法广播讲座（第一册） p76 | 法会弟子提问 | 弟子开示（第一册） p22 | 佛言佛语(十) p35 | 组织审定
+  ✓ pre-reply level (cues) = experienced
+  ✓ no 📿 功课 block
+  ✓ no 遍数／张数 outside quotes
+  ✗ ≥2 「> 」 quote block(s) (verbatim — see residual check)
+  ✓ does not ask whether they chant
+  ✓ names a source 《…》
+  ✓ no 查不到／partial guard tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+很好 🙏
+
+师父在《佛言佛语（十）》里有一段开示，说得非常清楚：
+
+> 境界就是佛果，境界越高佛果越大。境界代表著智慧和你的福德。福德由你的善心開始；智慧由你的淨心開始。要想得到永恆的智慧，你必須要有大悲心；要想得到永恆的福德，你必須眾善奉行，諸惡莫作。
+
+这段话其实就是提高境界的两条路：
+
+**一条是心的路** —— 大悲心，慈悲心，看到别人的苦，心里动了，这就是智慧的根。
+
+**一条是行的路** —— 众善奉行，诸恶莫作。生活里每一个选择，都是在修境界。
+
+师父说境界是看不见摸不着的，但它会在你遇到烦恼的时候显现出来 —— 那一刻你能不能忍住，能不能不起分别心，就是你现在境界的真实状态。
+
+所以最实在的功夫，还是回到日常：念经静心，多读《白话佛法》，遇到事情多反观自己。境界不是一下子跳上去的，是一点一点磨出来的 🙏
+
+你最近修行上有遇到什么卡住的地方吗？
+
+═══ R29 同修轮 安老院佛台结缘（长者关怀，37a5bc19） — guard: clean flags=citation_no_date ═══
+访客：你好休息，心灵法门已有好几年。目前因为年事已高，家人又没有修行，所以只有入住安老院，但是现在供奉的佛台要结缘出去，请问我应该念多少张小房子和进正处该写什么才能如理如法的请下供台，感恩。
+Sources: 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 · types: canonical_ruling,letter_qa,fahui_qa
+Last-turn retrieval (ALL 10): 组织审定 | 组织审定 | 组织审定 | 组织审定 | 解答来信疑惑 | 法会弟子提问 | 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑
+  ✓ pre-reply level (cues) = experienced
+  ✓ pre-reply needs_care (cues)
+  ✓ invites a volunteer to follow up (义工)
+  ✓ body ≤ 300 chars (长者关怀)
+  ✓ no 查不到／partial guard tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+您好 🙏 您年事已高还一直在坚持修行，真的令人敬佩。
+
+台长在《解答来信疑惑（第一百七十二篇）》里有这样的开示：
+
+> 大家一起帮忙念诵21张小房子就结束了，还有大悲咒、心经、礼佛大忏悔文各7遍。
+
+这是台长针对请下佛台的开示——念诵**《大悲咒》《心经》《礼佛大忏悔文》各7遍**，加上**21张小房子**，敬赠**"（您的姓名）房子的要经者"**，就可以如理如法地请下佛台了。
+
+如果您自己年纪大、念不了那么多，可以请共修会的义工来协助——他们很乐意帮忙的。
+
+建议您联系就近的共修会义工，请他们上门陪您一起完成这个过程，也让您安心 🙏
+
+查询马来西亚各地分会联系方式：
+🔗 https://xlfm.my/contact-us
+
+南无大慈大悲观世音菩萨 🙏
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R26 同修轮 清修后与异性保持距离（925ef1a9）             turns=1 wall/turn=38186ms calls=2 effort=medium out_tokens=1205 cost=$0.388
+  R28 同修轮 提高境界 → 有（c53fd896）               turns=2 wall/turn=16909ms calls=2 effort=medium out_tokens=899 cost=$0.380
+  R29 同修轮 安老院佛台结缘（长者关怀，37a5bc19）           turns=1 wall/turn=26749ms calls=2 effort=high out_tokens=735 cost=$0.384
+turn wall p50=26749ms p90=38186ms avg=27281ms · first_text avg=2962ms · calls/turn=1.50 · cache hits=3/6
+cost: total=$1.152 · per turn=$0.2880 (4 turns)
+checks: 21/22 passed · cases: 2/3 fully green
+
+1 CHECKS FAILED

@@ -112,6 +112,9 @@ export type Topic =
 export type RetrievalContext = {
   prevUserMessage?: string;
   prevAssistantMessage?: string;
+  // 同修轮 (09-13): visitor level decided before retrieval (level-cues ＋
+  // persisted conversations.level ＋ contacts.stage; see care-pipeline).
+  level?: import('./prompt/level-cues').VisitorLevel;
 };
 
 const SHORT_FOLLOWUP_MAX_CHARS = 40;
@@ -187,6 +190,13 @@ const BEGINNER_BOOKS = new Set([
   HOMEWORK_BASELINE_BOOK_EN,
   LITTLE_HOUSE_BASELINE_BOOK_EN,
 ]);
+
+// 同修轮 (09-13 fellow-practitioner brief §三): for an experienced practitioner
+// the Master's own explanations lead — 白话佛法 (every volume), 法会弟子提问,
+// 解答来信疑惑 — while 玄艺问答／综述 case records stay citable but rank behind.
+const FELLOW_BOOK_BOOST = 0.04;
+const FELLOW_CASE_PENALTY = 0.02;
+const FELLOW_BOOKS_RE = /^(白话佛法|法会弟子提问|解答来信疑惑)/;
 
 // === TOPIC DETECTION ===
 // Cheap keyword router so the RAG layer can bias retrieval toward the
@@ -458,11 +468,15 @@ export async function searchRelevantTeachings(
     // to the 功课 baseline; the triage marker forces it regardless.
     const query = buildRetrievalQuery(rawQuery, ctx);
     const topics = detectTopics(query);
+    const fellowTurn = ctx?.level === 'experienced';
     if (isBeginnerTriageFollowup(ctx) && !topics.includes('homework_baseline')) {
       topics.push('homework_baseline');
     }
+    // 同修轮 (09-13): an experienced practitioner gets no 入门手册 功课
+    // baseline — the question is about 境界／清修／度人, not 「念什么经」.
+    if (fellowTurn && topics.includes('homework_baseline')) topics.splice(topics.indexOf('homework_baseline'), 1);
     const beginnerTurn =
-      topics.includes('homework_baseline') || topics.includes('little_house_baseline');
+      !fellowTurn && (topics.includes('homework_baseline') || topics.includes('little_house_baseline'));
 
     // Language filter strategy:
     // - zh users: NO filter. The 13,856 legacy zh chunks have no `language`
@@ -587,6 +601,7 @@ export async function searchRelevantTeachings(
       topics,
       contextual: query !== rawQuery.trim(),
       triageFollowup: isBeginnerTriageFollowup(ctx),
+      level: ctx?.level ?? null,
       primaryCount: primaryResults.length,
       avgPrimaryScore: avgPrimaryScore?.toFixed(3),
       fallbackTriggered,
@@ -611,6 +626,10 @@ export async function searchRelevantTeachings(
         let boost = (BOOK_PRIORITY[p.book] || 0) * 0.01;
         if (p.type === CANONICAL_TYPE) boost += CANONICAL_BOOST;
         if (beginnerTurn && BEGINNER_BOOKS.has(p.book)) boost += BEGINNER_BOOK_BOOST;
+        if (fellowTurn) {
+          if (FELLOW_BOOKS_RE.test(p.book)) boost += FELLOW_BOOK_BOOST;
+          if (p.type === 'case_qa') boost -= FELLOW_CASE_PENALTY;
+        }
         for (const topic of topics) {
           if (p.type && TOPIC_TYPE_BOOST[topic][p.type]) {
             boost += TOPIC_TYPE_BOOST[topic][p.type];

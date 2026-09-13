@@ -1,0 +1,81 @@
+◇ injected env (6) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 1 case(s) · all parallel
+Running: R28
+[vector-search] timing parallel=1 wall_ms=5067 per_query={"general":5066}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R28 violation=quote attempt=1 reason=quote_not_verbatim text="要修啊。什么叫境界呢？修出来的。不懂怎么办呢？看书、听、自己要悟。\"悟\"是什么？要想\"这个事情我能做吗？\"经常想想\"我良心过得去吗？\"经常想想\"菩萨会不会这样做？\"如果这些都让你感受到不应该做，你就不要去做。"
+[verbatim-guard] conversation=regression-test:R28 violation=quote attempt=1 reason=quote_not_verbatim text="境界就是佛果，境界越高佛果越大。境界代表着智慧和你的福德。福德由你的善心开始；智慧由你的净心开始。"
+[verbatim-guard] conversation=regression-test:R28 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"要修啊。什么叫境界呢？修出来的。不懂怎么办呢？看书、听、自己要悟。\"悟\"是什么？要想\"这个事情我能做吗？\"经常想想\"我良心过得去吗？\"经常想想\"菩萨会不会这样做？\"如果这些都让你感受到不应该做，你就不要去做。","reason":"quote_not_verbatim"},{"attempt":1,"type":"quote","text":"境界就是佛果，境界越高佛果越大。境界代表着智慧和你的福德。福德由你的善心开始；智慧由你的净心开始。","reason":"quote_not_verbatim"}],"chunkTokens":["7遍","3遍","1遍","49遍","21遍","5遍","27遍"],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=1 wall_ms=1652 per_query={"general":1652}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: true,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+
+═══ R28 同修轮 提高境界 → 有（c53fd896） — guard: clean ═══
+访客：要怎样才能提高境界
+AI：这个问题问得很好，也很真实 🙏
+
+师父在《白话佛法（第二册）》里有这样的开示：
+
+> 境界的提升是看不见，摸不着的，只有靠你自己慢慢地悟，慢慢地去修炼。为什么有些人碰到一点事情就忍不住上窜下跳的？为什么有些人又很沉稳忍辱精进？这就是境界的不同。境界高的人，就是指着鼻子骂他，他也只是笑笑而已，一句话都不讲。
+
+师父在《…；只思维不做，也是空谈。
+
+日常可以这样用：
+- 遇到人骂你、冤枉你——第一念是"我上辈子可能欠他的"，不反击，这就是在提升
+- 家人闹情绪——"我是学菩萨的，我不跟他计较"，说给自己听
+- 每天多读《白话佛法》，让师父的开示慢慢改变你的思维方式
+
+境界这件事急不来，但每天往这个方向想、往这个方向做，自然就在走了 🙏
+访客：有
+Sources: 法会弟子提问 | 法会弟子提问 | 白话佛法（第三册） · types: fahui_qa,core_wisdom,radio_teaching,disciple_teaching,golden_quote,canonical_ruling
+Last-turn retrieval (ALL 11): 法会弟子提问 | 法会弟子提问 | 白话佛法（第三册） p84 | 白话佛法广播讲座（第一册） p117 | 白话佛法（第二册） p132 | 法会弟子提问 | 白话佛法广播讲座（第一册） p76 | 法会弟子提问 | 弟子开示（第一册） p22 | 佛言佛语(十) p35 | 组织审定
+  ✓ pre-reply level (cues) = experienced
+  ✓ no 📿 功课 block
+  ✓ no 遍数／张数 outside quotes
+  ✗ ≥2 「> 」 quote block(s) (verbatim — see residual check)
+  ✓ does not ask whether they chant
+  ✗ names a source 《…》
+  ✓ no 查不到／partial guard tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+很好 🙏
+
+听、学、做、悟四样都在做，境界自然会提升的。
+
+师父在法会里说过一个很真实的观察——
+
+> 你们发现吗？有时候我有意地讲他们，他们这些全是学历很高的硕士、博士，他们一点不生气，怎么讲他们都不会生气，这个就叫境界。一个人如果不生气，那就是圆融。在家里老婆骂几句，老公讲几句，他都不生气的，成功了，修心成功了！
+
+所以师父说的"境界"，其实就是日常生活里的那一个反应——有没有生气、有没有计较、有没有忍住。
+
+每次忍住了，境界就高了一点点。每次没忍住，也不要灰心，继续念经，继续悟。
+
+有没有哪一方面是你觉得比较难提升的？🙏
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R28 同修轮 提高境界 → 有（c53fd896）               turns=2 wall/turn=24519ms calls=3 effort=medium out_tokens=1536 cost=$0.131
+turn wall p50=24519ms p90=24519ms avg=24519ms · first_text avg=2031ms · calls/turn=1.50 · cache hits=3/3
+cost: total=$0.131 · per turn=$0.0656 (2 turns)
+checks: 6/8 passed · cases: 0/1 fully green
+
+2 CHECKS FAILED
