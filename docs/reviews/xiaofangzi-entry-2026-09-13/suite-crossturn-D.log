@@ -1,0 +1,228 @@
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 2 case(s) · all parallel
+Running: R13, R25
+[vector-search] timing parallel=2 wall_ms=2457 per_query={"little_house":2097,"general":2456}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=2711 per_query={"little_house":2221,"general":2711}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R25 violation=number attempt=1 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R25 violation=number attempt=1 reason=number_not_in_sources text="27遍"
+[verbatim-guard] conversation=regression-test:R25 violation=number attempt=1 reason=number_not_in_sources text="49遍"
+[verbatim-guard] conversation=regression-test:R25 violation=number attempt=1 reason=number_not_in_sources text="84遍"
+[verbatim-guard] conversation=regression-test:R25 violation=number attempt=1 reason=number_not_in_sources text="87遍"
+[vector-search] timing parallel=4 wall_ms=1831 per_query={"general":1800,"homework_入门手册":1827,"homework_175问":1829,"little_house":1831}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R25 violation=number attempt=2 reason=number_not_in_sources text="1张"
+[verbatim-guard] conversation=regression-test:R25 stripped tail=blanket
+[verbatim-guard] conversation=regression-test:R25 decision={"outcome":"stripped","canonicalPresent":true,"violations":[{"attempt":1,"type":"number","text":"1张","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"27遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"49遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"84遍","reason":"number_not_in_sources"},{"attempt":1,"type":"number","text":"87遍","reason":"number_not_in_sources"},{"attempt":2,"type":"number","text":"1张","reason":"number_not_in_sources"}],"chunkTokens":["7张","10张","80张","21张","36张","920张","5000张","78张","9张","7遍","3遍","1遍","49遍","21遍","5遍","27遍"],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":true,"tail":"blanket"}
+[vector-search] timing parallel=2 wall_ms=453 per_query={"little_house":370,"general":453}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=1197 per_query={"general":1197}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: true,
+  triageFollowup: false,
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R25 violation=quote attempt=1 reason=quote_not_verbatim text="尚未开始念诵基本功课的初学者，需从基本功课《大悲咒》、《心经》、《礼佛大忏悔文》念起。"
+[verbatim-guard] conversation=regression-test:R25 violation=quote attempt=1 reason=quote_not_verbatim text="\"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力\""
+[verbatim-guard] conversation=regression-test:R25 violation=quote attempt=1 reason=quote_not_verbatim text="\"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼\""
+[verbatim-guard] conversation=regression-test:R25 violation=quote attempt=1 reason=quote_not_verbatim text="\"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）帮助我忏悔和消除身上的业障，保佑我身体健康，开智慧\""
+[verbatim-guard] conversation=regression-test:R25 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"尚未开始念诵基本功课的初学者，需从基本功课《大悲咒》、《心经》、《礼佛大忏悔文》念起。","reason":"quote_not_verbatim"},{"attempt":1,"type":"quote","text":"\"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力\"","reason":"quote_not_verbatim"},{"attempt":1,"type":"quote","text":"\"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼\"","reason":"quote_not_verbatim"},{"attempt":1,"type":"quote","text":"\"祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）帮助我忏悔和消除身上的业障，保佑我身体健康，开智慧\"","reason":"quote_not_verbatim"}],"chunkTokens":["7遍","3遍","1遍","49遍","21遍","5遍","27遍","1张"],"replyTokens":["3遍","1遍","21遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+
+═══ R13 小房子 → 还没有开始念功课 — guard: clean ═══
+访客：我想开始念小房子
+AI：好的 🙏 很高兴你有这个心！
+
+先问你一下：**你目前有在念基本功课吗？**（大悲咒、心经、礼佛大忏悔文）
+
+因为台长在《佛学问答》里说：
+
+> 初学者在开始念功课的同时，就可以开始念诵小房子。
+
+所以**功课一开始，就可以念小房子，不用等熟练**。
+
+如果你还没开始功课，我先教你把功课起来，然后同步开始小房子 🙏
+访客：还没有开始念功课
+Sources: 心灵法门入门手册 | 小房子念诵指南 | 心灵法门入门手册 · types: beginner_guide,xiaofangzi_guide,qa_collection,counseling_manual,case_studies,fahui_qa,buddhist_basics,canonical_ruling
+Last-turn retrieval (ALL 11): 心灵法门入门手册 p23 | 小房子念诵指南 p38 | 心灵法门入门手册 p36 | 小房子念诵指南 p22 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 弘法度人辅导手册 p67 | 心灵法门例说 p334 | 法会弟子提问 | 佛学常识开示锦集（第一册） p132 | 组织审定
+  ✓ retrieval carries 念诵指南 or 入门手册
+  ✓ gives the 功课 first (words, or 📿 block before 小房子)
+  ✓ opens the three pillars, each with a count (大悲咒/心经/礼佛)
+  ✓ no 「念顺了再加礼佛」
+  ✓ 📿 lines use the full sutra names (Ken 09-12)
+  ✓ at least one N遍
+  ✓ 小房子 can start once 功课 has begun (not "wait until stable")
+  ✓ cites 念诵指南 or 入门手册 (reply or sources)
+  ✓ no 查不到相关原文 / 不敢乱说
+  ✓ no 「资料里没有写明具体数字」 (new refusal phrasing)
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏
+
+先把基本功课起来，同时就可以开始念小房子了。
+
+**每天功课：**
+
+📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力"
+
+📿 《般若波罗蜜多心经》（心经）每天 3 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼"
+⚠️ 晚上 10 点后不念
+
+📿 《礼佛大忏悔文》每天 1 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）帮助我忏悔和消除业障，保佑我身体健康，开智慧"
+⚠️ 晚上 10 点至凌晨 5 点不念
+
+📿 《往生净土神咒》（往生咒）每天 21 遍
+念前说："祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）帮助我超度因我而死去的小灵性，帮助我消除孽障"
+⚠️ 晚上 10 点后不念
+
+不会念没关系，有教念视频跟着念：
+🔗 https://xinlingfamen.info/jingwen/
+
+---
+
+**功课起来当天，就可以开始念小房子。**
+
+小房子的经文组合是：
+- 《大悲咒》**27 遍**
+- 《心经》**49 遍**
+- 《往生咒》**84 遍**
+- 《七佛灭罪真言》**87 遍**
+
+这些是小房子专用的遍数，和功课分开计算，分开祈求。
+
+小房子可以免费下载打印：
+🔗 https://xlfm.my/little-house
+
+或者去就近的共修会免费领取实体小房子纸：
+🔗 https://xlfm.my/contact-us
+
+---
+
+你在马来西亚哪个城市？我帮你找最近的共修会 🙏
+
+═══ R25 小房子学习者 → 还没（18f74524 原话） — guard: passed_after_retry ═══
+访客：谢谢你的解析，小房子的篇数是多少？
+AI：建议参考官方资料：
+🔗 https://xlfm.my/little-house（可免费下载小房子，里面有完整说明）
+
+或联系就近共修会义工确认 🙏
+🔗 https://xlfm.my/contact-us
+
+关于具体的遍数／张数，我目前查不到相关原文，不敢随意告诉您数字。建议咨询就近共修会的义工，以官方资料为准…
+访客：如何念诵，可以教我吗？
+AI：可以的 🙏
+
+一张小房子包含以下经文：
+
+📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）**27 遍**
+📿 《般若波罗蜜多心经》（心经）**49 遍**
+📿 《往生净土神咒》（往生咒）**84 遍**
+📿 《七佛灭罪真言》**87 遍**
+
+---
+
+### 念诵前先填写小房子：
+
+- **敬赠处**：写给谁（…
+访客：还没
+Sources: 白话佛法（第四册） | 白话佛法广播讲座（第一册） | 玄艺问答 · types: core_wisdom,radio_teaching,case_qa,letter_qa,disciple_teaching,canonical_ruling
+Last-turn retrieval (ALL 11): 白话佛法（第四册） p174 | 白话佛法广播讲座（第一册） p130 | 玄艺问答 | 白话佛法（第一册） p104 | 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 | 玄艺综述 | 解答来信疑惑 | 弟子开示（第一册） p139 | 组织审定
+  ✓ opens the three pillars, each with a count (大悲咒/心经/礼佛)
+  ✓ threshold: 小房子 once 功课 has begun (开始了就可以／当天…大悲咒后即可)
+  ✓ no 「念顺了再加礼佛」
+  ✓ 📿 lines use the full sutra names (Ken 09-12)
+  ✓ contains 祈求词
+  ✓ no 查不到相关原文 / 没有写明具体数字
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏
+
+小房子的能量来自功课的基础——台长开示，功课一开始就可以念小房子，不用等念得很熟。
+
+所以先把功课起来，同一天就可以开始小房子了。
+
+---
+
+### 每天功课这样开始：
+
+📿 **《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍**
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的名字）身体健康，增强功力」
+
+📿 **《般若波罗蜜多心经》（心经）每天 3 遍**
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的名字）开智慧，头脑清醒冷静，去除烦恼」
+⚠️ 晚上 10 点后不念
+
+📿 **《礼佛大忏悔文》每天 1 遍**
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的名字）帮助我忏悔和消除我身上的业障，保佑我身体健康，开智慧」
+⚠️ 晚上 10 点后不念
+
+📿 **《往生净土神咒》（往生咒）每天 21 遍**
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的名字）帮助我超度因我而死去的小灵性，帮助我消除孽障」
+⚠️ 晚上 10 点后不念
+
+---
+
+### 不会念没关系，跟着视频学：
+🔗 https://xinlingfamen.info/jingwen/
+
+---
+
+功课开始了，当天就可以念小房子 🙏
+
+先把自己的名字填在敬赠处：**「XXX 的要经者」**，从这里开始还自己的业障。
+
+有什么不明白的地方随时问我 🙏
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R13 小房子 → 还没有开始念功课                       turns=2 wall/turn=11751ms calls=2 effort=low out_tokens=930 cost=$0.089
+  R25 小房子学习者 → 还没（18f74524 原话）             turns=3 wall/turn=16716ms calls=5 effort=low/medium out_tokens=2134 cost=$0.204
+turn wall p50=16716ms p90=16716ms avg=14233ms · first_text avg=1584ms · calls/turn=1.40 · cache hits=7/7
+cost: total=$0.292 · per turn=$0.0584 (5 turns)
+checks: 18/18 passed · cases: 2/2 fully green
+
+ALL PASS
