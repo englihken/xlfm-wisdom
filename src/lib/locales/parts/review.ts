@@ -51,6 +51,7 @@ const zh = {
   'wisdom.save': '保存草稿',
   'wisdom.approve': '批准',
   'wisdom.retire': '退役',
+  'wisdom.resync': '重同步',
   'wisdom.edit': '编辑',
   'wisdom.cancel': '取消',
   'wisdom.approveNote': '批准后将进入检索库（组织审定层级），批准与退役需 care 管理员权限',
@@ -82,6 +83,7 @@ const zh = {
   'wisdom.viewOnly': '仅查看权限：编辑需 care 编辑权限，批准/退役需 care 管理员权限',
   'wisdom.approved': '已批准并同步 ✓',
   'wisdom.retired': '已退役并移出检索库 ✓',
+  'wisdom.resynced': '已重同步到检索库，chips 缓存已失效 ✓',
 
   // ── monthly tab ────────────────────────────────────────────────────────────
   'review.month': '月份',
@@ -151,6 +153,7 @@ export const reviewPart: {
     'wisdom.save': 'Save draft',
     'wisdom.approve': 'Approve',
     'wisdom.retire': 'Retire',
+    'wisdom.resync': 'Resync',
     'wisdom.edit': 'Edit',
     'wisdom.cancel': 'Cancel',
     'wisdom.approveNote': 'Approval publishes to retrieval (组织审定 tier); approve/retire need care admin',
@@ -181,6 +184,7 @@ export const reviewPart: {
     'wisdom.viewOnly': 'View only: editing needs care edit access, approve/retire needs care admin',
     'wisdom.approved': 'Approved and synced ✓',
     'wisdom.retired': 'Retired and removed from the index ✓',
+    'wisdom.resynced': 'Re-synced to the index; chip cache cleared ✓',
 
     'review.month': 'Month',
     'review.volume': 'Conversations',
@@ -242,6 +246,7 @@ export const reviewPart: {
     'wisdom.save': 'Simpan draf',
     'wisdom.approve': 'Setujui',
     'wisdom.retire': 'Arsipkan',
+    'wisdom.resync': 'Sinkron ulang',
     'wisdom.edit': 'Edit',
     'wisdom.cancel': 'Batal',
     'wisdom.approveNote': 'Persetujuan menerbitkan ke pencarian (tingkat 组织审定); perlu admin care',
@@ -272,6 +277,7 @@ export const reviewPart: {
     'wisdom.viewOnly': 'Hanya lihat: menyunting perlu akses edit care, setujui/pensiunkan perlu admin care',
     'wisdom.approved': 'Disetujui dan tersinkron ✓',
     'wisdom.retired': 'Dipensiunkan dan dihapus dari indeks ✓',
+    'wisdom.resynced': 'Disinkronkan ulang ke indeks; cache chip dihapus ✓',
 
     'review.month': 'Bulan',
     'review.volume': 'Percakapan',

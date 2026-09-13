@@ -19,6 +19,7 @@ import {
   isBeginnerTriageFollowup,
   type RetrievedPassage,
   type RetrievalContext,
+  XFZ_TOPIC_RE,
 } from './vector-search';
 import { supabaseAdmin } from './supabase';
 import { loadCareCategories } from './org-settings';
@@ -33,6 +34,7 @@ import {
   extractNumberTokens,
   type GuardViolation,
   type GuardTail,
+  isApprovedPrayerLine,
 } from './verbatim-guard';
 import { wisdomEntryIdsInPassages, incrementWisdomUseCounts } from './wisdom-sync';
 import { levelFromCues, needsCareFromCues, maxLevel, stageToLevel, isVisitorLevel, type VisitorLevel } from './prompt/level-cues';
@@ -96,6 +98,51 @@ const supportsPerMessageEffort = (model: string) => perMessageEffortSupported.ge
 // turn is flagged `citation_no_date` (messages.flags + audit_log) so the review
 // queue and the Sonnet watch can count it.
 const WEBSITE_SOURCE_RE = /解答来信疑惑|玄艺问答|玄艺综述|玄学问答|精彩节目摘录/;
+
+// ── Citation book attribution (09-13 xfz-retrieval-and-prayer-guard §1.4) ─────
+// day-3 §1.3 c: a reply quoted 《念诵指南》 p14 word for word and credited it
+// to 《心灵法门入门手册》. For every quotation (a 「> 」 line, or a 「…」／“…”
+// span of 12+ characters) that matches a retrieved passage verbatim, any
+// 《书名》 within 40 characters before or after it must name that passage's
+// book or post title. Sutra titles (《大悲咒》…) and 祈求词 are not citations.
+// Soft check: returns the mismatches for a flag + audit row; nothing is
+// stripped or regenerated.
+const CITATION_WINDOW = 40;
+const SUTRA_TITLE_ONLY_RE = /^《[^》]{1,24}(经|咒|真言|陀罗尼|忏悔文)》$/;
+export function citationBookMismatches(
+  reply: string,
+  passages: RetrievedPassage[]
+): { quote: string; cited: string; source: string }[] {
+  const sources = passages.map((p) => ({ p, norm: normalizeForGuard(p.text) }));
+  const quotes = new Set<string>();
+  for (const line of reply.split('\n')) {
+    const m = line.match(/^\s*>\s?(.*)$/);
+    if (m && m[1].trim()) quotes.add(m[1].trim());
+  }
+  for (const m of reply.matchAll(/[「“]([^」”\n]{12,})[」”]/g)) quotes.add(m[1]);
+  const out: { quote: string; cited: string; source: string }[] = [];
+  for (const q of quotes) {
+    if (isApprovedPrayerLine(q)) continue;
+    const skeleton = normalizeForGuard(q);
+    if (skeleton.length < 8) continue;
+    const hit = sources.find((s) => s.norm.includes(skeleton));
+    if (!hit) continue;
+    const at = reply.indexOf(q);
+    if (at < 0) continue;
+    const window = reply.slice(Math.max(0, at - CITATION_WINDOW), at) + reply.slice(at + q.length, at + q.length + CITATION_WINDOW);
+    const titles = (window.match(/《[^》]{1,40}》/g) ?? []).filter((t) => !SUTRA_TITLE_ONLY_RE.test(t));
+    if (titles.length === 0) continue;
+    const book = hit.p.book;
+    const post = hit.p.post_title ?? '';
+    const matches = (t: string) => {
+      const inner = t.slice(1, -1);
+      const base = inner.replace(/（[^）]*）$/, '');
+      return book.includes(base) || inner.includes(book) || (post !== '' && (post.includes(base) || inner.includes(post)));
+    };
+    if (!titles.some(matches)) out.push({ quote: q.slice(0, 60), cited: titles.join(''), source: book });
+  }
+  return out;
+}
 const CITATION_DATE_RE = /开示于\s*\d{4}\s*年|\d{4}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日|\d{4}\s*年\s*\d{1,2}\s*月|\d{4}-\d{2}-\d{2}|节目日期/;
 export function citationsMissingDate(text: string): string[] {
   const out: string[] = [];
@@ -553,6 +600,15 @@ export async function generateGuardedReplyText(params: {
         await writeAudit({ actorId: null, actorEmail: null, module: 'care', action: 'care.citation_no_date', tableName: 'conversations', recordId: convId, after: { missing: stillMissing, model } });
       }
     }
+    // 09-13 §1.4: quote credited to the wrong book — soft flag, nothing changes.
+    const bookMismatches = citationBookMismatches(scrub.text, passages);
+    if (bookMismatches.length > 0) {
+      flags.push('citation_book_mismatch');
+      console.error(`[care-pipeline] conversation=${convId} citation_book_mismatch: ${JSON.stringify(bookMismatches)}`);
+      if (UUID_RE.test(convId)) {
+        await writeAudit({ actorId: null, actorEmail: null, module: 'care', action: 'care.citation_book_mismatch', tableName: 'conversations', recordId: convId, after: { mismatches: bookMismatches, model } });
+      }
+    }
     decision.outcome = guard;
     decision.tail = tail;
     decision.scrubbed = scrub.removed;
@@ -671,9 +727,13 @@ export function retrievalContextFrom(history: CareMessage[]): RetrievalContext {
   const nonEmpty = history.filter((m) => m.content && m.content.trim().length > 0);
   const prevUser = [...nonEmpty].reverse().find((m) => m.role === 'user');
   const prevAssistant = [...nonEmpty].reverse().find((m) => m.role === 'assistant');
+  // 09-13 xfz-retrieval §1.2: 小房子 in any earlier visitor turn keeps the topic —
+  // 「如何念诵，可以教我吗？」 → 「还没」 still pins the 《念诵指南》 chunks.
+  const xfz = nonEmpty.some((m) => m.role === 'user' && XFZ_TOPIC_RE.test(m.content));
   return {
     prevUserMessage: prevUser?.content,
     prevAssistantMessage: prevAssistant?.content,
+    ...(xfz ? { topic: 'xiaofangzi' as const } : {}),
   };
 }
 

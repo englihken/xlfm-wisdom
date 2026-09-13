@@ -220,7 +220,7 @@ export default function WisdomPage() {
     }
   };
 
-  const act = async (action: 'approve' | 'retire') => {
+  const act = async (action: 'approve' | 'retire' | 'resync') => {
     if (!selected) return;
     setBusy(true);
     setNotice(null);
@@ -236,7 +236,7 @@ export default function WisdomPage() {
         return;
       }
       const json = (await res.json()) as { entry: WisdomEntry };
-      setNotice(action === 'approve' ? t('wisdom.approved') : t('wisdom.retired'));
+      setNotice(action === 'approve' ? t('wisdom.approved') : action === 'resync' ? t('wisdom.resynced') : t('wisdom.retired'));
       // Re-read so the badge reflects what Pinecone actually holds now.
       await openDetail(json.entry);
       load(status);
@@ -527,6 +527,15 @@ export default function WisdomPage() {
                             className="px-3 py-1 rounded-full text-xs bg-accent/10 text-accent-deep font-medium hover:bg-accent/20 disabled:opacity-50"
                           >
                             {t('wisdom.approve')}
+                          </button>
+                        )}
+                        {isAdmin && selected.status === 'approved' && (
+                          <button
+                            onClick={() => act('resync')}
+                            disabled={busy}
+                            className="px-3 py-1 rounded-full text-xs bg-accent/10 text-accent-deep font-medium hover:bg-accent/20 disabled:opacity-50"
+                          >
+                            {t('wisdom.resync')}
                           </button>
                         )}
                         {isAdmin && selected.status === 'approved' && (
