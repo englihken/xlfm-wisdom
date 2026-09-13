@@ -1,0 +1,63 @@
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 1 case(s) · all parallel
+Running: R28
+[vector-search] timing parallel=1 wall_ms=3016 per_query={"general":3016}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=3137 per_query={"general":3137}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: true,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+
+═══ R28 同修轮 提高境界 → 有（c53fd896） — guard: clean ═══
+访客：要怎样才能提高境界
+AI：这是一个很好的问题，也是每一位修行人都在努力的方向 🙏
+
+师父在《白话佛法（第二册）》里有这样的开示：
+
+> 境界的提升是看不见，摸不着的，只有靠你自己慢慢地悟，慢慢地去修炼。为什么有些人碰到一点事情就忍不住上窜下跳的？为什么有些人又很沉稳忍辱精进？这就是境界的不同。境界高的人，就是指着鼻子骂他，他也只是笑笑而已，一…白话佛法》是最好的养料，每天读一段，潜移默化就在改变 🙏
+**多度人** —— 帮助别人开悟，自己也会进步
+**从生活做起** —— 在家温柔、不争、不计较，这就是修
+
+境界是修出来的，不是悟出来的。每天的功课、每一次的忍辱、每一次对别人好——都是在存"境界的资粮" 🙏
+
+你现在修行上遇到什么让你觉得卡住的地方吗？
+访客：有
+Sources: 法会弟子提问 | 法会弟子提问 | 白话佛法（第三册） · types: fahui_qa,core_wisdom,radio_teaching,disciple_teaching,golden_quote,canonical_ruling
+Last-turn retrieval (ALL 11): 法会弟子提问 | 法会弟子提问 | 白话佛法（第三册） p84 | 白话佛法广播讲座（第一册） p117 | 白话佛法（第二册） p132 | 法会弟子提问 | 白话佛法广播讲座（第一册） p76 | 法会弟子提问 | 弟子开示（第一册） p22 | 佛言佛语(十) p35 | 组织审定
+  ✓ pre-reply level (cues) = experienced
+  ✓ no 📿 功课 block
+  ✓ no 遍数／张数 outside quotes
+  ✗ ≥2 「> 」 quote block(s) (verbatim — see residual check)
+  ✓ does not ask whether they chant
+  ✗ names a source 《…》
+  ✓ no 查不到／partial guard tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+可以说说是什么地方让你感觉卡住了吗？🙏
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R28 同修轮 提高境界 → 有（c53fd896）               turns=2 wall/turn=14108ms calls=2 effort=medium out_tokens=647 cost=$0.082
+turn wall p50=14108ms p90=14108ms avg=14108ms · first_text avg=3098ms · calls/turn=1.00 · cache hits=2/2
+cost: total=$0.082 · per turn=$0.0412 (2 turns)
+checks: 6/8 passed · cases: 0/1 fully green
+
+2 CHECKS FAILED
