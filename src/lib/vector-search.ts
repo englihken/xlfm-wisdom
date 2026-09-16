@@ -514,8 +514,14 @@ async function pinnedCardsFromFile(): Promise<RetrievedPassage[]> {
 async function withPinnedCanon(ranked: RetrievedPassage[]): Promise<RetrievedPassage[]> {
   const pinned = await getPinnedCanonPassages();
   if (pinned.length === 0) return ranked;
-  const ids = new Set(ranked.map((p) => p.id));
-  return [...ranked, ...pinned.filter((p) => !ids.has(p.id))];
+  // 09-16: the pinned copy WINS over a same-id hit from the ordinary search.
+  // Pinecone's record for a card can lag the source of truth (the DB in
+  // production, docs/canon/pinned-cards.json locally): on 09-16 the stale
+  // Pinecone copy of 15eb9282 still had no 小房子 section, the old dedupe kept
+  // THAT one, so the card's 张数 一般说法 never reached the model and the guard
+  // stripped 「4-10 张」 as ungrounded (R32 failed four times for this reason).
+  const pinnedIds = new Set(pinned.map((p) => p.id));
+  return [...ranked.filter((p) => !pinnedIds.has(p.id)), ...pinned];
 }
 
 // === MAIN SEARCH FUNCTION ===
