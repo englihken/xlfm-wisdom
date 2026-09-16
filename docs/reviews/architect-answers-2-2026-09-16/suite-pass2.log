@@ -1,0 +1,445 @@
+◇ injected env (6) from .env.local // tip: ⌘ override existing { override: true }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 5 case(s) · concurrency=5
+Running: R13, R25, R22, R29, R32
+[vector-search] timing parallel=1 wall_ms=2607 per_query={"general":2607}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  level: 'new',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] pinned cards source=file n=1 (wisdom_15eb9282-581a-4761-a53e-50eb7a74a727)
+[vector-search] timing parallel=2 wall_ms=2845 per_query={"little_house":2538,"general":2843}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=5 wall_ms=2846 per_query={"little_house":2377,"homework_175问":2500,"canonical":2595,"homework_入门手册":2761,"general":2846}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'little_house_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 20,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=3 wall_ms=3074 per_query={"little_house":2546,"general":2854,"canonical":3074}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'little_house_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'experienced',
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=3137 per_query={"little_house":2501,"general":3137}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=4 wall_ms=1366 per_query={"little_house":1056,"homework_入门手册":1070,"homework_175问":1119,"general":1366}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  level: 'beginner',
+  primaryCount: 16,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=1359 per_query={"little_house":1065,"general":1359}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=1119 per_query={"general":1119}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: true,
+  triageFollowup: false,
+  level: 'new',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=361 per_query={"general":361}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method' ],
+  contextual: true,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=358 per_query={"general":358}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method' ],
+  contextual: true,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=2 wall_ms=1324 per_query={"general":1097,"little_house":1324}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  level: 'beginner',
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+
+═══ R13 小房子 → 还没有开始念功课 — guard: clean ═══
+访客：我想开始念小房子
+AI：很好，愿意念小房子是很好的开始 🙏
+
+《小房子念诵指南》里写得很清楚：
+
+> 必须做好基本功课的情况下，才能念诵小房子。尚未开始念诵基本功课的初学者，需从基本功课《大悲咒》、《心经》、《礼佛大忏悔文》念起。打好基本功，小房子才有能量和效果，否则小房子没有效果。在每日功课均有保证的情况下，当天可以念诵一些功课的《大悲咒》后即可开始念诵小房子。
+
+所以关键是：**功课一开始，就可以念小房子**，不用等念很久才开始。
+
+你现在有在做功课吗？（大悲咒、心经、礼佛大忏悔文）
+访客：还没有开始念功课
+Sources: 心灵法门入门手册 | 小房子念诵指南 | 心灵法门入门手册 · types: beginner_guide,xiaofangzi_guide,qa_collection,counseling_manual,case_studies,fahui_qa,buddhist_basics,canonical_ruling
+Last-turn retrieval (ALL 13): 心灵法门入门手册 p23 | 小房子念诵指南 p38 | 心灵法门入门手册 p36 | 小房子念诵指南 p22 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 弘法度人辅导手册 p67 | 心灵法门例说 p334 | 法会弟子提问 | 佛学常识开示锦集（第一册） p132 | 小房子念诵指南 p11 | 小房子念诵指南 p21 | 组织审定
+  ✓ retrieval carries 念诵指南 or 入门手册
+  ✓ gives the 功课 first (words, or 📿 block before 小房子)
+  ✓ opens the three pillars, each with a count (大悲咒/心经/礼佛)
+  ✓ no 「念顺了再加礼佛」
+  ✓ 📿 lines use the full sutra names (Ken 09-12)
+  ✓ at least one N遍
+  ✓ 小房子 can start once 功课 has begun (not "wait until stable")
+  ✓ cites 念诵指南 or 入门手册 (reply or sources)
+  ✓ no 查不到相关原文 / 不敢乱说
+  ✓ no 「资料里没有写明具体数字」 (new refusal phrasing)
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，现在开始就好 🙏
+
+先把功课起来，当天就可以开始念小房子了。
+
+**功课（每天必做）：**
+
+📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力」
+
+📿 《般若波罗蜜多心经》（心经）每天 3 遍
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼」
+⚠️ 晚上 10 点后不念
+
+📿 《礼佛大忏悔文》每天 1 遍
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）帮助我忏悔和消除业障，保佑我身体健康，开智慧」
+⚠️ 晚上 10 点后不念
+
+不会念没关系，有教念视频跟着念：
+🔗 https://xinlingfamen.info/jingwen/
+
+---
+
+**功课做了之后，当天就可以开始念小房子。**
+
+小房子的组成（一张）：
+- 《大悲咒》27 遍
+- 《心经》49 遍
+- 《往生咒》84 遍
+- 《七佛灭罪真言》87 遍
+
+小房子可以免费下载打印：
+🔗 https://xlfm.my/little-house
+
+或者去就近的共修会免费领取实体版：
+🔗 https://xlfm.my/contact-us
+
+---
+
+你想念小房子，主要是为了什么？（比如超度亡人、自己的要经者、化解冤结等）这样我可以帮你写对的抬头和祈请词 🙏
+
+═══ R25 小房子学习者 → 还没（18f74524 原话） — guard: clean ═══
+访客：谢谢你的解析，小房子的篇数是多少？
+AI：一张小房子的经文组成，《念诵指南》写得很清楚：
+
+> 包括《大悲咒》27 遍、《心经》49 遍、《往生咒》84 遍、《七佛灭罪真言》87 遍。
+
+这四个数字要念对，效果才能保证 🙏
+访客：如何念诵，可以教我吗？
+AI：可以的 🙏
+
+**念诵前先祈请：**
+
+根据你要送给谁，念之前说：
+
+- 送给自己的要经者：「请大慈大悲观世音菩萨保佑我 XXX（你的名字），帮助我将这些小房子送给 XXX 的要经者」
+- 送给亡人：「请大慈大悲观世音菩萨保佑我 XXX，帮助我将这些小房子送给 YYY（亡人名字）」
+- 自存小房子：「请大慈大悲观世音…要分开祈求、分开计算
+- 《心经》《往生咒》晚上 10 点后不宜念
+- 一张小房子最好不要拖太久才念完
+
+---
+
+**念诵前提：**
+
+> 尚未开始念诵基本功课的初学者，需从基本功课《大悲咒》、《心经》、《礼佛大忏悔文》念起。打好基本功，小房子才有能量和效果。
+
+你现在有在做基本功课吗？这样我可以帮你更好地安排 🙏
+访客：还没
+Sources: 小房子念诵指南 | 小房子念诵指南 | 白话佛法（第四册） · types: xiaofangzi_guide,core_wisdom,radio_teaching,case_qa,letter_qa,canonical_ruling
+Last-turn retrieval (ALL 13): 小房子念诵指南 p38 | 小房子念诵指南 p22 | 白话佛法（第四册） p174 | 白话佛法广播讲座（第一册） p130 | 玄艺问答 | 白话佛法（第一册） p104 | 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 | 玄艺综述 | 小房子念诵指南 p11 | 小房子念诵指南 p21 | 组织审定
+  ✓ opens the three pillars, each with a count (大悲咒/心经/礼佛)
+  ✓ threshold: 小房子 once 功课 has begun (开始了就可以／当天…大悲咒后即可)
+  ✓ no 「念顺了再加礼佛」
+  ✓ 📿 lines use the full sutra names (Ken 09-12)
+  ✓ contains 祈求词
+  ✓ no 查不到相关原文 / 没有写明具体数字
+  ✓ [turn 1] 27／49／84／87 each paired with its sutra, no placeholder
+  ✓ final text passes guard (0 residual)
+--- reply ---
+没关系，从现在开始就好 🙏
+
+先把基本功课念起来，小房子才有能量。好消息是——**功课一开始，就可以念小房子了，不用等熟练**。
+
+---
+
+**基本功课，先这样开始：**
+
+📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的姓名）身体健康，增强功力」
+
+📿 《般若波罗蜜多心经》（心经）每天 3 遍
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的姓名）开智慧，头脑清醒冷静，去除烦恼」
+⚠️ 晚上 10 点后不念
+
+📿 《礼佛大忏悔文》每天 1 遍
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（你的姓名）帮助我忏悔和消除我身上的业障，保佑我身体健康，开智慧」
+⚠️ 晚上 10 点后不念
+
+---
+
+**不会念没关系，这里有教念视频跟着念：**
+🔗 https://xinlingfamen.info/jingwen/
+
+---
+
+功课念起来了，当天就可以开始念小房子 🙏
+
+你想念小房子是为了什么情况？这样我可以帮你确认敬赠怎么写。
+
+═══ R22 已在修梦见蛇 → 加什么（d7897fd1） — guard: clean ═══
+访客：梦到买一条蛇，不知道放哪里，实然看到飞进房间，感觉他是照顾我。请问这是什么意思
+AI：这个梦很有意思 🙏
+
+台长在《解答来信疑惑》里对蛇的梦有不同的解读——有时代表麻烦，有时代表有灵性跟随，要看具体情境。
+
+你梦里这条蛇是你**主动买的**，而且感觉它是来**照顾你**的——这个感觉很重要。台长曾开示过，有时候梦见蛇在保护你、对你友善，可能是有灵性（好的）在身边。
+
+不过台长也说过，有时候感觉"蛇在照…大灵感观世音菩萨摩诃萨保佑我（姓名）开智慧，头脑清醒冷静，去除烦恼」
+
+📿 《往生净土神咒》（往生咒）每天 21 遍（晚上 10 点后不念）
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我（姓名）超度因我而死去的小灵性，帮助我消除孽障」
+
+---
+
+你平时有在念经吗？这样我可以更了解你的情况 🙏
+访客：有
+AI：好的 🙏
+
+那你平时念哪些经文？有没有念小房子？
+
+这样我可以帮你更好地了解这个梦对你的意义 🙏
+访客：大悲咒21
+AI：好，大悲咒21遍，功力不错 🙏
+
+有没有念心经、礼佛大忏悔文，或者小房子？
+访客：心经21
+Sources: 佛学问答175问 | 心灵法门例说 | 小房子念诵指南 · types: qa_collection,case_studies,xiaofangzi_guide,buddhist_basics,fahui_qa,case_qa,disciple_teaching,canonical_ruling
+Last-turn retrieval (ALL 11): 佛学问答175问 p143 | 心灵法门例说 p114 | 小房子念诵指南 p61 | 佛学常识开示锦集（第一册） p150 | 法会弟子提问 | 玄艺问答 | 弟子开示（第二册） p32 | 玄艺问答 | 法会弟子提问 | 佛学常识开示锦集（第一册） p143 | 组织审定
+  ✓ names ≥2 sutras from the source text
+  ✓ counts only as a general range, no personal 「你每天 N 遍」 / 📿 count line
+  ✓ 📿 lines use the full sutra names (Ken 09-12)
+  ✓ no orphan 祈求词
+  ✓ no blanket 查不到 tail
+  ✓ placeholder (if any) sits next to a sutra name, never alone
+  ✓ final text passes guard (0 residual)
+--- reply ---
+好，大悲咒和心经都是21遍，功课很扎实 🙏
+
+有没有念小房子？或者礼佛大忏悔文？
+
+═══ R29 同修轮 安老院佛台结缘（长者关怀，37a5bc19） — guard: clean ═══
+访客：你好休息，心灵法门已有好几年。目前因为年事已高，家人又没有修行，所以只有入住安老院，但是现在供奉的佛台要结缘出去，请问我应该念多少张小房子和进正处该写什么才能如理如法的请下供台，感恩。
+Sources: 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 · types: canonical_ruling,letter_qa,fahui_qa,xiaofangzi_guide
+Last-turn retrieval (ALL 12): 组织审定 | 组织审定 | 组织审定 | 组织审定 | 解答来信疑惑 | 法会弟子提问 | 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 | 解答来信疑惑 | 小房子念诵指南 p11 | 小房子念诵指南 p21
+  ✓ pre-reply level (cues) = experienced
+  ✓ pre-reply needs_care (cues)
+  ✓ invites a volunteer to follow up (义工)
+  ✓ case numbers not turned into her 功课 (no 📿 count line / 「你可以念 N」)
+  ✗ body ≤ 300 chars (长者关怀)
+  ✓ no 查不到／partial guard tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+您好 🙏 感恩您多年来的修行，这份坚持真的很不容易。
+
+入住安老院，要把佛台结缘出去，这是一个需要如理如法处理的事情，您问得很好。
+
+台长在《解答来信疑惑》里对请下佛台有这样的开示：
+
+> 大家一起帮忙念诵21张小房子就结束了，还有大悲咒、心经、礼佛大忏悔文各7遍。
+
+这是台长针对请下佛台的开示——念诵**大悲咒、心经、礼佛大忏悔文各7遍**，再念**21张小房子**，敬赠写**「某某某房子的要经者」**（填您自己的名字）。
+
+---
+
+关于菩萨像结缘出去的部分，台长也有开示过：
+
+> 佛菩萨都不可以供在外面的。可以请下来并念49张小房子，敬赠"某某某房子的要经者"。
+
+这里的意思是，如果菩萨像是供在户外或不合适的地方，才需要49张。**室内佛台一般按21张处理就可以**，如果不确定，可以请就近的共修会义工来协助确认。
+
+---
+
+您年事已高，一个人在安老院，共修会的义工是可以上门帮忙的。如果您需要人陪同念诵或协助请台，欢迎联系就近的分会 🙏
+
+请问您在哪个城市？我帮您找最近的分会联系方式。
+
+南无大慈大悲观世音菩萨 🙏
+
+═══ R32 小房子张数给一般说法（353886cf） — guard: clean ═══
+Q: ​您好：
+
+​请教同修一个关于梦境的疑问。我做了一个梦，醒来后直觉与一位前同事有关，想请示这个梦境的具体含义以及是否需要念诵经文组合（小房子）化解。
+
+​梦境具体内容：
+​我梦见自己正开车行驶在高速公路上，不知为何车子突然开上了一座高山。
+
+​随后出现了一名身穿白衣的男子，他质问我开的车是不是“偷了去问神的人的车”。
+
+​现实背景与关联：
+​之前因工作交接，我曾去过一位女同事的家。她家设有私人神坛/道场，父亲从事通灵、问事、帮人补运及冲花水等活动。家中供奉的神像脸上贴有符咒，
+
+​当时去她家时，对方父亲曾强行拉起我的手看相（非我自愿）。我当时心里很抗拒，便在心中不断向观世音菩萨与南京菩萨祈祷，并全程默默持诵《大悲咒》。
+
+​梦醒后，白衣男子提到“问神的人的车”，让我立刻联想到这位同事及其父亲。
+
+​想请教的问题：
+​这个梦境是否与这位通灵人及其父亲有关？是否意味着对方的气场或灵性对我产生了影响？
+​梦中白衣男子的质问是什么提示？针对这个梦境，我需要念诵多少张经文组合（小房子）以及哪些经文来化解？
+​感恩合十
+郑同修 敬上
+Sources: 组织审定 | 组织审定 | 心灵法门入门手册 · types: canonical_ruling,beginner_guide,xiaofangzi_guide,qa_collection
+  ✗ gives the 《入门手册》 general statement (4-10 张 / 坚持给自己的要经者念)
+  ✓ no 「只能台长看图腾才能开示」-style refusal of the count
+  ✓ still defers the personal number (师父开示／义工)
+  ✓ no totem reading applied to the visitor
+  ✓ no blanket 查不到 tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+郑同修，合十 🙏
+
+感谢你详细说明背景，能感受到你对这件事的重视，以及当时在那个环境里内心一直持守着对菩萨的依靠——这本身就很好。
+
+---
+
+关于梦境的含义，我没有神通，无法判断梦境的具体来源或解读白衣男子代表什么。台长也开示过，梦境的解读因人因时而异，不宜轻易下定论。
+
+我能做的，是分享台长对**类似情况**的处理原则。
+
+台长在开示中提到，去过有神坛、供奉不同神灵的地方之后，或者接触过从事通灵问神的人之后，自身的磁场可能会受到干扰。这不一定代表有什么严重的事，但**加强自己的功力、多念经文**是最稳妥的做法。
+
+你当时在现场已经做得很好——心里祈求菩萨、默持大悲咒，这是正确的。
+
+---
+
+**现在可以这样做：**
+
+📿 **《千手千眼无碍大悲心陀罗尼》（大悲咒）**
+增加遍数几天，念前祈请：
+「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我郑某某身体健康，增强功力，净化磁场」
+
+📿 **《往生净土神咒》（往生咒）**
+念前祈请：
+「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我郑某某超度因我而来的小灵性，帮助我消除孽障」
+
+---
+
+**关于小房子张数：**
+
+台长的开示是，**先保证自己每天的基本功课**，功课稳定的情况下，才能有效念诵小房子。
+
+张数这件事，因人的情况不同而有很大差异，我不宜随意给一个数字。建议你联系就近的共修会义工，把背景说明清楚，义工可以面谈给出更具体的指引。
+
+🔗 共修会联系：https://xlfm.my/contact-us
+
+---
+
+有一点想分享：你在那个环境里，心里一直持守着菩萨，这说明你的根基是稳的。台长常说，**正气足的人，菩萨会保护**。接下来多念大悲咒巩固磁场，静心就好，不必过度担忧。
+
+菩萨保佑郑同修 🙏
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R13 小房子 → 还没有开始念功课                       turns=2 wall/turn=16853ms calls=2 effort=low out_tokens=899 cost=$0.405
+  R25 小房子学习者 → 还没（18f74524 原话）             turns=3 wall/turn=16432ms calls=3 effort=low/medium out_tokens=1229 cost=$0.446
+  R22 已在修梦见蛇 → 加什么（d7897fd1）               turns=4 wall/turn=7028ms calls=4 effort=medium out_tokens=741 cost=$0.471
+  R29 同修轮 安老院佛台结缘（长者关怀，37a5bc19）           turns=1 wall/turn=16570ms calls=1 effort=high out_tokens=498 cost=$0.350
+  R32 小房子张数给一般说法（353886cf）                 turns=1 wall/turn=22575ms calls=1 effort=high out_tokens=786 cost=$0.355
+turn wall p50=16570ms p90=22575ms avg=15891ms · first_text avg=4748ms · calls/turn=1.00 · cache hits=6/11
+cost: total=$2.029 · per turn=$0.1844 (11 turns)
+pinned cards attached: 1 (source=file; wisdom_15eb9282-581a-4761-a53e-50eb7a74a727)
+checks: 37/39 passed · cases: 3/5 fully green
+
+2 CHECKS FAILED

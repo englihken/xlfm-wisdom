@@ -1,0 +1,111 @@
+◇ injected env (6) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 1 case(s) · all parallel
+Running: R32
+[vector-search] timing parallel=5 wall_ms=2351 per_query={"homework_入门手册":2078,"homework_175问":2120,"canonical":2296,"little_house":2299,"general":2350}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'little_house_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 20,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] pinned cards source=file n=1 (wisdom_15eb9282-581a-4761-a53e-50eb7a74a727)
+[verbatim-guard] conversation=regression-test:R32 violation=quote attempt=1 reason=quote_not_verbatim text="去了气场不干净的地方之后，要多念《大悲咒》增强自身功力，把自己的能量补回来。"
+[verbatim-guard] conversation=regression-test:R32 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"去了气场不干净的地方之后，要多念《大悲咒》增强自身功力，把自己的能量补回来。","reason":"quote_not_verbatim"}],"chunkTokens":["49张","69张","78张","21张","7遍","87遍","49遍","27遍","9遍","3遍","84遍","1遍","21遍","108遍","3张","5遍","4张","10张","7张","10遍","1张"],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false}
+
+═══ R32 小房子张数给一般说法（353886cf） — guard: passed_after_retry ═══
+Q: ​您好：
+
+​请教同修一个关于梦境的疑问。我做了一个梦，醒来后直觉与一位前同事有关，想请示这个梦境的具体含义以及是否需要念诵经文组合（小房子）化解。
+
+​梦境具体内容：
+​我梦见自己正开车行驶在高速公路上，不知为何车子突然开上了一座高山。
+
+​随后出现了一名身穿白衣的男子，他质问我开的车是不是“偷了去问神的人的车”。
+
+​现实背景与关联：
+​之前因工作交接，我曾去过一位女同事的家。她家设有私人神坛/道场，父亲从事通灵、问事、帮人补运及冲花水等活动。家中供奉的神像脸上贴有符咒，
+
+​当时去她家时，对方父亲曾强行拉起我的手看相（非我自愿）。我当时心里很抗拒，便在心中不断向观世音菩萨与南京菩萨祈祷，并全程默默持诵《大悲咒》。
+
+​梦醒后，白衣男子提到“问神的人的车”，让我立刻联想到这位同事及其父亲。
+
+​想请教的问题：
+​这个梦境是否与这位通灵人及其父亲有关？是否意味着对方的气场或灵性对我产生了影响？
+​梦中白衣男子的质问是什么提示？针对这个梦境，我需要念诵多少张经文组合（小房子）以及哪些经文来化解？
+​感恩合十
+郑同修 敬上
+Sources: 小房子念诵指南 | 小房子念诵指南 | 小房子念诵指南 · types: canonical_ruling,beginner_guide,xiaofangzi_guide,qa_collection
+  ✗ gives the 《入门手册》 general statement (4-10 张 / 坚持给自己的要经者念)
+  ✓ no 「只能台长看图腾才能开示」-style refusal of the count
+  ✓ still defers the personal number (师父开示／义工)
+  ✓ no totem reading applied to the visitor
+  ✓ no blanket 查不到 tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+郑同修，您好 🙏
+
+感恩您分享这个梦境，也感恩您当时在那个气场不净的地方，能够保持正念，持诵《大悲咒》向菩萨祈求。这份定力很难得。
+
+---
+
+关于梦境，我需要诚实告诉您：**我没有任何神通，看不到您的图腾，也无法判断梦境的具体含义或来源。** 台长教导我们，梦境有很多种——有的是冤亲债主来找，有的是自身业障，有的只是日有所思、夜有所梦。具体是哪种情况，只有台长这样有功力的人才能分辨。
+
+所以我不会替您解梦或判断"是否被影响"——这不是我能做的事，乱说反而误导您。
+
+---
+
+**但有一件事是确定的：**
+
+台长开示中提到，去过气场不干净的地方（私人神坛、道场、通灵者家中等），回来之后确实需要好好念《大悲咒》来增强自身功力、净化能量。这一点您已经在当时做了（全程默念），是对的。
+
+现在梦醒后有所感应，继续加强功课是正确的方向。
+
+---
+
+**实际可以做的：**
+
+📿 **《千手千眼无碍大悲心陀罗尼》（大悲咒）**
+多念几遍，比平时增加，念前祈请：
+「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我郑某某身体健康，增强功力，净化身上的不净气场」
+
+📿 **《往生净土神咒》（往生咒）**
+如果感觉身上可能带了什么不干净的东西，念往生咒超度随身的小灵性，是比较稳妥的做法。
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我郑某某超度因我而来的小灵性，帮助我消除孽障」
+
+---
+
+**关于小房子张数：**
+
+《小房子念诵指南》里有一条原则：
+
+> 如果感觉身体不适，比如头疼发烧，或者梦见亡人、曾经流产、身体重病、出现灾劫、夫妻争吵等情况，均需抓紧时间多念诵小房子。
+
+如果您平时已有在念小房子（给自己的要经者），这段时间可以适当多烧几张。具体张数因人因情况而异，**建议您联系就近的共修会义工，他们可以协助您判断**，这比我随口给一个数字要稳妥得多。
+
+🔗 查询共修会：https://xlfm.my/contact-us
+
+---
+
+您当时在那个环境里保持正念持诵《大悲咒》，菩萨一定是知道的。继续把功课做好，相信菩萨的保佑 🙏
+
+南无大慈大悲观世音菩萨
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R32 小房子张数给一般说法（353886cf）                 turns=1 wall/turn=50149ms calls=2 effort=high out_tokens=2062 cost=$0.128
+turn wall p50=50149ms p90=50149ms avg=50149ms · first_text avg=2045ms · calls/turn=2.00 · cache hits=2/2
+cost: total=$0.128 · per turn=$0.1277 (1 turns)
+pinned cards attached: 1 (source=file; wisdom_15eb9282-581a-4761-a53e-50eb7a74a727)
+checks: 5/6 passed · cases: 0/1 fully green
+
+1 CHECKS FAILED

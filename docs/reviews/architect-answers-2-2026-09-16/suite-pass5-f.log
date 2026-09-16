@@ -1,0 +1,111 @@
+◇ injected env (6) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 1 case(s) · all parallel
+Running: R32
+[vector-search] timing parallel=5 wall_ms=2869 per_query={"homework_175问":2183,"canonical":2192,"homework_入门手册":2202,"little_house":2376,"general":2869}
+[vector-search] {
+  userLang: 'zh',
+  topics: [
+    'practice_method',
+    'homework_baseline',
+    'little_house_baseline',
+    'canonical_ritual_numbers'
+  ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 20,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] pinned cards source=file n=1 (wisdom_15eb9282-581a-4761-a53e-50eb7a74a727)
+
+═══ R32 小房子张数给一般说法（353886cf） — guard: clean ═══
+Q: ​您好：
+
+​请教同修一个关于梦境的疑问。我做了一个梦，醒来后直觉与一位前同事有关，想请示这个梦境的具体含义以及是否需要念诵经文组合（小房子）化解。
+
+​梦境具体内容：
+​我梦见自己正开车行驶在高速公路上，不知为何车子突然开上了一座高山。
+
+​随后出现了一名身穿白衣的男子，他质问我开的车是不是“偷了去问神的人的车”。
+
+​现实背景与关联：
+​之前因工作交接，我曾去过一位女同事的家。她家设有私人神坛/道场，父亲从事通灵、问事、帮人补运及冲花水等活动。家中供奉的神像脸上贴有符咒，
+
+​当时去她家时，对方父亲曾强行拉起我的手看相（非我自愿）。我当时心里很抗拒，便在心中不断向观世音菩萨与南京菩萨祈祷，并全程默默持诵《大悲咒》。
+
+​梦醒后，白衣男子提到“问神的人的车”，让我立刻联想到这位同事及其父亲。
+
+​想请教的问题：
+​这个梦境是否与这位通灵人及其父亲有关？是否意味着对方的气场或灵性对我产生了影响？
+​梦中白衣男子的质问是什么提示？针对这个梦境，我需要念诵多少张经文组合（小房子）以及哪些经文来化解？
+​感恩合十
+郑同修 敬上
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: canonical_ruling,beginner_guide,xiaofangzi_guide,qa_collection
+  ✓ gives the 《入门手册》 general statement (4-10 张 / 坚持给自己的要经者念)
+  ✓ no 「只能台长看图腾才能开示」-style refusal of the count
+  ✓ still defers the personal number (师父开示／义工)
+  ✓ no totem reading applied to the visitor
+  ✓ no blanket 查不到 tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+郑同修，感恩您合十 🙏
+
+您在去那位同事家时，心里抗拒，全程默念大悲咒向菩萨祈请——这一点做得很好，说明您有保护自己的意识，功力也在发挥作用。
+
+---
+
+**关于梦境的含义——我必须诚实告诉您：**
+
+AI 没有任何神通，无法解读梦境的具体含义，也看不到您的图腾或灵性状况。台长曾明确教导，梦境的解读非常个人化，不同的人有不同的因果背景，随便解读反而容易造成不必要的恐惧或误导。
+
+所以我不会告诉您"白衣男子代表什么"、"那位父亲是否影响了您"——这些我都不知道，乱说反而不好。
+
+---
+
+**但有一点是肯定的：**
+
+台长教导我们，接触过通灵、神坛、问事等环境之后，多念经、多保护自己，是非常正确的做法。不管梦境含义如何，加强功课、念小房子，都只有好处，没有坏处。
+
+---
+
+**建议您这样做：**
+
+📿 **《千手千眼无碍大悲心陀罗尼》（大悲咒）** 每天 7 遍，重点加强
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我郑某某身体健康，增强功力，去除身上一切不干净的东西」
+
+📿 **《般若波罗蜜多心经》（心经）** 每天 7 遍（晚上 10 点前）
+
+📿 **《礼佛大忏悔文》** 每天按您目前的遍数继续（不需要因为这个梦特别增加）
+
+📿 **《往生净土神咒》（往生咒）** 每天 21-49 遍
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我郑某某超度因我而受到影响的一切小灵性，消除孽障」
+
+---
+
+**关于小房子的张数：**
+
+《心灵法门入门手册》的一般说法：一般先给自己的要经者念 4-10 张小房子；如有梦见亡人，一般至少 7 张。
+
+您的情况——梦境涉及通灵环境的接触——可以给自己的要经者念小房子，保护自己、消除业障。**具体张数建议您联系就近的共修会义工面谈**，他们能根据您的整体情况给出更准确的建议。
+
+📞 马来西亚各地分会：https://xlfm.my/contact-us
+
+---
+
+**最后想说的是：**
+
+您当时本能地念大悲咒，这本身就是菩萨在保护您。继续把功课做好，菩萨会护持您的 🙏
+
+南无大慈大悲观世音菩萨
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R32 小房子张数给一般说法（353886cf）                 turns=1 wall/turn=23159ms calls=1 effort=high out_tokens=933 cost=$0.062
+turn wall p50=23159ms p90=23159ms avg=23159ms · first_text avg=1576ms · calls/turn=1.00 · cache hits=1/1
+cost: total=$0.062 · per turn=$0.0619 (1 turns)
+pinned cards attached: 1 (source=file; wisdom_15eb9282-581a-4761-a53e-50eb7a74a727)
+checks: 6/6 passed · cases: 1/1 fully green
+
+ALL PASS

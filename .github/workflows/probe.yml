@@ -1,0 +1,28 @@
+# Nightly production probe (brief 2026-09-13-architect-answers-2 §B.1).
+# Vercel's two Hobby crons are taken (summarize 16:00 UTC, review 16:30 UTC, whose
+# chip refresh already spends its 270 s budget), so the probe runs here instead:
+# three questions through the real production /api/chat as a synthetic visitor
+# (browserId test-suite:probe → contacts.is_test, never in the inbox or reviews),
+# asserting the standard numbers land paired, with no placeholder and no tail.
+# A failure turns the run red and GitHub emails the repo owner.
+# No secrets: /api/chat is public.
+name: probe-prod
+
+on:
+  schedule:
+    # 17:00 UTC = 01:00 MYT, after the nightly review + chip refresh.
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/probe-prod.ts
