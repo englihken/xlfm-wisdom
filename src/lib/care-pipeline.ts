@@ -144,15 +144,31 @@ export function citationBookMismatches(
   return out;
 }
 const CITATION_DATE_RE = /开示于\s*\d{4}\s*年|\d{4}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日|\d{4}\s*年\s*\d{1,2}\s*月|\d{4}-\d{2}-\d{2}|节目日期/;
-export function citationsMissingDate(text: string): string[] {
+export function citationsMissingDate(text: string, passages: RetrievedPassage[] = []): string[] {
   const out: string[] = [];
   for (const line of text.split('\n')) {
     if (!WEBSITE_SOURCE_RE.test(line)) continue;
     // Quoted passages (> …) are the visitor-facing 原话, not the citation line.
     if (/^\s*>/.test(line) && !/参考|来源|——|—— /.test(line)) continue;
-    if (!CITATION_DATE_RE.test(line)) out.push(line.trim().slice(0, 80));
+    if (CITATION_DATE_RE.test(line)) continue;
+    // 09-16 architect answer C2: only a citation whose SOURCE carries a date can
+    // be missing one. A 《解答来信疑惑》 post with no 开示 date is complete with
+    // its 篇号 alone — those were most of the 31% flagged on 09-13.
+    if (passages.length > 0 && !citationHasDatedSource(line, passages)) continue;
+    out.push(line.trim().slice(0, 80));
   }
   return out;
+}
+
+/** Does a retrieved passage matching this citation line carry a date at all? */
+function citationHasDatedSource(line: string, passages: RetrievedPassage[]): boolean {
+  const dated = passages.filter((p) => p.original_date || p.wp_date);
+  if (dated.length === 0) return false;
+  const letter = line.match(/解答来信疑惑[（(]第?([零〇一二两三四五六七八九十百千\d]+)篇?[)）]/);
+  if (letter) return dated.some((p) => /解答来信疑惑/.test(p.book) && (p.post_title ?? '').includes(`（${letter[1]}）`));
+  const family = (line.match(/玄艺问答|玄艺综述|玄学问答|精彩节目摘录/) ?? [])[0];
+  if (family) return dated.some((p) => p.book.includes(family) || (p.post_title ?? '').includes(family));
+  return false;
 }
 // 09-12 strip-tails §C: programmatic date fill. When a citation line still has
 // no date after the model retry, take the date from the retrieved passage's
@@ -553,7 +569,11 @@ export async function generateGuardedReplyText(params: {
     .map((p) => p.text);
   // F01: case records (玄艺综述 / 玄艺问答) ground a count only when the
   // sentence narrates the case — never as advice.
-  const caseTexts = passages.filter((p) => p.type === 'case_qa').map((p) => p.text);
+  // 09-16 architect answer A3: 解答来信疑惑 (letter_qa) is a case record too —
+  // 「请下多尊菩萨像 → 21 张、各 7 遍」 was one 同修's situation, and R29 had it
+  // handed to an elderly visitor as her own 功课. Case numbers may be narrated,
+  // never advised; general ceilings ("不能超过 108 遍") narrate the same way.
+  const caseTexts = passages.filter((p) => p.type === 'case_qa' || p.type === 'letter_qa').map((p) => p.text);
   const guardOpts = { canonicalTexts, caseTexts };
 
   const decision: GuardDecisionLog = {
@@ -592,7 +612,7 @@ export async function generateGuardedReplyText(params: {
     const dated = fillCitationDates(scrub0.text, passages);
     if (dated.filled.length > 0) console.log(`[care-pipeline] conversation=${convId} citation dates filled from metadata: ${JSON.stringify(dated.filled)}`);
     const scrub = { ...scrub0, text: dated.text };
-    const stillMissing = citationsMissingDate(scrub.text);
+    const stillMissing = citationsMissingDate(scrub.text, passages);
     if (stillMissing.length > 0) {
       flags.push('citation_no_date');
       console.error(`[care-pipeline] conversation=${convId} citation_no_date after retry: ${JSON.stringify(stillMissing)}`);
@@ -634,7 +654,7 @@ export async function generateGuardedReplyText(params: {
   // Citation date soft check: one format-reminder regeneration, before the
   // verbatim guard looks at the draft (the guard then checks whatever came back).
   {
-    const missing = citationsMissingDate(textOf(result));
+    const missing = citationsMissingDate(textOf(result), passages);
     if (missing.length > 0) {
       console.error(`[care-pipeline] conversation=${convId} citation without date (${missing.length}) — regenerating once with the format reminder`);
       const retried = await callModel(buildCitationDateInstruction(missing));
@@ -850,8 +870,11 @@ export function decideTurnLevel(messages: CareMessage[], persisted?: PersistedLe
   const visitorTurns = messages.filter((m) => m.role === 'user').map((m) => m.content);
   const cues = levelFromCues(visitorTurns);
   const care = needsCareFromCues(visitorTurns);
-  const level = maxLevel(cues.level, persisted?.level, persisted?.stageLevel);
-  const source = level === cues.level ? 'cues' : level === persisted?.stageLevel ? 'stage' : 'persisted';
+  // 09-16 architect answer A2: a volunteer-set contacts.stage WINS in both
+  // directions — they have met the person, so it may LOWER the level too. Cues
+  // and the persisted level only decide when no stage is set.
+  const level = persisted?.stageLevel ?? maxLevel(cues.level, persisted?.level);
+  const source: TurnLevel['source'] = persisted?.stageLevel ? 'stage' : level === cues.level ? 'cues' : 'persisted';
   return {
     level,
     needsCare: care.needsCare || persisted?.needsCare === true,
@@ -865,8 +888,13 @@ export function levelContextBlock(turn: Pick<TurnLevel, 'level' | 'needsCare'>):
   const parts: string[] = [];
   if (turn.level === 'experienced') {
     parts.push('【本轮判级：同修轮】访客是已在修行的同修。按系统提示词【同修轮】回答：不出 📿 功课块，不写遍数张数（访客明确问数字除外），不问「有没有念经」；师父原文 2–3 段，引文逐字、带出处，再用白话讲怎么用在他身上。访客若只是简短回答你上一轮的问题（「有」「是的」），直接接着讲，不要再反问。');
+    parts.push('【小房子张数】若访客问「要念多少张」：先给《心灵法门入门手册》的一般说法（一般初学者先念 4-10 张给自己的要经者；梦见亡人一般至少 7 张、亲人 21 张及以上；确定不了数量就坚持给自己的要经者念），再说个人具体张数以师父开示或义工面谈为准；不要只说「因人而异，请联系义工」。佛台请下／结缘／搬迁／换像的张数一律请义工面谈。');
   } else if (turn.level === 'practising') {
     parts.push('【本轮判级：practising】访客已在念功课。默认不给遍数；访客问「念几遍／几张」或话题本身是教义数字（小房子规格、礼佛特殊日子、369）时才给，给就按功课卡／《佛学问答》161。');
+    // 09-16 C2: 「因人而异，请联系义工」 alone is 该答不答 — the 《入门手册》 general
+    // statement is official and comes first. R32 still refused it with the rule
+    // only in the prompt (it reads as 入门轮-scoped), so it rides the turn block.
+    parts.push('【小房子张数】访客问「要念多少张」时，先给《心灵法门入门手册》的一般说法（一般初学者先念 4-10 张给自己的要经者；打胎流产每个胎儿至少 7 张、最好 21 张以上；梦见亡人一般至少 7 张、亲人 21 张及以上；确定不了数量就坚持给自己的要经者念），再说个人具体张数以师父开示或义工面谈为准。不要只说「因人而异，请联系义工」。');
   }
   if (turn.needsCare) {
     parts.push('【关怀】访客可能是长者或需要关怀：正文不超过 300 字（引文不计），句子短，一段师父原文就够；不自创遍数张数；结尾邀请义工联系（「共修会的义工可以来看您／打电话给您」）。');

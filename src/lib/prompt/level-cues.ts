@@ -52,6 +52,10 @@ export const PRACTISING_CUES: Cue[] = [
   { name: '念了小房子', re: /念了[^。，,！？]{0,6}(张|遍)[^。，,！？]{0,4}小房子/ },
   { name: '有佛台', re: /有佛台|供(了|奉)?[^。，,！？]{0,2}(佛台|观世音菩萨)/ },
   { name: '问遍数张数', re: /几张|多少张|几遍|多少遍|各念多少/ },
+  // 09-16: answering 「你现在念什么？」 with 「大悲咒21」「心经21」 is a whole turn
+  // that says "I already have a 功课" — R22's visitor was judged `new` without it,
+  // so no practising instruction reached the model and it wrote 📿 count lines.
+  { name: '报自己的遍数', re: /(^|\n)(大悲咒|心经|礼佛大忏悔文|礼佛|往生咒|解结咒|准提神咒|消灾吉祥神咒|七佛灭罪真言|小房子)[^。，,！？\n]{0,4}\d{1,3}(遍|张)?($|\n)/ },
   ...kw('小房子'),
 ];
 
@@ -77,14 +81,21 @@ const hitsOf = (cues: Cue[], text: string) => cues.filter((c) => c.re.test(text)
 export function levelFromCues(visitorTurns: string[]): { level: VisitorLevel; hits: string[] } {
   const text = visitorTurns.map((t) => t.replace(/\s+/g, '')).join('\n');
   const exp = hitsOf(EXPERIENCED_CUES, text);
-  if (exp.length > 0) return { level: 'experienced', hits: exp.map((h) => `experienced:${h}`) };
   const beg = hitsOf(BEGINNER_CUES, text);
   const selfReport = visitorTurns.some((t) => BEGINNER_SELF_REPORT_RE.test(t.replace(/\s+/g, '')));
-  const pra = hitsOf(PRACTISING_CUES, text);
-  if (pra.length > 0 && !selfReport) return { level: 'practising', hits: pra.map((h) => `practising:${h}`) };
-  if (beg.length > 0 || selfReport) {
-    return { level: 'beginner', hits: [...beg.map((h) => `beginner:${h}`), ...(selfReport ? ['beginner:自述没开始'] : [])] };
+  // 09-16 architect answer A1: a visitor who says in their own words that they
+  // have not started IS a beginner — the jargon in their question (清修, 要经者,
+  // 小房子…) must never lift them to 同修. The cap is beginner, not practising.
+  if (selfReport) {
+    return {
+      level: 'beginner',
+      hits: [...beg.map((h) => `beginner:${h}`), 'beginner:自述没开始', ...exp.map((h) => `capped-experienced:${h}`)],
+    };
   }
+  if (exp.length > 0) return { level: 'experienced', hits: exp.map((h) => `experienced:${h}`) };
+  const pra = hitsOf(PRACTISING_CUES, text);
+  if (pra.length > 0) return { level: 'practising', hits: pra.map((h) => `practising:${h}`) };
+  if (beg.length > 0) return { level: 'beginner', hits: beg.map((h) => `beginner:${h}`) };
   return { level: 'new', hits: [] };
 }
 

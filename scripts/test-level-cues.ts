@@ -64,6 +64,24 @@ for (const q of ['我最近失眠很严重，念什么经好？', '和家人一�
 assert('R17 小房子组合＋多少遍 → practising', levelFromCues(['小房子的经文组合是什么？每种经文各念多少遍？']).level === 'practising');
 assert('「帮我超度一位亡人」 is not 度人', levelFromCues(['请问怎么帮我超度一位亡人']).level !== 'experienced', levelFromCues(['请问怎么帮我超度一位亡人']));
 
+console.log('\n— 09-16 A1: own words beat the jargon (cap at beginner) —');
+{
+  const capped = levelFromCues(['清修的同修问：我要怎么开始？我还没开始念功课']);
+  assert('清修 jargon + 「还没开始」 → beginner, not experienced', capped.level === 'beginner', capped);
+  assert('…and the capped experienced cue is visible in hits', capped.hits.some((h) => h.startsWith('capped-experienced:')), capped);
+  const xfz = levelFromCues(['小房子要念多少张？', '我没念过经']);
+  assert('小房子／几张 + 「没念过经」 → beginner', xfz.level === 'beginner', xfz);
+  assert('without the self-report, 清修 stays experienced', levelFromCues(['清修遇到缘分怎么办']).level === 'experienced');
+}
+
+console.log('\n— 09-16: a visitor reporting their own counts is practising —');
+{
+  const r22 = levelFromCues(['梦到买一条蛇，不知道放哪里，实然看到飞进房间，感觉他是照顾我。请问这是什么意思', '有', '大悲咒21', '心经21']);
+  assert('R22「大悲咒21」「心经21」 → practising (was new)', r22.level === 'practising', r22);
+  assert('「我念了7张小房子」 → practising', levelFromCues(['我念了7张小房子']).level === 'practising');
+  assert('「大悲咒是什么」 (no count) stays new', levelFromCues(['大悲咒是什么']).level === 'new', levelFromCues(['大悲咒是什么']));
+}
+
 console.log('\n— stage & maxLevel —');
 assert('stage steady_practice (同修) → experienced', stageToLevel('steady_practice') === 'experienced');
 assert('stage volunteer → experienced', stageToLevel('volunteer') === 'experienced');

@@ -493,6 +493,10 @@ const XFZ_CASE: Case = {
 // words from production. The level must already be experienced BEFORE the
 // reply (cues), not only after the post-reply classifier.
 const COUNT_ANY_RE = /([0-9０-９]+|[一二两三四五六七八九十百]+)(遍|张|張)/;
+// 09-16 B2: a count written AT the visitor (「你每天念 21 遍」「建议你念 7 张」) —
+// as opposed to a general range quoted from the sources (「一般 21、27 或 49 遍」).
+const PERSONAL_COUNT_RE =
+  /[你您][^。！？\n]{0,10}(每天|可以|应该|需要|建议)[^。！？\n]{0,10}\d+\s*[遍张]|建议[你您][^。！？\n]{0,12}\d+\s*[遍张]|给[你您][^。！？\n]{0,10}\d+\s*[遍张]/;
 const ASKS_IF_CHANTING_RE = /(有没有|有在|是否|之前有|平时有)[^。？?\n]{0,6}(念经|念过经|做功课|念功课)|念过经吗|在做功课吗|有在念[^。？?\n]{0,4}吗|帮你看看功课/;
 const GUARD_TAIL_RE = /查不到相关原文|个别涉及遍数／张数的细节因暂未能核对到原文/;
 const proseOnly = (r: string) => r.split('\n').filter((l) => !/^\s*>/.test(l)).join('\n').replace(/\s+/g, '');
@@ -517,7 +521,23 @@ const FELLOW_CASES: Case[] = [
   fellow('R27 同修轮 如何修光明心（5fa0f9ca）', ['如何修光明心'], [
     { name: 'cites 《白话佛法》 (reply or sources)', ok: (r, books) => has(r, '白话佛法') || books.some((b) => b.startsWith('白话佛法')) },
   ]),
-  fellow('R28 同修轮 提高境界 → 有（c53fd896）', ['要怎样才能提高境界', '有']),
+  {
+    // 09-16 architect answer A7(b): turn 2 asserts only the 同修轮 hygiene; the
+    // structure (2–3 verbatim quotes with a source) is asserted on turn 1 —
+    // after an open question in turn 1, a bare 「有」 may fairly earn a follow-up
+    // question rather than another two quotes. A7(a) tells turn 1 not to end
+    // with a yes/no question in the first place.
+    label: 'R28 同修轮 提高境界 → 有（c53fd896）',
+    turns: ['要怎样才能提高境界', '有'],
+    firstTurnChecks: fellowChecks(['要怎样才能提高境界']),
+    checks: [
+      { name: 'pre-reply level (cues) = experienced', ok: () => levelFromCues(['要怎样才能提高境界', '有']).level === 'experienced' },
+      { name: 'no 📿 功课 block', ok: (r) => !/📿/.test(r) },
+      { name: 'no 遍数／张数 outside quotes', ok: (r) => !COUNT_ANY_RE.test(proseOnly(r)) },
+      { name: 'does not ask whether they chant', ok: (r) => !ASKS_IF_CHANTING_RE.test(r.replace(/\s+/g, '')) },
+      { name: 'no 查不到／partial guard tail', ok: (r) => !GUARD_TAIL_RE.test(r) },
+    ],
+  },
   {
     label: 'R29 同修轮 安老院佛台结缘（长者关怀，37a5bc19）',
     turns: [R29_Q],
@@ -525,6 +545,10 @@ const FELLOW_CASES: Case[] = [
       { name: 'pre-reply level (cues) = experienced', ok: () => levelFromCues([R29_Q]).level === 'experienced' },
       { name: 'pre-reply needs_care (cues)', ok: () => needsCareFromCues([R29_Q]).needsCare },
       { name: 'invites a volunteer to follow up (义工)', ok: (r) => has(r, '义工') },
+      // 09-16 architect answer A3: 《解答来信疑惑（第一百七十二篇）》「请下多尊菩萨像
+      // → 21 张、各 7 遍」 is one 同修's case. It may be narrated, never handed to
+      // this visitor as her own 功课 (no 📿 count line, no 「你可以念 N 张／遍」).
+      { name: 'case numbers not turned into her 功课 (no 📿 count line / 「你可以念 N」)', ok: (r) => !homeworkLines(r).some((l) => /\d+\s*[遍张]/.test(l)) && !PERSONAL_COUNT_RE.test(r.replace(/\s+/g, '')) },
       { name: 'body ≤ 300 chars (长者关怀)', ok: (r) => bodyChars(r) <= 300 },
       { name: 'no 查不到／partial guard tail', ok: (r) => !GUARD_TAIL_RE.test(r) },
     ],
@@ -548,6 +572,30 @@ const FELLOW_CASES: Case[] = [
     ],
   },
 ];
+
+// R32 (09-16 architect answer C2, conversation 353886cf of 09-14 — the visitor's
+// own letter): the 09-16 review night marked this 「该答不答」. Personal 张数 are
+// not ours to set, but 《心灵法门入门手册》's GENERAL statement is official and
+// must be given — 「一般初学者可以先念 4-10 张小房子给自己的要经者」 / 「确定不了
+// 数量就坚持给自己的要经者念」 — before saying the personal number needs 师父
+// 开示 or a volunteer. A bare 「台长看图腾才能开示」 refusal is the failure.
+const R32_Q =
+  '​您好：\n\n​请教同修一个关于梦境的疑问。我做了一个梦，醒来后直觉与一位前同事有关，想请示这个梦境的具体含义以及是否需要念诵经文组合（小房子）化解。\n\n​梦境具体内容：\n​我梦见自己正开车行驶在高速公路上，不知为何车子突然开上了一座高山。\n\n​随后出现了一名身穿白衣的男子，他质问我开的车是不是“偷了去问神的人的车”。\n\n​现实背景与关联：\n​之前因工作交接，我曾去过一位女同事的家。她家设有私人神坛/道场，父亲从事通灵、问事、帮人补运及冲花水等活动。家中供奉的神像脸上贴有符咒，\n\n​当时去她家时，对方父亲曾强行拉起我的手看相（非我自愿）。我当时心里很抗拒，便在心中不断向观世音菩萨与南京菩萨祈祷，并全程默默持诵《大悲咒》。\n\n​梦醒后，白衣男子提到“问神的人的车”，让我立刻联想到这位同事及其父亲。\n\n​想请教的问题：\n​这个梦境是否与这位通灵人及其父亲有关？是否意味着对方的气场或灵性对我产生了影响？\n​梦中白衣男子的质问是什么提示？针对这个梦境，我需要念诵多少张经文组合（小房子）以及哪些经文来化解？\n​感恩合十\n郑同修 敬上';
+const TOTEM_ONLY_REFUSAL_RE = /(只能|只有|必须)[^。！？\n]{0,12}(台长|师父)[^。！？\n]{0,10}(看图腾|图腾)[^。！？\n]{0,12}(才能|才可以|才知道)|那属于[^。！？\n]{0,10}图腾/;
+const XFZ_COUNT_CASE: Case = {
+  label: 'R32 小房子张数给一般说法（353886cf）',
+  q: R32_Q,
+  checks: [
+    {
+      name: 'gives the 《入门手册》 general statement (4-10 张 / 坚持给自己的要经者念)',
+      ok: (r) => { const s = r.replace(/\s+/g, ''); return /4-10张|4至10张|四到十张/.test(s) || /坚持给自己的要经者念/.test(s); },
+    },
+    { name: 'no 「只能台长看图腾才能开示」-style refusal of the count', ok: (r) => !TOTEM_ONLY_REFUSAL_RE.test(r.replace(/\s+/g, '')) },
+    { name: 'still defers the personal number (师父开示／义工)', ok: (r) => { const s = r.replace(/\s+/g, ''); return /师父开示|台长开示|义工/.test(s); } },
+    { name: 'no totem reading applied to the visitor', ok: (r) => !appliesTotemToVisitor(r) },
+    { name: 'no blanket 查不到 tail', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
+  ],
+};
 
 // Batch 4 (F08 prompt consolidation) — one case per architect decision that
 // changed behaviour: C2 关系类×分档 (R18), C3 给了再问 EN (R19), C5 安全优先级
@@ -618,7 +666,12 @@ const STRIP_TAIL_CASES: Case[] = [
     label: 'R22 已在修梦见蛇 → 加什么（d7897fd1）',
     turns: ['梦到买一条蛇，不知道放哪里，实然看到飞进房间，感觉他是照顾我。请问这是什么意思', '有', '大悲咒21', '心经21'],
     checks: [
-      { name: 'at least two sutras each with a count', ok: (r) => { const s = r.replace(/\s+/g, ''); const n = ['往生咒|往生净土神咒', '解结咒', '消灾吉祥神咒', '大悲咒', '心经', '礼佛大忏悔文', '准提神咒'].filter((x) => new RegExp(`(?:${x})[^\\n📿]{0,26}\\d+遍`).test(s)).length; return n >= 2; } },
+      // 09-16 architect answer B2: an already-practising visitor gets NO personal
+      // 功课. The reply may name the sutras the retrieved text names and give the
+      // card's standard range (21／27／49) as a general statement — never
+      // 「你每天 N 遍」 and never a 📿 line carrying a count.
+      { name: 'names ≥2 sutras from the source text', ok: (r) => { const s = r.replace(/\s+/g, ''); return ['往生咒|往生净土神咒', '解结咒', '消灾吉祥神咒', '大悲咒|大悲心陀罗尼', '心经', '礼佛大忏悔文', '准提神咒'].filter((x) => new RegExp(`(?:${x})`).test(s)).length >= 2; } },
+      { name: 'counts only as a general range, no personal 「你每天 N 遍」 / 📿 count line', ok: (r) => !PERSONAL_COUNT_RE.test(r.replace(/\s+/g, '')) && !homeworkLines(r).some((l) => /\d+\s*遍/.test(l)) },
       { name: '📿 lines use the full sutra names (Ken 09-12)', ok: (r) => homeworkUsesFullNames(r) },
       { name: 'no orphan 祈求词', ok: (r) => !orphanPrayer(r) },
       { name: 'no blanket 查不到 tail', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) },
@@ -820,7 +873,7 @@ async function main() {
     // Invariant: whatever ships must itself pass the guard.
     const residual = checkDraft(fullText, passages.map((p) => p.text), turns, {
       canonicalTexts: passages.filter((p) => p.type === 'canonical_ruling').map((p) => p.text),
-      caseTexts: passages.filter((p) => p.type === 'case_qa').map((p) => p.text),
+      caseTexts: passages.filter((p) => p.type === 'case_qa' || p.type === 'letter_qa').map((p) => p.text),
     });
     const naive = c.compareNaive ? await naiveSearch(turns[turns.length - 1]) : null;
     return { c, fullText, replies, guard, books, types, passages, residual, transcript, naive };
@@ -843,7 +896,7 @@ async function main() {
   const concurrency = concArg >= 0 ? Math.max(1, parseInt(process.argv[concArg + 1] ?? '0', 10) || 0) : 0;
   const pool: Case[] = chipsOnly
     ? chipCases(QUICK_QUESTIONS)
-    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, TOTEM_CASE, XFZ_CASE, ...BATCH4_CASES, ...STRIP_TAIL_CASES, ...FELLOW_CASES, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
+    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, TOTEM_CASE, XFZ_CASE, ...BATCH4_CASES, ...STRIP_TAIL_CASES, ...FELLOW_CASES, XFZ_COUNT_CASE, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
   const selected = pool.filter(
     (c) => !only || only.some((id) => c.label.startsWith(id + ' ') || c.label.startsWith(id))
   );
