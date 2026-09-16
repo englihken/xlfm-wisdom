@@ -1,0 +1,4 @@
+warming 2 chips against https://xlfm-wisdom.vercel.app · concurrency 3
+✓ zh work_karma           14.4s 3281 bytes · stages retrieving>drafting>verifying
+✓ en child_emotions       33.0s 3635 bytes · stages retrieving>drafting>verifying>verifying
+done: 2/2 ok

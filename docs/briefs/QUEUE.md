@@ -5,7 +5,7 @@
 | # | 简报 | 模型 | 状态 | 报告 |
 |---|---|---|---|---|
 | 6 | `2026-09-13-architect-answers-2.md` — 架构师对 #3／#5／#4 报告「待架构师」的答复：level 封顶 beginner、stage 优先、letter_qa 数字按案例类、佛台仪轨只转述同情形、R28 (a)+(b)、R22 改断言、GitHub Actions 每晚探针、citation_no_date 新口径、小房子张数给《入门手册》一般说法（R32） | [opus] | 已交付 · `docs/reviews/2026-09-16-architect-answers-2.md`（A1/A2/A3/A7/B1/B2/C 全做；过程中修掉 pinned 卡被旧副本顶掉的检索 bug；R32 1/2、R29 长度、R32 断言严格度待架构师） | `docs/reviews/2026-09-16-architect-answers-2.md` |
-| 7 | Sonnet 观察第 4–6 天（09-14 → 09-16，架构师已读库，数字在 Project `sonnet-watch-day4-6-2026-09-16.md`；CC 补代码侧与 chips）：Ken 点卡「重同步」后 `warm-chips-prod.ts` 18 条核对（zh beginner_first_step 三部、family_conflict 三部＋解结咒、长句祈求词）；探针三问；EN 同修一例；`docs/canon/pinned-cards.json` 与库一致（updated_at 2026-09-16T12:22:00Z） | [opus] | 待执行 | `docs/reviews/2026-09-16-sonnet-watch-day4-6.md` |
+| 7 | Sonnet 观察第 4–6 天（09-14 → 09-16，架构师已读库，数字在 Project `sonnet-watch-day4-6-2026-09-16.md`；CC 补代码侧与 chips）：Ken 点卡「重同步」后 `warm-chips-prod.ts` 18 条核对（zh beginner_first_step 三部、family_conflict 三部＋解结咒、长句祈求词）；探针三问；EN 同修一例；`docs/canon/pinned-cards.json` 与库一致（updated_at 2026-09-16T12:22:00Z） | [opus] | 已交付 · `docs/reviews/2026-09-16-sonnet-watch-day4-6.md`（夜审 NI 41.2→0→16.0%，不回退；访客 blanket 尾巴四天 0；chips 18/18 live；探针 3/3；EN 同修一例绿） | `docs/reviews/2026-09-16-sonnet-watch-day4-6.md` |
 
 | 8 | `2026-09-16-welcome-language.md` — 智慧问答开场弹窗先选语言：弹窗内三语 pill、`?lang=`／localStorage／浏览器语言决定默认、首页 EN／ID 链接带参数；第三语言名称待 Ken 定（Bahasa Malaysia vs Indonesia） | [opus] | 待执行 | `docs/reviews/2026-09-16-welcome-language.md` |
 
