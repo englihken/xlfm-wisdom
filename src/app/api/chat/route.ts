@@ -13,6 +13,7 @@ import {
   decideTurnLevel,
   loadPersistedLevel,
   withLevelBlock,
+  withVolunteerNotes,
   crisisFastLaneText,
   flagCrisisByKeywords,
   generateGuardedReplyText,
@@ -22,6 +23,7 @@ import {
   type CareSource,
   type ReplyStage,
 } from '@/lib/care-pipeline';
+import { pendingVolunteerReplies } from '@/lib/pending-replies';
 import { isAiDraftEnabled } from '@/lib/org-settings';
 import { recordReplyFailure } from '@/lib/ops-alerts';
 import { processFailedReplies } from '@/lib/reply-recovery';
@@ -394,12 +396,18 @@ async function handleTurn(
   // client gets the same silent volunteer-handling stream it already knows.
   // Missing key / unreachable table → true (today's behavior).
   const chip = history.length === 0 && !crisisText ? matchChip(message) : null;
-  const [aiDraftEnabled, chipHit, persistedLevel] = await Promise.all([
+  const [aiDraftEnabled, chipHit, persistedLevel, volunteerNotes] = await Promise.all([
     isAiDraftEnabled(),
     chip ? lookupChipAnswer(chip.question, chip.language) : Promise.resolve(null),
     // 同修轮 (09-13): what storage already knows — conversations.level and the
     // volunteer-set contacts.stage — joins the other pre-retrieval lookups.
     loadPersistedLevel({ conversationId, browserId }),
+    // 教义护栏 §7: a returning visitor's new conversation carries what a
+    // volunteer told them in the last 7 days (e.g. a doctrine correction), so
+    // the bot does not repeat the advice that was corrected.
+    history.length === 0 && browserId && !chip
+      ? pendingVolunteerReplies(browserId, 7, { includeSeen: true, excludeConversationId: conversationId }).then((r) => r ?? [])
+      : Promise.resolve([]),
   ]);
   const turnLevel = decideTurnLevel(messages, persistedLevel);
   ctx.level = turnLevel.level;
@@ -411,7 +419,7 @@ async function handleTurn(
   // triage question is routed onto the 功课 baseline. A volunteer's turn in
   // the history counts as the assistant side (same mapping as Step 3).
   const passages = chipHit ? [] : await searchRelevantTeachings(message, undefined, language, ctx);
-  const contextBlock = withLevelBlock(formatPassagesAsContext(passages), turnLevel);
+  const contextBlock = withVolunteerNotes(withLevelBlock(formatPassagesAsContext(passages), turnLevel), volunteerNotes);
   if (!chipHit) {
     console.log('[chat] Retrieved passages:', passages.map((t) => ({ book: t.book, score: t.score.toFixed(3) })));
   }

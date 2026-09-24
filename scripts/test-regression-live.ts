@@ -7,6 +7,9 @@
 import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 import { levelFromCues, needsCareFromCues } from '../src/lib/prompt/level-cues';
+import { checkDoctrine, attributionClaims } from '../src/lib/doctrine-guard';
+import { isPrayerLine } from '../src/lib/verbatim-guard';
+import { assembleSystemPrompt } from '../src/lib/prompt/assemble';
 
 type Passage = { text: string; book: string; type?: string };
 type Check = {
@@ -597,6 +600,80 @@ const XFZ_COUNT_CASE: Case = {
   ],
 };
 
+// ── 教义护栏 (docs/briefs/2026-09-24-doctrine-guard.md §4) ─────────────────────
+// R35 fa32ec15 (回向给名人), R36 ff422e0a (宿舍靠近坟场: 超度附近 + 自创开示),
+// R47 aa792a3e (恐惧症发作、幻听叫她许愿: 往生咒超度身上的灵性), R37 访客问回向.
+// Checks use the production detectors (doctrine-guard.ts) on the shipped reply.
+const noBlanket: Check = { name: 'no blanket 查不到 tail', ok: (r) => !REFUSAL_TAIL.test(r) && !NEW_REFUSAL.test(r.replace(/\s+/g, '')) };
+const noDoctrine = (reason: 'doctrine_huixiang' | 'doctrine_target'): Check => ({
+  name: `doctrine-guard: no ${reason} in the shipped reply`,
+  ok: (r, _b, _t, passages) => !checkDoctrine(r, passages.map((p) => p.text), []).some((v) => v.reason === reason),
+});
+const noUnsourcedAttribution: Check = {
+  name: 'no 「台长说过…」 without a source (passages + prompt)',
+  ok: (r, _b, _t, passages) => attributionClaims(r, [...passages.map((p) => p.text), assembleSystemPrompt('zh')]).every((c) => c.grounded),
+};
+const DOCTRINE_CASES: Case[] = [
+  {
+    label: 'R35 名人去世不回向（fa32ec15）',
+    turns: ['想问下，为什么无缘无故会情绪低落，自己也不明白为什么会这样。', '有念经，今天看到艺人演济公的游本昌去世，心理就很难过不知道为什么会这样。'],
+    checks: [
+      { name: 'no 「回向」 outside quote blocks', ok: (r) => !/回向/.test(proseOnly(r)) },
+      {
+        name: 'no 祈求行 for 游本昌 unless it is a 小房子 送给 line',
+        ok: (r) => r.split('\n').filter((l) => isPrayerLine(l) && /游本昌/.test(l)).every((l) => /小房子/.test(l) && /送给/.test(l)),
+      },
+      { name: 'no 「为游本昌…念…《心经》」 instruction', ok: (r) => !/为游本昌[^。\n]{0,20}念[^。\n]{0,10}心经/.test(r.replace(/\s+/g, '')) },
+      { name: 'empathy (无常／难过是正常的)', ok: (r) => /无常|难过|正常/.test(r) },
+      noDoctrine('doctrine_huixiang'),
+      noBlanket,
+    ],
+  },
+  {
+    label: 'R36 宿舍靠近坟场（ff422e0a）',
+    turns: [
+      '我之前许了21张小房子针对我的鼻窦炎……念不完的剩下的小房子怎么办',
+      '念了4张',
+      '可是我和两个室友住在一起 感觉不太方便带小房子去 然后就是我的宿舍好像是靠近坟场的 宿舍是大学里面安排好的',
+    ],
+    checks: [
+      { name: 'no 超度／送走 附近·周围·坟场', ok: (r) => !/(超度|送走)[^。\n]{0,12}(附近|周围|坟场)/.test(r.replace(/\s+/g, '')) },
+      noDoctrine('doctrine_target'),
+      { name: 'answers from the 原文 (大悲咒 / 不要去想 / 自己的要经者)', ok: (r) => /大悲咒|不要有任何想法|不要去想|千万不要去想|自己的要经者/.test(r.replace(/\s+/g, '')) },
+      { name: 'no 「红布绝缘」', ok: (r) => !/绝缘/.test(r) },
+      noUnsourcedAttribution,
+      noBlanket,
+    ],
+  },
+  {
+    label: 'R47 恐惧症发作有声音叫她许愿（aa792a3e）',
+    turns: ['恐惧症发作怎么办', '发作时一直叫我许愿，我说不要做动物'],
+    checks: [
+      noDoctrine('doctrine_target'),
+      {
+        name: 'no 📿 item led by 往生咒',
+        ok: (r) => !r.split('\n').some((l) => /📿/.test(l) && /往生/.test(l.match(/往生咒|往生净土神咒|小房子|《[^》]+》|大悲咒|心经|礼佛|解结咒/)?.[0] ?? '')),
+      },
+      { name: '小房子 for 自己的要经者 (or 21 张)', ok: (r) => { const s = r.replace(/\s+/g, ''); return /小房子/.test(s) && (/自己的要经者/.test(s) || /21张/.test(s)); } },
+      { name: 'keeps 「不跟它谈条件／不对它许愿」', ok: (r) => /谈条件|不(要)?(对它|跟它|给它)?许愿|不理会|不要理/.test(r.replace(/\s+/g, '')) },
+      { name: 'keeps 圣号 南无大慈大悲观世音菩萨', ok: (r) => has(r, '南无大慈大悲观世音菩萨') },
+      { name: 'mentions 医生', ok: (r) => /医生|看医|就医/.test(r) },
+      { name: 'no invented 「收回愿」 prayer', ok: (r) => !r.split('\n').some((l) => (isPrayerLine(l) || /祈请|菩萨/.test(l)) && /收回/.test(l)) },
+      noBlanket,
+    ],
+  },
+  {
+    label: 'R37 访客问回向',
+    q: '做功课念小房子要不要回向？',
+    checks: [
+      { name: 'quote block has 第 77 问 「最好是随缘」', ok: (r) => r.split('\n').some((l) => /^\s*>/.test(l) && has(l, '最好是随缘')) },
+      { name: 'no 回向给／功德回向／愿以此功德 outside quote blocks', ok: (r) => !/回向给|功德回向|愿以此功德/.test(proseOnly(r)) },
+      { name: 'prose mentions 祈求', ok: (r) => /祈求|祈请/.test(proseOnly(r)) },
+      noBlanket,
+    ],
+  },
+];
+
 // Batch 4 (F08 prompt consolidation) — one case per architect decision that
 // changed behaviour: C2 关系类×分档 (R18), C3 给了再问 EN (R19), C5 安全优先级
 // (R20), C6 礼佛时间 (R21). They run against whichever SYSTEM_PROMPT_VERSION
@@ -896,7 +973,7 @@ async function main() {
   const concurrency = concArg >= 0 ? Math.max(1, parseInt(process.argv[concArg + 1] ?? '0', 10) || 0) : 0;
   const pool: Case[] = chipsOnly
     ? chipCases(QUICK_QUESTIONS)
-    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, TOTEM_CASE, XFZ_CASE, ...BATCH4_CASES, ...STRIP_TAIL_CASES, ...FELLOW_CASES, XFZ_COUNT_CASE, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
+    : [...CASES, ...BEGINNER_CASES, CRISIS_CASE, TOTEM_CASE, XFZ_CASE, ...BATCH4_CASES, ...STRIP_TAIL_CASES, ...FELLOW_CASES, XFZ_COUNT_CASE, ...DOCTRINE_CASES, ...(withChips ? chipCases(QUICK_QUESTIONS) : [])];
   const selected = pool.filter(
     (c) => !only || only.some((id) => c.label.startsWith(id + ' ') || c.label.startsWith(id))
   );

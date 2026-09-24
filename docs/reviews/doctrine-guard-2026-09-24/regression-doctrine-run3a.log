@@ -1,0 +1,275 @@
+◇ injected env (6) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[supabase] Missing SUPABASE env vars — conversation storage disabled
+model=claude-sonnet-4-6 · prompt=v2 · 3 case(s) · concurrency=3
+Running: R35, R36, R47
+[vector-search] timing parallel=2 wall_ms=2606 per_query={"general":2415,"little_house":2605}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=2739 per_query={"general":2737}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  level: 'new',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] pinned cards source=file n=1 (wisdom_15eb9282-581a-4761-a53e-50eb7a74a727)
+[vector-search] timing parallel=1 wall_ms=3136 per_query={"general":3135}
+[vector-search] {
+  userLang: 'zh',
+  topics: [],
+  contextual: false,
+  triageFollowup: false,
+  level: 'new',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R36 violation=quote attempt=1 reason=quote_not_verbatim text="前面的尽量念完，念的同时也可以两边一起念"
+[care-pipeline] conversation=regression-test:R35 citation without date (1) — regenerating once with the format reminder
+[verbatim-guard] conversation=regression-test:R36 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"quote","text":"前面的尽量念完，念的同时也可以两边一起念","reason":"quote_not_verbatim"}],"chunkTokens":["920张","7张","21张","400张","5000张","78张","2235张","27遍","49遍","84遍","87遍","7遍","3遍","1遍","21遍","5遍","4张","10张","3张","800张","80张","2张","1张"],"replyTokens":["21张"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=2 wall_ms=1390 per_query={"general":1196,"little_house":1390}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: true,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[vector-search] timing parallel=1 wall_ms=1682 per_query={"general":1682}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method' ],
+  contextual: true,
+  triageFollowup: false,
+  level: 'new',
+  primaryCount: 10,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R36 violation=number attempt=1 reason=number_not_in_sources text="17张"
+[verbatim-guard] conversation=regression-test:R36 violation=doctrine attempt=1 reason=attribution_unsourced text="有些业障比较深的，需要一拨一拨坚持念下去，直到病情好转为止。"
+[verbatim-guard] conversation=regression-test:R36 violation=number attempt=2 reason=number_not_in_sources text="17张"
+[verbatim-guard] conversation=regression-test:R36 stripped tail=partial
+[verbatim-guard] conversation=regression-test:R36 decision={"outcome":"stripped","canonicalPresent":true,"violations":[{"attempt":1,"type":"number","text":"17张","reason":"number_not_in_sources"},{"attempt":1,"type":"doctrine","text":"有些业障比较深的，需要一拨一拨坚持念下去，直到病情好转为止。","reason":"attribution_unsourced"},{"attempt":2,"type":"number","text":"17张","reason":"number_not_in_sources"}],"chunkTokens":["400张","920张","7张","21张","5000张","78张","49张","69张","27遍","49遍","84遍","87遍","7遍","3遍","1遍","21遍","5遍","4张","10张","3张","800张","80张","2张","1张"],"replyTokens":["21张"],"scrubbed":[],"refusalWithCountsAvailable":false,"tail":"partial"}
+[verbatim-guard] conversation=regression-test:R47 violation=doctrine attempt=1 reason=attribution_unsourced text="发作时灵性叫你念经、叫你许愿——**不要理它，不要照它的意思做**。"
+[doctrine-guard] conversation=regression-test:R47 attribution_unsourced shipped: ["发作时灵性叫你念经、叫你许愿——**不要理它，不要照它的意思做**。"]
+[care-pipeline] conversation=regression-test:R47 citation_book_mismatch: [{"quote":"因为有时候你身上有灵性，他需要什么经他就会叫你念，搞不清楚他就不走了。","cited":"《佛学常识开示锦集》","source":"组织审定"}]
+[verbatim-guard] conversation=regression-test:R47 decision={"outcome":"clean","canonicalPresent":true,"violations":[{"attempt":1,"type":"doctrine","text":"发作时灵性叫你念经、叫你许愿——**不要理它，不要照它的意思做**。","reason":"attribution_unsourced"}],"chunkTokens":["3000张","108张","800张","161张","7遍","3遍","1遍","49遍","21遍","5遍","27遍","84遍","87遍","4张","10张","7张","21张","3张","5张","1张"],"replyTokens":[],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=2 wall_ms=2049 per_query={"little_house":1568,"general":2049}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'little_house_baseline' ],
+  contextual: false,
+  triageFollowup: false,
+  level: 'practising',
+  primaryCount: 12,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R35 violation=doctrine attempt=1 reason=attribution_unsourced text="关键是**学会调节和平衡**，不随境界转。"
+[doctrine-guard] conversation=regression-test:R35 attribution_unsourced shipped: ["关键是**学会调节和平衡**，不随境界转。"]
+[care-pipeline] conversation=regression-test:R35 citation_no_date after retry: ["台长在《玄艺问答》的一期节目里有这样的开示："]
+[verbatim-guard] conversation=regression-test:R35 decision={"outcome":"clean","canonicalPresent":true,"violations":[{"attempt":1,"type":"doctrine","text":"关键是**学会调节和平衡**，不随境界转。","reason":"attribution_unsourced"}],"chunkTokens":["7遍","3遍","1遍","49遍","21遍","5遍","27遍","84遍","87遍","4张","10张","7张","21张","3张","800张","1张"],"replyTokens":["3遍","1遍"],"scrubbed":[],"refusalWithCountsAvailable":false}
+[vector-search] timing parallel=3 wall_ms=1089 per_query={"homework_入门手册":362,"general":363,"homework_175问":1089}
+[vector-search] {
+  userLang: 'zh',
+  topics: [ 'practice_method', 'homework_baseline' ],
+  contextual: true,
+  triageFollowup: true,
+  level: 'new',
+  primaryCount: 14,
+  avgPrimaryScore: undefined,
+  fallbackTriggered: false,
+  fallbackCount: 0
+}
+[verbatim-guard] conversation=regression-test:R36 violation=doctrine attempt=1 reason=doctrine_target text="小房子只给自己的要经者，不为附近的灵性念。"
+[doctrine-guard] conversation=regression-test:R36 seen=doctrine_target outcome=passed_after_retry
+[care-pipeline] conversation=regression-test:R36 citation_book_mismatch: [{"quote":"千万不要去想，不要想\"这是墓地啊，会有鬼来找我啦；哎呀，我倒霉呀！\"……想都不能想。","cited":"《佛学常识开示锦集》","source":"组织审定"}]
+[verbatim-guard] conversation=regression-test:R36 decision={"outcome":"passed_after_retry","canonicalPresent":true,"violations":[{"attempt":1,"type":"doctrine","text":"小房子只给自己的要经者，不为附近的灵性念。","reason":"doctrine_target"}],"chunkTokens":["1张","2张","3张","27遍","49遍","84遍","87遍","7遍","3遍","1遍","21遍","5遍","4张","10张","7张","21张","800张"],"replyTokens":["21张"],"scrubbed":[],"refusalWithCountsAvailable":false}
+
+═══ R35 名人去世不回向（fa32ec15） — guard: clean ═══
+访客：想问下，为什么无缘无故会情绪低落，自己也不明白为什么会这样。
+AI：情绪突然低落，自己也不知道为什么，这种感觉真的很难受 🙏
+
+台长在《玄艺问答》的一期节目里有这样的开示：
+
+> 为什么有白天也有黑夜？当黑夜来临的时候，你会觉得"哎呀，这个天怎么都是黑的"；当白天来临的时候，你觉得"哎呀，这天怎么都是亮的"。人曰"月有阴晴圆缺，人有旦夕祸福"，一个人的心情，因为他是人，他是在运作当中…礼佛大忏悔文》每天 1 遍
+念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障」
+⚠️ 晚上 10 点至凌晨 5 点不念
+
+不会念没关系，有教念视频：
+🔗 https://xinlingfamen.info/jingwen/
+
+坚持念下去，心会慢慢静下来的 🙏 你之前有念过经吗？
+访客：有念经，今天看到艺人演济公的游本昌去世，心理就很难过不知道为什么会这样。
+Sources: 心灵法门入门手册 | 心灵法门入门手册 | 心灵法门入门手册 · types: beginner_guide,qa_collection,video_teaching,core_wisdom,canonical_ruling
+Last-turn retrieval (ALL 11): 心灵法门入门手册 p23 | 心灵法门入门手册 p36 | 心灵法门入门手册 p29 | 佛学问答175问 p156 | 白话佛法视频开示（第四册） p67 | 白话佛法（第四册） p278 | 白话佛法视频开示（第一册） p39 | 白话佛法（第三册） p38 | 白话佛法（第四册） p279 | 白话佛法视频开示（第四册） p110 | 组织审定
+  ✓ no 「回向」 outside quote blocks
+  ✗ no 祈求行 for 游本昌 unless it is a 小房子 送给 line
+  ✓ no 「为游本昌…念…《心经》」 instruction
+  ✓ empathy (无常／难过是正常的)
+  ✓ doctrine-guard: no doctrine_huixiang in the shipped reply
+  ✓ no blanket 查不到 tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+原来是这样 🙏 看到一位德艺双馨的老艺人离开，心里会难过，这是很自然的共情。
+
+游本昌老先生把济公这个形象演得深入人心，很多人从小看到大，有感情是正常的。
+
+---
+
+你已经在念经，很好 🙏
+
+对于过世的人，心灵法门最好的方式是念经时在心里为他祈请，例如：
+
+「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑游本昌老先生往生善道，离苦得乐」
+
+这份心意菩萨会知道的。
+
+---
+
+你自己情绪低落这件事，继续好好念功课，心经特别适合调节情绪和智慧。坚持念，菩萨会保佑你 🙏
+
+═══ R36 宿舍靠近坟场（ff422e0a） — guard: passed_after_retry flags=doctrine_target,citation_book_mismatch ═══
+访客：我之前许了21张小房子针对我的鼻窦炎……念不完的剩下的小房子怎么办
+AI：剩下的小房子继续念就好，不需要重新许愿 🙏
+
+台长在《佛学常识开示锦集（第一册）》里有提到，如果在念的当中又有新的灵性来要，可以两边一起念——前面的尽量念完。同样的道理，已经许愿的这一拨，就继续念下去，直到念完为止。
+
+**没念完的，不要放弃，接着念就是了。**
+
+许愿的张数是你跟菩萨的承诺，尽量按时完成。如果生活真的很忙，也可以调整节奏——每天能念几张念几张，坚持下去比一次念很多更重要。
+
+念完这 21 张之后，可以再观察鼻窦炎的情况，如果还没好转，可以再许一拨继续念 🙏
+访客：念了4张
+AI：按自己的节奏，每天能念几张念几张，把这一拨 21 张念完再说。
+
+鼻窦炎这类身体问题，台长的开示是业障所致，小房子帮助消业还债。念完这一拨之后再看看情况，必要时再许一拨继续。
+
+你现在每天功课有在做吗？（大悲咒、心经、礼佛）
+
+补充说明：个别涉及遍数／张数的细节因暂未能核对到原文，已略去未写；以上写出的数字均出自检索到的官方资料。如需进一步确认，请咨询就近共修会的义工 🙏
+访客：可是我和两个室友住在一起 感觉不太方便带小房子去 然后就是我的宿舍好像是靠近坟场的 宿舍是大学里面安排好的
+Sources: 小房子念诵指南 | 小房子念诵指南 | 解答来信疑惑 · types: xiaofangzi_guide,letter_qa,buddhist_basics,disciple_teaching,core_wisdom,canonical_ruling
+Last-turn retrieval (ALL 13): 小房子念诵指南 p38 | 小房子念诵指南 p22 | 解答来信疑惑 | 佛学常识开示锦集（第一册） p275 | 解答来信疑惑 | 佛学常识开示锦集（第一册） p264 | 佛学常识开示锦集（第一册） p242 | 佛学常识开示锦集（第一册） p122 | 弟子开示（第一册） p226 | 白话佛法（第七册） p201 | 小房子念诵指南 p11 | 小房子念诵指南 p21 | 组织审定
+  ✓ no 超度／送走 附近·周围·坟场
+  ✓ doctrine-guard: no doctrine_target in the shipped reply
+  ✓ answers from the 原文 (大悲咒 / 不要去想 / 自己的要经者)
+  ✓ no 「红布绝缘」
+  ✓ no 「台长说过…」 without a source (passages + prompt)
+  ✓ no blanket 查不到 tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+靠近坟场这个不用太担心 🙏
+
+台长在《佛学常识开示锦集》里开示过：
+
+> 千万不要去想，不要想"这是墓地啊，会有鬼来找我啦；哎呀，我倒霉呀！"……想都不能想。
+
+所以最重要的是——**念经时不要有任何想法，不要给谁念，就只管念自己的功课**。多念《大悲咒》增强功德和功力，小房子只给自己的要经者。
+
+**关于室友不方便的问题：**
+
+小房子可以放在红布或红信封里，包好收起来，不显眼。不用摆出来，念的时候拿出来，念完再包好放回去就可以了。
+
+平时在宿舍念经也可以背着念、小声念，不需要让室友知道。台长说过，宿舍里念经，"谁知道你嘴巴里在唱什么呀"——低调地念就好 🙏
+
+继续把这一拨 21 张念完，菩萨会照顾你的。
+
+═══ R47 恐惧症发作有声音叫她许愿（aa792a3e） — guard: clean flags=attribution_unsourced,citation_book_mismatch ═══
+访客：恐惧症发作怎么办
+AI：恐惧发作时，心里很乱，很难受 🙏
+
+台长在开示里说过，恐惧症的根源往往是**能量不足、正信正念不够**。身上有灵性的时候，人特别容易害怕、焦虑、控制不了自己的情绪。
+
+**发作当下，先做这一件事：**
+
+把手放在胸口，轻轻念：
+> 「南无大慈大悲观世音菩萨」
+
+不要和那种恐惧的感觉对抗，也不要去想它从哪里来——就只是…观世音菩萨摩诃萨保佑我（姓名）忏悔消除业障」
+
+📿 小房子给自己的要经者，先念 21 张，再根据情况 21 张 21 张往上加
+
+---
+
+台长也提醒：**精神类的病，念经与看医生要并行**。身心兼修，两手抓效果才好。
+
+发作时不要和灵性谈条件，也不对它许愿——就念菩萨圣号，把心稳住 🙏
+
+你之前有在做日常功课吗？
+访客：发作时一直叫我许愿，我说不要做动物
+Sources: 解答来信疑惑 | 玄艺综述 | 佛学常识开示锦集（第二册） · types: letter_qa,case_qa,buddhist_basics,marriage_case_study,disease_encyclopedia,canonical_ruling
+Last-turn retrieval (ALL 11): 解答来信疑惑 | 玄艺综述 | 佛学常识开示锦集（第二册） p176 | 婚姻·情感（第二册） p184 | 解答来信疑惑 | 解答来信疑惑 | 佛学常识开示锦集（第一册） p94 | 疾病百科（一） p237 | 解答来信疑惑 | 解答来信疑惑 | 组织审定
+  ✓ doctrine-guard: no doctrine_target in the shipped reply
+  ✓ no 📿 item led by 往生咒
+  ✓ 小房子 for 自己的要经者 (or 21 张)
+  ✓ keeps 「不跟它谈条件／不对它许愿」
+  ✓ keeps 圣号 南无大慈大悲观世音菩萨
+  ✗ mentions 医生
+  ✓ no invented 「收回愿」 prayer
+  ✓ no blanket 查不到 tail
+  ✓ final text passes guard (0 residual)
+--- reply ---
+这种情况需要特别注意 🙏
+
+台长开示过，发作时灵性叫你念经、叫你许愿——**不要理它，不要照它的意思做**。
+
+台长在《佛学常识开示锦集》里有这样的开示：
+
+> 因为有时候你身上有灵性，他需要什么经他就会叫你念，搞不清楚他就不走了。
+
+意思是：灵性叫你做什么，你就照做，它反而不走。**它要的，不一定是对你好的。**
+
+---
+
+**发作时只做一件事：**
+
+念菩萨圣号，把心稳住：
+「南无大慈大悲观世音菩萨」
+
+不理它，不跟它讲条件，不许愿。
+
+---
+
+**关于"叫你说不要做动物"：**
+
+如果你在不清醒、发作的状态下说了什么话、许了什么愿——台长教我们，可以念《礼佛大忏悔文》忏悔，跟菩萨说明那不是你真心所愿。具体情况建议联系就近共修会义工面谈，他们会帮你判断。
+
+---
+
+最重要的是：**坚持功课，坚持给自己的要经者念小房子**。灵性要的是你的债，你还了，它自然离开。
+
+你现在有在做日常功课吗？有没有在念小房子？🙏
+
+=== timing / cost · model=claude-sonnet-4-6 ===
+  R35 名人去世不回向（fa32ec15）                    turns=2 wall/turn=21956ms calls=3 effort=medium/low out_tokens=1627 cost=$0.471
+  R36 宿舍靠近坟场（ff422e0a）                     turns=3 wall/turn=18464ms calls=6 effort=low out_tokens=1577 cost=$0.661
+  R47 恐惧症发作有声音叫她许愿（aa792a3e）               turns=2 wall/turn=16555ms calls=2 effort=medium out_tokens=1285 cost=$0.430
+turn wall p50=18464ms p90=21956ms avg=18992ms · first_text avg=2168ms · calls/turn=1.57 · cache hits=8/11
+cost: total=$1.562 · per turn=$0.2231 (7 turns)
+pinned cards attached: 1 (source=file; wisdom_15eb9282-581a-4761-a53e-50eb7a74a727)
+checks: 21/23 passed · cases: 1/3 fully green
+
+2 CHECKS FAILED

@@ -15,6 +15,7 @@ import {
   isPrayerLine,
   isApprovedPrayerLine,
 } from '../src/lib/verbatim-guard';
+import { checkDoctrine, stripDoctrine, targetHit, huixiangHit, attributionClaims } from '../src/lib/doctrine-guard';
 
 let passed = 0;
 let failed = 0;
@@ -496,6 +497,108 @@ console.log('— F01 negatives (batch 2 §1): (subject, count) pairs + sentence 
   const teaching = '> 境界的提升是看不见，摸不着的，只有靠你自己慢慢地悟';
   assert('N12 an ordinary quote is still checked verbatim', quoteNV(teaching).length > 0);
   assert('N12 isApprovedPrayerLine: plain prose is not a prayer line', !isApprovedPrayerLine('师父说：多念心经开智慧'));
+}
+
+{
+  // D1–D5 (09-24 doctrine-guard §2 / §4): 回向 / 超度对象 / 归因.
+  const hxBad = [
+    '为游本昌先生念几遍《心经》回向给他 🙏',
+    '念完之后把功德回向给妈妈。',
+    '可以念一段回向文。',
+    '愿以此功德，庄严佛净土。',
+    '念完经记得做回向。',
+    '念经之后回向给冤亲债主就可以了。',
+    'After reciting, you can dedicate the merit to your mother.',
+    'Setelah membaca, melimpahkan jasa kepada ibu.',
+  ];
+  for (const s of hxBad) assert(`D1 回向 flagged: ${s}`, huixiangHit(s, []));
+  const EN_PRAYER = 'help me transfer merits to the minor spirits that have died because of me';
+  assert('D1 EN official 往生咒 prayer (「transfer merits」 in a retrieved chunk) → not flagged', !huixiangHit(`Prayer: "May Guan Yin Bodhisattva ${EN_PRAYER}"`, [], `...${EN_PRAYER}...`));
+  assert('D1 EN 「transfer merits」 with no chunk using it → flagged', huixiangHit('Recite and transfer merits to your late father.', [], ''));
+  assert('D1 bare 回向 flagged when the visitor never said it', huixiangHit('回向是一种大愿力。', []));
+  assert('D1 bare 回向 allowed when the visitor asked about it', !huixiangHit('回向最好是随缘。', ['念小房子要不要回向？']));
+  assert('D1 strong 回向给 still flagged even when the visitor asked', huixiangHit('你可以回向给妈妈。', ['要不要回向？']));
+  assert('D1 plain 祈求 prose is fine', !huixiangHit('念经前祈请菩萨保佑妈妈身体健康。', []));
+  assert('D1 English merit without dedication is fine', !huixiangHit('The merit of reciting is great.', []));
+  assert('D1 visitor asked about merit → bare merit dedication phrase still strong-flagged', huixiangHit('dedicate merit to all beings', ['should I dedicate merit?']));
+
+  const tgBad = [
+    '往生咒每天21遍，超度附近的小灵性',
+    '**3. 往生咒可以超度身上的灵性**',
+    '**往生咒** 超度身上的小灵性',
+    '📿 《往生咒》49 遍——超度身上的灵性',
+    '给宿舍附近的灵性念往生咒',
+    '念小房子送给坟场的孤魂野鬼',
+    '往生咒超度身边聚集的小灵性',
+    '用往生咒超度妈妈',
+    '念大悲咒超度医院里的灵性',
+    '念心经超度一切众生',
+  ];
+  for (const s of tgBad) assert(`D2 超度对象 flagged: ${s}`, targetHit(s));
+  const tgOk = [
+    '超度因我而死去的小灵性',
+    '给自己的要经者念小房子',
+    '超度双方的冤亲债主',
+    '敬赠 XXX 的要经者',
+    '超度亡人',
+    '超度打胎的孩子',
+    '念小房子给房子的要经者',
+    '不要为附近的灵性念经',
+    '小房子超度妈妈',
+    '往生咒超度因我而死去的小灵性，小房子超度亡人',
+    '把小房子送给妈妈，这里要注意时间',
+    '往生咒不能超度亡人',
+  ];
+  for (const s of tgOk) assert(`D2 allowed: ${s}`, !targetHit(s));
+  assert('D2 prayer line under 📿 往生咒 aimed at 妈妈 → flagged (item context)', targetHit('念前祈请：「…帮助我超度妈妈（姓名）往生西方极乐世界」', true));
+  assert('D2 prayer line under 📿 往生咒 for 因我而死去的小灵性 → fine', !targetHit('念前祈请：「…帮助我超度因我而死去的小灵性，帮助我消除孽障」', true));
+
+  // Verified quote of 第 77 问 is exempt; a paraphrase in prose is not.
+  const Q77 = '我们心灵法门念经、做功课、念小房子之前所做的祈求也是另外一种形式的回向，就是直接回向，给谁念经为谁祈求就相当于回向给谁。';
+  const quoted = `台长在《佛学问答》第 77 问开示：\n\n> ${Q77}`;
+  assert('D3 verbatim 第 77 问 in a quote block → no doctrine violation', checkDoctrine(quoted, [Q77], ['要不要回向']).length === 0, checkDoctrine(quoted, [Q77], []));
+  const para = `> 给谁念经为谁祈求就相当于回向给我们的妈妈。`;
+  assert('D3 non-verbatim quote block still checked for 回向', checkDoctrine(para, [Q77], []).some((v) => v.reason === 'doctrine_huixiang'));
+
+  // Stripping shapes.
+  const draft = [
+    '妈妈刚走，这份痛很深 🙏',
+    '',
+    '**当下最简单的做法：**',
+    '',
+    '📿 《千手千眼无碍大悲心陀罗尼》（大悲咒）每天 3 遍',
+    '念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑我（姓名）身体健康，增强功力」',
+    '',
+    '📿 《往生净土神咒》（往生咒）每天 21 遍',
+    '念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨帮助我超度妈妈（姓名）往生西方极乐世界」',
+    '（晚上 10 点后不念）',
+    '',
+    '实际上能做的：',
+    '- 往生咒每天21遍，超度附近的小灵性',
+    '',
+    '为妈妈念几遍《心经》回向给她。菩萨听得到你 🙏',
+  ].join('\n');
+  const v = checkDoctrine(draft, [], []);
+  const out = stripDoctrine(draft, v);
+  assert('D4 whole 往生咒 item removed (📿 + prayer + ⚠ line)', !/往生/.test(out) && !/极乐/.test(out) && !/10 点后不念/.test(out), out);
+  assert('D4 unrelated 大悲咒 item kept with its prayer', /大悲咒.*3 遍/.test(out) && /身体健康，增强功力/.test(out), out);
+  assert('D4 dangling 「实际上能做的：」 lead-in removed', !/实际上能做的/.test(out), out);
+  assert('D4 回向 sentence removed, rest of the line kept', !/回向/.test(out) && /菩萨听得到你/.test(out), out);
+  assert('D4 no orphan prayer line (every prayer line follows a 📿 line)', out.split('\n').every((l, i, a) => !/^念前祈请/.test(l) || /📿/.test(a[i - 1] ?? '')), out);
+  const hxItem = ['📿 《心经》每天 3 遍，回向给游本昌先生', '念前祈请：「祈请南无大慈大悲救苦救难广大灵感观世音菩萨摩诃萨保佑游本昌先生往生善道」', '', '坚持念 🙏'].join('\n');
+  const hxOut = stripDoctrine(hxItem, checkDoctrine(hxItem, [], []));
+  assert('D4 回向 on a 📿 line → the item and its prayer line go', !/心经/.test(hxOut) && !/游本昌/.test(hxOut) && /坚持念/.test(hxOut), hxOut);
+
+  // (c) attribution.
+  const CH = '千万不要去想，不要想"这是墓地啊，会有鬼来找我啦；哎呀，我倒霉呀！"……想都不能想。';
+  const claims = attributionClaims('台长开示过，红布包好是绝缘的，可以隔开灵性。台长教过：千万不要去想这是墓地会有鬼来找我。台长在《玄艺问答》里开示过：', [CH]);
+  assert('D5 fabricated 「红布绝缘」 claim is unsourced', claims.some((c) => /红布/.test(c.claim) && !c.grounded), claims);
+  assert('D5 paraphrase of a retrieved passage is grounded', claims.some((c) => /墓地/.test(c.claim) && c.grounded), claims);
+  assert('D5 bare lead-in 「开示过：」 (claim < 6) is skipped', claims.length === 2, claims);
+  assert('D5 「台长教的方法」 (relative clause) is not a claim', attributionClaims('按照台长教的方法，每天念大悲咒七遍就好。', []).length === 0);
+  const av = checkDoctrine('台长说过，念经人身上有菩萨保护，不容易被干扰。', [CH], []);
+  assert('D5 attribution violation surfaces from checkDoctrine', av.length === 1 && av[0].reason === 'attribution_unsourced', av);
+  assert('D5 attribution is never stripped (phase 1)', stripDoctrine('台长说过，念经人身上有菩萨保护。', av) === '台长说过，念经人身上有菩萨保护。');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

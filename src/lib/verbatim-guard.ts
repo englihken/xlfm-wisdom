@@ -61,10 +61,15 @@ export type GuardViolationReason =
   | 'number_visitor_as_advice'
   // F01: the count exists only in a CASE source (玄艺综述/玄艺问答 个案) and
   // the sentence is not narrating that case (「你可以念200张」).
-  | 'number_case_generalized';
+  | 'number_case_generalized'
+  // 教义护栏 (09-24, doctrine-guard.ts): teaching 回向; chanting for spirits
+  // that are not the visitor's own; 「台长说过」 + content in no passage.
+  | 'doctrine_huixiang'
+  | 'doctrine_target'
+  | 'attribution_unsourced';
 
 export type GuardViolation = {
-  type: 'quote' | 'number';
+  type: 'quote' | 'number' | 'doctrine';
   text: string;
   reason: GuardViolationReason;
   // F01: the subject the count was bound to (大悲咒 / 礼佛 / 小房子 …), null
@@ -529,6 +534,7 @@ export function chooseGuardTail(
   violations: GuardViolation[],
   opts: { level?: string | null } = {}
 ): GuardTail {
+  // Doctrine violations (09-24) are not a missing figure: never a tail.
   if (!violations.some((v) => v.type === 'number')) return 'none';
   // 同修轮 (09-13): an experienced practitioner's reply should carry no counts
   // at all — a stripped number is the model over-reaching, not a figure the
