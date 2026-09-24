@@ -67,6 +67,7 @@ export type AuditAction =
   // 09-13 xfz-retrieval brief §1.4: a verbatim quote credited to a different
   // book than the passage it matches (soft: flag + audit, no strip, no retry).
   | 'care.citation_book_mismatch'
+  | 'care.attribution_unsourced'
   // "别再把访客弄丢" (08-30): reply-failure trail + alerts + dead-letter queue.
   | 'care.reply_failed'
   | 'care.reply_recovered'

@@ -36,6 +36,8 @@ import {
   type GuardTail,
   isApprovedPrayerLine,
 } from './verbatim-guard';
+import { checkDoctrine, stripDoctrine, doctrineRetryLines } from './doctrine-guard';
+import { assembleSystemPrompt } from './prompt/assemble';
 import { wisdomEntryIdsInPassages, incrementWisdomUseCounts } from './wisdom-sync';
 import { levelFromCues, needsCareFromCues, maxLevel, stageToLevel, isVisitorLevel, type VisitorLevel } from './prompt/level-cues';
 import { writeAudit } from './audit';
@@ -335,13 +337,17 @@ function buildRetryInstruction(violations: GuardViolation[], level?: VisitorLeve
       ...(numbers.length > 0
         ? [`- 同修轮不写遍数／张数：把「${numbers.join('」「')}」连同所在句子改成不带数字的建议（例如「多念心经开智慧」），不要换成别的数字。`]
         : []),
+      // 教义护栏 (09-24): 同修 ask about 回向 more often, not less.
+      ...doctrineRetryLines(violations),
       '重写时不要写「查不到相关原文」「资料里没有写明」一类的话；其余内容保持不变。',
     ].join('\n');
   }
   const lines: string[] = [
     '【重要纠正】你上一稿有以下内容未通过与检索段落的逐字核对，请重写整个回答：',
   ];
+  lines.push(...doctrineRetryLines(violations));
   for (const v of violations) {
+    if (v.type === 'doctrine') continue;
     if (v.type === 'quote') {
       const shown = v.text.length > 60 ? `${v.text.slice(0, 60)}…` : v.text;
       lines.push(
@@ -395,6 +401,14 @@ function buildOverStripInstruction(violations: GuardViolation[], chunkTokens: st
 
 export type GuardOutcome = 'clean' | 'passed_after_retry' | 'stripped';
 
+// 教义护栏 (c): the zh prompt modules ground 「台长说过」 claims too (org-curated
+// 台长 lines). Built once per process; overlay en/id serve the same modules.
+let attributionPromptCache: string | null = null;
+function attributionPromptText(): string {
+  if (attributionPromptCache === null) attributionPromptCache = assembleSystemPrompt('zh');
+  return attributionPromptCache;
+}
+
 // One decision record per guarded reply that the guard touched. Written to
 // console (Vercel logs) AND, for real conversations, to audit_log as
 // module='care' action='care.guard' record_id=<conversation_id> — so the next
@@ -405,7 +419,7 @@ export type GuardDecisionLog = {
   canonicalPresent: boolean;
   // Every violation from all attempts (3 = the over-strip regeneration), with
   // the reason it failed.
-  violations: { attempt: 1 | 2 | 3; type: 'quote' | 'number'; text: string; reason: string }[];
+  violations: { attempt: 1 | 2 | 3; type: GuardViolation['type']; text: string; reason: string }[];
   tail?: GuardTail | 'safe-reply';
   // Stripping left a 祈求词 with no sutra named → an extra regeneration ran.
   overStripRegen?: boolean;
@@ -585,6 +599,26 @@ export async function generateGuardedReplyText(params: {
     scrubbed: [],
     refusalWithCountsAvailable: false,
   };
+  // 教义护栏 (09-24): doctrine detectors run next to checkDraft and share its
+  // retry → strip flow. 回向／超度对象 are counted whenever a draft carried them
+  // (even if the retry fixed it); 「台长说过」 without a source only when it ships
+  // (phase 1: retry + flag, never stripped — brief §2 (c)).
+  //
+  // Deviation from the brief (report §待架构师): 「台长说过」 without a source
+  // never triggers a regeneration by itself — the §5 sample put ~54% of replies
+  // at one or more such lines and ~75% of those claims unsourced, i.e. a second
+  // full generation on roughly 4 in 10 replies. It rides along with any retry
+  // that happens anyway and is flagged + audited otherwise.
+  // DOCTRINE_ATTRIBUTION_RETRY=always restores the brief's retry-on-its-own.
+  const attributionRetryAlone = process.env.DOCTRINE_ATTRIBUTION_RETRY?.trim() === 'always';
+  const attributionExtra = [attributionPromptText()];
+  const doctrineSeen = new Set<string>();
+  const checkAll = (d: string): GuardViolation[] => {
+    const v = [...checkDraft(d, chunkTexts, visitorTexts, guardOpts), ...checkDoctrine(d, chunkTexts, visitorTexts, { attributionExtra })];
+    for (const x of v) if (x.type === 'doctrine' && x.reason !== 'attribution_unsourced') doctrineSeen.add(x.reason);
+    return v;
+  };
+  const blocking = (v: GuardViolation[]) => v.filter((x) => x.reason !== 'attribution_unsourced');
   const recordViolations = (attempt: 1 | 2 | 3, violations: GuardViolation[]) => {
     for (const v of violations) {
       console.error(
@@ -609,6 +643,16 @@ export async function generateGuardedReplyText(params: {
     // now fill programmatically from passage metadata (§C), then flag what is
     // still missing.
     const flags: string[] = [];
+    for (const r of doctrineSeen) flags.push(r);
+    if (doctrineSeen.size > 0) console.error(`[doctrine-guard] conversation=${convId} seen=${[...doctrineSeen].join(',')} outcome=${guard}`);
+    const unsourced = checkDoctrine(scrub0.text, chunkTexts, visitorTexts, { attributionExtra }).filter((v) => v.reason === 'attribution_unsourced');
+    if (unsourced.length > 0) {
+      flags.push('attribution_unsourced');
+      console.error(`[doctrine-guard] conversation=${convId} attribution_unsourced shipped: ${JSON.stringify(unsourced.map((v) => v.text))}`);
+      if (UUID_RE.test(convId)) {
+        await writeAudit({ actorId: null, actorEmail: null, module: 'care', action: 'care.attribution_unsourced', tableName: 'conversations', recordId: convId, after: { claims: unsourced.map((v) => v.text), model } });
+      }
+    }
     const dated = fillCitationDates(scrub0.text, passages);
     if (dated.filled.length > 0) console.log(`[care-pipeline] conversation=${convId} citation dates filled from metadata: ${JSON.stringify(dated.filled)}`);
     const scrub = { ...scrub0, text: dated.text };
@@ -670,8 +714,12 @@ export async function generateGuardedReplyText(params: {
 
   let draft = textOf(result);
   stage('verifying');
-  let violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);
+  let violations = checkAll(draft);
   if (violations.length === 0) return finish(draft, 'clean');
+  if (blocking(violations).length === 0 && !attributionRetryAlone) {
+    recordViolations(1, violations);
+    return finish(draft, 'clean');
+  }
   recordViolations(1, violations);
 
   // One corrective regeneration, told exactly what failed and what to keep.
@@ -681,13 +729,16 @@ export async function generateGuardedReplyText(params: {
     return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'passed_after_retry', modelCalls, flags: [] };
   }
   draft = textOf(result);
-  violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);
-  if (violations.length === 0) return finish(draft, 'passed_after_retry');
+  violations = checkAll(draft);
+  if (blocking(violations).length === 0) {
+    if (violations.length > 0) recordViolations(2, violations);
+    return finish(draft, 'passed_after_retry');
+  }
   recordViolations(2, violations);
 
   // Last resort: strip the offending content, then choose a tail that cannot
   // contradict what survived (08-16 defect: blanket 查不到 after correct 21遍).
-  let stripped = stripViolations(draft, violations);
+  let stripped = stripDoctrine(stripViolations(draft, violations), violations);
 
   // Over-strip guard (conv c47ffe52): if stripping left a 祈求词 with no sutra
   // named, the 功课 answer was gutted — regenerate once more, telling the
@@ -702,10 +753,13 @@ export async function generateGuardedReplyText(params: {
       return { fullText: REFUSAL_REPLY[language], refused: true, guard: 'stripped', modelCalls, flags: [] };
     }
     draft = textOf(result);
-    violations = checkDraft(draft, chunkTexts, visitorTexts, guardOpts);
-    if (violations.length === 0) return finish(draft, 'passed_after_retry');
+    violations = checkAll(draft);
+    if (blocking(violations).length === 0) {
+      if (violations.length > 0) recordViolations(3, violations);
+      return finish(draft, 'passed_after_retry');
+    }
     recordViolations(3, violations);
-    stripped = stripViolations(draft, violations);
+    stripped = stripDoctrine(stripViolations(draft, violations), violations);
   }
 
   if (normalizeForGuard(stripped).length < 40) {
@@ -903,6 +957,26 @@ export function levelContextBlock(turn: Pick<TurnLevel, 'level' | 'needsCare'>):
 }
 
 /** The retrieval context block with this turn's level instruction appended. */
+/**
+ * 教义护栏 §7: what a volunteer recently told this visitor (last 7 days, ≤ 2
+ * notes, ≤ 300 chars each), appended to the per-turn context block (never the
+ * cached prefix) with the rule to stay consistent with it.
+ */
+export function withVolunteerNotes(contextBlock: string, notes: { content: string; created_at: string }[]): string {
+  const list = notes.filter((n) => n.content?.trim()).slice(0, 2);
+  if (list.length === 0) return contextBlock;
+  const lines = list.map((n) => {
+    const text = n.content.replace(/\s+/g, ' ').trim();
+    return `- （${n.created_at.slice(0, 10)}）${text.length > 300 ? `${text.slice(0, 300)}…` : text}`;
+  });
+  return [
+    contextBlock,
+    '【义工最近给这位访客的留言】',
+    ...lines,
+    '规则：回答要与义工的留言一致；义工已经更正过的建议（例如回向、为别处的灵性念经、往生咒的用途）不要再给一次。不要向访客复述这段留言，除非访客问起。',
+  ].join('\n');
+}
+
 export function withLevelBlock(contextBlock: string, turn: Pick<TurnLevel, 'level' | 'needsCare'>): string {
   return [contextBlock, levelContextBlock(turn)].filter(Boolean).join('\n\n');
 }

@@ -42,6 +42,9 @@ const TRANSLATIONS = {
     sourcesTitle: '参考开示：',
     volunteerLabel: '义工回复 🙏',
     volunteerHandlingNotice: '现在由我们的义工亲自为您回复 🙏',
+    volunteerNoteTitle: '义工给你的留言 🙏',
+    volunteerNoteAbout: '关于你之前问的：',
+    volunteerNoteDismiss: '知道了',
     welcomeTitle: '欢迎来到 心灵法门 智慧问答',
     welcomePrivacy: '关于您的隐私',
     welcomePrivacy1: '你的对话内容将严格保密，必要时会有义工提供协助。',
@@ -79,6 +82,9 @@ const TRANSLATIONS = {
     sourcesTitle: 'References:',
     volunteerLabel: 'Volunteer reply 🙏',
     volunteerHandlingNotice: 'A volunteer is personally replying to you now 🙏',
+    volunteerNoteTitle: 'A message from our volunteer 🙏',
+    volunteerNoteAbout: 'About what you asked earlier:',
+    volunteerNoteDismiss: 'Got it',
     welcomeTitle: 'Welcome to Xin Ling Fa Men Wisdom Q&A',
     welcomePrivacy: 'Your Privacy',
     welcomePrivacy1: 'Your conversations are kept strictly confidential. A volunteer may step in to help when needed.',
@@ -116,6 +122,9 @@ const TRANSLATIONS = {
     sourcesTitle: 'Referensi:',
     volunteerLabel: 'Balasan sukarelawan 🙏',
     volunteerHandlingNotice: 'Seorang sukarelawan sedang membalas anda secara peribadi 🙏',
+    volunteerNoteTitle: 'Pesan dari sukarelawan kami 🙏',
+    volunteerNoteAbout: 'Tentang pertanyaan anda sebelumnya:',
+    volunteerNoteDismiss: 'Baik',
     welcomeTitle: 'Selamat Datang ke Xin Ling Fa Men Wisdom Q&A',
     welcomePrivacy: 'Privasi Anda',
     welcomePrivacy1: 'Perbualan anda dirahsiakan sepenuhnya. Sukarelawan mungkin membantu apabila diperlukan.',
@@ -146,6 +155,18 @@ function isNearBottom(): boolean {
 }
 
 // Same honest wording as the server's failure path (GENERATION_FAILED_REPLY).
+type PendingReplyCard = { conversation_id: string; message_id: string; content: string; created_at: string; first_question: string };
+const SEEN_VOLUNTEER_KEY = 'xlfm_seen_volunteer';
+function readSeenVolunteerIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(SEEN_VOLUNTEER_KEY);
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    return new Set(Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
 function failureText(language: 'zh' | 'en' | 'id'): string {
   return language === 'zh'
     ? '不好意思，系统这会儿有点问题，没能马上回你 🙏 你的问题我们已经记下来了，义工会尽快跟进。如果方便，可以留个联系方式。'
@@ -211,6 +232,42 @@ export default function QAPage() {
     }
     browserIdRef.current = id;
   }, []);
+
+  // 教义护栏 brief §7: volunteer replies that arrived after the visitor left an
+  // earlier conversation (the updates poll only covers the open one). Fetched
+  // once the welcome modal is out of the way; a dismissed card's message id is
+  // remembered in localStorage so it never shows again.
+  const [pendingReplies, setPendingReplies] = useState<PendingReplyCard[]>([]);
+  useEffect(() => {
+    if (hasSeenWelcome !== true) return;
+    const browserId = browserIdRef.current;
+    if (!browserId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/chat/pending-replies?browserId=${encodeURIComponent(browserId)}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { replies?: PendingReplyCard[] };
+        const seen = readSeenVolunteerIds();
+        if (!cancelled) setPendingReplies((data.replies ?? []).filter((r) => !seen.has(r.message_id)));
+      } catch {
+        /* a missing card must never break the page */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasSeenWelcome]);
+  const dismissPendingReply = (messageId: string) => {
+    const seen = readSeenVolunteerIds();
+    seen.add(messageId);
+    try {
+      localStorage.setItem(SEEN_VOLUNTEER_KEY, JSON.stringify([...seen].slice(-200)));
+    } catch {
+      /* private mode: the card just comes back next visit */
+    }
+    setPendingReplies((list) => list.filter((r) => r.message_id !== messageId));
+  };
 
   const dismissWelcome = () => {
     localStorage.setItem('xlfm-welcome-seen', 'true');
@@ -633,6 +690,32 @@ export default function QAPage() {
               </button>
             </div>
           </form>
+
+          {pendingReplies.length > 0 && (
+            <div className="w-full mb-6 space-y-3" data-testid="volunteer-notes">
+              {pendingReplies.map((r) => (
+                <div key={r.message_id} className="bg-surface border border-border rounded-2xl p-4 text-ink-body" data-testid="volunteer-note">
+                  <div className="text-xs font-medium text-accent-deep mb-1.5">{t.volunteerNoteTitle}</div>
+                  {r.first_question && (
+                    <p className="text-sm text-ink-muted mb-2">
+                      {t.volunteerNoteAbout}「{r.first_question}」
+                    </p>
+                  )}
+                  <p className="whitespace-pre-wrap leading-relaxed">{r.content}</p>
+                  <div className="mt-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => dismissPendingReply(r.message_id)}
+                      className="text-sm px-3 py-1.5 rounded-lg border border-border hover:border-accent hover:text-ink transition"
+                      data-testid="volunteer-note-dismiss"
+                    >
+                      {t.volunteerNoteDismiss}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="w-full">
             <p className="text-sm text-ink-muted text-center mb-3">{t.quickTitle}</p>

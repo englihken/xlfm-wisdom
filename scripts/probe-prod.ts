@@ -1,12 +1,12 @@
 // scripts/probe-prod.ts — production probe (brief 2026-09-13-xfz-retrieval-and-prayer-guard §1.3).
-// Three questions through the REAL production /api/chat, as a synthetic
+// Four questions (R37 回向 added 09-24) through the REAL production /api/chat, as a synthetic
 // visitor (browserId test-suite:probe → contacts.is_test: never in the inbox,
 // counts, summaries or reviews), asserting that the standard numbers land
 // paired with their sutra, with no guard placeholder and no tail. R17 stayed
 // green locally while production answered 「一张小房子的经文组合是」 without
 // 84／87 — this is the check that runs where visitors are.
 //   npx tsx scripts/probe-prod.ts [--base https://xlfm-wisdom.vercel.app]
-// One line per question and a final 「probe: N/3 ok」 line for the watch report;
+// One line per question and a final 「probe: N/4 ok」 line for the watch report;
 // exit 1 on any failure.
 
 const argOf = (name: string, dflt: string) => {
@@ -41,11 +41,22 @@ function paired(reply: string, sutra: string, n: number): boolean {
   return new RegExp(`(${names})[^。\\n📿]{0,24}?${enumWith}|${enumWith}[^。\\n📿]{0,4}(${names})`).test(s);
 }
 
-const PROBES: { q: string; pairs: [string, number][] }[] = [
+// 教义护栏 R37 (09-24): the visitor asks about 回向 — the reply quotes 第 77 问
+// (「最好是随缘」) in a quote block and teaches no 回向给／功德回向 in prose.
+const R37_CHECK = (text: string): string[] => {
+  const prose = text.split('\n').filter((l) => !/^\s*>/.test(l)).join('\n');
+  const bad: string[] = [];
+  if (!text.split('\n').some((l) => /^\s*>/.test(l) && l.replace(/\s+/g, '').includes('最好是随缘'))) bad.push('no 第77问 quote');
+  if (/回向给|功德回向|愿以此功德/.test(prose)) bad.push('回向 taught in prose');
+  return bad;
+};
+
+const PROBES: { q: string; pairs: [string, number][]; extra?: (text: string) => string[] }[] = [
   { q: '一张小房子的经文组合是什么', pairs: COMPOSITION },
   { q: '小房子的篇数是多少？', pairs: COMPOSITION },
   // 功课卡: 往生咒一般 21、27、49 遍 — 21 must be there, paired.
   { q: '往生咒念多少遍', pairs: [['往生咒', 21]] },
+  { q: '做功课念小房子要不要回向？', pairs: [], extra: R37_CHECK },
 ];
 
 async function ask(q: string): Promise<{ text: string; ms: number; status: number }> {
@@ -73,7 +84,7 @@ async function main() {
   let ok = 0;
   for (const p of PROBES) {
     const { text, ms, status } = await ask(p.q);
-    const missing = p.pairs.filter(([s, n]) => !paired(text, s, n)).map(([s, n]) => `${s}${n}`);
+    const missing = [...p.pairs.filter(([s, n]) => !paired(text, s, n)).map(([s, n]) => `${s}${n}`), ...(p.extra?.(text) ?? [])];
     const placeholder = text.includes(PLACEHOLDER);
     const tail = TAIL_RE.test(text);
     const pass = status === 200 && text.length > 0 && missing.length === 0 && !placeholder && !tail;
