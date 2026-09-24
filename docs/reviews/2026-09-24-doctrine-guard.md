@@ -131,7 +131,17 @@ R37（访客问回向）：
 
 ## 7. 上线后
 
-（部署后补：probe 4 问、§7 截图、次日夜审 flags 计数。）
+合并 `404b70d`，09-24 约 16:15 UTC 推到 main，Vercel 自动部署。
+
+- **探针** `probe-prod.ts`（加了 R37 一问）：**4/4**，R37 回复含第 77 问引文、散文里不教回向（`probe-prod.log`）。
+- **§7 线上验证**：
+  - 在 `test-suite:probe-return` 名下造了一通对话：访客一句、一小时后义工一句（`contacts.is_test`，不进收件箱和统计）。
+  - `GET /api/chat/pending-replies` 返回这条留言和原问题片段。
+  - `/qa` 在 chips 上方显示卡片（截图 `qa-volunteer-note-card.jpg`）。
+  - 点「知道了」后 `xlfm_seen_volunteer` 记下 message id，刷新后卡片不再出现，chips 照常。
+  - Chrome 扩展的模拟点击在本机没有进到页面（页面上的捕获监听一次都没收到 click），所以「知道了」是在页面里调 `button.click()` 触发的，走的是同一个 React 处理函数。按钮上方没有遮挡（`elementFromPoint` 命中按钮本身）。
+  - 本简报没有要求加 Playwright，仓库里也没有 Playwright。
+- **次日夜审里三类 flag 的计数**：留到下一份 Sonnet 观察报告（部署到现在还不到一天）。查询：`select unnest(flags) f, count(*) from messages where created_at >= '2026-09-24 16:15+00' and flags && array['doctrine_huixiang','doctrine_target','attribution_unsourced'] group by 1`。
 
 ## 待架构师
 
